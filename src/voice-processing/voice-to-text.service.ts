@@ -1,0 +1,37 @@
+import { Injectable, Logger } from '@nestjs/common'
+import OpenAI from 'openai'
+import { ConfigService } from '@nestjs/config'
+
+@Injectable()
+export class VoiceToTextService {
+    private readonly logger = new Logger(VoiceToTextService.name)
+    private openai: OpenAI
+
+    constructor(private configService: ConfigService) {
+        this.openai = new OpenAI({
+            apiKey: this.configService.get<string>('OPENAI_API_KEY')
+        })
+    }
+
+    async transcribeAudio(audioUrl: string): Promise<string> {
+        this.logger.log(`Transcribing audio from: ${audioUrl}`)
+
+        try {
+            // Download audio file and convert to buffer
+            const response = await fetch(audioUrl)
+            const audioBlob = await response.blob()
+            const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mpeg' })
+
+            const transcription = await this.openai.audio.transcriptions.create({
+                file: audioFile,
+                model: 'whisper-1'
+            })
+
+            this.logger.log(`Transcription completed: ${transcription.text}`)
+            return transcription.text
+        } catch (error) {
+            this.logger.error(`Transcription failed: ${error.message}`)
+            throw error
+        }
+    }
+}

@@ -1,0 +1,131 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  extensions = [postgis]
+}
+
+model CallsMaster {
+  call_sid          String    @id
+  caller_number     String?
+  call_to           String?
+  flow_id           String?
+  tenant_id         String?
+  call_start_time   DateTime?
+  call_end_time     DateTime?
+  service_selected  Boolean   @default(false)
+  poll_entered      Boolean   @default(false)
+  voicemail_left    Boolean   @default(false)
+  final_call_status String?
+  created_at        DateTime  @default(now())
+  updated_at        DateTime  @updatedAt
+
+  service_selections IvrServiceSelection[]
+  poll_inputs        IvrPollInput[]
+  voicemails         IvrVoicemail[]
+
+  @@map("calls_master")
+}
+
+model IvrServiceSelection {
+  id             BigInt      @id @default(autoincrement())
+  call_sid       String
+  caller_number  String?
+  service_option String?
+  received_at    DateTime    @default(now())
+  raw_payload    Json?
+
+  call           CallsMaster @relation(fields: [call_sid], references: [call_sid])
+
+  @@map("ivr_service_selection")
+}
+
+model IvrPollInput {
+  id            BigInt      @id @default(autoincrement())
+  call_sid      String
+  caller_number String?
+  poll_id       String?
+  received_at   DateTime    @default(now())
+  raw_payload   Json?
+
+  call          CallsMaster @relation(fields: [call_sid], references: [call_sid])
+
+  @@map("ivr_poll_input")
+}
+
+model IvrVoicemail {
+  id                     BigInt      @id @default(autoincrement())
+  call_sid               String
+  caller_number          String?
+  recording_url          String?
+  recording_available_by DateTime?
+  received_at            DateTime    @default(now())
+  raw_payload            Json?
+
+  call                   CallsMaster @relation(fields: [call_sid], references: [call_sid])
+
+  @@map("ivr_voicemail")
+}
+
+model VoiceCall {
+  id                Int       @id @default(autoincrement())
+  call_sid          String?
+  audio_url         String?
+  transcript        String?
+  ai_extracted_json Json?
+  processing_status String    @default("pending")
+  confidence_score  Float?
+  created_at        DateTime  @default(now())
+
+  complaints        Complaint[]
+
+  @@map("voice_calls")
+}
+
+model Panchayat {
+  id             Int                     @id @default(autoincrement())
+  name           String
+  boundary       Unsupported("geometry(Polygon, 4326)")?
+  center_lat     Float?
+  center_lng     Float?
+  ivr_number     String?                 @unique
+
+  electric_poles ElectricPole[]
+  complaints     Complaint[]
+
+  @@map("panchayats")
+}
+
+model ElectricPole {
+  id           Int                                  @id @default(autoincrement())
+  pole_number  String?
+  location     Unsupported("geometry(Point, 4326)")?
+  latitude     Float?
+  longitude    Float?
+  panchayat_id Int?
+
+  panchayat    Panchayat?   @relation(fields: [panchayat_id], references: [id])
+  complaints   Complaint[]
+
+  @@map("electric_poles")
+}
+
+model Complaint {
+  id             Int      @id @default(autoincrement())
+  voice_call_id  Int?
+  pole_id        Int?
+  panchayat_id   Int?
+  complaint_type String?
+  description    String?
+  status         String   @default("pending")
+  created_at     DateTime @default(now())
+
+  voice_call     VoiceCall?    @relation(fields: [voice_call_id], references: [id])
+  pole           ElectricPole? @relation(fields: [pole_id], references: [id])
+  panchayat      Panchayat?    @relation(fields: [panchayat_id], references: [id])
+
+  @@map("complaints")
+}

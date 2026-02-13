@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  # PostgreSQL with PostGIS (Production)
+  postgres:
+    image: postgis/postgis:15-3.3
+    container_name: ivr_postgres_prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    networks:
+      - ivr-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # NestJS Application (Production)
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: ivr_backend_prod
+    restart: always
+    command: sh -c "npx prisma migrate deploy && node dist/main"
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env.production
+    environment:
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?schema=public
+      NODE_ENV: production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ivr-network
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  ivr-network:
+    driver: bridge
+
+volumes:
+  postgres_prod_data:
