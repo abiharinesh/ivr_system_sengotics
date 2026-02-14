@@ -17,10 +17,11 @@ export class AppController {
   @Get('health/db')
   async checkDatabase() {
     try {
-      await this.prisma.$queryRawUnsafe('SELECT 1');
+      await this.prisma.$queryRaw`SELECT 1`;
       return { status: 'ok', message: 'Database Connected' };
     } catch (error) {
-      return { status: 'error', message: 'Database Connection Failed', error: (error as Error).message };
+      console.error('Database Check Error:', error);
+      return { status: 'error', message: 'Database Connection Failed', error: error instanceof Error ? error.message : JSON.stringify(error) };
     }
   }
 }
