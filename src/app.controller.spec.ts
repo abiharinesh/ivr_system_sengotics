@@ -14,7 +14,7 @@ describe('AppController', () => {
         {
           provide: PrismaService,
           useValue: {
-            $queryRaw: jest.fn(),
+            $queryRawUnsafe: jest.fn(),
           },
         },
       ],
