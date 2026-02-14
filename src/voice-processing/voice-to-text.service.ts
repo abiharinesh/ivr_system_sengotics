@@ -8,8 +8,14 @@ export class VoiceToTextService {
     private openai: OpenAI
 
     constructor(private configService: ConfigService) {
+        const apiKey = this.configService.get<string>('OPENAI_API_KEY')
+
+        if (!apiKey) {
+            this.logger.warn('OPENAI_API_KEY is not defined. Voice transcription features will not work.')
+        }
+
         this.openai = new OpenAI({
-            apiKey: this.configService.get<string>('OPENAI_API_KEY')
+            apiKey: apiKey || 'dummy-key',
         })
     }
 
