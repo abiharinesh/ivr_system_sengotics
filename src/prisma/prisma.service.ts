@@ -14,7 +14,10 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
         // Initialize Prisma with PostgreSQL adapter (required for Prisma v7)
         const adapter = new PrismaPg(pool)
-        super({ adapter })
+        super({
+            adapter,
+            log: ['query', 'info', 'warn', 'error']
+        })
     }
 
     async onModuleInit() {
