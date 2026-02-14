@@ -10,10 +10,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
     constructor(private configService: ConfigService) {
         // Initialize PostgreSQL connection pool
-        // family: 4 forces IPv4 to avoid ENETUNREACH errors on Render
         const pool = new Pool({
-            connectionString: configService.get<string>('DATABASE_URL'),
-            family: 4
+            connectionString: configService.get<string>('DATABASE_URL')
         })
 
         // Initialize Prisma with PostgreSQL adapter (required for Prisma v7)
