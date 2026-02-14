@@ -6,16 +6,17 @@ import { PrismaClient } from '@prisma/client'
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
     constructor(private configService: ConfigService) {
         super({
-            datasources: {
-                db: {
-                    url: configService.get('DATABASE_URL'),
-                },
-            },
             log: ['query', 'info', 'warn', 'error']
-        } as any)
+        })
     }
 
     async onModuleInit() {
+        const url = this.configService.get('DATABASE_URL');
+        if (!url) {
+            console.error('DATABASE_URL is not defined!');
+        } else {
+            console.log('DATABASE_URL is defined (length: ' + url.length + ')');
+        }
         await this.$connect()
     }
 
