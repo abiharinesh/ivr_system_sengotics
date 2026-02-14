@@ -1,31 +1,24 @@
-require('dotenv/config')
-const { PrismaClient } = require('@prisma/client')
-const { PrismaPg } = require('@prisma/adapter-pg')
-const { Pool } = require('pg')
-
-// Initialize PostgreSQL connection pool
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-
-// Initialize Prisma with PostgreSQL adapter (required for Prisma v7)
-const adapter = new PrismaPg(pool)
-const prisma = new PrismaClient({ adapter })
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("dotenv/config");
+const client_1 = require("@prisma/client");
+const adapter_pg_1 = require("@prisma/adapter-pg");
+const pg_1 = require("pg");
+const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new adapter_pg_1.PrismaPg(pool);
+const prisma = new client_1.PrismaClient({ adapter });
 async function main() {
-    console.log('🌱 Starting database seed...')
-
-    // Clear existing data
-    console.log('Clearing existing data...')
-    await prisma.complaint.deleteMany()
-    await prisma.electricPole.deleteMany()
-    await prisma.voiceCall.deleteMany()
-    await prisma.ivrVoicemail.deleteMany()
-    await prisma.ivrPollInput.deleteMany()
-    await prisma.ivrServiceSelection.deleteMany()
-    await prisma.callsMaster.deleteMany()
-    await prisma.panchayat.deleteMany()
-
-    // Seed Panchayats
-    console.log('Creating panchayats...')
+    console.log('🌱 Starting database seed...');
+    console.log('Clearing existing data...');
+    await prisma.complaint.deleteMany();
+    await prisma.electricPole.deleteMany();
+    await prisma.voiceCall.deleteMany();
+    await prisma.ivrVoicemail.deleteMany();
+    await prisma.ivrPollInput.deleteMany();
+    await prisma.ivrServiceSelection.deleteMany();
+    await prisma.callsMaster.deleteMany();
+    await prisma.panchayat.deleteMany();
+    console.log('Creating panchayats...');
     const panchayat1 = await prisma.panchayat.create({
         data: {
             name: 'Thayanur',
@@ -33,8 +26,7 @@ async function main() {
             center_lng: 76.9558,
             ivr_number: '04442123456'
         }
-    })
-
+    });
     const panchayat2 = await prisma.panchayat.create({
         data: {
             name: 'Vadavalli',
@@ -42,8 +34,7 @@ async function main() {
             center_lng: 76.9012,
             ivr_number: '04442123457'
         }
-    })
-
+    });
     const panchayat3 = await prisma.panchayat.create({
         data: {
             name: 'Kurichi',
@@ -51,14 +42,10 @@ async function main() {
             center_lng: 76.9345,
             ivr_number: '04442123458'
         }
-    })
-
-    console.log(`✅ Created 3 panchayats`)
-
-    // Seed Electric Poles using raw SQL
-    console.log('Creating electric poles...')
-
-    await prisma.$executeRaw`
+    });
+    console.log(`✅ Created 3 panchayats`);
+    console.log('Creating electric poles...');
+    await prisma.$executeRaw `
     INSERT INTO electric_poles (pole_number, latitude, longitude, location, panchayat_id)
     VALUES 
       ('POLE-TY-001', 11.0170, 76.9560, ST_SetSRID(ST_MakePoint(76.9560, 11.0170), 4326), ${panchayat1.id}),
@@ -68,13 +55,10 @@ async function main() {
       ('POLE-VD-002', 11.0232, 76.9010, ST_SetSRID(ST_MakePoint(76.9010, 11.0232), 4326), ${panchayat2.id}),
       ('POLE-KR-001', 11.0091, 76.9348, ST_SetSRID(ST_MakePoint(76.9348, 11.0091), 4326), ${panchayat3.id}),
       ('POLE-KR-002', 11.0087, 76.9342, ST_SetSRID(ST_MakePoint(76.9342, 11.0087), 4326), ${panchayat3.id})
-  `
-
-    const allPoles = await prisma.electricPole.findMany()
-    console.log(`✅ Created ${allPoles.length} electric poles`)
-
-    // Seed Sample IVR Calls
-    console.log('Creating sample IVR calls...')
+  `;
+    const allPoles = await prisma.electricPole.findMany();
+    console.log(`✅ Created ${allPoles.length} electric poles`);
+    console.log('Creating sample I VR calls...');
     const call1 = await prisma.callsMaster.create({
         data: {
             call_sid: 'CALL-001-SAMPLE',
@@ -89,8 +73,7 @@ async function main() {
             voicemail_left: false,
             final_call_status: 'SUCCESS'
         }
-    })
-
+    });
     await prisma.ivrServiceSelection.create({
         data: {
             call_sid: call1.call_sid,
@@ -98,8 +81,7 @@ async function main() {
             service_option: '1',
             raw_payload: { test: 'sample data' }
         }
-    })
-
+    });
     await prisma.ivrPollInput.create({
         data: {
             call_sid: call1.call_sid,
@@ -107,12 +89,9 @@ async function main() {
             poll_id: '8686',
             raw_payload: { test: 'sample data' }
         }
-    })
-
-    console.log(`✅ Created 1 sample IVR call`)
-
-    // Seed Sample Voice Complaints
-    console.log('Creating sample voice complaints...')
+    });
+    console.log(`✅ Created 1 sample IVR call`);
+    console.log('Creating sample voice complaints...');
     const voiceCall1 = await prisma.voiceCall.create({
         data: {
             call_sid: 'VOICE-001-SAMPLE',
@@ -128,8 +107,7 @@ async function main() {
             processing_status: 'completed',
             confidence_score: 0.92
         }
-    })
-
+    });
     const voiceCall2 = await prisma.voiceCall.create({
         data: {
             call_sid: 'VOICE-002-SAMPLE',
@@ -145,12 +123,9 @@ async function main() {
             processing_status: 'completed',
             confidence_score: 0.85
         }
-    })
-
-    console.log(`✅ Created 2 voice calls`)
-
-    // Seed Complaints
-    console.log('Creating complaints...')
+    });
+    console.log(`✅ Created 2 voice calls`);
+    console.log('Creating complaints...');
     await prisma.complaint.createMany({
         data: [
             {
@@ -177,24 +152,22 @@ async function main() {
                 status: 'resolved'
             }
         ]
-    })
-
-    console.log(`✅ Created 3 complaints`)
-
-    console.log('\n🎉 Database seeded successfully!')
-    console.log('\nSummary:')
-    console.log(`- Panchayats: 3`)
-    console.log(`- Electric Poles: ${allPoles.length}`)
-    console.log(`- IVR Calls: 1`)
-    console.log(`- Voice Complaints: 2`)
-    console.log(`- Total Complaints: 3`)
+    });
+    console.log(`✅ Created 3 complaints`);
+    console.log('\n🎉 Database seeded successfully!');
+    console.log('\nSummary:');
+    console.log(`- Panchayats: 3`);
+    console.log(`- Electric Poles: ${allPoles.length}`);
+    console.log(`- IVR Calls: 1`);
+    console.log(`- Voice Complaints: 2`);
+    console.log(`- Total Complaints: 3`);
 }
-
 main()
     .catch((e) => {
-        console.error('❌ Error seeding database:', e)
-        process.exit(1)
-    })
+    console.error('❌ Error seeding database:', e);
+    process.exit(1);
+})
     .finally(async () => {
-        await prisma.$disconnect()
-    })
+    await prisma.$disconnect();
+});
+//# sourceMappingURL=seed.js.map
