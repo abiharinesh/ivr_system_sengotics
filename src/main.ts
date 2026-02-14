@@ -1,8 +1,3 @@
-// Force IPv4 DNS resolution - must be before any other imports
-// Fixes ENETUNREACH errors on Render when connecting to Supabase
-import dns from 'node:dns'
-dns.setDefaultResultOrder('ipv4first')
-
 import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
