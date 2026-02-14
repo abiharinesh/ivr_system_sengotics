@@ -20,8 +20,7 @@ export class AppController {
       await this.prisma.$queryRaw`SELECT 1`;
       return { status: 'ok', message: 'Database Connected' };
     } catch (error) {
-      console.error('Database Check Error:', error);
-      return { status: 'error', message: 'Database Connection Failed', error: error instanceof Error ? error.message : JSON.stringify(error) };
+      return { status: 'error', message: 'Database Connection Failed', error: error.message };
     }
   }
 }
