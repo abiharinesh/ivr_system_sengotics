@@ -1,7 +1,6 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
-import { Prisma } from '@prisma/client';
 
 @Controller()
 export class AppController {
@@ -18,7 +17,7 @@ export class AppController {
   @Get('health/db')
   async checkDatabase() {
     try {
-      await this.prisma.$queryRaw(Prisma.sql`SELECT 1`);
+      await this.prisma.getPool().query('SELECT 1');
       return { status: 'ok', message: 'Database Connected' };
     } catch (error) {
       return { status: 'error', message: 'Database Connection Failed', error: error.message };
