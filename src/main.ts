@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { AppModule } from './app.module'
+import { DbSetupService } from './prisma/db-setup.service'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
@@ -21,6 +22,10 @@ async function bootstrap() {
     }
     next()
   })
+
+  // Bootstrap Database (Extensions, Seeding)
+  const dbSetupService = app.get(DbSetupService)
+  await dbSetupService.bootstrapDb()
 
   const port = process.env.PORT || 3000
   await app.listen(port)
