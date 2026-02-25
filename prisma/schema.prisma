@@ -95,13 +95,28 @@ model Panchayat {
 
   electric_poles ElectricPole[]
   complaints     Complaint[]
+  users          User[]
 
   @@map("panchayats")
+}
+
+model User {
+  id            Int        @id @default(autoincrement())
+  email         String     @unique
+  password_hash String
+  role          String     @default("panchayat_admin")
+  panchayat_id  Int?
+  created_at    DateTime   @default(now())
+
+  panchayat     Panchayat? @relation(fields: [panchayat_id], references: [id])
+
+  @@map("users")
 }
 
 model ElectricPole {
   id           Int                                  @id @default(autoincrement())
   pole_number  String?
+  keypad_id    String?
   location     Unsupported("geometry(Point, 4326)")?
   latitude     Float?
   longitude    Float?
@@ -110,6 +125,7 @@ model ElectricPole {
   panchayat    Panchayat?   @relation(fields: [panchayat_id], references: [id])
   complaints   Complaint[]
 
+  @@unique([panchayat_id, keypad_id])
   @@map("electric_poles")
 }
 

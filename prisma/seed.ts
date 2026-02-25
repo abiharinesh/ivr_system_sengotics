@@ -31,7 +31,7 @@ async function main() {
             name: 'Thayanur',
             center_lat: 11.0168,
             center_lng: 76.9558,
-            ivr_number: '04442123456'
+            ivr_number: '04440115043'
         }
     })
 
@@ -40,7 +40,7 @@ async function main() {
             name: 'Vadavalli',
             center_lat: 11.0234,
             center_lng: 76.9012,
-            ivr_number: '04442123457'
+            ivr_number: '04440115434'
         }
     })
 
@@ -59,15 +59,15 @@ async function main() {
     console.log('Creating electric poles...')
 
     await prisma.$executeRaw`
-    INSERT INTO electric_poles (pole_number, latitude, longitude, location, panchayat_id)
+    INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id)
     VALUES 
-      ('POLE-TY-001', 11.0170, 76.9560, ST_SetSRID(ST_MakePoint(76.9560, 11.0170), 4326), ${panchayat1.id}),
-      ('POLE-TY-002', 11.0165, 76.9555, ST_SetSRID(ST_MakePoint(76.9555, 11.0165), 4326), ${panchayat1.id}),
-      ('POLE-TY-003', 11.0172, 76.9562, ST_SetSRID(ST_MakePoint(76.9562, 11.0172), 4326), ${panchayat1.id}),
-      ('POLE-VD-001', 11.0236, 76.9015, ST_SetSRID(ST_MakePoint(76.9015, 11.0236), 4326), ${panchayat2.id}),
-      ('POLE-VD-002', 11.0232, 76.9010, ST_SetSRID(ST_MakePoint(76.9010, 11.0232), 4326), ${panchayat2.id}),
-      ('POLE-KR-001', 11.0091, 76.9348, ST_SetSRID(ST_MakePoint(76.9348, 11.0091), 4326), ${panchayat3.id}),
-      ('POLE-KR-002', 11.0087, 76.9342, ST_SetSRID(ST_MakePoint(76.9342, 11.0087), 4326), ${panchayat3.id})
+      ('POLE-TY-001', '1', 11.0170, 76.9560, ST_SetSRID(ST_MakePoint(76.9560, 11.0170), 4326), ${panchayat1.id}),
+      ('POLE-TY-002', '2', 11.0165, 76.9555, ST_SetSRID(ST_MakePoint(76.9555, 11.0165), 4326), ${panchayat1.id}),
+      ('POLE-TY-003', '3', 11.0172, 76.9562, ST_SetSRID(ST_MakePoint(76.9562, 11.0172), 4326), ${panchayat1.id}),
+      ('POLE-VD-001', '1', 11.0236, 76.9015, ST_SetSRID(ST_MakePoint(76.9015, 11.0236), 4326), ${panchayat2.id}),
+      ('POLE-VD-002', '2', 11.0232, 76.9010, ST_SetSRID(ST_MakePoint(76.9010, 11.0232), 4326), ${panchayat2.id}),
+      ('POLE-KR-001', '1', 11.0091, 76.9348, ST_SetSRID(ST_MakePoint(76.9348, 11.0091), 4326), ${panchayat3.id}),
+      ('POLE-KR-002', '2', 11.0087, 76.9342, ST_SetSRID(ST_MakePoint(76.9342, 11.0087), 4326), ${panchayat3.id})
   `
 
     const allPoles = await prisma.electricPole.findMany()

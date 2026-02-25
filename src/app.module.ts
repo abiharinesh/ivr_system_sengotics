@@ -5,7 +5,9 @@ import { AppService } from './app.service'
 import { PrismaModule } from './prisma/prisma.module'
 import { IvrModule } from './ivr/ivr.module'
 import { VoiceProcessingModule } from './voice-processing/voice-processing.module'
-import { AdminModule } from './admin/admin.module'
+import { AuthModule } from './auth/auth.module'
+import { SuperAdminModule } from './super-admin/super-admin.module'
+import { PanchayatAdminModule } from './panchayat-admin/panchayat-admin.module'
 
 @Module({
   imports: [
@@ -16,7 +18,9 @@ import { AdminModule } from './admin/admin.module'
     PrismaModule,
     IvrModule,
     VoiceProcessingModule,
-    AdminModule
+    AuthModule,
+    SuperAdminModule,
+    PanchayatAdminModule
   ],
   controllers: [AppController],
   providers: [AppService]
