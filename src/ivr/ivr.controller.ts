@@ -1,29 +1,52 @@
-import { Controller, Post, Body, HttpCode } from '@nestjs/common'
+import { Controller, Post, Get, Body, Query, Res, UseFilters } from '@nestjs/common'
 import { IvrService } from './ivr.service'
 import { IvrCallbackDto } from './dto/ivr-callback.dto'
+import type { Response } from 'express'
+import { IvrExceptionFilter } from './ivr-exception.filter'
 
+@UseFilters(IvrExceptionFilter)
 @Controller('api/ivr')
 export class IvrController {
     constructor(private readonly ivrService: IvrService) { }
 
+    private sendXml(res: Response): void {
+        const xml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`
+        res.status(200).type('text/xml').send(xml)
+    }
+
     @Post('service')
-    @HttpCode(200)
-    async handleServiceSelection(@Body() data: IvrCallbackDto) {
+    async handleServiceSelectionPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
         await this.ivrService.handleServiceSelection(data)
-        return {}
+        this.sendXml(res)
+    }
+
+    @Get('service')
+    async handleServiceSelectionGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
+        await this.ivrService.handleServiceSelection(data)
+        this.sendXml(res)
     }
 
     @Post('poll')
-    @HttpCode(200)
-    async handlePollInput(@Body() data: IvrCallbackDto) {
+    async handlePollInputPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
         await this.ivrService.handlePollInput(data)
-        return {}
+        this.sendXml(res)
+    }
+
+    @Get('poll')
+    async handlePollInputGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
+        await this.ivrService.handlePollInput(data)
+        this.sendXml(res)
     }
 
     @Post('voicemail')
-    @HttpCode(200)
-    async handleVoicemail(@Body() data: IvrCallbackDto) {
+    async handleVoicemailPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
         await this.ivrService.handleVoicemail(data)
-        return {}
+        this.sendXml(res)
+    }
+
+    @Get('voicemail')
+    async handleVoicemailGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
+        await this.ivrService.handleVoicemail(data)
+        this.sendXml(res)
     }
 }

@@ -5,10 +5,12 @@ export class IvrCallbackDto {
     CallSid: string
 
     @IsString()
-    CallFrom: string
+    @IsOptional()
+    CallFrom?: string
 
     @IsString()
-    CallTo: string
+    @IsOptional()
+    CallTo?: string
 
     @IsString()
     @IsOptional()
@@ -38,9 +40,9 @@ export class IvrCallbackDto {
     @IsOptional()
     CallType?: string
 
-    @IsInt()
+    @IsString()
     @IsOptional()
-    DialCallDuration?: number
+    DialCallDuration?: string
 
     @IsString()
     @IsOptional()

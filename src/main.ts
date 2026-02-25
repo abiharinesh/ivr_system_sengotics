@@ -15,6 +15,14 @@ async function bootstrap() {
     transform: true
   }))
 
+  // Log all incoming requests for debugging
+  app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    if (Object.keys(req.query).length) console.log('[QUERY]', req.query);
+    if (Object.keys(req.body || {}).length) console.log('[BODY]', req.body);
+    next();
+  })
+
   // Support for URL-encoded bodies (Exotel sends this format)
   app.use((req, res, next) => {
     if (req.headers['content-type'] === 'application/x-www-form-urlencoded') {
