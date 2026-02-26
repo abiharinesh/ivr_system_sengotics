@@ -22,11 +22,26 @@ export class VoiceToTextService {
     async transcribeAudio(audioUrl: string): Promise<string> {
         this.logger.log(`Transcribing audio from: ${audioUrl}`)
 
+        // Exotel recording URLs require HTTP Basic Auth to download.
+        // Credentials: EXOTEL_API_KEY : EXOTEL_API_TOKEN
+        const exotelApiKey = this.configService.get<string>('EXOTEL_API_KEY')
+        const exotelApiToken = this.configService.get<string>('EXOTEL_API_TOKEN')
+
+        const headers: Record<string, string> = {}
+
+        if (exotelApiKey && exotelApiToken && audioUrl.includes('exotel')) {
+            const credentials = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64')
+            headers['Authorization'] = `Basic ${credentials}`
+            this.logger.log('Using Exotel Basic Auth for recording download')
+        } else if (!exotelApiKey || !exotelApiToken) {
+            this.logger.warn('EXOTEL_API_KEY or EXOTEL_API_TOKEN not set — fetching without auth (may fail)')
+        }
+
         try {
-            const response = await fetch(audioUrl)
+            const response = await fetch(audioUrl, { headers })
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch audio: HTTP ${response.status} from ${audioUrl}`)
+                throw new Error(`Failed to fetch audio: HTTP ${response.status} ${response.statusText} from ${audioUrl}`)
             }
 
             const audioBlob = await response.blob()
@@ -40,6 +55,7 @@ export class VoiceToTextService {
 
             this.logger.log(`Transcription completed: ${transcription.text}`)
             return transcription.text
+
         } catch (error) {
             this.logger.error(`Transcription failed: ${error.message}`)
             throw error
