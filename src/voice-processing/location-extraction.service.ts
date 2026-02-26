@@ -29,17 +29,16 @@ export class LocationExtractionService {
 Extract structured information from complaint text in Tamil or English.
 Return strictly JSON format with these fields:
 {
-  "village": "name of the village or panchayat mentioned (translate to English if Tamil)",
-  "landmark": "the most descriptive landmark phrase used to describe the pole location (e.g. 'near Mariamman temple', 'opposite the school gate', 'beside the ration shop'). Be as specific and verbatim as possible. Translate to English if needed.",
+  "village": "name of the village or panchayat mentioned (or empty string if none)",
+  "landmark": "Capture the ENTIRE phrase used to describe the location verbatim (e.g. 'கோயிலுக்கு பக்கத்தில இருக்குற' or 'near Mariamman temple'). Do not summarize or cut words out. Translate to English IF and ONLY IF you are absolutely certain of the meaning, otherwise leave it in the original language.",
   "direction": "any directional hint (left side, right side, opposite, etc.)",
   "complaint_type": "type of complaint, one of: light pole not working, power cut, wire damage, transformer issue, other",
-  "confidence_score": 0.0 to 1.0
+  "confidence_score": 0.0 to 1.0 (0.9 if clear landmark is mentioned, 0.3 if very vague)
 }
 
 Rules:
-- Extract the landmark VERBATIM from the complaint, then translate to English if it was in Tamil.
-- If multiple landmarks are mentioned, pick the most specific one.
-- Confidence score should reflect how clearly the location was described (low if only a village name, high if a specific landmark is mentioned).
+- Capture the landmark phrase VERBATIM to avoid losing context.
+- If multiple landmarks are mentioned, capture the whole connected phrase.
 - If unable to extract a field, use empty string.`
 
         try {

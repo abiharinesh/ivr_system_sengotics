@@ -70,7 +70,7 @@ export class IvrController {
             return this.sendXml(res)
         }
 
-        const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl)
+        const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl, data.To || '')
 
         if (result.status === 'not_found') {
             // 404 → Exotel knows landmark matching failed → triggers retry flow
@@ -93,7 +93,7 @@ export class IvrController {
             return this.sendXml(res)
         }
 
-        const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl)
+        const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl, data.To || '')
 
         if (result.status === 'not_found') {
             return res.status(HttpStatus.NOT_FOUND).json({ message: result.message || 'Landmark not matched to any pole' })

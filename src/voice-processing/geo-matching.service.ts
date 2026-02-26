@@ -33,6 +33,18 @@ export class GeoMatchingService {
         return panchayat?.id || null
     }
 
+    async findPanchayatByIvrNumber(ivrNumber: string): Promise<number | null> {
+        this.logger.log(`Finding panchayat for IVR number: ${ivrNumber}`)
+
+        const panchayat = await this.prisma.panchayat.findFirst({
+            where: {
+                ivr_number: ivrNumber
+            }
+        })
+
+        return panchayat?.id || null
+    }
+
     /**
      * Finds the nearest pole for a panchayat using AI-based semantic landmark matching.
      * The AI compares the extracted landmark hint against all stored pole landmarks,
@@ -83,22 +95,24 @@ export class GeoMatchingService {
                 messages: [
                     {
                         role: 'system',
-                        content: `You are a landmark matching engine for electric poles in Tamil Nadu villages.
-You will receive a landmark description spoken by a caller and a list of electric poles with their known landmarks.
-Your job is to find the best matching pole, accounting for:
-- Tamil to English translation differences (e.g. "kovil" = "temple", "pallivasal" = "mosque", "kadai" = "shop")
-- Synonym variations (e.g. "tree" vs "banyan tree")
-- Minor phrasing differences (e.g. "near the temple" vs "beside the temple")
-- Directional hints (left, right, opposite)
+                        content: `You are a highly advanced semantic landmark matching engine for electric poles in Tamil Nadu villages.
+You will receive a spoken landmark phrase (often in Tanglish, Tamil, or poor English translation) and a list of electric poles with their known landmarks.
+Your EXCLUSIVE job is to find the best matching pole. 
+
+Critical matching rules:
+1. SEMANTIC EQUIVALENCE: "kovil" = "temple", "pallivasal" = "mosque", "palli" = "school", "kulam" = "pond", "kanmai" = "lake", "kadai" = "shop", "maram" = "tree", "aruge" = "near", "pakkathil" = "beside", "ethire" = "opposite".
+2. PHONETIC/SPELLING VARIATIONS: "mariyamman" = "mariamman", "pillayar" = "vinayagar", "ayyanar" = "aiyanar", "bus stand" = "bus stop".
+3. PARTIAL MATCHES: If the caller says "near the big banyan tree" and a pole has "banyan tree", that is a MATCH.
+4. If the caller's phrase contains a key entity (like a specific temple name) that exists in a pole's landmarks, SCORE IT HIGHLY (>0.8).
 
 Return ONLY a JSON object in this format:
 {
   "matched_pole_id": <number or null>,
   "confidence": <0.0 to 1.0>,
-  "reason": "<brief explanation>"
+  "reason": "<explain exactly which words matched, e.g. 'Caller said kovil, matched with temple'> "
 }
 
-If no pole has a reasonably matching landmark (confidence < 0.6), return matched_pole_id as null.`
+If no pole has a reasonably matching landmark (confidence < 0.5), return matched_pole_id as null.`
                     },
                     {
                         role: 'user',
@@ -115,7 +129,7 @@ Match the caller's description to the correct pole.`
             const result = JSON.parse(response.choices[0].message.content || '{}')
             this.logger.log(`AI match result: ${JSON.stringify(result)}`)
 
-            if (!result.matched_pole_id || result.confidence < 0.6) {
+            if (!result.matched_pole_id || result.confidence < 0.5) {
                 this.logger.warn(`No confident match found (confidence: ${result.confidence}). Reason: ${result.reason}`)
                 return null
             }

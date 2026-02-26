@@ -24,7 +24,7 @@ export class VoiceProcessingService {
         private geoMatching: GeoMatchingService
     ) { }
 
-    async processVoiceComplaint(callSid: string, audioUrl: string, recordingAvailableBy?: Date): Promise<VoiceProcessingResult> {
+    async processVoiceComplaint(callSid: string, audioUrl: string, ivrNumber: string): Promise<VoiceProcessingResult> {
         this.logger.log(`Processing voice complaint for CallSid: ${callSid}`)
 
         let voiceCall;
@@ -65,15 +65,15 @@ export class VoiceProcessingService {
                 return { success: true, status: 'manual_review', message: 'Low confidence — flagged for manual review' }
             }
 
-            // Step 5: Match panchayat
-            const panchayatId = await this.geoMatching.findPanchayatByName(extracted.village)
+            // Step 5: Match panchayat using the IVR number dialed
+            const panchayatId = await this.geoMatching.findPanchayatByIvrNumber(ivrNumber)
             if (!panchayatId) {
                 await this.prisma.voiceCall.update({
                     where: { id: voiceCall.id },
                     data: { processing_status: 'manual_review' }
                 })
-                this.logger.warn(`Village not found: ${extracted.village}`)
-                return { success: true, status: 'manual_review', message: `Village not found: ${extracted.village}` }
+                this.logger.warn(`Panchayat not found for IVR number: ${ivrNumber}`)
+                return { success: true, status: 'manual_review', message: `Panchayat not found for IVR number: ${ivrNumber}` }
             }
 
             // Step 6: Find nearest pole using AI landmark matching
