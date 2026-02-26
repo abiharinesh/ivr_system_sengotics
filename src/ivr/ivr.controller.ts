@@ -16,8 +16,9 @@ export class IvrController {
     ) { }
 
     private sendXml(res: Response): void {
-        const xml = `<?xml version="1.0" encoding="UTF-8"?><Response></Response>`
-        res.status(200).type('text/xml').send(xml)
+        // Exotel expects a valid TwiML response. Empty <Response> tags can sometimes be treated as 404/invalid.
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>Complaint registered successfully</Say>\n</Response>`
+        res.status(200).type('application/xml').send(xml)
     }
 
     @Post('service')
