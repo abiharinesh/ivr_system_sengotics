@@ -27,9 +27,10 @@ export class VoiceProcessingService {
     async processVoiceComplaint(callSid: string, audioUrl: string, recordingAvailableBy?: Date): Promise<VoiceProcessingResult> {
         this.logger.log(`Processing voice complaint for CallSid: ${callSid}`)
 
+        let voiceCall;
         try {
             // Step 1: Create voice call record
-            const voiceCall = await this.prisma.voiceCall.create({
+            voiceCall = await this.prisma.voiceCall.create({
                 data: {
                     call_sid: callSid,
                     audio_url: audioUrl,
@@ -114,6 +115,18 @@ export class VoiceProcessingService {
 
         } catch (error) {
             this.logger.error(`Voice processing failed: ${error.message}`)
+
+            if (voiceCall) {
+                try {
+                    await this.prisma.voiceCall.update({
+                        where: { id: voiceCall.id },
+                        data: { processing_status: 'failed' }
+                    })
+                } catch (dbError) {
+                    this.logger.error(`Failed to update voiceCall status: ${dbError.message}`)
+                }
+            }
+
             throw error
         }
     }
