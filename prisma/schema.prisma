@@ -121,6 +121,7 @@ model ElectricPole {
   latitude     Float?
   longitude    Float?
   panchayat_id Int?
+  landmarks    String[]                             @default([])
 
   panchayat    Panchayat?   @relation(fields: [panchayat_id], references: [id])
   complaints   Complaint[]

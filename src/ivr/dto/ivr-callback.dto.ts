@@ -71,4 +71,8 @@ export class IvrCallbackDto {
     @IsString()
     @IsOptional()
     RecordingAvailableBy?: string
+
+    @IsString()
+    @IsOptional()
+    ProcessStatus?: string
 }

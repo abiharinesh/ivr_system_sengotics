@@ -4,6 +4,15 @@ import { VoiceToTextService } from './voice-to-text.service'
 import { LocationExtractionService } from './location-extraction.service'
 import { GeoMatchingService } from './geo-matching.service'
 
+export type VoiceProcessingStatus = 'completed' | 'manual_review' | 'not_found'
+
+export interface VoiceProcessingResult {
+    success: boolean
+    status: VoiceProcessingStatus
+    complaintId?: number
+    message?: string
+}
+
 @Injectable()
 export class VoiceProcessingService {
     private readonly logger = new Logger(VoiceProcessingService.name)
@@ -15,7 +24,7 @@ export class VoiceProcessingService {
         private geoMatching: GeoMatchingService
     ) { }
 
-    async processVoiceComplaint(callSid: string, audioUrl: string) {
+    async processVoiceComplaint(callSid: string, audioUrl: string, recordingAvailableBy?: Date): Promise<VoiceProcessingResult> {
         this.logger.log(`Processing voice complaint for CallSid: ${callSid}`)
 
         try {
@@ -52,7 +61,7 @@ export class VoiceProcessingService {
                     data: { processing_status: 'manual_review' }
                 })
                 this.logger.warn(`Low confidence (${extracted.confidence_score}), flagged for manual review`)
-                return { success: true, status: 'manual_review' }
+                return { success: true, status: 'manual_review', message: 'Low confidence — flagged for manual review' }
             }
 
             // Step 5: Match panchayat
@@ -63,22 +72,27 @@ export class VoiceProcessingService {
                     data: { processing_status: 'manual_review' }
                 })
                 this.logger.warn(`Village not found: ${extracted.village}`)
-                return { success: true, status: 'manual_review' }
+                return { success: true, status: 'manual_review', message: `Village not found: ${extracted.village}` }
             }
 
-            // Step 6: Find nearest pole
+            // Step 6: Find nearest pole using AI landmark matching
             const poleId = await this.geoMatching.findNearestPole(panchayatId, extracted.landmark)
             if (!poleId) {
                 await this.prisma.voiceCall.update({
                     where: { id: voiceCall.id },
-                    data: { processing_status: 'manual_review' }
+                    data: { processing_status: 'not_found' }
                 })
-                this.logger.warn(`No pole found for panchayat: ${panchayatId}`)
-                return { success: true, status: 'manual_review' }
+                this.logger.warn(`No pole matched landmark "${extracted.landmark}" in panchayat ${panchayatId}`)
+                // Return not_found so the controller can respond 404 to Exotel
+                return {
+                    success: false,
+                    status: 'not_found',
+                    message: `Could not match landmark "${extracted.landmark}" to any pole in panchayat`
+                }
             }
 
             // Step 7: Create complaint
-            await this.prisma.complaint.create({
+            const complaint = await this.prisma.complaint.create({
                 data: {
                     voice_call_id: voiceCall.id,
                     pole_id: poleId,
@@ -95,8 +109,9 @@ export class VoiceProcessingService {
                 data: { processing_status: 'completed' }
             })
 
-            this.logger.log(`Complaint created successfully for CallSid: ${callSid}`)
-            return { success: true, status: 'completed' }
+            this.logger.log(`Complaint #${complaint.id} created successfully for CallSid: ${callSid}`)
+            return { success: true, status: 'completed', complaintId: complaint.id }
+
         } catch (error) {
             this.logger.error(`Voice processing failed: ${error.message}`)
             throw error

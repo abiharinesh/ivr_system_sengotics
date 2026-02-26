@@ -23,14 +23,19 @@ export class VoiceToTextService {
         this.logger.log(`Transcribing audio from: ${audioUrl}`)
 
         try {
-            // Download audio file and convert to buffer
             const response = await fetch(audioUrl)
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch audio: HTTP ${response.status} from ${audioUrl}`)
+            }
+
             const audioBlob = await response.blob()
             const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mpeg' })
 
             const transcription = await this.openai.audio.transcriptions.create({
                 file: audioFile,
-                model: 'whisper-1'
+                model: 'whisper-1',
+                language: 'ta',   // Tamil hint for better accuracy
             })
 
             this.logger.log(`Transcription completed: ${transcription.text}`)

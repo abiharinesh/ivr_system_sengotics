@@ -58,17 +58,28 @@ async function main() {
     // Seed Electric Poles using raw SQL
     console.log('Creating electric poles...')
 
-    await prisma.$executeRaw`
-    INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id)
-    VALUES 
-      ('POLE-TY-001', '1', 11.0170, 76.9560, ST_SetSRID(ST_MakePoint(76.9560, 11.0170), 4326), ${panchayat1.id}),
-      ('POLE-TY-002', '2', 11.0165, 76.9555, ST_SetSRID(ST_MakePoint(76.9555, 11.0165), 4326), ${panchayat1.id}),
-      ('POLE-TY-003', '3', 11.0172, 76.9562, ST_SetSRID(ST_MakePoint(76.9562, 11.0172), 4326), ${panchayat1.id}),
-      ('POLE-VD-001', '1', 11.0236, 76.9015, ST_SetSRID(ST_MakePoint(76.9015, 11.0236), 4326), ${panchayat2.id}),
-      ('POLE-VD-002', '2', 11.0232, 76.9010, ST_SetSRID(ST_MakePoint(76.9010, 11.0232), 4326), ${panchayat2.id}),
-      ('POLE-KR-001', '1', 11.0091, 76.9348, ST_SetSRID(ST_MakePoint(76.9348, 11.0091), 4326), ${panchayat3.id}),
-      ('POLE-KR-002', '2', 11.0087, 76.9342, ST_SetSRID(ST_MakePoint(76.9342, 11.0087), 4326), ${panchayat3.id})
-  `
+    // Insert poles with landmarks using individual upserts (raw SQL does not support array literals cleanly)
+    const polesData = [
+        { pole_number: 'POLE-TY-001', keypad_id: '1', lat: 11.0170, lng: 76.9560, panchayat_id: panchayat1.id, landmarks: ['near Mariamman temple', 'opposite ITC office'] },
+        { pole_number: 'POLE-TY-002', keypad_id: '2', lat: 11.0165, lng: 76.9555, panchayat_id: panchayat1.id, landmarks: ['beside government school', 'near water tank'] },
+        { pole_number: 'POLE-TY-003', keypad_id: '3', lat: 11.0172, lng: 76.9562, panchayat_id: panchayat1.id, landmarks: ['near ration shop', 'opposite bus stop'] },
+        { pole_number: 'POLE-VD-001', keypad_id: '1', lat: 11.0236, lng: 76.9015, panchayat_id: panchayat2.id, landmarks: ['near Vadavalli bus stand', 'opposite banyan tree'] },
+        { pole_number: 'POLE-VD-002', keypad_id: '2', lat: 11.0232, lng: 76.9010, panchayat_id: panchayat2.id, landmarks: ['near Vadavalli mosque', 'beside flour mill'] },
+        { pole_number: 'POLE-KR-001', keypad_id: '1', lat: 11.0091, lng: 76.9348, panchayat_id: panchayat3.id, landmarks: ['near Kurichi main road junction', 'opposite petrol bunk'] },
+        { pole_number: 'POLE-KR-002', keypad_id: '2', lat: 11.0087, lng: 76.9342, panchayat_id: panchayat3.id, landmarks: ['near Kurichi panchayat office', 'beside playground'] },
+    ]
+
+    for (const p of polesData) {
+        await prisma.$executeRaw`
+            INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks)
+            VALUES (
+                ${p.pole_number}, ${p.keypad_id}, ${p.lat}, ${p.lng},
+                ST_SetSRID(ST_MakePoint(${p.lng}, ${p.lat}), 4326),
+                ${p.panchayat_id},
+                ${p.landmarks}
+            )
+        `
+    }
 
     const allPoles = await prisma.electricPole.findMany()
     console.log(`✅ Created ${allPoles.length} electric poles`)
@@ -117,11 +128,11 @@ async function main() {
         data: {
             call_sid: 'VOICE-001-SAMPLE',
             audio_url: 'https://example.com/audio/sample1.mp3',
-            transcript: 'Inside Thayanur opposite ITC office the light pole is not working',
+            transcript: 'Thayanur la Mariamman kovil pakathula light pole eraiyala',
             ai_extracted_json: {
                 village: 'Thayanur',
-                landmark: 'ITC office',
-                direction: 'opposite',
+                landmark: 'near Mariamman temple',
+                direction: 'beside',
                 complaint_type: 'light pole not working',
                 confidence_score: 0.92
             },
@@ -134,10 +145,10 @@ async function main() {
         data: {
             call_sid: 'VOICE-002-SAMPLE',
             audio_url: 'https://example.com/audio/sample2.mp3',
-            transcript: 'Vadavalli near bus stand power cut issue',
+            transcript: 'Vadavalli bus stand pakkathula current poguthu',
             ai_extracted_json: {
                 village: 'Vadavalli',
-                landmark: 'bus stand',
+                landmark: 'near bus stand',
                 direction: 'near',
                 complaint_type: 'power cut',
                 confidence_score: 0.85
