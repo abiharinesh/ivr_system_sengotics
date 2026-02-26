@@ -64,7 +64,7 @@ export class IvrService {
     // ── Endpoint 2: Poll / Detail Input ──────────────────────────────────────
     // Exotel calls this after the user enters more detail (e.g. pole number).
     // THIS is where complaints are created, branching per service type.
-    async handlePollInput(data: IvrCallbackDto) {
+    async handlePollInput(data: IvrCallbackDto): Promise<{ found: boolean }> {
         this.logger.log(`[EP2] Poll input for CallSid: ${data.CallSid}`)
 
         const cleanDigits = data.digits ? data.digits.replace(/"/g, '').trim() : null
@@ -99,7 +99,7 @@ export class IvrService {
 
         if (!cleanDigits || !data.CallTo) {
             this.logger.warn(`[EP2] Missing digits or CallTo — skipping complaint creation`)
-            return { success: true }
+            return { found: false }
         }
 
         // ── Lookup which service was selected in EP1 ──────────────────────────
@@ -110,7 +110,7 @@ export class IvrService {
 
         if (!serviceSelection?.service_option) {
             this.logger.warn(`[EP2] No service selection found for CallSid=${data.CallSid}`)
-            return { success: true }
+            return { found: false }
         }
 
         const serviceDigit = serviceSelection.service_option
@@ -125,7 +125,7 @@ export class IvrService {
 
         if (!panchayat) {
             this.logger.warn(`[EP2] No panchayat found for IVR number: ${data.CallTo}`)
-            return { success: true }
+            return { found: false }
         }
 
         // ── Branch: create complaint based on service type ────────────────────
@@ -139,17 +139,8 @@ export class IvrService {
                     })
 
                     if (!pole) {
-                        this.logger.warn(`[EP2] No pole found with keypad_id="${cleanDigits}" in panchayat "${panchayat.name}"`)
-                        // Still create complaint without pole link, so the call isn't silently lost
-                        await this.prisma.complaint.create({
-                            data: {
-                                panchayat_id: panchayat.id,
-                                complaint_type: 'street_light',
-                                description: `IVR street light complaint — unknown pole keypad "${cleanDigits}" from ${data.CallFrom}`,
-                                status: 'pending'
-                            }
-                        })
-                        break
+                        this.logger.warn(`[EP2] No pole found with keypad_id="${cleanDigits}" in panchayat "${panchayat.name}" — returning 404`)
+                        return { found: false }
                     }
 
                     const complaint = await this.prisma.complaint.create({
@@ -208,9 +199,10 @@ export class IvrService {
             }
         } catch (err) {
             this.logger.error(`[EP2] Failed to create complaint: ${err}`)
+            return { found: false }
         }
 
-        return { success: true }
+        return { found: true }
     }
 
     // ── Endpoint 3: Voicemail ──────────────────────────────────────────────────

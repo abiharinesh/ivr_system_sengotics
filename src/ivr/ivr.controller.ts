@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, Res, UseFilters } from '@nestjs/common'
+import { Controller, Post, Get, Body, Query, Res, UseFilters, HttpStatus } from '@nestjs/common'
 import { IvrService } from './ivr.service'
 import { IvrCallbackDto } from './dto/ivr-callback.dto'
 import type { Response } from 'express'
@@ -28,13 +28,19 @@ export class IvrController {
 
     @Post('poll')
     async handlePollInputPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
-        await this.ivrService.handlePollInput(data)
+        const result = await this.ivrService.handlePollInput(data)
+        if (!result.found) {
+            return res.status(HttpStatus.NOT_FOUND).json({ message: 'Pole not found' })
+        }
         this.sendXml(res)
     }
 
     @Get('poll')
     async handlePollInputGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
-        await this.ivrService.handlePollInput(data)
+        const result = await this.ivrService.handlePollInput(data)
+        if (!result.found) {
+            return res.status(HttpStatus.NOT_FOUND).json({ message: 'Pole not found' })
+        }
         this.sendXml(res)
     }
 
