@@ -17,7 +17,8 @@ export class LocationExtractionService {
 
     constructor(private configService: ConfigService) {
         this.openai = new OpenAI({
-            apiKey: this.configService.get<string>('OPENAI_API_KEY')
+            apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
+            baseURL: 'https://api.groq.com/openai/v1',
         })
     }
 
@@ -43,7 +44,7 @@ Rules:
 
         try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: 'llama-3.3-70b-versatile',
                 temperature: 0.1,
                 response_format: { type: 'json_object' },
                 messages: [

@@ -8,14 +8,15 @@ export class VoiceToTextService {
     private openai: OpenAI
 
     constructor(private configService: ConfigService) {
-        const apiKey = this.configService.get<string>('OPENAI_API_KEY')
+        const apiKey = this.configService.get<string>('GROQ_API_KEY')
 
         if (!apiKey) {
-            this.logger.warn('OPENAI_API_KEY is not defined. Voice transcription features will not work.')
+            this.logger.warn('GROQ_API_KEY is not defined. Voice transcription features will not work.')
         }
 
         this.openai = new OpenAI({
             apiKey: apiKey || 'dummy-key',
+            baseURL: 'https://api.groq.com/openai/v1',
         })
     }
 
@@ -49,7 +50,7 @@ export class VoiceToTextService {
 
             const transcription = await this.openai.audio.transcriptions.create({
                 file: audioFile,
-                model: 'whisper-1',
+                model: 'whisper-large-v3',
                 language: 'ta',   // Tamil hint for better accuracy
             })
 

@@ -13,7 +13,8 @@ export class GeoMatchingService {
         private configService: ConfigService
     ) {
         this.openai = new OpenAI({
-            apiKey: this.configService.get<string>('OPENAI_API_KEY')
+            apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
+            baseURL: 'https://api.groq.com/openai/v1',
         })
     }
 
@@ -58,7 +59,7 @@ export class GeoMatchingService {
         }
 
         // Filter to poles that have at least one landmark stored
-        const polesWithLandmarks = poles.filter(p => p.landmarks && p.landmarks.length > 0)
+        const polesWithLandmarks = poles.filter(p => (p as any).landmarks && (p as any).landmarks.length > 0)
 
         if (polesWithLandmarks.length === 0) {
             this.logger.warn(`No poles with landmarks found in panchayat ${panchayatId}`)
@@ -69,14 +70,14 @@ export class GeoMatchingService {
         const poleList = polesWithLandmarks.map(p => ({
             pole_id: p.id,
             pole_number: p.pole_number,
-            landmarks: p.landmarks
+            landmarks: (p as any).landmarks
         }))
 
         this.logger.log(`AI matching landmark "${landmarkHint}" against ${poleList.length} poles`)
 
         try {
             const response = await this.openai.chat.completions.create({
-                model: 'gpt-4o-mini',
+                model: 'llama-3.3-70b-versatile',
                 temperature: 0.0,
                 response_format: { type: 'json_object' },
                 messages: [
