@@ -15,8 +15,12 @@ export class IvrController {
         private readonly voiceProcessing: VoiceProcessingService
     ) { }
 
-    private sendXml(res: Response): void {
-        // Exotel expects a valid TwiML response. Empty <Response> tags can sometimes be treated as 404/invalid.
+    private sendEmptyXml(res: Response): void {
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response></Response>`
+        res.status(200).type('application/xml').send(xml)
+    }
+
+    private sendSuccessXml(res: Response): void {
         const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>Complaint registered successfully</Say>\n</Response>`
         res.status(200).type('application/xml').send(xml)
     }
@@ -24,13 +28,13 @@ export class IvrController {
     @Post('service')
     async handleServiceSelectionPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
         await this.ivrService.handleServiceSelection(data)
-        this.sendXml(res)
+        this.sendEmptyXml(res)
     }
 
     @Get('service')
     async handleServiceSelectionGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
         await this.ivrService.handleServiceSelection(data)
-        this.sendXml(res)
+        this.sendEmptyXml(res)
     }
 
     @Post('poll')
@@ -39,7 +43,7 @@ export class IvrController {
         if (!result.found) {
             return res.status(HttpStatus.NOT_FOUND).json({ message: 'Pole not found' })
         }
-        this.sendXml(res)
+        this.sendEmptyXml(res)
     }
 
     @Get('poll')
@@ -48,7 +52,7 @@ export class IvrController {
         if (!result.found) {
             return res.status(HttpStatus.NOT_FOUND).json({ message: 'Pole not found' })
         }
-        this.sendXml(res)
+        this.sendEmptyXml(res)
     }
 
 
@@ -68,7 +72,7 @@ export class IvrController {
         // Only process when the recording is confirmed ready to avoid fetch errors.
         if (data.ProcessStatus && data.ProcessStatus !== 'ready') {
             this.logger.log(`Recording not ready (ProcessStatus=${data.ProcessStatus}). Returning 200 to Exotel.`)
-            return this.sendXml(res)
+            return this.sendEmptyXml(res)
         }
 
         const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl, data.CallTo || data.To || '')
@@ -79,7 +83,7 @@ export class IvrController {
         }
 
         // For completed or manual_review, return success XML so the call flow continues
-        this.sendXml(res)
+        this.sendSuccessXml(res)
     }
 
     @Get('voice-complaint')
@@ -91,7 +95,7 @@ export class IvrController {
         // Only process when recording is confirmed ready
         if (data.ProcessStatus && data.ProcessStatus !== 'ready') {
             this.logger.log(`Recording not ready (ProcessStatus=${data.ProcessStatus}). Returning 200 to Exotel.`)
-            return this.sendXml(res)
+            return this.sendEmptyXml(res)
         }
 
         const result = await this.voiceProcessing.processVoiceComplaint(data.CallSid, data.RecordingUrl, data.CallTo || data.To || '')
@@ -100,6 +104,6 @@ export class IvrController {
             return res.status(HttpStatus.NOT_FOUND).json({ message: result.message || 'Landmark not matched to any pole' })
         }
 
-        this.sendXml(res)
+        this.sendSuccessXml(res)
     }
 }
