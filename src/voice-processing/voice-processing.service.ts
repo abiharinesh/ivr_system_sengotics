@@ -13,6 +13,11 @@ export interface VoiceProcessingResult {
     message?: string
 }
 
+/** Minimum extraction-confidence to proceed with pole matching on attempt 1 */
+const MIN_CONFIDENCE_ATTEMPT_1 = 0.4
+/** Minimum extraction-confidence to proceed with pole matching on attempt 2+ */
+const MIN_CONFIDENCE_ATTEMPT_2 = 0.25
+
 @Injectable()
 export class VoiceProcessingService {
     private readonly logger = new Logger(VoiceProcessingService.name)
@@ -34,8 +39,8 @@ export class VoiceProcessingService {
      *   4. GPT extraction (landmark, landmark_english, transcript_english, complaint_type)
      *   5. Resolve panchayat from IVR number → fill village = panchayat.name
      *   6. Save everything to VoiceCall (transcript, transcript_english, ai_extracted_json)
-     *   7. Confidence check → retry (404) or manual_review
-     *   8. Match pole by landmark_english
+     *   7. Confidence check → retry (404) or continue
+     *   8. Match pole by landmark_english (deterministic first, then AI fallback)
      *   9. Create complaint with audio_url + English description
      */
     async processVoiceComplaint(
@@ -82,27 +87,31 @@ export class VoiceProcessingService {
             const transcript = await this.voiceToText.transcribeAudio(audioUrl)
             this.logger.log(`[Step 3] Tamil transcript: "${transcript}"`)
 
+            if (!transcript || transcript.trim() === '') {
+                this.logger.warn(`[Step 3] [FAIL] Empty transcript — cannot proceed`)
+                await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
+                return {
+                    success: false,
+                    status: 'not_found',
+                    message: 'Could not transcribe audio — please try again'
+                }
+            }
+
             // ── Step 4: GPT extraction + translation ─────────────────────────
-            // Returns: landmark (Tamil), landmark_english, transcript_english,
-            //          village (may be empty), complaint_type, confidence_score
             const extracted = await this.locationExtraction.extractLocation(transcript)
             this.logger.log(`[Step 4] Extraction: ${JSON.stringify(extracted)}`)
 
             // ── Step 5: Resolve panchayat → fill village name ────────────────
-            // The IVR number maps to a panchayat. The panchayat name IS the village.
-            // This is more reliable than GPT extracting it from the transcript.
             const panchayat = await this.geoMatching.findPanchayatByIvrNumber(ivrNumber)
 
             if (panchayat) {
-                // Fill the village from the panchayat name (authoritative source)
                 extracted.village = panchayat.name
-                this.logger.log(`[Step 5] Village set to "${panchayat.name}" from IVR number ${ivrNumber}`)
+                this.logger.log(`[Step 5] [PASS] Village set to "${panchayat.name}" from IVR number ${ivrNumber}`)
             } else {
-                this.logger.warn(`[Step 5] No panchayat found for IVR number: ${ivrNumber}`)
+                this.logger.warn(`[Step 5] [FAIL] No panchayat found for IVR number: ${ivrNumber}`)
             }
 
             // ── Step 6: Save everything to VoiceCall ─────────────────────────
-            // One consolidated DB call: transcript + English translation + AI JSON
             await this.prisma.voiceCall.update({
                 where: { id: voiceCall.id },
                 data: {
@@ -115,77 +124,81 @@ export class VoiceProcessingService {
             this.logger.log(`[Step 6] Saved transcript (Tamil + English) and AI extraction`)
 
             // ── Step 7: Confidence check ─────────────────────────────────────
-            if (extracted.confidence_score < 0.65) {
+            // Only reject truly unintelligible transcriptions.
+            // The threshold is intentionally low because:
+            //   - Tamil → English translations naturally get lower confidence from the LLM
+            //   - Even with moderate confidence, the landmark might match deterministically
+            const minConfidence = attemptNumber === 1 ? MIN_CONFIDENCE_ATTEMPT_1 : MIN_CONFIDENCE_ATTEMPT_2
+
+            if (extracted.confidence_score < minConfidence) {
+                this.logger.warn(
+                    `[Step 7] [FAIL] Low confidence (${extracted.confidence_score} < ${minConfidence}) on attempt ${attemptNumber}`
+                )
+
                 if (attemptNumber === 1) {
-                    await this.prisma.voiceCall.update({
-                        where: { id: voiceCall.id },
-                        data: { processing_status: 'not_found' }
-                    })
-                    this.logger.warn(
-                        `[Step 7] Low confidence (${extracted.confidence_score}) on attempt 1 → 404 for retry`
-                    )
+                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
                     return {
                         success: false,
                         status: 'not_found',
                         message: 'Low confidence — please try again with clearer pronunciation'
                     }
-                } else {
-                    return this.createManualReviewComplaint(
-                        voiceCall.id, audioUrl, extracted, panchayat?.id, attemptNumber
-                    )
                 }
+
+                // Attempt 2+: still try to match the landmark before giving up
+                this.logger.log(`[Step 7] Attempt ${attemptNumber}: trying pole match despite low confidence`)
+            } else {
+                this.logger.log(
+                    `[Step 7] [PASS] Confidence OK (${extracted.confidence_score} >= ${minConfidence})`
+                )
             }
 
             // ── Step 8: Match pole by English landmark ───────────────────────
             if (!panchayat) {
-                // No panchayat → can't match pole → manual review
                 return this.createManualReviewComplaint(
                     voiceCall.id, audioUrl, extracted, undefined, attemptNumber
                 )
             }
 
             const landmarkForMatching = extracted.landmark_english || extracted.landmark
+            this.logger.log(`[Step 8] Matching landmark: "${landmarkForMatching}"`)
+
             const poleId = await this.geoMatching.findNearestPole(panchayat.id, landmarkForMatching)
 
             if (!poleId) {
                 this.logger.warn(
-                    `[Step 8] No pole matched "${landmarkForMatching}" in panchayat "${panchayat.name}"`
+                    `[Step 8] [FAIL] No pole matched "${landmarkForMatching}" in panchayat "${panchayat.name}"`
                 )
 
                 if (attemptNumber === 1) {
-                    await this.prisma.voiceCall.update({
-                        where: { id: voiceCall.id },
-                        data: { processing_status: 'not_found' }
-                    })
+                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
                     return {
                         success: false,
                         status: 'not_found',
                         message: `Could not match landmark "${landmarkForMatching}" to any pole`
                     }
-                } else {
-                    return this.createManualReviewComplaint(
-                        voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber
-                    )
                 }
+
+                return this.createManualReviewComplaint(
+                    voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber
+                )
             }
 
             // ── Step 9: Create complaint (success!) ──────────────────────────
+            this.logger.log(`[Step 9] Creating complaint for pole ${poleId}`)
+
             const complaint = await this.prisma.complaint.create({
                 data: {
                     voice_call_id: voiceCall.id,
                     pole_id: poleId,
                     panchayat_id: panchayat.id,
-                    complaint_type: extracted.complaint_type,
-                    description: extracted.transcript_english,   // English for admin dashboard
+                    complaint_type: extracted.complaint_type || 'street_light',
+                    description: extracted.transcript_english,
                     audio_url: audioUrl,
                     status: 'pending'
                 }
             })
 
-            await this.prisma.voiceCall.update({
-                where: { id: voiceCall.id },
-                data: { processing_status: 'completed' }
-            })
+            await this.updateVoiceCallStatus(voiceCall.id, 'completed')
 
             this.logger.log(
                 `[Step 9] ✅ Complaint #${complaint.id} created ` +
@@ -194,17 +207,13 @@ export class VoiceProcessingService {
             return { success: true, status: 'completed', complaintId: complaint.id }
 
         } catch (error) {
-            this.logger.error(`Pipeline failed: ${error.message}`)
+            const errMessage = (error as Error).message ?? String(error)
+            this.logger.error(`Pipeline failed: ${errMessage}`)
 
             if (voiceCall) {
-                try {
-                    await this.prisma.voiceCall.update({
-                        where: { id: voiceCall.id },
-                        data: { processing_status: 'failed' }
-                    })
-                } catch (dbError) {
-                    this.logger.error(`Failed to update VoiceCall status: ${dbError.message}`)
-                }
+                await this.updateVoiceCallStatus(voiceCall.id, 'failed').catch(dbErr =>
+                    this.logger.error(`Failed to update VoiceCall status: ${(dbErr as Error).message}`)
+                )
             }
 
             throw error
@@ -222,17 +231,14 @@ export class VoiceProcessingService {
         panchayatId: number | undefined,
         attemptNumber: number
     ): Promise<VoiceProcessingResult> {
-        await this.prisma.voiceCall.update({
-            where: { id: voiceCallId },
-            data: { processing_status: 'manual_review' }
-        })
+        await this.updateVoiceCallStatus(voiceCallId, 'manual_review')
 
         const complaint = await this.prisma.complaint.create({
             data: {
                 voice_call_id: voiceCallId,
                 panchayat_id: panchayatId ?? null,
-                complaint_type: extracted.complaint_type,
-                description: extracted.transcript_english,   // English for admin dashboard
+                complaint_type: extracted.complaint_type || 'street_light',
+                description: extracted.transcript_english,
                 audio_url: audioUrl,
                 status: 'manual_review'
             }
@@ -249,5 +255,13 @@ export class VoiceProcessingService {
             complaintId: complaint.id,
             message: 'Flagged for manual review'
         }
+    }
+
+    /** Thin wrapper to update VoiceCall processing_status. */
+    private async updateVoiceCallStatus(voiceCallId: number, status: string): Promise<void> {
+        await this.prisma.voiceCall.update({
+            where: { id: voiceCallId },
+            data: { processing_status: status }
+        })
     }
 }

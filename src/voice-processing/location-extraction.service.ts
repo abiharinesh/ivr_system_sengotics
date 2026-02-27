@@ -12,22 +12,7 @@ export interface ExtractedLocation {
     transcript_english: string  // full English translation of the complaint
 }
 
-@Injectable()
-export class LocationExtractionService {
-    private readonly logger = new Logger(LocationExtractionService.name)
-    private openai: OpenAI
-
-    constructor(private configService: ConfigService) {
-        this.openai = new OpenAI({
-            apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
-            baseURL: 'https://api.groq.com/openai/v1',
-        })
-    }
-
-    async extractLocation(transcript: string): Promise<ExtractedLocation> {
-        this.logger.log(`Extracting location from transcript: "${transcript}"`)
-
-        const systemPrompt = `You are a location extraction and translation engine for electrical complaints in Tamil Nadu, India.
+const EXTRACTION_PROMPT = `You are a location extraction and translation engine for electrical complaints in Tamil Nadu, India.
 The transcript you receive is from Whisper and will be in Tamil (native script or Romanized/Tanglish) or sometimes English.
 
 Your job:
@@ -53,32 +38,94 @@ Rules:
 - If multiple landmarks are mentioned, capture the whole connected phrase
 - If unable to extract a field, use empty string`
 
+@Injectable()
+export class LocationExtractionService {
+    private readonly logger = new Logger(LocationExtractionService.name)
+    private openai: OpenAI
+
+    constructor(private configService: ConfigService) {
+        this.openai = new OpenAI({
+            apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
+            baseURL: 'https://api.groq.com/openai/v1',
+        })
+    }
+
+    async extractLocation(transcript: string): Promise<ExtractedLocation> {
+        this.logger.log(`Extracting location from transcript: "${transcript}"`)
+
+        if (!transcript || transcript.trim().length === 0) {
+            this.logger.warn('Empty transcript provided — returning defaults')
+            return this.defaultExtraction(transcript)
+        }
+
         try {
             const response = await this.openai.chat.completions.create({
                 model: 'llama-3.3-70b-versatile',
                 temperature: 0.1,
                 response_format: { type: 'json_object' },
                 messages: [
-                    { role: 'system', content: systemPrompt },
+                    { role: 'system', content: EXTRACTION_PROMPT },
                     { role: 'user', content: `Extract and translate this complaint transcript: "${transcript}"` }
                 ]
             })
 
-            const extracted = JSON.parse(response.choices[0].message.content || '{}')
+            const raw = response.choices[0]?.message?.content || '{}'
+            let extracted: Record<string, any>
+
+            try {
+                extracted = JSON.parse(raw)
+            } catch {
+                this.logger.error(`AI returned invalid JSON: ${raw}`)
+                return this.defaultExtraction(transcript)
+            }
+
             this.logger.log(`Extraction result: ${JSON.stringify(extracted)}`)
 
-            // Ensure fallbacks
-            if (!extracted.landmark_english && extracted.landmark) {
-                extracted.landmark_english = extracted.landmark
-            }
-            if (!extracted.transcript_english) {
-                extracted.transcript_english = transcript  // fallback to original if translation fails
+            // ── Validate and sanitize all fields ─────────────────────────────
+            const result: ExtractedLocation = {
+                village: String(extracted.village ?? ''),
+                landmark: String(extracted.landmark ?? ''),
+                landmark_english: String(extracted.landmark_english ?? ''),
+                direction: String(extracted.direction ?? ''),
+                complaint_type: String(extracted.complaint_type ?? 'other'),
+                confidence_score: this.clampConfidence(extracted.confidence_score),
+                transcript_english: String(extracted.transcript_english ?? transcript),
             }
 
-            return extracted
+            // Ensure landmark_english always has a value if landmark is present
+            if (!result.landmark_english && result.landmark) {
+                result.landmark_english = result.landmark
+            }
+            // Ensure transcript_english is never empty
+            if (!result.transcript_english) {
+                result.transcript_english = transcript
+            }
+
+            return result
+
         } catch (error) {
-            this.logger.error(`Location extraction failed: ${error.message}`)
+            this.logger.error(`Location extraction failed: ${(error as Error).message}`)
             throw error
+        }
+    }
+
+    /** Clamp confidence to [0,1], defaulting to 0.5 if missing/invalid. */
+    private clampConfidence(value: unknown): number {
+        const num = Number(value)
+        if (isNaN(num)) return 0.5
+        return Math.max(0, Math.min(1, num))
+    }
+
+    /** Return a safe default when extraction is impossible. */
+    private defaultExtraction(transcript: string): ExtractedLocation {
+        return {
+            village: '',
+            landmark: '',
+            landmark_english: '',
+            direction: '',
+            complaint_type: 'other',
+            confidence_score: 0.1,
+            transcript_english: transcript || '',
         }
     }
 }

@@ -2,6 +2,9 @@ import { Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import { ConfigService } from '@nestjs/config'
 
+/** Maximum time (ms) to wait for audio download from Exotel. */
+const AUDIO_FETCH_TIMEOUT_MS = 30_000
+
 @Injectable()
 export class VoiceToTextService {
     private readonly logger = new Logger(VoiceToTextService.name)
@@ -23,12 +26,11 @@ export class VoiceToTextService {
     async transcribeAudio(audioUrl: string): Promise<string> {
         this.logger.log(`Transcribing audio from: ${audioUrl}`)
 
+        const headers: Record<string, string> = {}
+
         // Exotel recording URLs require HTTP Basic Auth to download.
-        // Credentials: EXOTEL_API_KEY : EXOTEL_API_TOKEN
         const exotelApiKey = this.configService.get<string>('EXOTEL_API_KEY')
         const exotelApiToken = this.configService.get<string>('EXOTEL_API_TOKEN')
-
-        const headers: Record<string, string> = {}
 
         if (exotelApiKey && exotelApiToken && audioUrl.includes('exotel')) {
             const credentials = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64')
@@ -39,13 +41,31 @@ export class VoiceToTextService {
         }
 
         try {
-            const response = await fetch(audioUrl, { headers })
+            // Fetch with timeout to prevent indefinite hangs
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), AUDIO_FETCH_TIMEOUT_MS)
+
+            let response: Response
+            try {
+                response = await fetch(audioUrl, { headers, signal: controller.signal })
+            } finally {
+                clearTimeout(timeout)
+            }
 
             if (!response.ok) {
-                throw new Error(`Failed to fetch audio: HTTP ${response.status} ${response.statusText} from ${audioUrl}`)
+                throw new Error(
+                    `Failed to fetch audio: HTTP ${response.status} ${response.statusText} from ${audioUrl}`
+                )
             }
 
             const audioBlob = await response.blob()
+
+            if (audioBlob.size === 0) {
+                throw new Error(`Audio file is empty (0 bytes) from ${audioUrl}`)
+            }
+
+            this.logger.log(`Audio downloaded: ${audioBlob.size} bytes`)
+
             const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mpeg' })
 
             const transcription = await this.openai.audio.transcriptions.create({
@@ -54,11 +74,25 @@ export class VoiceToTextService {
                 language: 'ta',   // Tamil hint for better accuracy
             })
 
-            this.logger.log(`Transcription completed: ${transcription.text}`)
-            return transcription.text
+            const text = transcription.text?.trim() ?? ''
+
+            if (!text) {
+                this.logger.warn('Whisper returned empty transcription')
+            } else {
+                this.logger.log(`Transcription completed: ${text}`)
+            }
+
+            return text
 
         } catch (error) {
-            this.logger.error(`Transcription failed: ${error.message}`)
+            const errMessage = (error as Error).message ?? String(error)
+
+            if (errMessage.includes('abort')) {
+                this.logger.error(`Audio fetch timed out after ${AUDIO_FETCH_TIMEOUT_MS}ms: ${audioUrl}`)
+                throw new Error(`Audio download timed out after ${AUDIO_FETCH_TIMEOUT_MS / 1000}s`)
+            }
+
+            this.logger.error(`Transcription failed: ${errMessage}`)
             throw error
         }
     }

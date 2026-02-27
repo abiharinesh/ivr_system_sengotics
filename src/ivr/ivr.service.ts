@@ -11,6 +11,11 @@ const SERVICE_MAP: Record<string, string> = {
     '3': 'garbage',
 }
 
+export interface PollInputResult {
+    found: boolean
+    complaintId?: number
+}
+
 @Injectable()
 export class IvrService {
     private readonly logger = new Logger(IvrService.name)
@@ -18,12 +23,10 @@ export class IvrService {
     constructor(private prisma: PrismaService) { }
 
     // ── Endpoint 1: Service Selection ─────────────────────────────────────────
-    // Exotel calls this when the user presses a digit on the main menu.
-    // We ONLY record which service was selected here. No complaint is created yet.
-    async handleServiceSelection(data: IvrCallbackDto) {
+    async handleServiceSelection(data: IvrCallbackDto): Promise<{ success: boolean }> {
         this.logger.log(`[EP1] Service selection for CallSid: ${data.CallSid}`)
 
-        const cleanDigits = data.digits ? data.digits.replace(/"/g, '').trim() : null
+        const cleanDigits = this.cleanDigits(data.digits)
         const serviceName = cleanDigits ? (SERVICE_MAP[cleanDigits] ?? `unknown_${cleanDigits}`) : null
 
         this.logger.log(`[EP1] User selected digit="${cleanDigits}" → service="${serviceName}"`)
@@ -52,7 +55,7 @@ export class IvrService {
             data: {
                 call_sid: data.CallSid,
                 caller_number: data.CallFrom,
-                service_option: cleanDigits,   // raw digit, e.g. "1"
+                service_option: cleanDigits,
                 raw_payload: { ...data as any, resolved_service: serviceName }
             }
         })
@@ -62,12 +65,10 @@ export class IvrService {
     }
 
     // ── Endpoint 2: Poll / Detail Input ──────────────────────────────────────
-    // Exotel calls this after the user enters more detail (e.g. pole number).
-    // THIS is where complaints are created, branching per service type.
-    async handlePollInput(data: IvrCallbackDto): Promise<{ found: boolean }> {
+    async handlePollInput(data: IvrCallbackDto): Promise<PollInputResult> {
         this.logger.log(`[EP2] Poll input for CallSid: ${data.CallSid}`)
 
-        const cleanDigits = data.digits ? data.digits.replace(/"/g, '').trim() : null
+        const cleanDigits = this.cleanDigits(data.digits)
 
         // Upsert calls_master
         await this.prisma.callsMaster.upsert({
@@ -128,82 +129,70 @@ export class IvrService {
             return { found: false }
         }
 
-        // ── Branch: create complaint based on service type ────────────────────
+        // ── Create complaint based on service type ────────────────────────────
         try {
-            switch (serviceType) {
-
-                case 'street_light': {
-                    // cleanDigits = the pole keypad_id the user entered
-                    const pole = await this.prisma.electricPole.findFirst({
-                        where: { panchayat_id: panchayat.id, keypad_id: cleanDigits }
-                    })
-
-                    if (!pole) {
-                        this.logger.warn(`[EP2] No pole found with keypad_id="${cleanDigits}" in panchayat "${panchayat.name}" — returning 404`)
-                        return { found: false }
-                    }
-
-                    const complaint = await this.prisma.complaint.create({
-                        data: {
-                            pole_id: pole.id,
-                            panchayat_id: panchayat.id,
-                            complaint_type: 'street_light',
-                            description: `IVR street light complaint for pole ${pole.pole_number} (keypad: ${cleanDigits}) from ${data.CallFrom}`,
-                            status: 'pending'
-                        }
-                    })
-                    this.logger.log(`[EP2] ✅ Street light complaint #${complaint.id} created for pole ${pole.pole_number}`)
-                    break
-                }
-
-                case 'water': {
-                    // cleanDigits could be a ward number or area code in future
-                    const complaint = await this.prisma.complaint.create({
-                        data: {
-                            panchayat_id: panchayat.id,
-                            complaint_type: 'water',
-                            description: `IVR water complaint from ${data.CallFrom} (input: ${cleanDigits})`,
-                            status: 'pending'
-                        }
-                    })
-                    this.logger.log(`[EP2] ✅ Water complaint #${complaint.id} created`)
-                    break
-                }
-
-                case 'garbage': {
-                    const complaint = await this.prisma.complaint.create({
-                        data: {
-                            panchayat_id: panchayat.id,
-                            complaint_type: 'garbage',
-                            description: `IVR garbage complaint from ${data.CallFrom} (input: ${cleanDigits})`,
-                            status: 'pending'
-                        }
-                    })
-                    this.logger.log(`[EP2] ✅ Garbage complaint #${complaint.id} created`)
-                    break
-                }
-
-                default: {
-                    // Unknown service — log it but don't crash
-                    const complaint = await this.prisma.complaint.create({
-                        data: {
-                            panchayat_id: panchayat.id,
-                            complaint_type: serviceType,
-                            description: `IVR complaint from ${data.CallFrom} — service "${serviceType}" (input: ${cleanDigits})`,
-                            status: 'pending'
-                        }
-                    })
-                    this.logger.log(`[EP2] ✅ Generic complaint #${complaint.id} for service "${serviceType}"`)
-                    break
-                }
-            }
+            const complaint = await this.createServiceComplaint(
+                serviceType, cleanDigits, panchayat.id, data.CallFrom ?? 'unknown'
+            )
+            return { found: true, complaintId: complaint.id }
         } catch (err) {
-            this.logger.error(`[EP2] Failed to create complaint: ${err}`)
+            this.logger.error(`[EP2] Failed to create complaint: ${(err as Error).message}`)
             return { found: false }
         }
-
-        return { found: true }
     }
 
+    // ── Private Helpers ─────────────────────────────────────────────────────────
 
+    /** Clean and normalize digits from Exotel (strip quotes and whitespace). */
+    private cleanDigits(raw?: string): string | null {
+        if (!raw) return null
+        const cleaned = raw.replace(/"/g, '').trim()
+        return cleaned || null
+    }
+
+    /** Create a complaint for the given service type. */
+    private async createServiceComplaint(
+        serviceType: string,
+        detail: string,
+        panchayatId: number,
+        callerNumber: string
+    ): Promise<{ id: number }> {
+        // For street_light, look up the specific pole
+        if (serviceType === 'street_light') {
+            const pole = await this.prisma.electricPole.findFirst({
+                where: { panchayat_id: panchayatId, keypad_id: detail }
+            })
+
+            if (!pole) {
+                this.logger.warn(
+                    `[EP2] No pole found with keypad_id="${detail}" in panchayat ${panchayatId}`
+                )
+                throw new Error(`Pole with keypad_id="${detail}" not found`)
+            }
+
+            const complaint = await this.prisma.complaint.create({
+                data: {
+                    pole_id: pole.id,
+                    panchayat_id: panchayatId,
+                    complaint_type: 'street_light',
+                    description: `IVR street light complaint for pole ${pole.pole_number} (keypad: ${detail}) from ${callerNumber}`,
+                    status: 'pending'
+                }
+            })
+            this.logger.log(`[EP2] ✅ Street light complaint #${complaint.id} created for pole ${pole.pole_number}`)
+            return complaint
+        }
+
+        // For all other services, create a generic complaint
+        const complaint = await this.prisma.complaint.create({
+            data: {
+                panchayat_id: panchayatId,
+                complaint_type: serviceType,
+                description: `IVR ${serviceType} complaint from ${callerNumber} (input: ${detail})`,
+                status: 'pending'
+            }
+        })
+        this.logger.log(`[EP2] ✅ ${serviceType} complaint #${complaint.id} created`)
+        return complaint
+    }
 }
