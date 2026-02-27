@@ -70,4 +70,10 @@ export class PanchayatAdminController {
     updateComplaintStatus(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number, @Body() body: { status: string }) {
         return this.service.updateComplaintStatus(this.getPanchayatId(req), id, body.status)
     }
+
+    /** Assign a pole to a manual_review complaint + auto-learn the caller's landmark. */
+    @Patch('complaints/:id/resolve')
+    resolveComplaint(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number, @Body() body: { pole_id: number }) {
+        return this.service.resolveComplaint(this.getPanchayatId(req), id, body.pole_id)
+    }
 }

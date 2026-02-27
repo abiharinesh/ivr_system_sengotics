@@ -63,6 +63,12 @@ export class SuperAdminController {
         return this.superAdminService.updateComplaintStatus(id, body.status)
     }
 
+    /** Assign a pole to a manual_review complaint + auto-learn the caller's landmark. */
+    @Patch('complaints/:id/resolve')
+    resolveComplaint(@Param('id', ParseIntPipe) id: number, @Body() body: { pole_id: number }) {
+        return this.superAdminService.resolveComplaint(id, body.pole_id)
+    }
+
     // ── Stats ──────────────────────────────────────────────────────────────
     @Get('stats')
     getStats() {

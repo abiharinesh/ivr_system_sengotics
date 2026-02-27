@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 
 /** Allowed complaint status values. */
@@ -6,6 +6,7 @@ const VALID_STATUSES = ['pending', 'in_progress', 'resolved', 'manual_review', '
 
 @Injectable()
 export class PanchayatAdminService {
+    private readonly logger = new Logger(PanchayatAdminService.name)
     constructor(private prisma: PrismaService) { }
 
     // ── Profile ────────────────────────────────────────────────────────────
@@ -104,6 +105,75 @@ export class PanchayatAdminService {
         if (complaint.panchayat_id !== panchayatId) throw new ForbiddenException('Access denied — complaint belongs to another panchayat')
 
         return this.prisma.complaint.update({ where: { id: complaintId }, data: { status } })
+    }
+
+    /**
+     * Resolve a manual_review complaint by assigning it to a pole.
+     * Scoped: pole must belong to this admin's panchayat.
+     * Auto-learns: saves the caller's landmark phrase to the pole.
+     */
+    async resolveComplaint(panchayatId: number, complaintId: number, poleId: number) {
+        // 1. Validate complaint
+        const complaint = await this.prisma.complaint.findUnique({
+            where: { id: complaintId },
+            include: { voice_call: true }
+        })
+        if (!complaint) throw new NotFoundException(`Complaint #${complaintId} not found`)
+        if (complaint.panchayat_id !== panchayatId) throw new ForbiddenException('Access denied — complaint belongs to another panchayat')
+
+        // 2. Validate pole belongs to this panchayat
+        const pole = await this.prisma.electricPole.findUnique({ where: { id: poleId } })
+        if (!pole) throw new NotFoundException(`Pole #${poleId} not found`)
+        if (pole.panchayat_id !== panchayatId) throw new ForbiddenException('Access denied — pole belongs to another panchayat')
+
+        // 3. Assign pole and update status
+        const updated = await this.prisma.complaint.update({
+            where: { id: complaintId },
+            data: { pole_id: poleId, status: 'pending' },
+            include: { pole: true }
+        })
+
+        // 4. Auto-learn landmark
+        await this.learnLandmark(complaint, pole)
+
+        this.logger.log(`✅ Complaint #${complaintId} resolved → pole #${poleId}`)
+        return updated
+    }
+
+    /** Learn new landmark phrases from resolved voice complaints. */
+    private async learnLandmark(
+        complaint: { voice_call_id: number | null; voice_call: { ai_extracted_json: any } | null },
+        pole: { id: number; landmarks: string[] }
+    ): Promise<void> {
+        if (!complaint.voice_call?.ai_extracted_json) return
+
+        const extracted = complaint.voice_call.ai_extracted_json as Record<string, any>
+        const newLandmarks: string[] = []
+
+        if (extracted.landmark_english && typeof extracted.landmark_english === 'string') {
+            newLandmarks.push(extracted.landmark_english.trim())
+        }
+        if (extracted.landmark && typeof extracted.landmark === 'string') {
+            newLandmarks.push(extracted.landmark.trim())
+        }
+
+        if (newLandmarks.length === 0) return
+
+        const existingLower = pole.landmarks.map(l => l.toLowerCase())
+        const uniqueNew = newLandmarks.filter(
+            l => l.length > 0 && !existingLower.includes(l.toLowerCase())
+        )
+
+        if (uniqueNew.length === 0) return
+
+        await this.prisma.electricPole.update({
+            where: { id: pole.id },
+            data: { landmarks: [...pole.landmarks, ...uniqueNew] }
+        })
+
+        this.logger.log(
+            `[Learn] ✅ Added ${uniqueNew.length} new landmark(s) to pole #${pole.id}: ${uniqueNew.join(', ')}`
+        )
     }
 
     // ── Stats (scoped to their panchayat) ─────────────────────────────────
