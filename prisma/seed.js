@@ -13,7 +13,6 @@ async function main() {
     await prisma.complaint.deleteMany();
     await prisma.electricPole.deleteMany();
     await prisma.voiceCall.deleteMany();
-    await prisma.ivrVoicemail.deleteMany();
     await prisma.ivrPollInput.deleteMany();
     await prisma.ivrServiceSelection.deleteMany();
     await prisma.callsMaster.deleteMany();
@@ -70,7 +69,6 @@ async function main() {
             call_end_time: new Date('2026-02-13T10:02:30Z'),
             service_selected: true,
             poll_entered: true,
-            voicemail_left: false,
             final_call_status: 'SUCCESS'
         }
     });
@@ -96,32 +94,40 @@ async function main() {
         data: {
             call_sid: 'VOICE-001-SAMPLE',
             audio_url: 'https://example.com/audio/sample1.mp3',
-            transcript: 'Inside Thayanur opposite ITC office the light pole is not working',
+            transcript: 'Thayanur la Mariamman kovil pakathula light pole eraiyala',
+            transcript_english: 'The light pole near Mariamman temple in Thayanur is not working',
             ai_extracted_json: {
                 village: 'Thayanur',
-                landmark: 'ITC office',
-                direction: 'opposite',
+                landmark: 'Mariamman kovil pakathula',
+                landmark_english: 'near Mariamman temple',
+                direction: 'beside',
                 complaint_type: 'light pole not working',
-                confidence_score: 0.92
+                confidence_score: 0.92,
+                transcript_english: 'The light pole near Mariamman temple in Thayanur is not working'
             },
             processing_status: 'completed',
-            confidence_score: 0.92
+            confidence_score: 0.92,
+            attempt_number: 1
         }
     });
     const voiceCall2 = await prisma.voiceCall.create({
         data: {
             call_sid: 'VOICE-002-SAMPLE',
             audio_url: 'https://example.com/audio/sample2.mp3',
-            transcript: 'Vadavalli near bus stand power cut issue',
+            transcript: 'Vadavalli bus stand pakkathula current poguthu',
+            transcript_english: 'There is a power cut near bus stand in Vadavalli',
             ai_extracted_json: {
                 village: 'Vadavalli',
-                landmark: 'bus stand',
+                landmark: 'bus stand pakkathula',
+                landmark_english: 'near bus stand',
                 direction: 'near',
                 complaint_type: 'power cut',
-                confidence_score: 0.85
+                confidence_score: 0.85,
+                transcript_english: 'There is a power cut near bus stand in Vadavalli'
             },
             processing_status: 'completed',
-            confidence_score: 0.85
+            confidence_score: 0.85,
+            attempt_number: 1
         }
     });
     console.log(`✅ Created 2 voice calls`);
@@ -133,7 +139,8 @@ async function main() {
                 pole_id: allPoles[0].id,
                 panchayat_id: panchayat1.id,
                 complaint_type: 'light pole not working',
-                description: 'Inside Thayanur opposite ITC office the light pole is not working',
+                description: 'The light pole near Mariamman temple in Thayanur is not working',
+                audio_url: 'https://example.com/audio/sample1.mp3',
                 status: 'pending'
             },
             {
@@ -141,7 +148,8 @@ async function main() {
                 pole_id: allPoles[3].id,
                 panchayat_id: panchayat2.id,
                 complaint_type: 'power cut',
-                description: 'Vadavalli near bus stand power cut issue',
+                description: 'There is a power cut near bus stand in Vadavalli',
+                audio_url: 'https://example.com/audio/sample2.mp3',
                 status: 'in_progress'
             },
             {

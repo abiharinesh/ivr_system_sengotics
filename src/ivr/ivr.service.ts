@@ -205,40 +205,5 @@ export class IvrService {
         return { found: true }
     }
 
-    // ── Endpoint 3: Voicemail ──────────────────────────────────────────────────
-    // Exotel calls this when the user leaves a voice recording.
-    async handleVoicemail(data: IvrCallbackDto) {
-        this.logger.log(`[EP3] Voicemail for CallSid: ${data.CallSid}`)
 
-        await this.prisma.callsMaster.upsert({
-            where: { call_sid: data.CallSid },
-            create: {
-                call_sid: data.CallSid,
-                caller_number: data.CallFrom,
-                call_to: data.CallTo,
-                flow_id: data.flow_id,
-                tenant_id: data.tenant_id,
-                call_start_time: data.StartTime ? new Date(data.StartTime) : null,
-                call_end_time: data.EndTime ? new Date(data.EndTime) : null,
-                voicemail_left: !!data.RecordingUrl,
-            },
-            update: {
-                voicemail_left: !!data.RecordingUrl,
-                updated_at: new Date(),
-            }
-        })
-
-        await this.prisma.ivrVoicemail.create({
-            data: {
-                call_sid: data.CallSid,
-                caller_number: data.CallFrom,
-                recording_url: data.RecordingUrl,
-                recording_available_by: data.RecordingAvailableBy ? new Date(data.RecordingAvailableBy) : null,
-                raw_payload: data as any
-            }
-        })
-
-        this.logger.log(`[EP3] Voicemail saved for CallSid: ${data.CallSid}`)
-        return { success: true }
-    }
 }

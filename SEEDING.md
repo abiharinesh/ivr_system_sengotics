@@ -66,5 +66,5 @@ curl -X POST http://localhost:3000/api/admin/poles \
 If you need to reset and start fresh:
 ```bash
 # Drop all data
-docker-compose exec postgres psql -U postgres -d ivr_system -c "TRUNCATE complaints, electric_poles, voice_calls, ivr_voicemail, ivr_poll_input, ivr_service_selection, calls_master, panchayats CASCADE;"
+docker-compose exec postgres psql -U postgres -d ivr_system -c "TRUNCATE complaints, electric_poles, voice_calls, ivr_poll_input, ivr_service_selection, calls_master, panchayats CASCADE;"
 ```

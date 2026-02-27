@@ -33,16 +33,17 @@ export class GeoMatchingService {
         return panchayat?.id || null
     }
 
-    async findPanchayatByIvrNumber(ivrNumber: string): Promise<number | null> {
+    async findPanchayatByIvrNumber(ivrNumber: string): Promise<{ id: number; name: string } | null> {
         this.logger.log(`Finding panchayat for IVR number: ${ivrNumber}`)
 
         const panchayat = await this.prisma.panchayat.findFirst({
             where: {
                 ivr_number: ivrNumber
-            }
+            },
+            select: { id: true, name: true }
         })
 
-        return panchayat?.id || null
+        return panchayat || null
     }
 
     /**

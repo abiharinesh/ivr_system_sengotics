@@ -171,7 +171,6 @@ You should see all your tables:
 - `calls_master`
 - `ivr_service_selection`
 - `ivr_poll_input`
-- `ivr_voicemail`
 - `panchayats`
 - `electric_poles`
 - `complaints`
@@ -191,7 +190,7 @@ Now that your service is live, configure Exotel to send callbacks to your Render
 |-------|-------------|
 | Service Selection | `https://YOUR-SERVICE.onrender.com/api/ivr/service` |
 | Poll Input | `https://YOUR-SERVICE.onrender.com/api/ivr/poll` |
-| Voicemail | `https://YOUR-SERVICE.onrender.com/api/ivr/voicemail` |
+| Voice Complaint | `https://YOUR-SERVICE.onrender.com/api/ivr/voice-complaint` |
 
 4. Set method to **POST**
 5. Save configuration

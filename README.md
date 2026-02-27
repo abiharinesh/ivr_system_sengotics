@@ -14,7 +14,7 @@ A production-grade backend system for handling Exotel IVR callbacks and AI-power
 ### 1. IVR Callback Handling
 - `POST /api/ivr/service` - Service selection
 - `POST /api/ivr/poll` - Poll ID input
-- `POST /api/ivr/voicemail` - Voicemail recording
+- `POST /api/ivr/voice-complaint` - Voice complaint recording
 
 ### 2. AI Voice Processing
 - Automatic speech-to-text (Whisper)
@@ -108,9 +108,9 @@ POST /api/ivr/poll
 Body: { CallSid, CallFrom, digits, ... }
 ```
 
-#### Voicemail
+#### Voice Complaint
 ```
-POST /api/ivr/voicemail
+POST /api/ivr/voice-complaint
 Body: { CallSid, RecordingUrl, ... }
 ```
 
@@ -148,7 +148,6 @@ GET /api/admin/stats
 - `calls_master` - Call session tracking
 - `ivr_service_selection` - Service selections
 - `ivr_poll_input` - Poll inputs
-- `ivr_voicemail` - Voicemail recordings
 - `voice_calls` - AI processing pipeline
 - `panchayats` - Panchayat boundaries (with PostGIS)
 - `electric_poles` - Pole locations (with PostGIS)

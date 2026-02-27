@@ -18,14 +18,12 @@ model CallsMaster {
   call_end_time     DateTime?
   service_selected  Boolean   @default(false)
   poll_entered      Boolean   @default(false)
-  voicemail_left    Boolean   @default(false)
   final_call_status String?
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
 
   service_selections IvrServiceSelection[]
   poll_inputs        IvrPollInput[]
-  voicemails         IvrVoicemail[]
 
   @@map("calls_master")
 }
@@ -56,29 +54,18 @@ model IvrPollInput {
   @@map("ivr_poll_input")
 }
 
-model IvrVoicemail {
-  id                     BigInt      @id @default(autoincrement())
-  call_sid               String
-  caller_number          String?
-  recording_url          String?
-  recording_available_by DateTime?
-  received_at            DateTime    @default(now())
-  raw_payload            Json?
-
-  call                   CallsMaster @relation(fields: [call_sid], references: [call_sid])
-
-  @@map("ivr_voicemail")
-}
 
 model VoiceCall {
-  id                Int       @id @default(autoincrement())
-  call_sid          String?
-  audio_url         String?
-  transcript        String?
-  ai_extracted_json Json?
-  processing_status String    @default("pending")
-  confidence_score  Float?
-  created_at        DateTime  @default(now())
+  id                   Int       @id @default(autoincrement())
+  call_sid             String?
+  audio_url            String?
+  transcript           String?
+  transcript_english   String?
+  ai_extracted_json    Json?
+  processing_status    String    @default("pending")
+  confidence_score     Float?
+  attempt_number       Int       @default(1)
+  created_at           DateTime  @default(now())
 
   complaints        Complaint[]
 
@@ -137,6 +124,7 @@ model Complaint {
   panchayat_id   Int?
   complaint_type String?
   description    String?
+  audio_url      String?
   status         String   @default("pending")
   created_at     DateTime @default(now())
 

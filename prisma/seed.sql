@@ -2,7 +2,7 @@
 \c ivr_system;
 
 -- Clear existing data
-TRUNCATE complaints, electric_poles, voice_calls, ivr_voicemail, ivr_poll_input, ivr_service_selection, calls_master, panchayats CASCADE;
+TRUNCATE complaints, electric_poles, voice_calls, ivr_poll_input, ivr_service_selection, calls_master, panchayats CASCADE;
 
 -- Insert Panchayats and get IDs
 DO $$
@@ -42,8 +42,8 @@ BEGIN
     RAISE NOTICE 'Created 7 electric poles';
 
     -- Insert Sample IVR Calls
-    INSERT INTO calls_master (call_sid, caller_number, call_to, flow_id, tenant_id, service_selected, poll_entered, voicemail_left, final_call_status, call_start_time, updated_at) VALUES
-      ('CALL-001-SAMPLE', '9876543210', '04442123456', 'flow-001', 'tenant-001', true, true, false, 'SUCCESS', NOW() - INTERVAL '2 hours', NOW());
+    INSERT INTO calls_master (call_sid, caller_number, call_to, flow_id, tenant_id, service_selected, poll_entered, final_call_status, call_start_time, updated_at) VALUES
+      ('CALL-001-SAMPLE', '9876543210', '04442123456', 'flow-001', 'tenant-001', true, true, 'SUCCESS', NOW() - INTERVAL '2 hours', NOW());
 
     INSERT INTO ivr_service_selection (call_sid, caller_number, service_option, raw_payload) VALUES
       ('CALL-001-SAMPLE', '9876543210', '1', '{"test": "sample data"}');
