@@ -1,78 +1,34 @@
-import { IsString, IsOptional, IsInt } from 'class-validator'
-
+/**
+ * IVR Callback DTO — deliberately lenient.
+ *
+ * Exotel sends variable payloads depending on the callback type.
+ * We intentionally avoid strict validation here because a validation
+ * failure produces a 400 error that Exotel cannot handle, causing
+ * the call to disconnect. Every field is optional; the service layer
+ * handles missing data gracefully.
+ */
 export class IvrCallbackDto {
-    @IsString()
-    CallSid: string
-
-    @IsString()
-    @IsOptional()
+    CallSid?: string
     CallFrom?: string
-
-    @IsString()
-    @IsOptional()
     CallTo?: string
-
-    @IsString()
-    @IsOptional()
     From?: string
-
-    @IsString()
-    @IsOptional()
     To?: string
-
-    @IsString()
-    @IsOptional()
     Direction?: string
-
-    @IsString()
-    @IsOptional()
     Created?: string
-
-    @IsString()
-    @IsOptional()
     StartTime?: string
-
-    @IsString()
-    @IsOptional()
     EndTime?: string
-
-    @IsString()
-    @IsOptional()
     CallType?: string
-
-    @IsString()
-    @IsOptional()
     DialCallDuration?: string
-
-    @IsString()
-    @IsOptional()
     DialWhomNumber?: string
-
-    @IsString()
-    @IsOptional()
     flow_id?: string
-
-    @IsString()
-    @IsOptional()
     tenant_id?: string
-
-    @IsString()
-    @IsOptional()
     CurrentTime?: string
-
-    @IsString()
-    @IsOptional()
     digits?: string
-
-    @IsString()
-    @IsOptional()
     RecordingUrl?: string
-
-    @IsString()
-    @IsOptional()
     RecordingAvailableBy?: string
-
-    @IsString()
-    @IsOptional()
     ProcessStatus?: string
+
+    // Exotel may send additional fields not listed above.
+    // We capture them via the catch-all index signature.
+    [key: string]: any
 }
