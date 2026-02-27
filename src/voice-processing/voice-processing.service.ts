@@ -55,14 +55,42 @@ export class VoiceProcessingService {
                 }
             })
 
+            // Check how many attempts (audio files) we've processed for this session
+            const attemptCount = await this.prisma.voiceCall.count({
+                where: { call_sid: callSid }
+            })
+            this.logger.log(`CallSid ${callSid} is on attempt #${attemptCount}`);
+
             // Step 4: Check confidence threshold
             if (extracted.confidence_score < 0.65) {
-                await this.prisma.voiceCall.update({
-                    where: { id: voiceCall.id },
-                    data: { processing_status: 'manual_review' }
-                })
-                this.logger.warn(`Low confidence (${extracted.confidence_score}), flagged for manual review`)
-                return { success: true, status: 'manual_review', message: 'Low confidence — flagged for manual review' }
+                if (attemptCount === 1) {
+                    // First attempt: return not_found -> triggers 404 in controller -> Exotel retry flow
+                    await this.prisma.voiceCall.update({
+                        where: { id: voiceCall.id },
+                        data: { processing_status: 'not_found' }
+                    })
+                    this.logger.warn(`Low confidence (${extracted.confidence_score}) on attempt 1, returning 404 to prompt retry.`)
+                    return { success: false, status: 'not_found', message: 'Low confidence — please try again with clearer pronunciation' }
+                } else {
+                    // Second attempt: accept for manual review -> returns 200 in controller
+                    // but WE MUST STILL create a complaint record so admins can see it.
+                    await this.prisma.voiceCall.update({
+                        where: { id: voiceCall.id },
+                        data: { processing_status: 'manual_review' }
+                    })
+
+                    const complaint = await this.prisma.complaint.create({
+                        data: {
+                            voice_call_id: voiceCall.id,
+                            complaint_type: extracted.complaint_type,
+                            description: transcript,
+                            status: 'manual_review'
+                        }
+                    })
+
+                    this.logger.warn(`Low confidence (${extracted.confidence_score}) on attempt ${attemptCount}, flagged for manual review. Created complaint #${complaint.id}`)
+                    return { success: true, status: 'manual_review', complaintId: complaint.id, message: 'Low confidence — flagged for manual review' }
+                }
             }
 
             // Step 5: Match panchayat using the IVR number dialed
@@ -72,8 +100,18 @@ export class VoiceProcessingService {
                     where: { id: voiceCall.id },
                     data: { processing_status: 'manual_review' }
                 })
-                this.logger.warn(`Panchayat not found for IVR number: ${ivrNumber}`)
-                return { success: true, status: 'manual_review', message: `Panchayat not found for IVR number: ${ivrNumber}` }
+
+                const complaint = await this.prisma.complaint.create({
+                    data: {
+                        voice_call_id: voiceCall.id,
+                        complaint_type: extracted.complaint_type,
+                        description: transcript,
+                        status: 'manual_review'
+                    }
+                })
+
+                this.logger.warn(`Panchayat not found for IVR number: ${ivrNumber}. Created complaint #${complaint.id}`)
+                return { success: true, status: 'manual_review', complaintId: complaint.id, message: `Panchayat not found for IVR number: ${ivrNumber}` }
             }
 
             // Step 6: Find nearest pole using AI landmark matching
@@ -83,7 +121,7 @@ export class VoiceProcessingService {
                     where: { id: voiceCall.id },
                     data: { processing_status: 'not_found' }
                 })
-                this.logger.warn(`No pole matched landmark "${extracted.landmark}" in panchayat ${panchayatId}`)
+                this.logger.warn(`No pole matched landmark "${extracted.landmark}" in panchayat ${panchayatId} (Attempt ${attemptCount})`)
                 // Return not_found so the controller can respond 404 to Exotel
                 return {
                     success: false,
