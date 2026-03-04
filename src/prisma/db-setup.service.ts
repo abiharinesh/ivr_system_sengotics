@@ -63,9 +63,13 @@ export class DbSetupService {
     }
 
     private async seed() {
-        // ── Panchayat ──────────────────────────────────────────────────────
-        // ivr_number MUST match the actual Exotel IVR number (from Vercel logs: 04440115043)
-        const panchayat1 = await this.prisma.panchayat.create({
+        // ── NOTE: Use `npx prisma db seed` for proper seeding ────────────
+        // The full seed data is in prisma/seed.ts with 20 poles and
+        // multilingual landmarks (Tamil + Tanglish + English).
+        // This inline seed is only a minimal fallback for fresh deployments.
+        console.log('⚠️  Running minimal auto-seed. For full data, run: npx prisma db seed')
+
+        await this.prisma.panchayat.create({
             data: {
                 name: 'Thayanur',
                 center_lat: 11.0168,
@@ -74,14 +78,14 @@ export class DbSetupService {
             }
         })
 
-        // ── Electric Poles with keypad IDs and landmarks ───────────────────
-        await this.prisma.$executeRaw`
-          INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks)
-          VALUES
-            ('POLE-TY-001', '1', 11.0170, 76.9560, ST_SetSRID(ST_MakePoint(76.9560, 11.0170), 4326), ${panchayat1.id}, ARRAY['ITC office', 'opposite ITC factory', 'ITC gate']),
-            ('POLE-TY-002', '2', 11.0165, 76.9555, ST_SetSRID(ST_MakePoint(76.9555, 11.0165), 4326), ${panchayat1.id}, ARRAY['bus stop', 'bus stand', 'government bus stop']),
-            ('POLE-TY-003', '3', 11.0172, 76.9562, ST_SetSRID(ST_MakePoint(76.9562, 11.0172), 4326), ${panchayat1.id}, ARRAY['temple', 'kovil', 'murugan kovil', 'near temple'])
-        `
-        console.log('✅ Seeded Thayanur with 3 poles and landmarks')
+        await this.prisma.panchayat.create({
+            data: {
+                name: 'Tholampalay',
+                center_lat: 11.2420,
+                center_lng: 76.9520,
+                ivr_number: '04440115044'
+            }
+        })
+        console.log('✅ Created 2 panchayats (minimal). Run `npx prisma db seed` for full pole data.')
     }
 }

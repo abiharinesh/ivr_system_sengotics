@@ -1,42 +1,64 @@
 import { Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import { ConfigService } from '@nestjs/config'
+import { cleanTranscript } from './tamil-text-utils'
 
 export interface ExtractedLocation {
     village: string
-    landmark: string            // original landmark phrase (may be Tamil or English)
-    landmark_english: string    // English translation of the landmark (for matching)
+    landmark: string            // original landmark phrase (Tamil/Tanglish as-is)
+    landmark_english: string    // English translation (for matching)
     direction: string
     complaint_type: string
     confidence_score: number
-    transcript_english: string  // full English translation of the complaint
+    transcript_english: string  // full English translation
 }
 
-const EXTRACTION_PROMPT = `You are a location extraction and translation engine for electrical complaints in Tamil Nadu, India.
-The transcript you receive is from Whisper and will be in Tamil (native script or Romanized/Tanglish) or sometimes English.
+// ── Optimized extraction prompt — compact with edge-case examples ──────────────
 
-Your job:
-1. Extract structured location and complaint information.
-2. ALWAYS provide English translations — both for the landmark AND the full complaint text.
+const EXTRACTION_PROMPT = `You extract location + complaint from Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
 
-Return strictly JSON with these fields:
-{
-  "village": "name of the village or panchayat mentioned (or empty string if not mentioned — the system will fill this from the IVR number)",
-  "landmark": "The ORIGINAL landmark phrase exactly as it appears in the transcript. Keep it verbatim — Tamil, Tanglish, or English.",
-  "landmark_english": "English translation of the landmark. Examples: 'கோயிலுக்கு பக்கத்தில' → 'near the temple', 'pallivasal' → 'mosque', 'bus stand pakkathula' → 'near bus stand'. MUST always be in English.",
-  "direction": "any directional hint in English (left side, right side, opposite, beside, near, etc.)",
-  "complaint_type": "type of complaint, one of: light pole not working, power cut, wire damage, transformer issue, other",
-  "confidence_score": 0.0 to 1.0 (0.9+ if clear landmark is mentioned, 0.3 if very vague),
-  "transcript_english": "Complete English translation of the ENTIRE transcript. Translate the full complaint sentence(s) to natural English. Example: 'Thayanur la Mariamman kovil pakathula light pole eraiyala' → 'The light pole near Mariamman temple in Thayanur is not working'."
-}
+Return JSON only:
+{"village":"","landmark":"<original text verbatim>","landmark_english":"<English translation>","direction":"","complaint_type":"<light pole not working|power cut|wire damage|transformer issue|other>","confidence_score":<0.0-1.0>,"transcript_english":"<full English translation>"}
 
-Rules:
-- "landmark" = verbatim original text (for admin reference)
-- "landmark_english" = always English (for pole matching). Common Tamil: kovil/koil = temple, pallivasal = mosque, palli = school, kulam = pond, kadai = shop, maram = tree, aruge/pakkathula = near, ethire = opposite
-- "transcript_english" = translate the FULL complaint to natural English (not just keywords)
-- If the transcript is already in English, keep it as-is for landmark and transcript_english
-- If multiple landmarks are mentioned, capture the whole connected phrase
-- If unable to extract a field, use empty string`
+Tamil→English dictionary:
+kovil/koil/koyil=temple, pallivasal/masjid=mosque, palli/pallikoodam=school, kulam=pond, kadai=shop, aalamaram=banyan tree, maram=tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, ration kadai=ration shop, thanni tank=water tank, aaspatri/aspathri=hospital, petrol bunk=petrol pump, bus stand/bus stop=bus stand, veedu=house, theru=street, road=road, bridge=bridge, junction=junction
+
+EXAMPLES:
+
+1. Clear landmark (Tamil):
+Input: "Mariamman kovil pakkathula light pole eraiyala"
+Output: {"village":"","landmark":"Mariamman kovil pakkathula","landmark_english":"near Mariamman temple","direction":"near","complaint_type":"light pole not working","confidence_score":0.9,"transcript_english":"The light pole near Mariamman temple is not working"}
+
+2. Clear landmark (Tanglish mix):
+Input: "bus stand kitta current poguthu"
+Output: {"village":"","landmark":"bus stand kitta","landmark_english":"near bus stand","direction":"near","complaint_type":"power cut","confidence_score":0.85,"transcript_english":"There is a power cut near the bus stand"}
+
+3. Vague/no landmark:
+Input: "light eraiyala fix pannunga"
+Output: {"village":"","landmark":"","landmark_english":"","direction":"","complaint_type":"light pole not working","confidence_score":0.2,"transcript_english":"The light is not working, please fix it"}
+
+4. Multiple landmarks:
+Input: "school pakkam kovil kitta irukku light illa"
+Output: {"village":"","landmark":"school pakkam kovil kitta","landmark_english":"near school, near temple","direction":"near","complaint_type":"light pole not working","confidence_score":0.8,"transcript_english":"The light near the school, close to the temple, is not working"}
+
+5. Person's house as landmark:
+Input: "Raman veedu pakkam la light poiduchu"
+Output: {"village":"","landmark":"Raman veedu pakkam","landmark_english":"near Raman's house","direction":"near","complaint_type":"light pole not working","confidence_score":0.6,"transcript_english":"The light near Raman's house is gone"}
+
+6. Garbled/noisy:
+Input: "mmm light eriya... kovil..."
+Output: {"village":"","landmark":"kovil","landmark_english":"temple","direction":"","complaint_type":"light pole not working","confidence_score":0.3,"transcript_english":"Light not working... temple..."}
+
+7. Pure English:
+Input: "The street light near the government school is not working"
+Output: {"village":"","landmark":"near the government school","landmark_english":"near the government school","direction":"near","complaint_type":"light pole not working","confidence_score":0.9,"transcript_english":"The street light near the government school is not working"}
+
+RULES:
+- "landmark" = verbatim from transcript
+- "landmark_english" = always English translation
+- If no landmark is identifiable, set confidence_score below 0.3
+- If transcript is garbled but has partial words, extract what you can
+- NEVER make up landmarks — only extract what the caller actually said`
 
 @Injectable()
 export class LocationExtractionService {
@@ -51,23 +73,68 @@ export class LocationExtractionService {
     }
 
     async extractLocation(transcript: string): Promise<ExtractedLocation> {
-        this.logger.log(`Extracting location from transcript: "${transcript}"`)
+        this.logger.log(`Extracting location from: "${transcript}"`)
 
         if (!transcript || transcript.trim().length === 0) {
-            this.logger.warn('Empty transcript provided — returning defaults')
+            this.logger.warn('Empty transcript — returning defaults')
+            return this.defaultExtraction(transcript)
+        }
+
+        // Pre-process: strip filler words for cleaner AI input
+        const cleaned = cleanTranscript(transcript)
+        this.logger.log(`Cleaned transcript: "${cleaned}"`)
+
+        if (!cleaned || cleaned.trim().length === 0) {
+            this.logger.warn('Transcript was only filler words — returning defaults')
             return this.defaultExtraction(transcript)
         }
 
         try {
-            const response = await this.openai.chat.completions.create({
-                model: 'llama-3.3-70b-versatile',
-                temperature: 0.1,
-                response_format: { type: 'json_object' },
-                messages: [
-                    { role: 'system', content: EXTRACTION_PROMPT },
-                    { role: 'user', content: `Extract and translate this complaint transcript: "${transcript}"` }
-                ]
-            })
+            const result = await this.callWithRetry(cleaned)
+
+            // Ensure landmark_english always has a value
+            if (!result.landmark_english && result.landmark) {
+                result.landmark_english = result.landmark
+            }
+            if (!result.transcript_english) {
+                result.transcript_english = transcript
+            }
+
+            return result
+
+        } catch (error) {
+            const msg = (error as Error).message ?? String(error)
+            this.logger.error(`Location extraction failed: ${msg}`)
+            throw error
+        }
+    }
+
+    /**
+     * Call LLM with 1 retry on transient errors (429, 503, timeout).
+     */
+    private async callWithRetry(cleanedTranscript: string, retryCount = 0): Promise<ExtractedLocation> {
+        try {
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 10_000)
+
+            let response: OpenAI.Chat.Completions.ChatCompletion
+            try {
+                response = await this.openai.chat.completions.create(
+                    {
+                        model: 'llama-3.3-70b-versatile',
+                        temperature: 0.1,
+                        max_tokens: 300,
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            { role: 'system', content: EXTRACTION_PROMPT },
+                            { role: 'user', content: cleanedTranscript }
+                        ]
+                    },
+                    { signal: controller.signal }
+                )
+            } finally {
+                clearTimeout(timeout)
+            }
 
             const raw = response.choices[0]?.message?.content || '{}'
             let extracted: Record<string, any>
@@ -76,47 +143,42 @@ export class LocationExtractionService {
                 extracted = JSON.parse(raw)
             } catch {
                 this.logger.error(`AI returned invalid JSON: ${raw}`)
-                return this.defaultExtraction(transcript)
+                return this.defaultExtraction(cleanedTranscript)
             }
 
-            this.logger.log(`Extraction result: ${JSON.stringify(extracted)}`)
+            this.logger.log(`Extraction: ${JSON.stringify(extracted)}`)
 
-            // ── Validate and sanitize all fields ─────────────────────────────
-            const result: ExtractedLocation = {
+            return {
                 village: String(extracted.village ?? ''),
                 landmark: String(extracted.landmark ?? ''),
                 landmark_english: String(extracted.landmark_english ?? ''),
                 direction: String(extracted.direction ?? ''),
                 complaint_type: String(extracted.complaint_type ?? 'other'),
                 confidence_score: this.clampConfidence(extracted.confidence_score),
-                transcript_english: String(extracted.transcript_english ?? transcript),
+                transcript_english: String(extracted.transcript_english ?? cleanedTranscript),
             }
-
-            // Ensure landmark_english always has a value if landmark is present
-            if (!result.landmark_english && result.landmark) {
-                result.landmark_english = result.landmark
-            }
-            // Ensure transcript_english is never empty
-            if (!result.transcript_english) {
-                result.transcript_english = transcript
-            }
-
-            return result
 
         } catch (error) {
-            this.logger.error(`Location extraction failed: ${(error as Error).message}`)
+            const msg = (error as Error).message ?? String(error)
+            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort') || msg.includes('ECONNRESET')
+
+            if (isRetryable && retryCount < 1) {
+                const delay = 2000 * (retryCount + 1) // 2s backoff
+                this.logger.warn(`Retryable error (${msg}). Retrying in ${delay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+                return this.callWithRetry(cleanedTranscript, retryCount + 1)
+            }
+
             throw error
         }
     }
 
-    /** Clamp confidence to [0,1], defaulting to 0.5 if missing/invalid. */
     private clampConfidence(value: unknown): number {
         const num = Number(value)
         if (isNaN(num)) return 0.5
         return Math.max(0, Math.min(1, num))
     }
 
-    /** Return a safe default when extraction is impossible. */
     private defaultExtraction(transcript: string): ExtractedLocation {
         return {
             village: '',

@@ -23,8 +23,8 @@ export class VoiceToTextService {
         })
     }
 
-    async transcribeAudio(audioUrl: string): Promise<string> {
-        this.logger.log(`Transcribing audio from: ${audioUrl}`)
+    async transcribeAudio(audioUrl: string, retryCount = 0): Promise<string> {
+        this.logger.log(`Transcribing audio from: ${audioUrl}${retryCount > 0 ? ` (retry #${retryCount})` : ''}`)
 
         const headers: Record<string, string> = {}
 
@@ -35,9 +35,9 @@ export class VoiceToTextService {
         if (exotelApiKey && exotelApiToken && audioUrl.includes('exotel')) {
             const credentials = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64')
             headers['Authorization'] = `Basic ${credentials}`
-            this.logger.log('Using Exotel Basic Auth for recording download')
+            if (retryCount === 0) this.logger.log('Using Exotel Basic Auth for recording download')
         } else if (!exotelApiKey || !exotelApiToken) {
-            this.logger.warn('EXOTEL_API_KEY or EXOTEL_API_TOKEN not set — fetching without auth (may fail)')
+            if (retryCount === 0) this.logger.warn('EXOTEL_API_KEY or EXOTEL_API_TOKEN not set — fetching without auth (may fail)')
         }
 
         try {
@@ -71,7 +71,7 @@ export class VoiceToTextService {
             const transcription = await this.openai.audio.transcriptions.create({
                 file: audioFile,
                 model: 'whisper-large-v3',
-                language: 'ta',   // Tamil hint for better accuracy
+                prompt: 'Tamil complaint about electric pole, street light, power cut, landmarks, temple, bus stand, school, hospital',
             })
 
             const text = transcription.text?.trim() ?? ''
@@ -86,6 +86,16 @@ export class VoiceToTextService {
 
         } catch (error) {
             const errMessage = (error as Error).message ?? String(error)
+            const isRetryable = errMessage.includes('429') || errMessage.includes('503')
+                || errMessage.includes('abort') || errMessage.includes('ECONNRESET')
+                || errMessage.includes('502')
+
+            if (isRetryable && retryCount < 1) {
+                const delay = 3000
+                this.logger.warn(`Transcription failed (${errMessage}). Retrying in ${delay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+                return this.transcribeAudio(audioUrl, retryCount + 1)
+            }
 
             if (errMessage.includes('abort')) {
                 this.logger.error(`Audio fetch timed out after ${AUDIO_FETCH_TIMEOUT_MS}ms: ${audioUrl}`)

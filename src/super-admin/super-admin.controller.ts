@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, ParseIntPipe, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, Req, ParseIntPipe, UseGuards } from '@nestjs/common'
 import { SuperAdminService } from './super-admin.service'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
@@ -48,14 +48,15 @@ export class SuperAdminController {
     }
 
     @Delete('users/:id')
-    deleteUser(@Param('id', ParseIntPipe) id: number) {
-        return this.superAdminService.deleteUser(id)
+    deleteUser(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        return this.superAdminService.deleteUser(id, req.user?.id)
     }
 
     // ── Complaints (all panchayats) ─────────────────────────────────────────
     @Get('complaints')
     listComplaints(@Query('status') status?: string, @Query('panchayat_id') pid?: string) {
-        return this.superAdminService.listComplaints(status, pid ? parseInt(pid) : undefined)
+        const panchayatId = pid ? parseInt(pid, 10) : undefined
+        return this.superAdminService.listComplaints(status, isNaN(panchayatId as number) ? undefined : panchayatId)
     }
 
     @Patch('complaints/:id/status')

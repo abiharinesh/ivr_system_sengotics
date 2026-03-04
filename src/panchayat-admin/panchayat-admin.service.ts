@@ -120,6 +120,11 @@ export class PanchayatAdminService {
         })
         if (!complaint) throw new NotFoundException(`Complaint #${complaintId} not found`)
         if (complaint.panchayat_id !== panchayatId) throw new ForbiddenException('Access denied — complaint belongs to another panchayat')
+        if (complaint.status !== 'manual_review') {
+            throw new BadRequestException(
+                `Can only resolve complaints with status 'manual_review'. Current status: '${complaint.status}'`
+            )
+        }
 
         // 2. Validate pole belongs to this panchayat
         const pole = await this.prisma.electricPole.findUnique({ where: { id: poleId } })

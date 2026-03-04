@@ -3,18 +3,15 @@ import { PrismaClient } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { Pool } from 'pg'
 
-// Initialize PostgreSQL connection pool
 const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-
-// Initialize Prisma with PostgreSQL adapter (required for Prisma v7)
 const adapter = new PrismaPg(pool)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
     console.log('🌱 Starting database seed...')
 
-    // Clear existing data
-    console.log('Clearing existing data...')
+    // ── Clear existing data ──────────────────────────────────────────────
+    console.log('🧹 Clearing existing data...')
     await prisma.complaint.deleteMany()
     await prisma.electricPole.deleteMany()
     await prisma.voiceCall.deleteMany()
@@ -23,51 +20,279 @@ async function main() {
     await prisma.callsMaster.deleteMany()
     await prisma.panchayat.deleteMany()
 
-    // Seed Panchayats
-    console.log('Creating panchayats...')
-    const panchayat1 = await prisma.panchayat.create({
-        data: {
-            name: 'Thayanur',
-            center_lat: 11.0168,
-            center_lng: 76.9558,
-            ivr_number: '04440115043'
-        }
+    // ── Create 2 Panchayats ──────────────────────────────────────────────
+    console.log('🏘️  Creating panchayats...')
+
+    const thayanur = await prisma.panchayat.create({
+        data: { name: 'Thayanur', ivr_number: '04440115043', center_lat: 11.0168, center_lng: 76.9558 }
     })
 
-    const panchayat2 = await prisma.panchayat.create({
-        data: {
-            name: 'Vadavalli',
-            center_lat: 11.0234,
-            center_lng: 76.9012,
-            ivr_number: '04440115434'
-        }
+    const tholampalay = await prisma.panchayat.create({
+        data: { name: 'Tholampalay', ivr_number: '04440115434', center_lat: 11.2420, center_lng: 76.9520 }
     })
 
-    const panchayat3 = await prisma.panchayat.create({
-        data: {
-            name: 'Kurichi',
-            center_lat: 11.0089,
-            center_lng: 76.9345,
-            ivr_number: '04442123458'
-        }
-    })
+    console.log('✅ Created 2 panchayats')
 
-    console.log(`✅ Created 3 panchayats`)
+    // ── Electric Poles ───────────────────────────────────────────────────
+    console.log('🔌 Creating electric poles...')
 
-    // Seed Electric Poles using raw SQL
-    console.log('Creating electric poles...')
-
-    // Insert poles with landmarks using individual upserts (raw SQL does not support array literals cleanly)
     const polesData = [
-        { pole_number: 'POLE-TY-001', keypad_id: '1', lat: 11.0170, lng: 76.9560, panchayat_id: panchayat1.id, landmarks: ['near Mariamman temple', 'opposite ITC office'] },
-        { pole_number: 'POLE-TY-002', keypad_id: '2', lat: 11.0165, lng: 76.9555, panchayat_id: panchayat1.id, landmarks: ['beside government school', 'near water tank'] },
-        { pole_number: 'POLE-TY-003', keypad_id: '3', lat: 11.0172, lng: 76.9562, panchayat_id: panchayat1.id, landmarks: ['near ration shop', 'opposite bus stop'] },
-        { pole_number: 'POLE-VD-001', keypad_id: '1', lat: 11.0236, lng: 76.9015, panchayat_id: panchayat2.id, landmarks: ['near Vadavalli bus stand', 'opposite banyan tree'] },
-        { pole_number: 'POLE-VD-002', keypad_id: '2', lat: 11.0232, lng: 76.9010, panchayat_id: panchayat2.id, landmarks: ['near Vadavalli mosque', 'beside flour mill'] },
-        { pole_number: 'POLE-KR-001', keypad_id: '1', lat: 11.0091, lng: 76.9348, panchayat_id: panchayat3.id, landmarks: ['near Kurichi main road junction', 'opposite petrol bunk'] },
-        { pole_number: 'POLE-KR-002', keypad_id: '2', lat: 11.0087, lng: 76.9342, panchayat_id: panchayat3.id, landmarks: ['near Kurichi panchayat office', 'beside playground'] },
+
+        // ═══════════════════════════════════════════════════════════════
+        //  THAYANUR — 10 poles
+        // ═══════════════════════════════════════════════════════════════
+
+        {
+            pole_number: 'TY-001', keypad_id: '1', lat: 11.0170, lng: 76.9560, panchayat_id: thayanur.id,
+            landmarks: [
+                // Colloquial Tamil
+                'மாரியம்மன் கோயில் பக்கத்துல',
+                'மாரியம்மன் கோயில் கிட்ட',
+                // Tanglish
+                'Mariamman kovil pakkathula',
+                'Mariamman kovil kitta',
+                'Mariamman temple pakkam',
+                // English
+                'near Mariamman temple',
+                'beside Mariamman temple',
+            ]
+        },
+        {
+            pole_number: 'TY-002', keypad_id: '2', lat: 11.0165, lng: 76.9555, panchayat_id: thayanur.id,
+            landmarks: [
+                'அரசு பள்ளி பக்கத்துல',
+                'ஸ்கூல் கிட்ட',
+                'government school pakkathula',
+                'school kitta',
+                'school pakkam',
+                'near government school',
+                'beside the school',
+            ]
+        },
+        {
+            pole_number: 'TY-003', keypad_id: '3', lat: 11.0172, lng: 76.9562, panchayat_id: thayanur.id,
+            landmarks: [
+                'பஸ் ஸ்டாண்ட் பக்கத்துல',
+                'பஸ் ஸ்டாப் கிட்ட',
+                'bus stand pakkathula',
+                'bus stop kitta',
+                'bus stand pakkam',
+                'near bus stand',
+                'near bus stop',
+            ]
+        },
+        {
+            pole_number: 'TY-004', keypad_id: '4', lat: 11.0175, lng: 76.9565, panchayat_id: thayanur.id,
+            landmarks: [
+                'ரேஷன் கடை பக்கத்துல',
+                'ரேஷன் கடை கிட்ட',
+                'ration kadai pakkathula',
+                'ration kadai kitta',
+                'ration shop pakkam',
+                'near ration shop',
+                'beside ration shop',
+            ]
+        },
+        {
+            pole_number: 'TY-005', keypad_id: '5', lat: 11.0160, lng: 76.9550, panchayat_id: thayanur.id,
+            landmarks: [
+                'தண்ணி டேங்க் பக்கத்துல',
+                'வாட்டர் டேங்க் கிட்ட',
+                'thanni tank pakkathula',
+                'water tank kitta',
+                'water tank pakkam',
+                'near water tank',
+                'beside the water tank',
+            ]
+        },
+        {
+            pole_number: 'TY-006', keypad_id: '6', lat: 11.0178, lng: 76.9568, panchayat_id: thayanur.id,
+            landmarks: [
+                'பெட்ரோல் பங்க் பக்கத்துல',
+                'பெட்ரோல் பங்க் கிட்ட',
+                'petrol bunk pakkathula',
+                'petrol bunk kitta',
+                'petrol pump pakkam',
+                'near petrol bunk',
+                'near petrol pump',
+            ]
+        },
+        {
+            pole_number: 'TY-007', keypad_id: '7', lat: 11.0162, lng: 76.9552, panchayat_id: thayanur.id,
+            landmarks: [
+                'ஆலமரம் கீழ',
+                'பெரிய மரம் கிட்ட',
+                'aalamaram keezha',
+                'periya maram kitta',
+                'banyan tree pakkam',
+                'under the banyan tree',
+                'near the big tree',
+            ]
+        },
+        {
+            pole_number: 'TY-008', keypad_id: '8', lat: 11.0168, lng: 76.9558, panchayat_id: thayanur.id,
+            landmarks: [
+                'பஞ்சாயத்து ஆபிஸ் பக்கத்துல',
+                'பஞ்சாயத்து ஆபிஸ் கிட்ட',
+                'panchayat office pakkathula',
+                'panchayat office kitta',
+                'panchayathu office pakkam',
+                'near panchayat office',
+                'beside panchayat office',
+            ]
+        },
+        {
+            pole_number: 'TY-009', keypad_id: '9', lat: 11.0182, lng: 76.9572, panchayat_id: thayanur.id,
+            landmarks: [
+                'ஆஸ்பத்திரி பக்கத்துல',
+                'ஆஸ்பத்திரி கிட்ட',
+                'hospital pakkathula',
+                'aaspatri kitta',
+                'hospital pakkam',
+                'near hospital',
+                'near the clinic',
+            ]
+        },
+        {
+            pole_number: 'TY-010', keypad_id: '10', lat: 11.0155, lng: 76.9545, panchayat_id: thayanur.id,
+            landmarks: [
+                'விநாயகர் கோயில் பக்கத்துல',
+                'பிள்ளையார் கோயில் கிட்ட',
+                'Vinayagar kovil pakkathula',
+                'Pillaiyar kovil kitta',
+                'Ganesh temple pakkam',
+                'near Vinayagar temple',
+                'near Pillaiyar temple',
+            ]
+        },
+
+        // ═══════════════════════════════════════════════════════════════
+        //  THOLAMPALAY — 10 poles
+        // ═══════════════════════════════════════════════════════════════
+
+        {
+            pole_number: 'TH-001', keypad_id: '1', lat: 11.2425, lng: 76.9525, panchayat_id: tholampalay.id,
+            landmarks: [
+                'மெயின் ரோடு ஜங்ஷன் பக்கத்துல',
+                'மெயின் ரோடு கிட்ட',
+                'main road junction pakkathula',
+                'main road kitta',
+                'junction pakkam',
+                'near main road junction',
+                'at the main road junction',
+            ]
+        },
+        {
+            pole_number: 'TH-002', keypad_id: '2', lat: 11.2418, lng: 76.9518, panchayat_id: tholampalay.id,
+            landmarks: [
+                'மாரியம்மன் கோயில் பக்கத்துல',
+                'கோயில் கிட்ட',
+                'Mariamman kovil pakkathula',
+                'kovil kitta',
+                'temple pakkam',
+                'near Mariamman temple',
+                'beside the temple',
+            ]
+        },
+        {
+            pole_number: 'TH-003', keypad_id: '3', lat: 11.2430, lng: 76.9530, panchayat_id: tholampalay.id,
+            landmarks: [
+                'ஆலமரம் கீழ',
+                'பெரிய ஆலமரம் கிட்ட',
+                'aalamaram keezha',
+                'periya aalamaram kitta',
+                'banyan tree keezha',
+                'under the banyan tree',
+                'near the big banyan tree',
+            ]
+        },
+        {
+            pole_number: 'TH-004', keypad_id: '4', lat: 11.2412, lng: 76.9512, panchayat_id: tholampalay.id,
+            landmarks: [
+                'குளம் பக்கத்துல',
+                'குளக்கரை கிட்ட',
+                'kulam pakkathula',
+                'kulam kitta',
+                'pond pakkam',
+                'near the pond',
+                'beside the village pond',
+            ]
+        },
+        {
+            pole_number: 'TH-005', keypad_id: '5', lat: 11.2435, lng: 76.9535, panchayat_id: tholampalay.id,
+            landmarks: [
+                'ரேஷன் கடை பக்கத்துல',
+                'ரேஷன் கடை கிட்ட',
+                'ration kadai pakkathula',
+                'ration kadai kitta',
+                'ration shop pakkam',
+                'near ration shop',
+                'beside ration shop',
+            ]
+        },
+        {
+            pole_number: 'TH-006', keypad_id: '6', lat: 11.2408, lng: 76.9508, panchayat_id: tholampalay.id,
+            landmarks: [
+                'ஸ்கூல் கேட் பக்கத்துல',
+                'பள்ளி கிட்ட',
+                'school gate pakkathula',
+                'school kitta',
+                'palli pakkam',
+                'near school gate',
+                'near the school',
+            ]
+        },
+        {
+            pole_number: 'TH-007', keypad_id: '7', lat: 11.2440, lng: 76.9540, panchayat_id: tholampalay.id,
+            landmarks: [
+                'டீ கடை பக்கத்துல',
+                'டீ கடை கிட்ட',
+                'tea kadai pakkathula',
+                'tea kadai kitta',
+                'tea shop pakkam',
+                'near the tea shop',
+                'beside the tea stall',
+            ]
+        },
+        {
+            pole_number: 'TH-008', keypad_id: '8', lat: 11.2402, lng: 76.9502, panchayat_id: tholampalay.id,
+            landmarks: [
+                'பஞ்சாயத்து ஆபிஸ் பக்கத்துல',
+                'பஞ்சாயத்து ஆபிஸ் கிட்ட',
+                'panchayat office pakkathula',
+                'panchayathu office kitta',
+                'panchayat office pakkam',
+                'near panchayat office',
+                'beside panchayat office',
+            ]
+        },
+        {
+            pole_number: 'TH-009', keypad_id: '9', lat: 11.2445, lng: 76.9545, panchayat_id: tholampalay.id,
+            landmarks: [
+                'மசூதி பக்கத்துல',
+                'பள்ளிவாசல் கிட்ட',
+                'masjid pakkathula',
+                'pallivasal kitta',
+                'mosque pakkam',
+                'near the mosque',
+                'beside the masjid',
+            ]
+        },
+        {
+            pole_number: 'TH-010', keypad_id: '10', lat: 11.2398, lng: 76.9498, panchayat_id: tholampalay.id,
+            landmarks: [
+                'சர்ச் பக்கத்துல',
+                'சர்ச் கிட்ட',
+                'church pakkathula',
+                'church kitta',
+                'church pakkam',
+                'near the church',
+                'beside the church',
+            ]
+        },
     ]
 
+    // Insert all poles with PostGIS geometry
     for (const p of polesData) {
         await prisma.$executeRaw`
             INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks)
@@ -80,133 +305,14 @@ async function main() {
         `
     }
 
-    const allPoles = await prisma.electricPole.findMany()
-    console.log(`✅ Created ${allPoles.length} electric poles`)
-
-    // Seed Sample IVR Calls
-    console.log('Creating sample I VR calls...')
-    const call1 = await prisma.callsMaster.create({
-        data: {
-            call_sid: 'CALL-001-SAMPLE',
-            caller_number: '9876543210',
-            call_to: '04442123456',
-            flow_id: 'flow-001',
-            tenant_id: 'tenant-001',
-            call_start_time: new Date('2026-02-13T10:00:00Z'),
-            call_end_time: new Date('2026-02-13T10:02:30Z'),
-            service_selected: true,
-            poll_entered: true,
-            final_call_status: 'SUCCESS'
-        }
-    })
-
-    await prisma.ivrServiceSelection.create({
-        data: {
-            call_sid: call1.call_sid,
-            caller_number: '9876543210',
-            service_option: '1',
-            raw_payload: { test: 'sample data' }
-        }
-    })
-
-    await prisma.ivrPollInput.create({
-        data: {
-            call_sid: call1.call_sid,
-            caller_number: '9876543210',
-            poll_id: '8686',
-            raw_payload: { test: 'sample data' }
-        }
-    })
-
-    console.log(`✅ Created 1 sample IVR call`)
-
-    // Seed Sample Voice Complaints
-    console.log('Creating sample voice complaints...')
-    const voiceCall1 = await prisma.voiceCall.create({
-        data: {
-            call_sid: 'VOICE-001-SAMPLE',
-            audio_url: 'https://example.com/audio/sample1.mp3',
-            transcript: 'Thayanur la Mariamman kovil pakathula light pole eraiyala',
-            transcript_english: 'The light pole near Mariamman temple in Thayanur is not working',
-            ai_extracted_json: {
-                village: 'Thayanur',
-                landmark: 'Mariamman kovil pakathula',
-                landmark_english: 'near Mariamman temple',
-                direction: 'beside',
-                complaint_type: 'light pole not working',
-                confidence_score: 0.92,
-                transcript_english: 'The light pole near Mariamman temple in Thayanur is not working'
-            },
-            processing_status: 'completed',
-            confidence_score: 0.92,
-            attempt_number: 1
-        }
-    })
-
-    const voiceCall2 = await prisma.voiceCall.create({
-        data: {
-            call_sid: 'VOICE-002-SAMPLE',
-            audio_url: 'https://example.com/audio/sample2.mp3',
-            transcript: 'Vadavalli bus stand pakkathula current poguthu',
-            transcript_english: 'There is a power cut near bus stand in Vadavalli',
-            ai_extracted_json: {
-                village: 'Vadavalli',
-                landmark: 'bus stand pakkathula',
-                landmark_english: 'near bus stand',
-                direction: 'near',
-                complaint_type: 'power cut',
-                confidence_score: 0.85,
-                transcript_english: 'There is a power cut near bus stand in Vadavalli'
-            },
-            processing_status: 'completed',
-            confidence_score: 0.85,
-            attempt_number: 1
-        }
-    })
-
-    console.log(`✅ Created 2 voice calls`)
-
-    // Seed Complaints
-    console.log('Creating complaints...')
-    await prisma.complaint.createMany({
-        data: [
-            {
-                voice_call_id: voiceCall1.id,
-                pole_id: allPoles[0].id,
-                panchayat_id: panchayat1.id,
-                complaint_type: 'light pole not working',
-                description: 'The light pole near Mariamman temple in Thayanur is not working',
-                audio_url: 'https://example.com/audio/sample1.mp3',
-                status: 'pending'
-            },
-            {
-                voice_call_id: voiceCall2.id,
-                pole_id: allPoles[3].id,
-                panchayat_id: panchayat2.id,
-                complaint_type: 'power cut',
-                description: 'There is a power cut near bus stand in Vadavalli',
-                audio_url: 'https://example.com/audio/sample2.mp3',
-                status: 'in_progress'
-            },
-            {
-                pole_id: allPoles[1].id,
-                panchayat_id: panchayat1.id,
-                complaint_type: 'wire damage',
-                description: 'Manual complaint - wire damage near school',
-                status: 'resolved'
-            }
-        ]
-    })
-
-    console.log(`✅ Created 3 complaints`)
+    const totalPoles = await prisma.electricPole.count()
+    console.log(`✅ Created ${totalPoles} electric poles across 2 panchayats`)
 
     console.log('\n🎉 Database seeded successfully!')
-    console.log('\nSummary:')
-    console.log(`- Panchayats: 3`)
-    console.log(`- Electric Poles: ${allPoles.length}`)
-    console.log(`- IVR Calls: 1`)
-    console.log(`- Voice Complaints: 2`)
-    console.log(`- Total Complaints: 3`)
+    console.log(`\nSummary:`)
+    console.log(`- Panchayats: 2 (Thayanur, Tholampalay)`)
+    console.log(`- Electric Poles: ${totalPoles} (10 per panchayat)`)
+    console.log(`- Landmarks per pole: 7 (Colloquial Tamil + Tanglish + English)`)
 }
 
 main()

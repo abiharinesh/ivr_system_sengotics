@@ -2,25 +2,36 @@ import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { ConfigService } from '@nestjs/config'
 import OpenAI from 'openai'
+import { normalizeTanglish } from './tamil-text-utils'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Strip diacritics, collapse whitespace, lowercase, remove common filler. */
-function normalizeText(text: string): string {
-    return text
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')   // strip diacritics
+/**
+ * Normalize text for comparison. Keeps Tamil Unicode (0B80-0BFF) intact
+ * so we can match colloquial Tamil landmarks directly.
+ * Also applies Tanglish normalization for consistent spelling.
+ */
+function normalizeForMatch(text: string): string {
+    const tanglishNormalized = normalizeTanglish(text)
+
+    return tanglishNormalized
+        .normalize('NFC')
         .toLowerCase()
-        .replace(/[^a-z0-9\s]/g, ' ')      // keep only alphanumeric + space
-        .replace(/\b(the|a|an|in|at|on|of|to|is|near|beside|opposite|next)\b/g, ' ')
+        // Keep Tamil Unicode + Latin alphanumeric + whitespace
+        .replace(/[^\u0B80-\u0BFFa-z0-9\s]/g, ' ')
+        // Strip ONLY true filler articles (NOT directional words like near/beside/opposite)
+        .replace(/\b(the|a|an|in|at|on|of|to|is|and)\b/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
 }
 
-/** Returns a 0-1 similarity score between two normalized strings. */
+/**
+ * Returns a 0-1 similarity score between two strings.
+ * Works for Tamil, Tanglish, and English after normalization.
+ */
 function similarityScore(a: string, b: string): number {
-    const na = normalizeText(a)
-    const nb = normalizeText(b)
+    const na = normalizeForMatch(a)
+    const nb = normalizeForMatch(b)
 
     if (!na || !nb) return 0
 
@@ -30,7 +41,7 @@ function similarityScore(a: string, b: string): number {
     // One contains the other
     if (na.includes(nb) || nb.includes(na)) return 0.9
 
-    // Word-level overlap (Jaccard-like)
+    // Word-level overlap (Jaccard)
     const wordsA = new Set(na.split(' ').filter(Boolean))
     const wordsB = new Set(nb.split(' ').filter(Boolean))
     const intersection = [...wordsA].filter(w => wordsB.has(w))
@@ -39,6 +50,21 @@ function similarityScore(a: string, b: string): number {
     if (union.size === 0) return 0
     return intersection.length / union.size
 }
+
+// ── AI Matching Prompt ─────────────────────────────────────────────────────────
+
+const AI_MATCH_PROMPT = `You match a caller's spoken location to an electric pole in a Tamil Nadu village.
+
+INPUT: One or more landmark descriptions (from multiple call attempts) + poles with their known landmarks.
+OUTPUT: JSON → {"matched_pole_id":<number|null>,"confidence":<0.0-1.0>,"reason":"<brief explanation>"}
+
+MATCHING RULES:
+1. Tamil=English equivalences: kovil/koil=temple, pallivasal=mosque, palli=school, kulam=pond, kadai=shop, maram=tree, aalamaram=banyan tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, bus stand=bus stop
+2. Phonetic/spelling variants: mariyamman=mariamman, pillayar=vinayagar, bus stand=bus stop, aaspatri=hospital, petrol bunk=petrol pump
+3. Partial match is OK: "banyan tree" matches "under the big banyan tree"
+4. UNIQUENESS RULE: If the caller says a general category (e.g., "kovil", "school", "kadai") and ONLY ONE pole in the list has that category in its landmarks, MATCH IT with high confidence. Only reject as vague if MULTIPLE poles share the same category.
+5. MULTI-ATTEMPT: When multiple descriptions are given, treat them as cumulative clues about the SAME location. Combine all clues to find the best match.
+6. Return null + confidence < 0.4 if genuinely no match found.`
 
 @Injectable()
 export class GeoMatchingService {
@@ -82,20 +108,27 @@ export class GeoMatchingService {
     }
 
     /**
-     * Finds the nearest pole for a panchayat using a two-pass approach:
-     *   Pass 1 — Deterministic: normalized string comparison against stored landmarks.
-     *   Pass 2 — AI Fallback:   semantic landmark matching via Groq LLM.
-     * Returns null if no confident match is found.
+     * Finds the nearest pole for a panchayat using a multi-pass approach:
+     *   Pass 1 — Try each landmark hint via deterministic string similarity
+     *            (with Tanglish normalization for consistent spelling).
+     *   Pass 2 — AI semantic matching with ALL hints combined.
+     *
+     * Accepts an array of hints (from current + previous attempts).
      */
-    async findNearestPole(panchayatId: number, landmarkHint?: string): Promise<number | null> {
-        this.logger.log(`Finding pole for panchayat: ${panchayatId}, landmark: "${landmarkHint}"`)
+    async findNearestPole(
+        panchayatId: number,
+        landmarkHints: string | string[]
+    ): Promise<number | null> {
+        const hints = Array.isArray(landmarkHints) ? landmarkHints : [landmarkHints]
+        const validHints = hints.filter(h => h && h.trim() !== '')
 
-        if (!landmarkHint || landmarkHint.trim() === '') {
-            this.logger.warn(`[FAIL] No landmark hint provided — cannot identify specific pole`)
+        this.logger.log(`Finding pole for panchayat: ${panchayatId}, hints (${validHints.length}): [${validHints.join(' | ')}]`)
+
+        if (validHints.length === 0) {
+            this.logger.warn(`[FAIL] No landmark hints provided`)
             return null
         }
 
-        // Fetch all poles that have at least one landmark stored
         const poles = await this.prisma.electricPole.findMany({
             where: { panchayat_id: panchayatId }
         })
@@ -112,26 +145,27 @@ export class GeoMatchingService {
             return null
         }
 
-        // ── Pass 1: Deterministic string matching ──────────────────────────────
-        const deterministicResult = this.deterministicMatch(landmarkHint, polesWithLandmarks)
-
-        if (deterministicResult) {
-            this.logger.log(
-                `[PASS] Deterministic match! pole_id=${deterministicResult.poleId}, ` +
-                `score=${deterministicResult.score.toFixed(2)}, ` +
-                `matched="${deterministicResult.matchedLandmark}"`
-            )
-            return deterministicResult.poleId
+        // ── Pass 1: String matching — try EVERY hint (with Tanglish normalization) ─
+        for (const hint of validHints) {
+            const match = this.deterministicMatch(hint, polesWithLandmarks)
+            if (match) {
+                this.logger.log(
+                    `[PASS 1] ✅ String match! pole_id=${match.poleId}, ` +
+                    `score=${match.score.toFixed(2)}, hint="${hint}", matched="${match.matchedLandmark}"`
+                )
+                return match.poleId
+            }
         }
-        this.logger.log(`[INFO] No deterministic match — falling back to AI matching`)
 
-        // ── Pass 2: AI semantic matching (fallback) ────────────────────────────
-        return this.aiMatch(landmarkHint, polesWithLandmarks)
+        this.logger.log(`[INFO] No string match from ${validHints.length} hints — falling back to AI`)
+
+        // ── Pass 2: AI semantic matching with ALL hints combined ──────────────
+        return this.aiMatchWithRetry(validHints, polesWithLandmarks)
     }
 
     /**
-     * Pass 1: Compare landmark hint against every stored landmark using
-     * normalized string similarity. Returns the best match if score >= 0.5.
+     * Deterministic string comparison with Tanglish normalization.
+     * Returns best match if score >= 0.4.
      */
     private deterministicMatch(
         landmarkHint: string,
@@ -143,11 +177,7 @@ export class GeoMatchingService {
             for (const storedLandmark of pole.landmarks) {
                 const score = similarityScore(landmarkHint, storedLandmark)
 
-                this.logger.debug(
-                    `  Comparing "${landmarkHint}" vs "${storedLandmark}" → score=${score.toFixed(2)}`
-                )
-
-                if (score >= 0.5 && (!bestMatch || score > bestMatch.score)) {
+                if (score >= 0.4 && (!bestMatch || score > bestMatch.score)) {
                     bestMatch = { poleId: pole.id, score, matchedLandmark: storedLandmark }
                 }
             }
@@ -157,59 +187,46 @@ export class GeoMatchingService {
     }
 
     /**
-     * Pass 2: Send the landmark hint and pole list to the LLM for semantic matching.
-     * Used only when deterministic matching fails (ambiguous or differently-worded landmarks).
+     * AI semantic matching with 1 retry on transient errors.
      */
-    private async aiMatch(
-        landmarkHint: string,
-        poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>
+    private async aiMatchWithRetry(
+        landmarkHints: string[],
+        poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>,
+        retryCount = 0
     ): Promise<number | null> {
-        const poleList = poles.map(p => ({
-            pole_id: p.id,
-            pole_number: p.pole_number,
-            landmarks: p.landmarks
-        }))
+        const compactPoles: Record<number, string[]> = {}
+        for (const p of poles) {
+            compactPoles[p.id] = p.landmarks
+        }
 
-        this.logger.log(`AI matching landmark "${landmarkHint}" against ${poleList.length} poles`)
+        const combinedHints = landmarkHints.join(', ')
+        this.logger.log(`AI matching ${landmarkHints.length} hint(s): "${combinedHints}" against ${poles.length} poles`)
 
         try {
-            const response = await this.openai.chat.completions.create({
-                model: 'llama-3.3-70b-versatile',
-                temperature: 0.0,
-                response_format: { type: 'json_object' },
-                messages: [
+            const controller = new AbortController()
+            const timeout = setTimeout(() => controller.abort(), 10_000)
+
+            let response: OpenAI.Chat.Completions.ChatCompletion
+            try {
+                response = await this.openai.chat.completions.create(
                     {
-                        role: 'system',
-                        content: `You are a highly advanced semantic landmark matching engine for electric poles in Tamil Nadu villages.
-You will receive a spoken landmark phrase (often in Tanglish, Tamil, or poor English translation) and a list of electric poles with their known landmarks.
-Your EXCLUSIVE job is to find the best matching pole. 
-
-Critical matching rules:
-1. SEMANTIC EQUIVALENCE: "kovil" = "temple", "pallivasal" = "mosque", "palli" = "school", "kulam" = "pond", "kanmai" = "lake", "kadai" = "shop", "maram" = "tree", "aruge" = "near", "pakkathil" = "beside", "ethire" = "opposite".
-2. PHONETIC/SPELLING VARIATIONS: "mariyamman" = "mariamman", "pillayar" = "vinayagar", "ayyanar" = "aiyanar", "bus stand" = "bus stop".
-3. PARTIAL MATCHES: If the caller says "near the big banyan tree" and a pole has "banyan tree", that is a MATCH.
-4. If the caller's phrase contains a key entity (like a specific temple name) that exists in a pole's landmarks, SCORE IT HIGHLY (>0.8).
-
-Return ONLY a JSON object in this format:
-{
-  "matched_pole_id": <number or null>,
-  "confidence": <0.0 to 1.0>,
-  "reason": "<explain exactly which words matched, e.g. 'Caller said kovil, matched with temple'> "
-}
-
-If no pole has a reasonably matching landmark (confidence < 0.5), return matched_pole_id as null.`
+                        model: 'llama-3.3-70b-versatile',
+                        temperature: 0.0,
+                        max_tokens: 150,
+                        response_format: { type: 'json_object' },
+                        messages: [
+                            { role: 'system', content: AI_MATCH_PROMPT },
+                            {
+                                role: 'user',
+                                content: `Caller described the location across ${landmarkHints.length} attempt(s):\n${landmarkHints.map((h, i) => `  ${i + 1}. "${h}"`).join('\n')}\n\nPoles: ${JSON.stringify(compactPoles)}`
+                            }
+                        ]
                     },
-                    {
-                        role: 'user',
-                        content: `Caller described the pole location as: "${landmarkHint}"
-
-Available poles and their landmarks:
-${JSON.stringify(poleList, null, 2)}
-
-Match the caller's description to the correct pole.`
-                    }
-                ]
-            })
+                    { signal: controller.signal }
+                )
+            } finally {
+                clearTimeout(timeout)
+            }
 
             const raw = response.choices[0]?.message?.content || '{}'
             let result: { matched_pole_id: number | null; confidence: number; reason?: string }
@@ -221,9 +238,9 @@ Match the caller's description to the correct pole.`
                 return null
             }
 
-            this.logger.log(`AI match result: ${JSON.stringify(result)}`)
+            this.logger.log(`AI result: ${JSON.stringify(result)}`)
 
-            if (!result.matched_pole_id || (result.confidence ?? 0) < 0.5) {
+            if (!result.matched_pole_id || (result.confidence ?? 0) < 0.4) {
                 this.logger.warn(
                     `[FAIL] AI: No confident match (confidence: ${result.confidence}). ` +
                     `Reason: ${result.reason ?? 'unknown'}`
@@ -231,23 +248,31 @@ Match the caller's description to the correct pole.`
                 return null
             }
 
-            // Verify the matched pole_id actually exists in our pole list
             const validPole = poles.find(p => p.id === result.matched_pole_id)
             if (!validPole) {
-                this.logger.error(
-                    `[FAIL] AI returned pole_id=${result.matched_pole_id} which doesn't exist in panchayat`
-                )
+                this.logger.error(`[FAIL] AI returned pole_id=${result.matched_pole_id} which doesn't exist`)
                 return null
             }
 
-            this.logger.log(
-                `[PASS] AI matched pole_id=${result.matched_pole_id} ` +
-                `with confidence=${result.confidence}`
-            )
+            this.logger.log(`[PASS 2] ✅ AI matched pole_id=${result.matched_pole_id} (confidence=${result.confidence})`)
             return result.matched_pole_id
 
         } catch (error) {
-            this.logger.error(`[FAIL] AI landmark matching failed: ${(error as Error).message}`)
+            const msg = (error as Error).message ?? String(error)
+            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort') || msg.includes('ECONNRESET')
+
+            if (isRetryable && retryCount < 1) {
+                const delay = 2000 * (retryCount + 1)
+                this.logger.warn(`Retryable error (${msg}). Retrying in ${delay}ms...`)
+                await new Promise(resolve => setTimeout(resolve, delay))
+                return this.aiMatchWithRetry(landmarkHints, poles, retryCount + 1)
+            }
+
+            if (msg.includes('abort')) {
+                this.logger.error(`[FAIL] AI matching timed out after 10s`)
+            } else {
+                this.logger.error(`[FAIL] AI matching failed: ${msg}`)
+            }
             return null
         }
     }

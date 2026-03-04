@@ -47,6 +47,11 @@ export class SuperAdminService {
     // ── User (Panchayat Admin) Management ──────────────────────────────────
 
     async createPanchayatAdmin(data: { email: string; password: string; panchayat_id: number }) {
+        // Password strength check
+        if (!data.password || data.password.length < 8) {
+            throw new BadRequestException('Password must be at least 8 characters long')
+        }
+
         await this.ensurePanchayatExists(data.panchayat_id)
 
         const existing = await this.prisma.user.findUnique({ where: { email: data.email } })
@@ -73,9 +78,21 @@ export class SuperAdminService {
         })
     }
 
-    async deleteUser(id: number) {
+    async deleteUser(id: number, currentUserId?: number) {
+        if (currentUserId && id === currentUserId) {
+            throw new ForbiddenException('Cannot delete your own account')
+        }
+
         const user = await this.prisma.user.findUnique({ where: { id } })
         if (!user) throw new NotFoundException(`User #${id} not found`)
+
+        if (user.role === 'super_admin') {
+            // Prevent deleting the last super admin
+            const superAdminCount = await this.prisma.user.count({ where: { role: 'super_admin' } })
+            if (superAdminCount <= 1) {
+                throw new ForbiddenException('Cannot delete the last super admin')
+            }
+        }
 
         await this.prisma.user.delete({ where: { id } })
         return { success: true }
@@ -84,10 +101,17 @@ export class SuperAdminService {
     // ── Complaints (all) ───────────────────────────────────────────────────
 
     async listComplaints(status?: string, panchayatId?: number) {
+        // Validate status if provided
+        if (status && !VALID_STATUSES.includes(status as any)) {
+            throw new BadRequestException(
+                `Invalid status "${status}". Must be one of: ${VALID_STATUSES.join(', ')}`
+            )
+        }
+
         return this.prisma.complaint.findMany({
             where: {
                 ...(status && { status }),
-                ...(panchayatId && { panchayat_id: panchayatId })
+                ...(panchayatId && !isNaN(panchayatId) && { panchayat_id: panchayatId })
             },
             include: { pole: true, panchayat: true, voice_call: true },
             orderBy: { created_at: 'desc' }
@@ -113,12 +137,17 @@ export class SuperAdminService {
      * so future callers using similar language will match instantly.
      */
     async resolveComplaint(complaintId: number, poleId: number) {
-        // 1. Validate complaint exists
+        // 1. Validate complaint exists and is manual_review
         const complaint = await this.prisma.complaint.findUnique({
             where: { id: complaintId },
             include: { voice_call: true }
         })
         if (!complaint) throw new NotFoundException(`Complaint #${complaintId} not found`)
+        if (complaint.status !== 'manual_review') {
+            throw new BadRequestException(
+                `Can only resolve complaints with status 'manual_review'. Current status: '${complaint.status}'`
+            )
+        }
 
         // 2. Validate pole exists
         const pole = await this.prisma.electricPole.findUnique({ where: { id: poleId } })

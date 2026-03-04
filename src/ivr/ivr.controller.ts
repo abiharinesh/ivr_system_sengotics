@@ -131,6 +131,10 @@ export class IvrController {
             }
 
             const ivrNumber = data.CallTo || data.To || ''
+
+            // ── SYNCHRONOUS: Wait for result so Exotel gets the correct status ──
+            // 200 → complaint registered → Exotel tells caller "success"
+            // 404 → landmark not matched → Exotel asks caller to "try again"
             const result = await this.voiceProcessing.processVoiceComplaint(
                 data.CallSid,
                 data.RecordingUrl,
@@ -138,20 +142,19 @@ export class IvrController {
             )
 
             if (result.status === 'not_found') {
-                // 404 → Exotel knows landmark matching failed → triggers retry flow
+                // 404 → Exotel triggers the retry flow (ask user to re-record)
                 res.status(HttpStatus.NOT_FOUND).json({
                     message: result.message || 'Landmark not matched to any pole'
                 })
                 return
             }
 
-            // For completed or manual_review, return success XML
+            // completed or manual_review → tell caller "complaint registered"
             this.sendSuccessXml(res)
             return
 
         } catch (err) {
             this.logger.error(`[EP3] Error (non-fatal): ${(err as Error).message}`)
-            // On error, return XML 200 instead of crashing
             this.sendEmptyXml(res)
         }
     }

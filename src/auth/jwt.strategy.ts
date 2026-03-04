@@ -9,7 +9,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         super({
             jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
             ignoreExpiration: false,
-            secretOrKey: configService.get<string>('JWT_SECRET', 'ivr_secret_key_change_me')
+            secretOrKey: (() => {
+                const secret = configService.get<string>('JWT_SECRET')
+                if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is not set. Cannot start server.')
+                return secret
+            })()
         })
     }
 

@@ -14,10 +14,14 @@ import { PrismaModule } from '../prisma/prisma.module'
         JwtModule.registerAsync({
             imports: [ConfigModule],
             inject: [ConfigService],
-            useFactory: (configService: ConfigService) => ({
-                secret: configService.get<string>('JWT_SECRET', 'ivr_secret_key_change_me'),
-                signOptions: { expiresIn: '7d' }
-            })
+            useFactory: (configService: ConfigService) => {
+                const secret = configService.get<string>('JWT_SECRET')
+                if (!secret) throw new Error('FATAL: JWT_SECRET environment variable is not set.')
+                return {
+                    secret,
+                    signOptions: { expiresIn: '7d' }
+                }
+            }
         })
     ],
     providers: [AuthService, JwtStrategy],
