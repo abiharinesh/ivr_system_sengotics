@@ -72,7 +72,7 @@ export class VoiceToTextService {
                 file: audioFile,
                 model: 'whisper-large-v3',
                 language: 'ta',
-                prompt: 'Tamil complaint about electric pole, street light, power cut, landmarks, temple, bus stand, school, hospital',
+                prompt: 'Please transcribe in Tanglish (Romanized Tamil). Example: mariamman kovil pakkathula light pole eriyala. Keywords: electric pole, street light, power cut, landmarks, temple, bus stand, school, hospital',
             })
 
             const text = transcription.text?.trim() ?? ''

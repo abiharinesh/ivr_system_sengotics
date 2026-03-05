@@ -21,8 +21,11 @@ The input will be in Colloquial Tamil (spoken Tamil), Tanglish (romanized Tamil 
 Return JSON only:
 {"village":"","landmark":"<original text verbatim>","landmark_english":"<English translation>","direction":"","complaint_type":"<light pole not working|power cut|wire damage|transformer issue|other>","confidence_score":<0.0-1.0>,"transcript_english":"<full English translation>"}
 
-Tamil→English dictionary:
-kovil/koil/koyil=temple, pallivasal/masjid=mosque, palli/pallikoodam=school, kulam=pond, kadai=shop, aalamaram=banyan tree, maram=tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, ration kadai=ration shop, thanni tank=water tank, aaspatri/aspathri=hospital, petrol bunk=petrol pump, bus stand/bus stop=bus stand, veedu=house, theru=street, road=road, bridge=bridge, junction=junction
+Tamil→English dictionary & Phonetic Corrections (Whisper often mishears Tamil):
+- "மாரியம்மன்" (Mariamman) is often misheard as "ஆரியப்பத்", "மாரியம்மன்", "மாரியப்பன்"
+- "கோயில் / கோவில்" (Temple) is often misheard as "கோவிலிட்ட", "கோவிலில்", "கோவில்"
+- "பக்கத்துல / கிட்ட" (Near) is often misheard as "பக்கத்துல", "கிட்ட", "இங்கிரலையிட்", "இட்ட"
+- general mappings: kovil/koil/koyil=temple, pallivasal/masjid=mosque, palli/pallikoodam=school, kulam=pond, kadai=shop, aalamaram=banyan tree, maram=tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, ration kadai=ration shop, thanni tank=water tank, aaspatri/aspathri=hospital, petrol bunk=petrol pump, bus stand/bus stop=bus stand, veedu=house, theru=street, road=road, bridge=bridge, junction=junction
 
 EXAMPLES:
 
@@ -55,6 +58,7 @@ Input: "The street light near the government school is not working"
 Output: {"village":"","landmark":"near the government school","landmark_english":"near the government school","direction":"near","complaint_type":"light pole not working","confidence_score":0.9,"transcript_english":"The street light near the government school is not working"}
 
 RULES:
+- Whisper AI often makes spelling mistakes in Tamil script (e.g. "ஆரியப்பத் கோவிலிட்ட இங்கிரலையிட்" actually means "மாரியம்மன் கோயில் பக்கத்துல" -> "near Mariamman temple"). You MUST sound out the Tamil words phonetically and map them to logical electrical landmarks.
 - The transcript will be in Colloquial Tamil, Tanglish (romanized Tamil), or English — these are the ONLY supported languages
 - ALWAYS provide "transcript_english" as a proper English translation — NEVER copy Tamil/Tanglish text as-is
 - "landmark" = verbatim from transcript
@@ -75,8 +79,11 @@ export class LocationExtractionService {
         })
     }
 
-    async extractLocation(transcript: string): Promise<ExtractedLocation> {
+    async extractLocation(transcript: string, knownLandmarks?: string[]): Promise<ExtractedLocation> {
         this.logger.log(`Extracting location from: "${transcript}"`)
+        if (knownLandmarks?.length) {
+            this.logger.log(`Known landmarks provided: [${knownLandmarks.join(', ')}]`)
+        }
 
         if (!transcript || transcript.trim().length === 0) {
             this.logger.warn('Empty transcript — returning defaults')
@@ -93,7 +100,7 @@ export class LocationExtractionService {
         }
 
         try {
-            const result = await this.callWithRetry(cleaned)
+            const result = await this.callWithRetry(cleaned, knownLandmarks)
 
             // Ensure landmark_english always has a value
             if (!result.landmark_english && result.landmark) {
@@ -115,10 +122,16 @@ export class LocationExtractionService {
     /**
      * Call LLM with 1 retry on transient errors (429, 503, timeout).
      */
-    private async callWithRetry(cleanedTranscript: string, retryCount = 0): Promise<ExtractedLocation> {
+    private async callWithRetry(cleanedTranscript: string, knownLandmarks?: string[], retryCount = 0): Promise<ExtractedLocation> {
         try {
             const controller = new AbortController()
             const timeout = setTimeout(() => controller.abort(), 10_000)
+
+            // Build user message with optional landmark context
+            let userMessage = cleanedTranscript
+            if (knownLandmarks && knownLandmarks.length > 0) {
+                userMessage += `\n\nKNOWN LANDMARKS IN THIS AREA (from database — match the transcript to one of these if possible):\n${knownLandmarks.map(l => `- ${l}`).join('\n')}`
+            }
 
             let response: OpenAI.Chat.Completions.ChatCompletion
             try {
@@ -130,7 +143,7 @@ export class LocationExtractionService {
                         response_format: { type: 'json_object' },
                         messages: [
                             { role: 'system', content: EXTRACTION_PROMPT },
-                            { role: 'user', content: cleanedTranscript }
+                            { role: 'user', content: userMessage }
                         ]
                     },
                     { signal: controller.signal }
@@ -169,7 +182,7 @@ export class LocationExtractionService {
                 const delay = 2000 * (retryCount + 1) // 2s backoff
                 this.logger.warn(`Retryable error (${msg}). Retrying in ${delay}ms...`)
                 await new Promise(resolve => setTimeout(resolve, delay))
-                return this.callWithRetry(cleanedTranscript, retryCount + 1)
+                return this.callWithRetry(cleanedTranscript, knownLandmarks, retryCount + 1)
             }
 
             throw error

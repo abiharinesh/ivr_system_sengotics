@@ -141,18 +141,24 @@ export class VoiceProcessingService {
                 }
             }
 
-            // ── Step 4: LLM extraction + translation ─────────────────────────
-            const extracted = await this.locationExtraction.extractLocation(transcript)
-            this.logger.log(`[Step 4] Extraction: ${JSON.stringify(extracted)}`)
-
-            // ── Step 5: Resolve panchayat ────────────────────────────────────
+            // ── Step 4: Resolve panchayat (before extraction for landmark context) ─
             const panchayat = await this.geoMatching.findPanchayatByIvrNumber(ivrNumber)
+            let knownLandmarks: string[] = []
+
+            if (panchayat) {
+                this.logger.log(`[Step 4] Village = "${panchayat.name}" (from IVR ${ivrNumber})`)
+                knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
+                this.logger.log(`[Step 4] Found ${knownLandmarks.length} known landmarks in DB`)
+            } else {
+                this.logger.warn(`[Step 4] No panchayat for IVR number: ${ivrNumber}`)
+            }
+
+            // ── Step 5: LLM extraction + translation (with DB landmark context) ─
+            const extracted = await this.locationExtraction.extractLocation(transcript, knownLandmarks)
+            this.logger.log(`[Step 5] Extraction: ${JSON.stringify(extracted)}`)
 
             if (panchayat) {
                 extracted.village = panchayat.name
-                this.logger.log(`[Step 5] Village = "${panchayat.name}" (from IVR ${ivrNumber})`)
-            } else {
-                this.logger.warn(`[Step 5] No panchayat for IVR number: ${ivrNumber}`)
             }
 
             // ── Step 6: Save to VoiceCall ────────────────────────────────────

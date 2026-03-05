@@ -108,6 +108,27 @@ export class GeoMatchingService {
     }
 
     /**
+     * Get all known landmarks for poles in a panchayat.
+     * Used to give the AI extraction step context about what landmarks exist.
+     */
+    async getLandmarksForPanchayat(panchayatId: number): Promise<string[]> {
+        const poles = await this.prisma.electricPole.findMany({
+            where: { panchayat_id: panchayatId },
+            select: { landmarks: true }
+        })
+
+        const allLandmarks: string[] = []
+        for (const pole of poles) {
+            if (pole.landmarks && pole.landmarks.length > 0) {
+                allLandmarks.push(...pole.landmarks)
+            }
+        }
+
+        // Deduplicate
+        return [...new Set(allLandmarks)]
+    }
+
+    /**
      * Finds the nearest pole for a panchayat using a multi-pass approach:
      *   Pass 1 — Try each landmark hint via deterministic string similarity
      *            (with Tanglish normalization for consistent spelling).
