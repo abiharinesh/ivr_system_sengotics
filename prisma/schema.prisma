@@ -134,3 +134,11 @@ model Complaint {
 
   @@map("complaints")
 }
+
+model SystemSettings {
+  key        String   @id
+  value      String
+  updated_at DateTime @updatedAt
+
+  @@map("system_settings")
+}

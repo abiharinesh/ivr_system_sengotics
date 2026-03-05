@@ -217,6 +217,41 @@ export class SuperAdminService {
         )
     }
 
+    // ── AI Provider Settings ────────────────────────────────────────────────
+
+    async getAiProvider() {
+        const setting = await this.prisma.systemSettings.findUnique({
+            where: { key: 'ai_provider' }
+        })
+        return {
+            provider: setting?.value ?? 'gemini',
+            available_providers: ['groq', 'gemini'],
+            updated_at: setting?.updated_at ?? null
+        }
+    }
+
+    async setAiProvider(provider: string) {
+        const validProviders = ['groq', 'gemini']
+        if (!validProviders.includes(provider)) {
+            throw new BadRequestException(
+                `Invalid provider "${provider}". Must be one of: ${validProviders.join(', ')}`
+            )
+        }
+
+        const setting = await this.prisma.systemSettings.upsert({
+            where: { key: 'ai_provider' },
+            update: { value: provider },
+            create: { key: 'ai_provider', value: provider }
+        })
+
+        this.logger.log(`✅ AI provider changed to: ${provider}`)
+        return {
+            provider: setting.value,
+            message: `AI provider set to ${provider}`,
+            updated_at: setting.updated_at
+        }
+    }
+
     // ── Stats ──────────────────────────────────────────────────────────────
 
     async getStats() {

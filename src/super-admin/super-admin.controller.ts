@@ -70,6 +70,17 @@ export class SuperAdminController {
         return this.superAdminService.resolveComplaint(id, body.pole_id)
     }
 
+    // ── AI Provider Settings ────────────────────────────────────────────────
+    @Get('settings/ai-provider')
+    getAiProvider() {
+        return this.superAdminService.getAiProvider()
+    }
+
+    @Put('settings/ai-provider')
+    setAiProvider(@Body() body: { provider: string }) {
+        return this.superAdminService.setAiProvider(body.provider)
+    }
+
     // ── Stats ──────────────────────────────────────────────────────────────
     @Get('stats')
     getStats() {

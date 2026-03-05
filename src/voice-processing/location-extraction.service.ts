@@ -1,18 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common'
-import OpenAI from 'openai'
 import { ConfigService } from '@nestjs/config'
+import { PrismaService } from '../prisma/prisma.service'
+import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 export interface ExtractedLocation {
     village: string
-    landmark: string            // original landmark phrase (Tamil/Tanglish as-is)
-    landmark_english: string    // English translation (for matching)
+    landmark: string
+    landmark_english: string
     direction: string
     complaint_type: string
     confidence_score: number
-    transcript_english: string  // full English translation
+    transcript_english: string
 }
 
-// ── Optimized extraction prompt — compact with edge-case examples ──────────────
+const DEFAULT_PROVIDER = 'gemini'
+
+// ── Extraction prompt (shared by both providers) ───────────────────────────────
 
 const EXTRACTION_PROMPT = `You extract location + complaint from Colloquial Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
 The input will be in Colloquial Tamil (spoken Tamil), Tanglish (romanized Tamil written in English letters), or English. You MUST always translate to English.
@@ -69,13 +73,34 @@ RULES:
 @Injectable()
 export class LocationExtractionService {
     private readonly logger = new Logger(LocationExtractionService.name)
-    private openai: OpenAI
 
-    constructor(private configService: ConfigService) {
+    // GROQ client (LLaMA)
+    private openai: OpenAI
+    // Gemini client
+    private genAI: GoogleGenerativeAI
+
+    constructor(
+        private configService: ConfigService,
+        private prisma: PrismaService
+    ) {
         this.openai = new OpenAI({
             apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
             baseURL: 'https://api.groq.com/openai/v1',
         })
+        this.genAI = new GoogleGenerativeAI(
+            this.configService.get<string>('GOOGLE_API_KEY') || 'dummy-key'
+        )
+    }
+
+    private async getProvider(): Promise<string> {
+        try {
+            const setting = await this.prisma.systemSettings.findUnique({
+                where: { key: 'ai_provider' }
+            })
+            return setting?.value ?? DEFAULT_PROVIDER
+        } catch {
+            return DEFAULT_PROVIDER
+        }
     }
 
     async extractLocation(transcript: string, knownLandmarks?: string[]): Promise<ExtractedLocation> {
@@ -90,11 +115,8 @@ export class LocationExtractionService {
         }
 
         try {
-            // Pass raw transcript to LLM — the AI is smart enough to handle
-            // filler words and Tamil particles without pre-filtering
             const result = await this.callWithRetry(transcript.trim(), knownLandmarks)
 
-            // Ensure landmark_english always has a value
             if (!result.landmark_english && result.landmark) {
                 result.landmark_english = result.landmark
             }
@@ -111,42 +133,25 @@ export class LocationExtractionService {
         }
     }
 
-    /**
-     * Call LLM with 1 retry on transient errors (429, 503, timeout).
-     */
     private async callWithRetry(cleanedTranscript: string, knownLandmarks?: string[], retryCount = 0): Promise<ExtractedLocation> {
         try {
-            const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 10_000)
-
-            // Build user message with optional landmark context
             let userMessage = cleanedTranscript
             if (knownLandmarks && knownLandmarks.length > 0) {
                 userMessage += `\n\nKNOWN LANDMARKS IN THIS AREA (from database — match the transcript to one of these if possible):\n${knownLandmarks.map(l => `- ${l}`).join('\n')}`
             }
 
-            let response: OpenAI.Chat.Completions.ChatCompletion
-            try {
-                response = await this.openai.chat.completions.create(
-                    {
-                        model: 'llama-3.3-70b-versatile',
-                        temperature: 0.1,
-                        max_tokens: 300,
-                        response_format: { type: 'json_object' },
-                        messages: [
-                            { role: 'system', content: EXTRACTION_PROMPT },
-                            { role: 'user', content: userMessage }
-                        ]
-                    },
-                    { signal: controller.signal }
-                )
-            } finally {
-                clearTimeout(timeout)
+            const provider = await this.getProvider()
+            this.logger.log(`[LLM:${provider}] Extracting location`)
+
+            let raw: string
+
+            if (provider === 'groq') {
+                raw = await this.extractWithGroq(userMessage)
+            } else {
+                raw = await this.extractWithGemini(userMessage)
             }
 
-            const raw = response.choices[0]?.message?.content || '{}'
             let extracted: Record<string, any>
-
             try {
                 extracted = JSON.parse(raw)
             } catch {
@@ -168,10 +173,11 @@ export class LocationExtractionService {
 
         } catch (error) {
             const msg = (error as Error).message ?? String(error)
-            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort') || msg.includes('ECONNRESET')
+            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort')
+                || msg.includes('ECONNRESET') || msg.includes('RESOURCE_EXHAUSTED')
 
             if (isRetryable && retryCount < 1) {
-                const delay = 2000 * (retryCount + 1) // 2s backoff
+                const delay = 2000 * (retryCount + 1)
                 this.logger.warn(`Retryable error (${msg}). Retrying in ${delay}ms...`)
                 await new Promise(resolve => setTimeout(resolve, delay))
                 return this.callWithRetry(cleanedTranscript, knownLandmarks, retryCount + 1)
@@ -179,6 +185,52 @@ export class LocationExtractionService {
 
             throw error
         }
+    }
+
+    // ── GROQ (LLaMA) ────────────────────────────────────────────────────────
+
+    private async extractWithGroq(userMessage: string): Promise<string> {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10_000)
+
+        try {
+            const response = await this.openai.chat.completions.create(
+                {
+                    model: 'llama-3.3-70b-versatile',
+                    temperature: 0.1,
+                    max_tokens: 300,
+                    response_format: { type: 'json_object' },
+                    messages: [
+                        { role: 'system', content: EXTRACTION_PROMPT },
+                        { role: 'user', content: userMessage }
+                    ]
+                },
+                { signal: controller.signal }
+            )
+            return response.choices[0]?.message?.content || '{}'
+        } finally {
+            clearTimeout(timeout)
+        }
+    }
+
+    // ── Google Gemini ────────────────────────────────────────────────────────
+
+    private async extractWithGemini(userMessage: string): Promise<string> {
+        const model = this.genAI.getGenerativeModel({
+            model: 'gemini-2.0-flash',
+            generationConfig: {
+                temperature: 0.1,
+                maxOutputTokens: 300,
+                responseMimeType: 'application/json',
+            },
+        })
+
+        const result = await model.generateContent([
+            { text: EXTRACTION_PROMPT },
+            { text: userMessage }
+        ])
+
+        return result.response.text() || '{}'
     }
 
     private clampConfidence(value: unknown): number {

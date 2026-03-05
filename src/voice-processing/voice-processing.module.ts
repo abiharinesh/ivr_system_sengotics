@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { PrismaModule } from '../prisma/prisma.module'
 import { VoiceProcessingService } from './voice-processing.service'
 import { VoiceToTextService } from './voice-to-text.service'
 import { LocationExtractionService } from './location-extraction.service'
 import { GeoMatchingService } from './geo-matching.service'
 
 @Module({
-    imports: [ConfigModule],
+    imports: [ConfigModule, PrismaModule],
     providers: [
         VoiceProcessingService,
         VoiceToTextService,

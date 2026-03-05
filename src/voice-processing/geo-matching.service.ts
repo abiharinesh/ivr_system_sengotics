@@ -2,46 +2,33 @@ import { Injectable, Logger } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import { ConfigService } from '@nestjs/config'
 import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { normalizeTanglish } from './tamil-text-utils'
+
+const DEFAULT_PROVIDER = 'gemini'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/**
- * Normalize text for comparison. Keeps Tamil Unicode (0B80-0BFF) intact
- * so we can match colloquial Tamil landmarks directly.
- * Also applies Tanglish normalization for consistent spelling.
- */
 function normalizeForMatch(text: string): string {
     const tanglishNormalized = normalizeTanglish(text)
 
     return tanglishNormalized
         .normalize('NFC')
         .toLowerCase()
-        // Keep Tamil Unicode + Latin alphanumeric + whitespace
         .replace(/[^\u0B80-\u0BFFa-z0-9\s]/g, ' ')
-        // Strip ONLY true filler articles (NOT directional words like near/beside/opposite)
         .replace(/\b(the|a|an|in|at|on|of|to|is|and)\b/g, ' ')
         .replace(/\s+/g, ' ')
         .trim()
 }
 
-/**
- * Returns a 0-1 similarity score between two strings.
- * Works for Tamil, Tanglish, and English after normalization.
- */
 function similarityScore(a: string, b: string): number {
     const na = normalizeForMatch(a)
     const nb = normalizeForMatch(b)
 
     if (!na || !nb) return 0
-
-    // Exact match
     if (na === nb) return 1.0
-
-    // One contains the other
     if (na.includes(nb) || nb.includes(na)) return 0.9
 
-    // Word-level overlap (Jaccard)
     const wordsA = new Set(na.split(' ').filter(Boolean))
     const wordsB = new Set(nb.split(' ').filter(Boolean))
     const intersection = [...wordsA].filter(w => wordsB.has(w))
@@ -51,7 +38,7 @@ function similarityScore(a: string, b: string): number {
     return intersection.length / union.size
 }
 
-// ── AI Matching Prompt ─────────────────────────────────────────────────────────
+// ── AI Matching Prompt (shared by both providers) ──────────────────────────────
 
 const AI_MATCH_PROMPT = `You match a caller's spoken location to an electric pole in a Tamil Nadu village.
 
@@ -69,7 +56,11 @@ MATCHING RULES:
 @Injectable()
 export class GeoMatchingService {
     private readonly logger = new Logger(GeoMatchingService.name)
+
+    // GROQ client (LLaMA)
     private openai: OpenAI
+    // Gemini client
+    private genAI: GoogleGenerativeAI
 
     constructor(
         private prisma: PrismaService,
@@ -79,6 +70,20 @@ export class GeoMatchingService {
             apiKey: this.configService.get<string>('GROQ_API_KEY') || 'dummy-key',
             baseURL: 'https://api.groq.com/openai/v1',
         })
+        this.genAI = new GoogleGenerativeAI(
+            this.configService.get<string>('GOOGLE_API_KEY') || 'dummy-key'
+        )
+    }
+
+    private async getProvider(): Promise<string> {
+        try {
+            const setting = await this.prisma.systemSettings.findUnique({
+                where: { key: 'ai_provider' }
+            })
+            return setting?.value ?? DEFAULT_PROVIDER
+        } catch {
+            return DEFAULT_PROVIDER
+        }
     }
 
     async findPanchayatByName(villageName: string): Promise<number | null> {
@@ -107,10 +112,6 @@ export class GeoMatchingService {
         return panchayat ?? null
     }
 
-    /**
-     * Get all known landmarks for poles in a panchayat.
-     * Used to give the AI extraction step context about what landmarks exist.
-     */
     async getLandmarksForPanchayat(panchayatId: number): Promise<string[]> {
         const poles = await this.prisma.electricPole.findMany({
             where: { panchayat_id: panchayatId },
@@ -124,18 +125,9 @@ export class GeoMatchingService {
             }
         }
 
-        // Deduplicate
         return [...new Set(allLandmarks)]
     }
 
-    /**
-     * Finds the nearest pole for a panchayat using a multi-pass approach:
-     *   Pass 1 — Try each landmark hint via deterministic string similarity
-     *            (with Tanglish normalization for consistent spelling).
-     *   Pass 2 — AI semantic matching with ALL hints combined.
-     *
-     * Accepts an array of hints (from current + previous attempts).
-     */
     async findNearestPole(
         panchayatId: number,
         landmarkHints: string | string[]
@@ -166,7 +158,7 @@ export class GeoMatchingService {
             return null
         }
 
-        // ── Pass 1: String matching — try EVERY hint (with Tanglish normalization) ─
+        // ── Pass 1: Deterministic string matching ────────────────────────────
         for (const hint of validHints) {
             const match = this.deterministicMatch(hint, polesWithLandmarks)
             if (match) {
@@ -180,14 +172,10 @@ export class GeoMatchingService {
 
         this.logger.log(`[INFO] No string match from ${validHints.length} hints — falling back to AI`)
 
-        // ── Pass 2: AI semantic matching with ALL hints combined ──────────────
+        // ── Pass 2: AI semantic matching ─────────────────────────────────────
         return this.aiMatchWithRetry(validHints, polesWithLandmarks)
     }
 
-    /**
-     * Deterministic string comparison with Tanglish normalization.
-     * Returns best match if score >= 0.4.
-     */
     private deterministicMatch(
         landmarkHint: string,
         poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>
@@ -207,9 +195,6 @@ export class GeoMatchingService {
         return bestMatch
     }
 
-    /**
-     * AI semantic matching with 1 retry on transient errors.
-     */
     private async aiMatchWithRetry(
         landmarkHints: string[],
         poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>,
@@ -220,36 +205,22 @@ export class GeoMatchingService {
             compactPoles[p.id] = p.landmarks
         }
 
-        const combinedHints = landmarkHints.join(', ')
-        this.logger.log(`AI matching ${landmarkHints.length} hint(s): "${combinedHints}" against ${poles.length} poles`)
+        const userMessage = `Caller described the location across ${landmarkHints.length} attempt(s):\n${landmarkHints.map((h, i) => `  ${i + 1}. "${h}"`).join('\n')}\n\nPoles: ${JSON.stringify(compactPoles)}`
+
+        this.logger.log(`AI matching ${landmarkHints.length} hint(s) against ${poles.length} poles`)
 
         try {
-            const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), 10_000)
+            const provider = await this.getProvider()
+            this.logger.log(`[AI Match:${provider}]`)
 
-            let response: OpenAI.Chat.Completions.ChatCompletion
-            try {
-                response = await this.openai.chat.completions.create(
-                    {
-                        model: 'llama-3.3-70b-versatile',
-                        temperature: 0.0,
-                        max_tokens: 150,
-                        response_format: { type: 'json_object' },
-                        messages: [
-                            { role: 'system', content: AI_MATCH_PROMPT },
-                            {
-                                role: 'user',
-                                content: `Caller described the location across ${landmarkHints.length} attempt(s):\n${landmarkHints.map((h, i) => `  ${i + 1}. "${h}"`).join('\n')}\n\nPoles: ${JSON.stringify(compactPoles)}`
-                            }
-                        ]
-                    },
-                    { signal: controller.signal }
-                )
-            } finally {
-                clearTimeout(timeout)
+            let raw: string
+
+            if (provider === 'groq') {
+                raw = await this.matchWithGroq(userMessage)
+            } else {
+                raw = await this.matchWithGemini(userMessage)
             }
 
-            const raw = response.choices[0]?.message?.content || '{}'
             let result: { matched_pole_id: number | null; confidence: number; reason?: string }
 
             try {
@@ -280,7 +251,8 @@ export class GeoMatchingService {
 
         } catch (error) {
             const msg = (error as Error).message ?? String(error)
-            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort') || msg.includes('ECONNRESET')
+            const isRetryable = msg.includes('429') || msg.includes('503') || msg.includes('abort')
+                || msg.includes('ECONNRESET') || msg.includes('RESOURCE_EXHAUSTED')
 
             if (isRetryable && retryCount < 1) {
                 const delay = 2000 * (retryCount + 1)
@@ -296,6 +268,52 @@ export class GeoMatchingService {
             }
             return null
         }
+    }
+
+    // ── GROQ (LLaMA) ────────────────────────────────────────────────────────
+
+    private async matchWithGroq(userMessage: string): Promise<string> {
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 10_000)
+
+        try {
+            const response = await this.openai.chat.completions.create(
+                {
+                    model: 'llama-3.3-70b-versatile',
+                    temperature: 0.0,
+                    max_tokens: 150,
+                    response_format: { type: 'json_object' },
+                    messages: [
+                        { role: 'system', content: AI_MATCH_PROMPT },
+                        { role: 'user', content: userMessage }
+                    ]
+                },
+                { signal: controller.signal }
+            )
+            return response.choices[0]?.message?.content || '{}'
+        } finally {
+            clearTimeout(timeout)
+        }
+    }
+
+    // ── Google Gemini ────────────────────────────────────────────────────────
+
+    private async matchWithGemini(userMessage: string): Promise<string> {
+        const model = this.genAI.getGenerativeModel({
+            model: 'gemini-2.0-flash',
+            generationConfig: {
+                temperature: 0.0,
+                maxOutputTokens: 150,
+                responseMimeType: 'application/json',
+            },
+        })
+
+        const result = await model.generateContent([
+            { text: AI_MATCH_PROMPT },
+            { text: userMessage }
+        ])
+
+        return result.response.text() || '{}'
     }
 
     async findNearestPoleByCoordinates(

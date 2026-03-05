@@ -1,92 +1,81 @@
 import { Injectable, Logger } from '@nestjs/common'
-import OpenAI from 'openai'
 import { ConfigService } from '@nestjs/config'
+import { PrismaService } from '../prisma/prisma.service'
+import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
 /** Maximum time (ms) to wait for audio download from Exotel. */
 const AUDIO_FETCH_TIMEOUT_MS = 30_000
 
+/** Default AI provider if no setting exists in DB */
+const DEFAULT_PROVIDER = 'gemini'
+
 @Injectable()
 export class VoiceToTextService {
     private readonly logger = new Logger(VoiceToTextService.name)
+
+    // GROQ client (Whisper)
     private openai: OpenAI
+    // Gemini client
+    private genAI: GoogleGenerativeAI
 
-    constructor(private configService: ConfigService) {
-        const apiKey = this.configService.get<string>('GROQ_API_KEY')
-
-        if (!apiKey) {
-            this.logger.warn('GROQ_API_KEY is not defined. Voice transcription features will not work.')
-        }
-
+    constructor(
+        private configService: ConfigService,
+        private prisma: PrismaService
+    ) {
+        // Initialize GROQ (OpenAI-compatible)
+        const groqKey = this.configService.get<string>('GROQ_API_KEY')
         this.openai = new OpenAI({
-            apiKey: apiKey || 'dummy-key',
+            apiKey: groqKey || 'dummy-key',
             baseURL: 'https://api.groq.com/openai/v1',
         })
+
+        // Initialize Gemini
+        const googleKey = this.configService.get<string>('GOOGLE_API_KEY')
+        this.genAI = new GoogleGenerativeAI(googleKey || 'dummy-key')
+
+        if (!groqKey) this.logger.warn('GROQ_API_KEY not set — GROQ transcription will not work')
+        if (!googleKey) this.logger.warn('GOOGLE_API_KEY not set — Gemini transcription will not work')
+    }
+
+    /** Read the active AI provider from the database. */
+    private async getProvider(): Promise<string> {
+        try {
+            const setting = await this.prisma.systemSettings.findUnique({
+                where: { key: 'ai_provider' }
+            })
+            return setting?.value ?? DEFAULT_PROVIDER
+        } catch {
+            return DEFAULT_PROVIDER
+        }
     }
 
     async transcribeAudio(audioUrl: string, retryCount = 0): Promise<string> {
-        this.logger.log(`Transcribing audio from: ${audioUrl}${retryCount > 0 ? ` (retry #${retryCount})` : ''}`)
+        const provider = await this.getProvider()
+        this.logger.log(`[STT:${provider}] Transcribing audio from: ${audioUrl}${retryCount > 0 ? ` (retry #${retryCount})` : ''}`)
 
-        const headers: Record<string, string> = {}
-
-        // Exotel recording URLs require HTTP Basic Auth to download.
-        const exotelApiKey = this.configService.get<string>('EXOTEL_API_KEY')
-        const exotelApiToken = this.configService.get<string>('EXOTEL_API_TOKEN')
-
-        if (exotelApiKey && exotelApiToken && audioUrl.includes('exotel')) {
-            const credentials = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64')
-            headers['Authorization'] = `Basic ${credentials}`
-            if (retryCount === 0) this.logger.log('Using Exotel Basic Auth for recording download')
-        } else if (!exotelApiKey || !exotelApiToken) {
-            if (retryCount === 0) this.logger.warn('EXOTEL_API_KEY or EXOTEL_API_TOKEN not set — fetching without auth (may fail)')
-        }
+        // ── Download audio ───────────────────────────────────────────────────
+        const audioBuffer = await this.downloadAudio(audioUrl, retryCount)
+        this.logger.log(`Audio downloaded: ${audioBuffer.byteLength} bytes`)
 
         try {
-            // Fetch with timeout to prevent indefinite hangs
-            const controller = new AbortController()
-            const timeout = setTimeout(() => controller.abort(), AUDIO_FETCH_TIMEOUT_MS)
+            // ── Transcribe with selected provider ────────────────────────────
+            let text: string
 
-            let response: Response
-            try {
-                response = await fetch(audioUrl, { headers, signal: controller.signal })
-            } finally {
-                clearTimeout(timeout)
+            if (provider === 'groq') {
+                text = await this.transcribeWithGroq(audioBuffer)
+            } else {
+                text = await this.transcribeWithGemini(audioBuffer, audioUrl)
             }
-
-            if (!response.ok) {
-                throw new Error(
-                    `Failed to fetch audio: HTTP ${response.status} ${response.statusText} from ${audioUrl}`
-                )
-            }
-
-            const audioBlob = await response.blob()
-
-            if (audioBlob.size === 0) {
-                throw new Error(`Audio file is empty (0 bytes) from ${audioUrl}`)
-            }
-
-            this.logger.log(`Audio downloaded: ${audioBlob.size} bytes`)
-
-            const audioFile = new File([audioBlob], 'audio.mp3', { type: 'audio/mpeg' })
-
-            const transcription = await this.openai.audio.transcriptions.create({
-                file: audioFile,
-                model: 'whisper-large-v3',
-                language: 'ta',
-                prompt: 'Colloquial Tamil village complaint. Example: mariamman kovil pakkathula light pole eriyala, bus stand kitta current poguthu, pallivasal pakkam street light eriyala',
-            })
-
-            const text = transcription.text?.trim() ?? ''
 
             if (!text) {
-                this.logger.warn('Whisper returned empty transcription')
+                this.logger.warn(`[${provider}] Returned empty transcription`)
                 return ''
             }
 
             // ── Hallucination detection ──────────────────────────────────────
-            // Whisper often outputs nonsensical English when it can't understand
-            // Tamil audio. These are known hallucination patterns.
             if (this.isHallucination(text)) {
-                this.logger.warn(`Whisper hallucination detected: "${text}"`)
+                this.logger.warn(`Hallucination detected: "${text}"`)
                 if (retryCount < 1) {
                     this.logger.log('Retrying transcription after hallucination...')
                     await new Promise(resolve => setTimeout(resolve, 1000))
@@ -103,7 +92,7 @@ export class VoiceToTextService {
             const errMessage = (error as Error).message ?? String(error)
             const isRetryable = errMessage.includes('429') || errMessage.includes('503')
                 || errMessage.includes('abort') || errMessage.includes('ECONNRESET')
-                || errMessage.includes('502')
+                || errMessage.includes('502') || errMessage.includes('RESOURCE_EXHAUSTED')
 
             if (isRetryable && retryCount < 1) {
                 const delay = 3000
@@ -112,56 +101,114 @@ export class VoiceToTextService {
                 return this.transcribeAudio(audioUrl, retryCount + 1)
             }
 
-            if (errMessage.includes('abort')) {
-                this.logger.error(`Audio fetch timed out after ${AUDIO_FETCH_TIMEOUT_MS}ms: ${audioUrl}`)
-                throw new Error(`Audio download timed out after ${AUDIO_FETCH_TIMEOUT_MS / 1000}s`)
-            }
-
             this.logger.error(`Transcription failed: ${errMessage}`)
             throw error
         }
     }
 
-    /**
-     * Detect common Whisper hallucination patterns.
-     * Whisper often outputs these when it can't understand the audio.
-     */
+    // ── Provider: GROQ (Whisper) ─────────────────────────────────────────────
+
+    private async transcribeWithGroq(audioBuffer: ArrayBuffer): Promise<string> {
+        const audioFile = new File([audioBuffer], 'audio.mp3', { type: 'audio/mpeg' })
+
+        const transcription = await this.openai.audio.transcriptions.create({
+            file: audioFile,
+            model: 'whisper-large-v3',
+            language: 'ta',
+            prompt: 'Colloquial Tamil village complaint. Example: mariamman kovil pakkathula light pole eriyala, bus stand kitta current poguthu, pallivasal pakkam street light eriyala',
+        })
+
+        return transcription.text?.trim() ?? ''
+    }
+
+    // ── Provider: Google Gemini ──────────────────────────────────────────────
+
+    private async transcribeWithGemini(audioBuffer: ArrayBuffer, audioUrl: string): Promise<string> {
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64')
+        const mimeType = audioUrl.includes('.wav') ? 'audio/wav'
+            : audioUrl.includes('.ogg') ? 'audio/ogg'
+                : 'audio/mpeg'
+
+        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
+
+        const result = await model.generateContent([
+            {
+                inlineData: { mimeType, data: audioBase64 }
+            },
+            {
+                text: `Transcribe this audio recording accurately. The speaker is speaking in Colloquial Tamil (spoken Tamil from Tamil Nadu villages). 
+The audio is a voice complaint about electrical/street light issues.
+Common words you may hear: kovil (temple), pakkathula/kitta (near), light pole, current, eriyala (not working), bus stand, school, hospital, kadai (shop), theru (street), veedu (house), maram (tree).
+
+IMPORTANT RULES:
+- Output ONLY the transcription text, nothing else
+- Keep Tamil words as-is in their original romanized/Tamil script form
+- Do NOT add any commentary, labels, or explanations
+- If the audio is unclear or silent, return an empty string
+- Preserve the exact words spoken, including Tanglish (Tamil-English mix)`
+            }
+        ])
+
+        return result.response.text()?.trim() ?? ''
+    }
+
+    // ── Audio download ───────────────────────────────────────────────────────
+
+    private async downloadAudio(audioUrl: string, retryCount: number): Promise<ArrayBuffer> {
+        const headers: Record<string, string> = {}
+
+        const exotelApiKey = this.configService.get<string>('EXOTEL_API_KEY')
+        const exotelApiToken = this.configService.get<string>('EXOTEL_API_TOKEN')
+
+        if (exotelApiKey && exotelApiToken && audioUrl.includes('exotel')) {
+            const credentials = Buffer.from(`${exotelApiKey}:${exotelApiToken}`).toString('base64')
+            headers['Authorization'] = `Basic ${credentials}`
+            if (retryCount === 0) this.logger.log('Using Exotel Basic Auth for recording download')
+        } else if (!exotelApiKey || !exotelApiToken) {
+            if (retryCount === 0) this.logger.warn('EXOTEL_API_KEY or EXOTEL_API_TOKEN not set — fetching without auth (may fail)')
+        }
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), AUDIO_FETCH_TIMEOUT_MS)
+
+        let response: Response
+        try {
+            response = await fetch(audioUrl, { headers, signal: controller.signal })
+        } finally {
+            clearTimeout(timeout)
+        }
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch audio: HTTP ${response.status} ${response.statusText} from ${audioUrl}`)
+        }
+
+        const buffer = await response.arrayBuffer()
+        if (buffer.byteLength === 0) {
+            throw new Error(`Audio file is empty (0 bytes) from ${audioUrl}`)
+        }
+
+        return buffer
+    }
+
+    // ── Hallucination detection ──────────────────────────────────────────────
+
     private isHallucination(text: string): boolean {
         const lower = text.toLowerCase().trim()
 
-        // Known exact hallucination phrases
         const HALLUCINATION_PHRASES = [
-            '4k audio',
-            'main role',
-            'thank you for watching',
-            'thanks for watching',
-            'please subscribe',
-            'like and subscribe',
-            'subtitles by',
-            'transcribed by',
-            'translated by',
-            'music',
-            'applause',
-            'laughter',
-            'you',
-            'bye',
-            'the end',
-            'silence',
+            '4k audio', 'main role', 'thank you for watching', 'thanks for watching',
+            'please subscribe', 'like and subscribe', 'subtitles by', 'transcribed by',
+            'translated by', 'music', 'applause', 'laughter', 'you', 'bye', 'the end',
+            'silence', 'i cannot transcribe', 'i can\'t transcribe', 'the audio is', 'this audio',
         ]
 
-        if (HALLUCINATION_PHRASES.some(h => lower.includes(h))) {
-            return true
-        }
+        if (HALLUCINATION_PHRASES.some(h => lower.includes(h))) return true
 
-        // Very short text (< 3 words) that is purely English/ASCII 
-        // with no Tamil-related words is likely hallucinated
         const words = lower.split(/\s+/).filter(Boolean)
         const isAllAscii = /^[a-z0-9\s.,!?'"()-]+$/.test(lower)
         const hasTamilKeywords = /kovil|koil|koyil|pakkam|kitta|maram|kadai|theru|veedu|school|bus|stand|hospital|temple|mosque|church|light|pole|current|wire/i.test(lower)
 
-        if (isAllAscii && words.length <= 4 && !hasTamilKeywords) {
-            return true
-        }
+        if (isAllAscii && words.length <= 4 && !hasTamilKeywords) return true
 
         return false
     }
