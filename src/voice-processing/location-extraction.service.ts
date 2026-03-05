@@ -15,7 +15,8 @@ export interface ExtractedLocation {
 
 // ── Optimized extraction prompt — compact with edge-case examples ──────────────
 
-const EXTRACTION_PROMPT = `You extract location + complaint from Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
+const EXTRACTION_PROMPT = `You extract location + complaint from Colloquial Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
+The input will be in Colloquial Tamil (spoken Tamil), Tanglish (romanized Tamil written in English letters), or English. You MUST always translate to English.
 
 Return JSON only:
 {"village":"","landmark":"<original text verbatim>","landmark_english":"<English translation>","direction":"","complaint_type":"<light pole not working|power cut|wire damage|transformer issue|other>","confidence_score":<0.0-1.0>,"transcript_english":"<full English translation>"}
@@ -54,6 +55,8 @@ Input: "The street light near the government school is not working"
 Output: {"village":"","landmark":"near the government school","landmark_english":"near the government school","direction":"near","complaint_type":"light pole not working","confidence_score":0.9,"transcript_english":"The street light near the government school is not working"}
 
 RULES:
+- The transcript will be in Colloquial Tamil, Tanglish (romanized Tamil), or English — these are the ONLY supported languages
+- ALWAYS provide "transcript_english" as a proper English translation — NEVER copy Tamil/Tanglish text as-is
 - "landmark" = verbatim from transcript
 - "landmark_english" = always English translation
 - If no landmark is identifiable, set confidence_score below 0.3

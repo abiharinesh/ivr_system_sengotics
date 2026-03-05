@@ -71,6 +71,7 @@ export class VoiceToTextService {
             const transcription = await this.openai.audio.transcriptions.create({
                 file: audioFile,
                 model: 'whisper-large-v3',
+                language: 'ta',
                 prompt: 'Tamil complaint about electric pole, street light, power cut, landmarks, temple, bus stand, school, hospital',
             })
 
