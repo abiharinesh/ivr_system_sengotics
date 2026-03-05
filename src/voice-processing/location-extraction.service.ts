@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import OpenAI from 'openai'
 import { ConfigService } from '@nestjs/config'
-import { cleanTranscript } from './tamil-text-utils'
 
 export interface ExtractedLocation {
     village: string
@@ -90,17 +89,10 @@ export class LocationExtractionService {
             return this.defaultExtraction(transcript)
         }
 
-        // Pre-process: strip filler words for cleaner AI input
-        const cleaned = cleanTranscript(transcript)
-        this.logger.log(`Cleaned transcript: "${cleaned}"`)
-
-        if (!cleaned || cleaned.trim().length === 0) {
-            this.logger.warn('Transcript was only filler words — returning defaults')
-            return this.defaultExtraction(transcript)
-        }
-
         try {
-            const result = await this.callWithRetry(cleaned, knownLandmarks)
+            // Pass raw transcript to LLM — the AI is smart enough to handle
+            // filler words and Tamil particles without pre-filtering
+            const result = await this.callWithRetry(transcript.trim(), knownLandmarks)
 
             // Ensure landmark_english always has a value
             if (!result.landmark_english && result.landmark) {
