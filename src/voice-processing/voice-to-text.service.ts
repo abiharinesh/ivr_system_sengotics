@@ -72,17 +72,31 @@ export class VoiceToTextService {
                 file: audioFile,
                 model: 'whisper-large-v3',
                 language: 'ta',
-                prompt: 'Please transcribe in Tanglish (Romanized Tamil). Example: mariamman kovil pakkathula light pole eriyala. Keywords: electric pole, street light, power cut, landmarks, temple, bus stand, school, hospital',
+                prompt: 'Colloquial Tamil village complaint. Example: mariamman kovil pakkathula light pole eriyala, bus stand kitta current poguthu, pallivasal pakkam street light eriyala',
             })
 
             const text = transcription.text?.trim() ?? ''
 
             if (!text) {
                 this.logger.warn('Whisper returned empty transcription')
-            } else {
-                this.logger.log(`Transcription completed: ${text}`)
+                return ''
             }
 
+            // ── Hallucination detection ──────────────────────────────────────
+            // Whisper often outputs nonsensical English when it can't understand
+            // Tamil audio. These are known hallucination patterns.
+            if (this.isHallucination(text)) {
+                this.logger.warn(`Whisper hallucination detected: "${text}"`)
+                if (retryCount < 1) {
+                    this.logger.log('Retrying transcription after hallucination...')
+                    await new Promise(resolve => setTimeout(resolve, 1000))
+                    return this.transcribeAudio(audioUrl, retryCount + 1)
+                }
+                this.logger.warn('Hallucination persists after retry — returning empty')
+                return ''
+            }
+
+            this.logger.log(`Transcription completed: ${text}`)
             return text
 
         } catch (error) {
@@ -106,5 +120,49 @@ export class VoiceToTextService {
             this.logger.error(`Transcription failed: ${errMessage}`)
             throw error
         }
+    }
+
+    /**
+     * Detect common Whisper hallucination patterns.
+     * Whisper often outputs these when it can't understand the audio.
+     */
+    private isHallucination(text: string): boolean {
+        const lower = text.toLowerCase().trim()
+
+        // Known exact hallucination phrases
+        const HALLUCINATION_PHRASES = [
+            '4k audio',
+            'main role',
+            'thank you for watching',
+            'thanks for watching',
+            'please subscribe',
+            'like and subscribe',
+            'subtitles by',
+            'transcribed by',
+            'translated by',
+            'music',
+            'applause',
+            'laughter',
+            'you',
+            'bye',
+            'the end',
+            'silence',
+        ]
+
+        if (HALLUCINATION_PHRASES.some(h => lower.includes(h))) {
+            return true
+        }
+
+        // Very short text (< 3 words) that is purely English/ASCII 
+        // with no Tamil-related words is likely hallucinated
+        const words = lower.split(/\s+/).filter(Boolean)
+        const isAllAscii = /^[a-z0-9\s.,!?'"()-]+$/.test(lower)
+        const hasTamilKeywords = /kovil|koil|koyil|pakkam|kitta|maram|kadai|theru|veedu|school|bus|stand|hospital|temple|mosque|church|light|pole|current|wire/i.test(lower)
+
+        if (isAllAscii && words.length <= 4 && !hasTamilKeywords) {
+            return true
+        }
+
+        return false
     }
 }
