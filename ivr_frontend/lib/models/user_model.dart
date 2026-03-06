@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:equatable/equatable.dart';
 
 class UserModel extends Equatable {
@@ -44,9 +45,25 @@ class AuthResponse {
   AuthResponse({required this.accessToken, required this.user});
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
+    final token = json['access_token'] as String;
+    
+    // Decode JWT payload
+    final parts = token.split('.');
+    Map<String, dynamic> payload = {};
+    if (parts.length == 3) {
+      final String normalized = base64Url.normalize(parts[1]);
+      final String decoded = utf8.decode(base64Url.decode(normalized));
+      payload = jsonDecode(decoded);
+    }
+    
     return AuthResponse(
-      accessToken: json['access_token'] as String,
-      user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
+      accessToken: token,
+      user: UserModel.fromJson({
+        'id': payload['sub'] ?? 0,
+        'email': payload['email'] ?? '',
+        'role': json['role'] ?? payload['role'] ?? 'user',
+        'panchayat_id': json['panchayat_id'] ?? payload['panchayat_id'],
+      }),
     );
   }
 }
