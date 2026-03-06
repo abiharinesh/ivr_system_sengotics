@@ -3,16 +3,14 @@ import { PrismaService } from '../prisma/prisma.service'
 import { ConfigService } from '@nestjs/config'
 import OpenAI from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { normalizeTanglish } from './tamil-text-utils'
+
 
 const DEFAULT_PROVIDER = 'gemini'
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function normalizeForMatch(text: string): string {
-    const tanglishNormalized = normalizeTanglish(text)
-
-    return tanglishNormalized
+    return text
         .normalize('NFC')
         .toLowerCase()
         .replace(/[^\u0B80-\u0BFFa-z0-9\s]/g, ' ')

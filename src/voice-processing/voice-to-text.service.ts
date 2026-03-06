@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import { PrismaService } from '../prisma/prisma.service'
 import OpenAI from 'openai'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import FormData from 'form-data'
 
 /** Maximum time (ms) to wait for audio download from Exotel. */
 const AUDIO_FETCH_TIMEOUT_MS = 30_000
@@ -36,6 +37,7 @@ export class VoiceToTextService {
 
         if (!groqKey) this.logger.warn('GROQ_API_KEY not set — GROQ transcription will not work')
         if (!googleKey) this.logger.warn('GOOGLE_API_KEY not set — Gemini transcription will not work')
+        if (!this.configService.get<string>('RAPIDAPI_KEY')) this.logger.warn('RAPIDAPI_KEY not set — RapidAPI transcription will not work')
     }
 
     /** Read the active AI provider from the database. */
@@ -64,6 +66,8 @@ export class VoiceToTextService {
 
             if (provider === 'groq') {
                 text = await this.transcribeWithGroq(audioBuffer)
+            } else if (provider === 'rapidapi') {
+                text = await this.transcribeWithRapidAPI(audioBuffer)
             } else {
                 text = await this.transcribeWithGemini(audioBuffer, audioUrl)
             }
@@ -114,8 +118,6 @@ export class VoiceToTextService {
         const transcription = await this.openai.audio.transcriptions.create({
             file: audioFile,
             model: 'whisper-large-v3',
-            language: 'ta',
-            prompt: 'Colloquial Tamil village complaint. Example: mariamman kovil pakkathula light pole eriyala, bus stand kitta current poguthu, pallivasal pakkam street light eriyala',
         })
 
         return transcription.text?.trim() ?? ''
@@ -150,6 +152,44 @@ IMPORTANT RULES:
         ])
 
         return result.response.text()?.trim() ?? ''
+    }
+
+    // ── Provider: RapidAPI (Speech-to-Text AI) ───────────────────────────────
+
+    private async transcribeWithRapidAPI(audioBuffer: ArrayBuffer): Promise<string> {
+        const rapidApiKey = this.configService.get<string>('RAPIDAPI_KEY') || '0b05af13f3msh93eb0af75f27324p125ecfjsn27867461b99b'
+
+        const form = new FormData()
+        form.append('file', Buffer.from(audioBuffer), {
+            filename: 'audio.mp3',
+            contentType: 'audio/mpeg'
+        })
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), AUDIO_FETCH_TIMEOUT_MS)
+
+        try {
+            const response = await fetch('https://speech-to-text-ai.p.rapidapi.com/transcribe', {
+                method: 'POST',
+                headers: {
+                    ...form.getHeaders(),
+                    'x-rapidapi-host': 'speech-to-text-ai.p.rapidapi.com',
+                    'x-rapidapi-key': rapidApiKey
+                },
+                body: form as any,
+                signal: controller.signal
+            })
+
+            if (!response.ok) {
+                const errorText = await response.text()
+                throw new Error(`RapidAPI Error - ${response.status}: ${errorText}`)
+            }
+
+            const data = await response.json()
+            return data.text?.trim() ?? ''
+        } finally {
+            clearTimeout(timeout)
+        }
     }
 
     // ── Audio download ───────────────────────────────────────────────────────
