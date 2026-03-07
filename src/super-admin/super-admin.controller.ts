@@ -70,15 +70,37 @@ export class SuperAdminController {
         return this.superAdminService.resolveComplaint(id, body.pole_id)
     }
 
-    // ── AI Provider Settings ────────────────────────────────────────────────
-    @Get('settings/ai-provider')
-    getAiProvider() {
-        return this.superAdminService.getAiProvider()
+    // ── STT Provider Settings ────────────────────────────────────────────────
+    @Get('settings/stt-provider')
+    getSttProvider() {
+        return this.superAdminService.getSttProvider()
     }
 
-    @Put('settings/ai-provider')
-    setAiProvider(@Body() body: { provider: string }) {
-        return this.superAdminService.setAiProvider(body.provider)
+    @Put('settings/stt-provider')
+    setSttProvider(@Body() body: { provider: string }) {
+        return this.superAdminService.setSttProvider(body.provider)
+    }
+
+    // ── LLM Provider Settings ────────────────────────────────────────────────
+    @Get('settings/llm-provider')
+    getLlmProvider() {
+        return this.superAdminService.getLlmProvider()
+    }
+
+    @Put('settings/llm-provider')
+    setLlmProvider(@Body() body: { provider: string }) {
+        return this.superAdminService.setLlmProvider(body.provider)
+    }
+
+    // ── API Key Management ──────────────────────────────────────────────
+    @Get('settings/api-keys')
+    getApiKeys() {
+        return this.superAdminService.getApiKeys()
+    }
+
+    @Put('settings/api-keys')
+    setApiKeys(@Body() body: { rapidapi_key?: string }) {
+        return this.superAdminService.setApiKeys(body)
     }
 
     // ── Stats ──────────────────────────────────────────────────────────────

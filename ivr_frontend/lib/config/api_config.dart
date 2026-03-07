@@ -9,7 +9,8 @@ class ApiConfig {
   static const String saUsers = '/api/superadmin/users';
   static const String saComplaints = '/api/superadmin/complaints';
   static const String saStats = '/api/superadmin/stats';
-  static const String saAiProvider = '/api/superadmin/settings/ai-provider';
+  static const String saSttProvider = '/api/superadmin/settings/stt-provider';
+  static const String saLlmProvider = '/api/superadmin/settings/llm-provider';
 
   // Panchayat Admin
   static const String paMe = '/api/admin/me';

@@ -117,7 +117,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/ai-settings',
             builder: (context, state) => BlocProvider(
-              create: (_) => SettingsBloc()..add(LoadAiProvider()),
+              create: (_) => SettingsBloc()..add(LoadProviders()),
               child: const AiSettingsScreen(),
             ),
           ),

@@ -217,39 +217,113 @@ export class SuperAdminService {
         )
     }
 
-    // ── AI Provider Settings ────────────────────────────────────────────────
+    // ── STT Provider Settings ────────────────────────────────────────────────
 
-    async getAiProvider() {
+    async getSttProvider() {
         const setting = await this.prisma.systemSettings.findUnique({
-            where: { key: 'ai_provider' }
+            where: { key: 'stt_provider' }
         })
         return {
             provider: setting?.value ?? 'gemini',
-            available_providers: ['groq', 'gemini'],
+            available_providers: ['gemini', 'groq', 'rapidapi'],
             updated_at: setting?.updated_at ?? null
         }
     }
 
-    async setAiProvider(provider: string) {
-        const validProviders = ['groq', 'gemini']
+    async setSttProvider(provider: string) {
+        const validProviders = ['gemini', 'groq', 'rapidapi']
         if (!validProviders.includes(provider)) {
             throw new BadRequestException(
-                `Invalid provider "${provider}". Must be one of: ${validProviders.join(', ')}`
+                `Invalid STT provider "${provider}". Must be one of: ${validProviders.join(', ')}`
             )
         }
 
         const setting = await this.prisma.systemSettings.upsert({
-            where: { key: 'ai_provider' },
+            where: { key: 'stt_provider' },
             update: { value: provider },
-            create: { key: 'ai_provider', value: provider }
+            create: { key: 'stt_provider', value: provider }
         })
 
-        this.logger.log(`✅ AI provider changed to: ${provider}`)
+        this.logger.log(`✅ STT provider changed to: ${provider}`)
         return {
             provider: setting.value,
-            message: `AI provider set to ${provider}`,
+            message: `STT provider set to ${provider}`,
             updated_at: setting.updated_at
         }
+    }
+
+    // ── LLM Provider Settings ────────────────────────────────────────────────
+
+    async getLlmProvider() {
+        const setting = await this.prisma.systemSettings.findUnique({
+            where: { key: 'llm_provider' }
+        })
+        return {
+            provider: setting?.value ?? 'gemini',
+            available_providers: ['gemini', 'groq'],
+            updated_at: setting?.updated_at ?? null
+        }
+    }
+
+    async setLlmProvider(provider: string) {
+        const validProviders = ['gemini', 'groq']
+        if (!validProviders.includes(provider)) {
+            throw new BadRequestException(
+                `Invalid LLM provider "${provider}". Must be one of: ${validProviders.join(', ')}`
+            )
+        }
+
+        const setting = await this.prisma.systemSettings.upsert({
+            where: { key: 'llm_provider' },
+            update: { value: provider },
+            create: { key: 'llm_provider', value: provider }
+        })
+
+        this.logger.log(`✅ LLM provider changed to: ${provider}`)
+        return {
+            provider: setting.value,
+            message: `LLM provider set to ${provider}`,
+            updated_at: setting.updated_at
+        }
+    }
+
+    // ── API Key Management ───────────────────────────────────────────────
+
+    async getApiKeys() {
+        const rapidapiKey = await this.prisma.systemSettings.findUnique({
+            where: { key: 'rapidapi_key' }
+        })
+
+        return {
+            rapidapi_key: rapidapiKey?.value
+                ? `${rapidapiKey.value.slice(0, 8)}...${rapidapiKey.value.slice(-4)}`
+                : null,
+            rapidapi_key_set: !!rapidapiKey?.value,
+            updated_at: rapidapiKey?.updated_at ?? null
+        }
+    }
+
+    async setApiKeys(data: { rapidapi_key?: string }) {
+        const results: Record<string, any> = {}
+
+        if (data.rapidapi_key) {
+            if (data.rapidapi_key.length < 10) {
+                throw new BadRequestException('Invalid RapidAPI key — too short')
+            }
+
+            const setting = await this.prisma.systemSettings.upsert({
+                where: { key: 'rapidapi_key' },
+                update: { value: data.rapidapi_key },
+                create: { key: 'rapidapi_key', value: data.rapidapi_key }
+            })
+            results.rapidapi_key = {
+                set: true,
+                updated_at: setting.updated_at
+            }
+            this.logger.log('✅ RapidAPI key updated in system settings')
+        }
+
+        return { message: 'API keys updated', ...results }
     }
 
     // ── Stats ──────────────────────────────────────────────────────────────

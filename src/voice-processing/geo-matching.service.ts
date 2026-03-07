@@ -76,7 +76,7 @@ export class GeoMatchingService {
     private async getProvider(): Promise<string> {
         try {
             const setting = await this.prisma.systemSettings.findUnique({
-                where: { key: 'ai_provider' }
+                where: { key: 'llm_provider' }
             })
             return setting?.value ?? DEFAULT_PROVIDER
         } catch {

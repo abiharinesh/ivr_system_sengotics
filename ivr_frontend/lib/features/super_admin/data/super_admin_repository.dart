@@ -79,14 +79,24 @@ class SuperAdminRepository {
     return StatsModel.fromJson(data);
   }
 
-  // ── AI Provider ─────────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> getAiProvider() async {
-    final data = await _api.get(ApiConfig.saAiProvider);
+  // ── AI Providers ─────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> getSttProvider() async {
+    final data = await _api.get(ApiConfig.saSttProvider);
     return data as Map<String, dynamic>;
   }
 
-  Future<Map<String, dynamic>> setAiProvider(String provider) async {
-    final data = await _api.put(ApiConfig.saAiProvider, data: {'provider': provider});
+  Future<Map<String, dynamic>> setSttProvider(String provider) async {
+    final data = await _api.put(ApiConfig.saSttProvider, data: {'provider': provider});
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> getLlmProvider() async {
+    final data = await _api.get(ApiConfig.saLlmProvider);
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> setLlmProvider(String provider) async {
+    final data = await _api.put(ApiConfig.saLlmProvider, data: {'provider': provider});
     return data as Map<String, dynamic>;
   }
 }

@@ -37,14 +37,13 @@ export class VoiceToTextService {
 
         if (!groqKey) this.logger.warn('GROQ_API_KEY not set — GROQ transcription will not work')
         if (!googleKey) this.logger.warn('GOOGLE_API_KEY not set — Gemini transcription will not work')
-        if (!this.configService.get<string>('RAPIDAPI_KEY')) this.logger.warn('RAPIDAPI_KEY not set — RapidAPI transcription will not work')
     }
 
-    /** Read the active AI provider from the database. */
+    /** Read the active STT provider from the database. */
     private async getProvider(): Promise<string> {
         try {
             const setting = await this.prisma.systemSettings.findUnique({
-                where: { key: 'ai_provider' }
+                where: { key: 'stt_provider' }
             })
             return setting?.value ?? DEFAULT_PROVIDER
         } catch {
@@ -157,7 +156,17 @@ IMPORTANT RULES:
     // ── Provider: RapidAPI (Speech-to-Text AI) ───────────────────────────────
 
     private async transcribeWithRapidAPI(audioBuffer: ArrayBuffer): Promise<string> {
-        const rapidApiKey = this.configService.get<string>('RAPIDAPI_KEY') || '0b05af13f3msh93eb0af75f27324p125ecfjsn27867461b99b'
+        // Read API key from .env first, then fall back to DB
+        let rapidApiKey = this.configService.get<string>('RAPIDAPI_KEY')
+        if (!rapidApiKey) {
+            const keySetting = await this.prisma.systemSettings.findUnique({
+                where: { key: 'rapidapi_key' }
+            })
+            rapidApiKey = keySetting?.value ?? undefined
+        }
+        if (!rapidApiKey) {
+            throw new Error('RapidAPI key not configured. Set RAPIDAPI_KEY in .env or via PUT /api/superadmin/settings/api-keys')
+        }
 
         const form = new FormData()
         form.append('file', Buffer.from(audioBuffer), {

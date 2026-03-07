@@ -9,11 +9,18 @@ abstract class SettingsEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-class LoadAiProvider extends SettingsEvent {}
+class LoadProviders extends SettingsEvent {}
 
-class SetAiProvider extends SettingsEvent {
+class SetSttProvider extends SettingsEvent {
   final String provider;
-  SetAiProvider(this.provider);
+  SetSttProvider(this.provider);
+  @override
+  List<Object?> get props => [provider];
+}
+
+class SetLlmProvider extends SettingsEvent {
+  final String provider;
+  SetLlmProvider(this.provider);
   @override
   List<Object?> get props => [provider];
 }
@@ -28,16 +35,25 @@ class SettingsInitial extends SettingsState {}
 class SettingsLoading extends SettingsState {}
 
 class SettingsLoaded extends SettingsState {
-  final String provider;
-  final List<String> availableProviders;
-  final String? updatedAt;
+  final String sttProvider;
+  final List<String> availableSttProviders;
+  final String llmProvider;
+  final List<String> availableLlmProviders;
+  
   SettingsLoaded({
-    required this.provider,
-    required this.availableProviders,
-    this.updatedAt,
+    required this.sttProvider,
+    required this.availableSttProviders,
+    required this.llmProvider,
+    required this.availableLlmProviders,
   });
+  
   @override
-  List<Object?> get props => [provider, availableProviders];
+  List<Object?> get props => [
+        sttProvider,
+        availableSttProviders,
+        llmProvider,
+        availableLlmProviders
+      ];
 }
 
 class SettingsActionSuccess extends SettingsState {
@@ -61,32 +77,49 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   SettingsBloc({SuperAdminRepository? repo})
       : _repo = repo ?? SuperAdminRepository(),
         super(SettingsInitial()) {
-    on<LoadAiProvider>(_onLoad);
-    on<SetAiProvider>(_onSet);
+    on<LoadProviders>(_onLoad);
+    on<SetSttProvider>(_onSetStt);
+    on<SetLlmProvider>(_onSetLlm);
   }
 
-  Future<void> _onLoad(LoadAiProvider event, Emitter<SettingsState> emit) async {
+  Future<void> _onLoad(LoadProviders event, Emitter<SettingsState> emit) async {
     emit(SettingsLoading());
     try {
-      final data = await _repo.getAiProvider();
+      final sttData = await _repo.getSttProvider();
+      final llmData = await _repo.getLlmProvider();
+      
       emit(SettingsLoaded(
-        provider: data['provider'] as String? ?? 'gemini',
-        availableProviders: (data['available_providers'] as List?)
+        sttProvider: sttData['provider'] as String? ?? 'gemini',
+        availableSttProviders: (sttData['available_providers'] as List?)
                 ?.map((e) => e.toString())
                 .toList() ??
-            ['groq', 'gemini'],
-        updatedAt: data['updated_at']?.toString(),
+            ['gemini', 'groq', 'rapidapi'],
+        llmProvider: llmData['provider'] as String? ?? 'gemini',
+        availableLlmProviders: (llmData['available_providers'] as List?)
+                ?.map((e) => e.toString())
+                .toList() ??
+            ['gemini', 'groq'],
       ));
     } on ApiException catch (e) {
       emit(SettingsError(e.message));
     }
   }
 
-  Future<void> _onSet(SetAiProvider event, Emitter<SettingsState> emit) async {
+  Future<void> _onSetStt(SetSttProvider event, Emitter<SettingsState> emit) async {
     try {
-      await _repo.setAiProvider(event.provider);
-      emit(SettingsActionSuccess('AI provider set to ${event.provider}'));
-      add(LoadAiProvider());
+      await _repo.setSttProvider(event.provider);
+      emit(SettingsActionSuccess('STT provider set to ${event.provider}'));
+      add(LoadProviders());
+    } on ApiException catch (e) {
+      emit(SettingsError(e.message));
+    }
+  }
+
+  Future<void> _onSetLlm(SetLlmProvider event, Emitter<SettingsState> emit) async {
+    try {
+      await _repo.setLlmProvider(event.provider);
+      emit(SettingsActionSuccess('LLM provider set to ${event.provider}'));
+      add(LoadProviders());
     } on ApiException catch (e) {
       emit(SettingsError(e.message));
     }
