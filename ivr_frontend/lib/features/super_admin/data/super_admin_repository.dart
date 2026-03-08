@@ -73,6 +73,14 @@ class SuperAdminRepository {
     return ComplaintModel.fromJson(data);
   }
 
+  // ── Poles ───────────────────────────────────────────────────────────────
+  Future<List<dynamic>> listPoles({int? panchayatId}) async {
+    final params = <String, dynamic>{};
+    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    final data = await _api.get(ApiConfig.saPoles, queryParams: params);
+    return data as List;
+  }
+
   // ── Stats ───────────────────────────────────────────────────────────────
   Future<StatsModel> getStats() async {
     final data = await _api.get(ApiConfig.saStats);

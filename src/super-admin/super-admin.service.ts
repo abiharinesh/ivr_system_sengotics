@@ -44,6 +44,17 @@ export class SuperAdminService {
         return panchayat
     }
 
+    // ── Poles (all) ────────────────────────────────────────────────────────
+    async listPoles(panchayatId?: number) {
+        return this.prisma.electricPole.findMany({
+            where: {
+                ...(panchayatId && !isNaN(panchayatId) && { panchayat_id: panchayatId })
+            },
+            include: { panchayat: true },
+            orderBy: { id: 'desc' }
+        })
+    }
+
     // ── User (Panchayat Admin) Management ──────────────────────────────────
 
     async createPanchayatAdmin(data: { email: string; password: string; panchayat_id: number }) {

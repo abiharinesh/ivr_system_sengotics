@@ -1,6 +1,5 @@
 class ApiConfig {
   static const String baseUrl = 'https://ivr-system-sengotics.vercel.app';
-
   // Auth
   static const String login = '/api/auth/login';
 
@@ -9,6 +8,7 @@ class ApiConfig {
   static const String saUsers = '/api/superadmin/users';
   static const String saComplaints = '/api/superadmin/complaints';
   static const String saStats = '/api/superadmin/stats';
+  static const String saPoles = '/api/superadmin/poles';
   static const String saSttProvider = '/api/superadmin/settings/stt-provider';
   static const String saLlmProvider = '/api/superadmin/settings/llm-provider';
 

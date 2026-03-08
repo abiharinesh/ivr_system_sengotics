@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/stat_card.dart';
+import '../../../core/widgets/map_overview.dart';
 import '../bloc/dashboard_bloc.dart';
 
 class SuperAdminDashboard extends StatelessWidget {
@@ -174,6 +175,20 @@ class SuperAdminDashboard extends StatelessWidget {
                 );
               },
             ),
+            const SizedBox(height: 24),
+
+            // Map Overview Section
+            const Text(
+              'Poles Overview',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            MapOverview(poles: state.poles),
+            const SizedBox(height: 24),
           ],
         ),
       ),

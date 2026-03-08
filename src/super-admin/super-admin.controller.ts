@@ -36,6 +36,13 @@ export class SuperAdminController {
         return this.superAdminService.deletePanchayat(id)
     }
 
+    // ── Pole Management (Read-Only across all panchayats) ───────────────────
+    @Get('poles')
+    listPoles(@Query('panchayat_id') pid?: string) {
+        const panchayatId = pid ? parseInt(pid, 10) : undefined
+        return this.superAdminService.listPoles(isNaN(panchayatId as number) ? undefined : panchayatId)
+    }
+
     // ── Admin User Management ──────────────────────────────────────────────
     @Post('users')
     createPanchayatAdmin(@Body() body: { email: string; password: string; panchayat_id: number }) {

@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../models/stats_model.dart';
 import '../../../models/user_model.dart';
+import '../../../models/pole_model.dart';
 import '../data/panchayat_admin_repository.dart';
 
 // Events
@@ -25,9 +26,10 @@ class PADashLoading extends PADashState {}
 class PADashLoaded extends PADashState {
   final StatsModel stats;
   final UserModel profile;
-  PADashLoaded({required this.stats, required this.profile});
+  final List<PoleModel> poles;
+  PADashLoaded({required this.stats, required this.profile, required this.poles});
   @override
-  List<Object?> get props => [stats, profile];
+  List<Object?> get props => [stats, profile, poles];
 }
 
 class PADashError extends PADashState {
@@ -53,10 +55,12 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
       final results = await Future.wait([
         _repo.getStats(),
         _repo.getMe(),
+        _repo.listPoles(),
       ]);
       emit(PADashLoaded(
         stats: results[0] as StatsModel,
         profile: results[1] as UserModel,
+        poles: results[2] as List<PoleModel>,
       ));
     } on ApiException catch (e) {
       emit(PADashError(e.message));
