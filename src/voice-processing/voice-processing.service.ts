@@ -165,7 +165,7 @@ export class VoiceProcessingService {
             let poleId: number | null = null
             let extracted: ExtractedLocation | null = null
 
-            poleId = await this.geoMatching.strictMatchPole(panchayat.id, transcriptEnglish)
+            poleId = await this.geoMatching.strictMatchPole(panchayat.id, transcript, transcriptEnglish)
 
             if (poleId) {
                 this.logger.log(`[Step 5] Phase 1 Fast Match Successful! poleId: ${poleId}`)
@@ -221,7 +221,8 @@ export class VoiceProcessingService {
 
                 const allLandmarkHints = [...new Set([...currentLandmarks, ...previousLandmarks].filter(h => h.trim() !== ''))]
 
-                poleId = await this.geoMatching.findNearestPole(panchayat.id, allLandmarkHints)
+                const matchResult = await this.geoMatching.findNearestPole(panchayat.id, allLandmarkHints)
+                poleId = matchResult?.poleId ?? null
 
                 if (!poleId) {
                     this.logger.warn(`[Step 6] Phase 2 LLM Match Failed for attempt ${attemptNumber}`)
@@ -236,6 +237,11 @@ export class VoiceProcessingService {
                     return this.createManualReviewComplaint(
                         voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber, transcript, transcriptEnglish
                     )
+                }
+
+                // If the LLM successfully translated it, use that translation for the DB record
+                if (matchResult?.translatedDescription) {
+                    transcriptEnglish = matchResult.translatedDescription;
                 }
             }
 
@@ -406,7 +412,11 @@ export class VoiceProcessingService {
                 body: JSON.stringify({ q: text, target: 'en' }),
                 signal: controller.signal
             })
-            if (!response.ok) return text
+            if (!response.ok) {
+                const errText = await response.text();
+                this.logger.error(`Google Translation API failed [${response.status}]: ${errText}`);
+                return text;
+            }
             const data = await response.json()
             if (data?.data?.translations?.[0]?.translatedText) {
                 return data.data.translations[0].translatedText.replace(/&#(\d+);/g, (match: string, dec: number) => {
@@ -414,7 +424,8 @@ export class VoiceProcessingService {
                 }).replace(/&quot;/g, '"').replace(/&amp;/g, '&')
             }
             return text
-        } catch {
+        } catch (err) {
+            this.logger.error(`Google Translation API threw error: ${(err as Error).message}`);
             return text
         } finally {
             clearTimeout(timeout)

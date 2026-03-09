@@ -20,10 +20,10 @@ async function bootstrap() {
         return;
     }
 
-    console.log(`Testing with Panchayat: ${panchayat.name} (IVR: ${panchayat.ivr_number})`);
-
-    const audioUrl = 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1772744617.3352439_0.mp3';
-    const ivrNumber = panchayat.ivr_number!;
+    // Test parameters
+    const ivrNumber = '04440115434'; // Tholampalay Panchayat IVR Number
+    const audioUrl = 'https://recordings.exotel.com/exotelrecordings/nexerawe1/4f93e674c92cc78d9ae012ea6c1e1a3a.mp3';
+    const callSid = `test-call-live-${Date.now()}`;
 
     // ==========================================
     // TEST 1: PHASE 1 DIRECT DB MATCH
