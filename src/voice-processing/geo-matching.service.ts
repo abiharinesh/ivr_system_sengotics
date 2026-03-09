@@ -40,11 +40,10 @@ function similarityScore(a: string, b: string): number {
 
 const AI_MATCH_PROMPT = `You match a caller's spoken location to an electric pole in a Tamil Nadu village.
 
-INPUT: One or more landmark descriptions (from multiple call attempts) in Colloquial Tamil, Tanglish, native Tamil script, or English + poles with their known landmarks.
-OUTPUT: JSON → {"translated_description":"<translation to english>","matched_pole_id":<number|null>,"confidence":<0.0-1.0>,"reason":"<brief explanation>"}
+INPUT: One or more landmark descriptions (from multiple call attempts) + poles with their known landmarks.
+OUTPUT: JSON → {"matched_pole_id":<number|null>,"confidence":<0.0-1.0>,"reason":"<brief explanation>"}
 
 MATCHING RULES:
-0. TRANSLATION & MATCHING: The caller's input AND the database pole landmarks can BOTH be in Colloquial Tamil, Tanglish, native Tamil script, or English. You MUST understand the semantic meaning of the location regardless of the language or script used, and match them accurately. Output the English translation of the caller's final intended location.
 1. Tamil=English equivalences: kovil/koil=temple, pallivasal=mosque, palli=school, kulam=pond, kadai=shop, maram=tree, aalamaram=banyan tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, bus stand=bus stop
 2. Phonetic/spelling variants: mariyamman=mariamman, pillayar=vinayagar, bus stand=bus stop, aaspatri=hospital, petrol bunk=petrol pump
 3. Partial match is OK: "banyan tree" matches "under the big banyan tree"
@@ -130,7 +129,7 @@ export class GeoMatchingService {
     async findNearestPole(
         panchayatId: number,
         landmarkHints: string | string[]
-    ): Promise<{ poleId: number; translatedDescription: string | null } | null> {
+    ): Promise<number | null> {
         const hints = Array.isArray(landmarkHints) ? landmarkHints : [landmarkHints]
         const validHints = hints.filter(h => h && h.trim() !== '')
 
@@ -159,13 +158,13 @@ export class GeoMatchingService {
 
         // ── Pass 1: Deterministic string matching ────────────────────────────
         for (const hint of validHints) {
-            const match = this.deterministicMatch([hint], polesWithLandmarks)
+            const match = this.deterministicMatch(hint, polesWithLandmarks)
             if (match) {
                 this.logger.log(
                     `[PASS 1] ✅ String match! pole_id=${match.poleId}, ` +
                     `score=${match.score.toFixed(2)}, hint="${hint}", matched="${match.matchedLandmark}"`
                 )
-                return { poleId: match.poleId, translatedDescription: match.matchedLandmark }
+                return match.poleId
             }
         }
 
@@ -181,7 +180,6 @@ export class GeoMatchingService {
      */
     async strictMatchPole(
         panchayatId: number,
-        transcript: string,
         transcriptEnglish: string
     ): Promise<number | null> {
         this.logger.log(`[Phase 1] Trying strict match for panchayat ${panchayatId} against transcript`)
@@ -197,8 +195,8 @@ export class GeoMatchingService {
         const polesWithLandmarks = poles.filter(p => p.landmarks && p.landmarks.length > 0)
         if (polesWithLandmarks.length === 0) return null
 
-        // Pass the transcript to see if any known landmark is mentioned
-        const match = this.deterministicMatch([transcript, transcriptEnglish], polesWithLandmarks)
+        // Pass the whole transcript to see if any known landmark is mentioned
+        const match = this.deterministicMatch(transcriptEnglish, polesWithLandmarks)
         if (match) {
             this.logger.log(
                 `[Phase 1] ✅ Direct DB match: pole_id=${match.poleId}, ` +
@@ -211,24 +209,21 @@ export class GeoMatchingService {
     }
 
     private deterministicMatch(
-        searchStrings: string[],
+        landmarkHint: string,
         poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>
     ): { poleId: number; score: number; matchedLandmark: string } | null {
         let bestMatch: { poleId: number; score: number; matchedLandmark: string } | null = null
 
         for (const pole of poles) {
             for (const storedLandmark of pole.landmarks) {
-                for (const searchStr of searchStrings) {
-                    if (!searchStr) continue;
+                const score = similarityScore(landmarkHint, storedLandmark)
 
-                    const score = similarityScore(searchStr, storedLandmark)
-
-                    if (score >= 0.4 && (!bestMatch || score > bestMatch.score)) {
-                        bestMatch = { poleId: pole.id, score, matchedLandmark: storedLandmark }
-                    }
+                if (score >= 0.4 && (!bestMatch || score > bestMatch.score)) {
+                    bestMatch = { poleId: pole.id, score, matchedLandmark: storedLandmark }
                 }
             }
         }
+
         return bestMatch
     }
 
@@ -236,7 +231,7 @@ export class GeoMatchingService {
         landmarkHints: string[],
         poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>,
         retryCount = 0
-    ): Promise<{ poleId: number; translatedDescription: string | null } | null> {
+    ): Promise<number | null> {
         const compactPoles: Record<number, string[]> = {}
         for (const p of poles) {
             compactPoles[p.id] = p.landmarks
@@ -258,7 +253,7 @@ export class GeoMatchingService {
                 raw = await this.matchWithGemini(userMessage)
             }
 
-            let result: { translated_description?: string; matched_pole_id: number | null; confidence: number; reason?: string }
+            let result: { matched_pole_id: number | null; confidence: number; reason?: string }
 
             try {
                 result = JSON.parse(raw)
@@ -284,10 +279,7 @@ export class GeoMatchingService {
             }
 
             this.logger.log(`[PASS 2] ✅ AI matched pole_id=${result.matched_pole_id} (confidence=${result.confidence})`)
-            return {
-                poleId: result.matched_pole_id,
-                translatedDescription: result.translated_description ?? null
-            }
+            return result.matched_pole_id
 
         } catch (error) {
             const msg = (error as Error).message ?? String(error)
