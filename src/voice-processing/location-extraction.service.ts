@@ -10,25 +10,33 @@ export interface ExtractedLocation {
     landmark_english: string
     direction: string
     complaint_type: string
+    call_summary: string
+    caller_language: string
+    caller_emotion: string
+    urgency_level: string
     confidence_score: number
-    transcript_english: string
 }
 
 const DEFAULT_PROVIDER = 'gemini'
 
 // ── Extraction prompt (shared by both providers) ───────────────────────────────
 
-const EXTRACTION_PROMPT = `You extract location + complaint from Colloquial Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
-The input will be in Colloquial Tamil (spoken Tamil), Tanglish (romanized Tamil written in English letters), or English. You MUST always translate to English.
+const EXTRACTION_PROMPT = `You extract location + complaint details from Colloquial Tamil/Tanglish/English voice transcripts about electrical issues in Tamil Nadu villages.
+The input will be in Colloquial Tamil (spoken Tamil), Tanglish (romanized Tamil written in English letters), or English. You MUST always translate to English for english fields.
 
 Return JSON only:
-{"village":"","landmark":"<original text verbatim>","landmark_english":"<English translation>","direction":"","complaint_type":"<light pole not working|power cut|wire damage|transformer issue|other>","confidence_score":<0.0-1.0>,"transcript_english":"<full English translation>"}
-
-Tamil→English dictionary & Phonetic Corrections (Whisper often mishears Tamil):
-- "மாரியம்மன்" (Mariamman) is often misheard as "ஆரியப்பத்", "மாரியம்மன்", "மாரியப்பன்"
-- "கோயில் / கோவில்" (Temple) is often misheard as "கோவிலிட்ட", "கோவிலில்", "கோவில்"
-- "பக்கத்துல / கிட்ட" (Near) is often misheard as "பக்கத்துல", "கிட்ட", "இங்கிரலையிட்", "இட்ட"
-- general mappings: kovil/koil/koyil=temple, pallivasal/masjid=mosque, palli/pallikoodam=school, kulam=pond, kadai=shop, aalamaram=banyan tree, maram=tree, pakkathula/pakkam/kitta=near, ethirla=opposite, keezha=under, ration kadai=ration shop, thanni tank=water tank, aaspatri/aspathri=hospital, petrol bunk=petrol pump, bus stand/bus stop=bus stand, veedu=house, theru=street, road=road, bridge=bridge, junction=junction
+{
+  "village": "",
+  "landmark": "<original text verbatim>",
+  "landmark_english": "<English translation of the landmark>",
+  "direction": "<near|opposite|under|inside>",
+  "complaint_type": "<light pole not working|power cut|wire damage|transformer issue|other>",
+  "call_summary": "<1-2 sentence concise English summary of the user's issue and location>",
+  "caller_language": "<proper tamil|colloquial/spokentamil|tanglish|english>",
+  "caller_emotion": "<calm|angry|panicked|frustrated>",
+  "urgency_level": "<high|medium|low>",
+  "confidence_score": <0.0-1.0>
+}
 
 EXAMPLES:
 
@@ -42,33 +50,32 @@ Output: {"village":"","landmark":"bus stand kitta","landmark_english":"near bus 
 
 3. Vague/no landmark:
 Input: "light eraiyala fix pannunga"
-Output: {"village":"","landmark":"","landmark_english":"","direction":"","complaint_type":"light pole not working","confidence_score":0.2,"transcript_english":"The light is not working, please fix it"}
+Output: {"village":"","landmark":"","landmark_english":"","direction":"","complaint_type":"light pole not working","call_summary":"The street light is not working and needs fixing.","caller_language":"colloquial/spokentamil","caller_emotion":"calm","urgency_level":"medium","confidence_score":0.2}
 
 4. Multiple landmarks:
 Input: "school pakkam kovil kitta irukku light illa"
-Output: {"village":"","landmark":"school pakkam kovil kitta","landmark_english":"near school, near temple","direction":"near","complaint_type":"light pole not working","confidence_score":0.8,"transcript_english":"The light near the school, close to the temple, is not working"}
+Output: {"village":"","landmark":"school pakkam kovil kitta","landmark_english":"near school, near temple","direction":"near","complaint_type":"light pole not working","call_summary":"The street light near the school and temple is not working.","caller_language":"colloquial/spokentamil","caller_emotion":"calm","urgency_level":"medium","confidence_score":0.8}
 
 5. Person's house as landmark:
 Input: "Raman veedu pakkam la light poiduchu"
-Output: {"village":"","landmark":"Raman veedu pakkam","landmark_english":"near Raman's house","direction":"near","complaint_type":"light pole not working","confidence_score":0.6,"transcript_english":"The light near Raman's house is gone"}
+Output: {"village":"","landmark":"Raman veedu pakkam","landmark_english":"near Raman's house","direction":"near","complaint_type":"light pole not working","call_summary":"There is a power issue near Raman's house.","caller_language":"colloquial/spokentamil","caller_emotion":"calm","urgency_level":"medium","confidence_score":0.6}
 
 6. Garbled/noisy:
 Input: "mmm light eriya... kovil..."
-Output: {"village":"","landmark":"kovil","landmark_english":"temple","direction":"","complaint_type":"light pole not working","confidence_score":0.3,"transcript_english":"Light not working... temple..."}
+Output: {"village":"","landmark":"kovil","landmark_english":"temple","direction":"","complaint_type":"light pole not working","call_summary":"Caller reported a light issue near a temple, but audio was garbled.","caller_language":"colloquial/spokentamil","caller_emotion":"calm","urgency_level":"low","confidence_score":0.3}
 
 7. Pure English:
 Input: "The street light near the government school is not working"
-Output: {"village":"","landmark":"near the government school","landmark_english":"near the government school","direction":"near","complaint_type":"light pole not working","confidence_score":0.9,"transcript_english":"The street light near the government school is not working"}
+Output: {"village":"","landmark":"near the government school","landmark_english":"near the government school","direction":"near","complaint_type":"light pole not working","call_summary":"The street light near the government school is broken.","caller_language":"english","caller_emotion":"calm","urgency_level":"medium","confidence_score":0.9}
 
 RULES:
-- Whisper AI often makes spelling mistakes in Tamil script (e.g. "ஆரியப்பத் கோவிலிட்ட இங்கிரலையிட்" actually means "மாரியம்மன் கோயில் பக்கத்துல" -> "near Mariamman temple"). You MUST sound out the Tamil words phonetically and map them to logical electrical landmarks.
+- Speech-to-Text AIs (like Whisper, Google STT, or RapidAPI) often make spelling mistakes in Tamil script (e.g. "ஆரியப்பத் கோவிலிட்ட இங்கிரலையிட்" actually means "மாரியம்மன் கோயில் பக்கத்துல" -> "near Mariamman temple"). You MUST sound out the Tamil words phonetically and map them to logical electrical landmarks.
 - The transcript will be in Colloquial Tamil, Tanglish (romanized Tamil), or English — these are the ONLY supported languages
-- ALWAYS provide "transcript_english" as a proper English translation — NEVER copy Tamil/Tanglish text as-is
 - "landmark" = verbatim from transcript
 - "landmark_english" = always English translation
 - If no landmark is identifiable, set confidence_score below 0.3
 - If transcript is garbled but has partial words, extract what you can
-- NEVER make up landmarks — only extract what the caller actually said`
+- NEVER make up landmarks — only extract what the caller actually said\``
 
 @Injectable()
 export class LocationExtractionService {
@@ -120,8 +127,8 @@ export class LocationExtractionService {
             if (!result.landmark_english && result.landmark) {
                 result.landmark_english = result.landmark
             }
-            if (!result.transcript_english) {
-                result.transcript_english = transcript
+            if (!result.call_summary) {
+                result.call_summary = transcript
             }
 
             return result
@@ -167,8 +174,11 @@ export class LocationExtractionService {
                 landmark_english: String(extracted.landmark_english ?? ''),
                 direction: String(extracted.direction ?? ''),
                 complaint_type: String(extracted.complaint_type ?? 'other'),
-                confidence_score: this.clampConfidence(extracted.confidence_score),
-                transcript_english: String(extracted.transcript_english ?? cleanedTranscript),
+                call_summary: String(extracted.call_summary ?? cleanedTranscript),
+                caller_language: String(extracted.caller_language ?? 'unknown'),
+                caller_emotion: String(extracted.caller_emotion ?? 'calm'),
+                urgency_level: String(extracted.urgency_level ?? 'medium'),
+                confidence_score: this.clampConfidence(extracted.confidence_score)
             }
 
         } catch (error) {
@@ -246,8 +256,11 @@ export class LocationExtractionService {
             landmark_english: '',
             direction: '',
             complaint_type: 'other',
-            confidence_score: 0.1,
-            transcript_english: transcript || '',
+            call_summary: transcript || 'Could not parse audio.',
+            caller_language: 'unknown',
+            caller_emotion: 'calm',
+            urgency_level: 'low',
+            confidence_score: 0.1
         }
     }
 }

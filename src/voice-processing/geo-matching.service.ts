@@ -174,6 +174,40 @@ export class GeoMatchingService {
         return this.aiMatchWithRetry(validHints, polesWithLandmarks)
     }
 
+    /**
+     * Phase 1 Fast Match: Strict deterministic match without AI usage.
+     * Searches known poles in the panchayat for a direct keyword match against the transcript.
+     */
+    async strictMatchPole(
+        panchayatId: number,
+        transcriptEnglish: string
+    ): Promise<number | null> {
+        this.logger.log(`[Phase 1] Trying strict match for panchayat ${panchayatId} against transcript`)
+
+        if (!transcriptEnglish || transcriptEnglish.trim() === '') {
+            return null
+        }
+
+        const poles = await this.prisma.electricPole.findMany({
+            where: { panchayat_id: panchayatId }
+        })
+
+        const polesWithLandmarks = poles.filter(p => p.landmarks && p.landmarks.length > 0)
+        if (polesWithLandmarks.length === 0) return null
+
+        // Pass the whole transcript to see if any known landmark is mentioned
+        const match = this.deterministicMatch(transcriptEnglish, polesWithLandmarks)
+        if (match) {
+            this.logger.log(
+                `[Phase 1] ✅ Direct DB match: pole_id=${match.poleId}, ` +
+                `score=${match.score.toFixed(2)}, matched="${match.matchedLandmark}"`
+            )
+            return match.poleId
+        }
+
+        return null
+    }
+
     private deterministicMatch(
         landmarkHint: string,
         poles: Array<{ id: number; pole_number: string | null; landmarks: string[] }>

@@ -67,6 +67,8 @@ export class VoiceToTextService {
                 text = await this.transcribeWithGroq(audioBuffer)
             } else if (provider === 'rapidapi') {
                 text = await this.transcribeWithRapidAPI(audioBuffer)
+            } else if (provider === 'google-speech') {
+                text = await this.transcribeWithGoogleSpeech(audioBuffer, audioUrl)
             } else {
                 text = await this.transcribeWithGemini(audioBuffer, audioUrl)
             }
@@ -196,6 +198,65 @@ IMPORTANT RULES:
 
             const data = await response.json()
             return data.text?.trim() ?? ''
+        } finally {
+            clearTimeout(timeout)
+        }
+    }
+
+    // ── Provider: Google Cloud Speech-to-Text ────────────────────────────────
+
+    private async transcribeWithGoogleSpeech(audioBuffer: ArrayBuffer, audioUrl: string): Promise<string> {
+        // Read API key from .env first, then fall back to DB setting (if you added one)
+        let googleKey = this.configService.get<string>('GOOGLE_SPEECH_API_KEY')
+        if (!googleKey) {
+            const keySetting = await this.prisma.systemSettings.findUnique({
+                where: { key: 'google_speech_api_key' }
+            })
+            googleKey = keySetting?.value ?? undefined
+        }
+        if (!googleKey) {
+            this.logger.warn('GOOGLE_SPEECH_API_KEY not configured. Falling back to Gemini.')
+            return this.transcribeWithGemini(audioBuffer, audioUrl)
+        }
+
+        const audioBase64 = Buffer.from(audioBuffer).toString('base64')
+        const sampleRateHertz = audioUrl.includes('.wav') ? 8000 : 16000 // Exotel wavs are typically 8kHz
+
+        const url = `https://speech.googleapis.com/v1/speech:recognize?key=${googleKey}`
+
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), AUDIO_FETCH_TIMEOUT_MS)
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    config: {
+                        encoding: audioUrl.includes('.wav') ? 'LINEAR16' : 'ENCODING_UNSPECIFIED',
+                        sampleRateHertz: sampleRateHertz,
+                        languageCode: 'ta-IN', // Tamil
+                        model: 'latest_short'
+                    },
+                    audio: {
+                        content: audioBase64
+                    }
+                }),
+                signal: controller.signal
+            })
+
+            if (!response.ok) {
+                const errorText = await response.text()
+                throw new Error(`Google Speech Error - ${response.status}: ${errorText}`)
+            }
+
+            const data = await response.json()
+
+            // Extract the transcribed text from the response
+            if (data.results && data.results.length > 0) {
+                return data.results[0].alternatives[0]?.transcript?.trim() ?? ''
+            }
+            return ''
         } finally {
             clearTimeout(timeout)
         }

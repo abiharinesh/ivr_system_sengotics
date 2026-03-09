@@ -8,6 +8,9 @@ class ComplaintModel extends Equatable {
   final String? complaintType;
   final String? description;
   final String? audioUrl;
+  final String? callerLanguage;
+  final String? callerEmotion;
+  final String? urgencyLevel;
   final String status;
   final DateTime createdAt;
 
@@ -24,6 +27,9 @@ class ComplaintModel extends Equatable {
     this.complaintType,
     this.description,
     this.audioUrl,
+    this.callerLanguage,
+    this.callerEmotion,
+    this.urgencyLevel,
     required this.status,
     required this.createdAt,
     this.pole,
@@ -40,6 +46,9 @@ class ComplaintModel extends Equatable {
       complaintType: json['complaint_type'] as String?,
       description: json['description'] as String?,
       audioUrl: json['audio_url'] as String?,
+      callerLanguage: json['caller_language'] as String?,
+      callerEmotion: json['caller_emotion'] as String?,
+      urgencyLevel: json['urgency_level'] as String?,
       status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
       pole: json['pole'] != null

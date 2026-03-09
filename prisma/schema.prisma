@@ -118,15 +118,18 @@ model ElectricPole {
 }
 
 model Complaint {
-  id             Int      @id @default(autoincrement())
-  voice_call_id  Int?
-  pole_id        Int?
-  panchayat_id   Int?
-  complaint_type String?
-  description    String?
-  audio_url      String?
-  status         String   @default("pending")
-  created_at     DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  voice_call_id   Int?
+  pole_id         Int?
+  panchayat_id    Int?
+  complaint_type  String?
+  description     String?
+  caller_language String?
+  caller_emotion  String?
+  urgency_level   String?
+  audio_url       String?
+  status          String   @default("pending")
+  created_at      DateTime @default(now())
 
   voice_call     VoiceCall?    @relation(fields: [voice_call_id], references: [id])
   pole           ElectricPole? @relation(fields: [pole_id], references: [id])

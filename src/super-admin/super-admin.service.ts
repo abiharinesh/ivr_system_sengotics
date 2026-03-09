@@ -236,13 +236,13 @@ export class SuperAdminService {
         })
         return {
             provider: setting?.value ?? 'gemini',
-            available_providers: ['gemini', 'groq', 'rapidapi'],
+            available_providers: ['gemini', 'groq', 'rapidapi', 'google-speech'],
             updated_at: setting?.updated_at ?? null
         }
     }
 
     async setSttProvider(provider: string) {
-        const validProviders = ['gemini', 'groq', 'rapidapi']
+        const validProviders = ['gemini', 'groq', 'rapidapi', 'google-speech']
         if (!validProviders.includes(provider)) {
             throw new BadRequestException(
                 `Invalid STT provider "${provider}". Must be one of: ${validProviders.join(', ')}`

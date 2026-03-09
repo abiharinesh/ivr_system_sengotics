@@ -127,9 +127,16 @@ export class VoiceProcessingService {
             })
             this.logger.log(`[Step 2] Created VoiceCall #${voiceCall.id} (attempt ${attemptNumber})`)
 
-            // ── Step 3: Transcribe audio ─────────────────────────────────────
-            const transcript = await this.voiceToText.transcribeAudio(audioUrl)
-            this.logger.log(`[Step 3] Transcript: "${transcript}"`)
+            // ── Step 3: Transcribe audio + Fast Translation ──────────────────
+            const transcript = await this.voiceToText.transcribeAudio(audioUrl, attemptNumber === 1 ? 0 : 1)
+            let transcriptEnglish = transcript
+
+            if (transcript && transcript.trim() !== '') {
+                // Call Google Translation API to get English instantly
+                transcriptEnglish = await this.fastTranslateToEnglish(transcript)
+            }
+
+            this.logger.log(`[Step 3] Transcript: "${transcript}" | English: "${transcriptEnglish}"`)
 
             if (!transcript || transcript.trim() === '') {
                 this.logger.warn(`[Step 3] Empty transcript — cannot proceed`)
@@ -141,105 +148,110 @@ export class VoiceProcessingService {
                 }
             }
 
-            // ── Step 4: Resolve panchayat (before extraction for landmark context) ─
+            // ── Step 4: Resolve panchayat ────────────────────────────────────
             const panchayat = await this.geoMatching.findPanchayatByIvrNumber(ivrNumber)
-            let knownLandmarks: string[] = []
 
-            if (panchayat) {
-                this.logger.log(`[Step 4] Village = "${panchayat.name}" (from IVR ${ivrNumber})`)
-                knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
-                this.logger.log(`[Step 4] Found ${knownLandmarks.length} known landmarks in DB`)
+            if (!panchayat) {
+                this.logger.warn(`[Step 4] No panchayat for IVR number: ${ivrNumber}. Forcing manual review.`)
+                return this.createManualReviewComplaint(
+                    voiceCall.id, audioUrl, null, undefined, attemptNumber, transcript, transcriptEnglish
+                )
+            }
+
+            this.logger.log(`[Step 4] Village = "${panchayat.name}"`)
+
+            // ── Step 5: Phase 1 - Fast Direct DB Match ───────────────────────
+            // Try to match the translated text directly against the DB poles.
+            let poleId: number | null = null
+            let extracted: ExtractedLocation | null = null
+
+            poleId = await this.geoMatching.strictMatchPole(panchayat.id, transcriptEnglish)
+
+            if (poleId) {
+                this.logger.log(`[Step 5] Phase 1 Fast Match Successful! poleId: ${poleId}`)
+
+                // Create a basic Extraction structure for the DB
+                extracted = {
+                    village: panchayat.name,
+                    landmark: transcript,
+                    landmark_english: transcriptEnglish,
+                    direction: 'near',
+                    complaint_type: 'street_light',
+                    call_summary: transcriptEnglish,
+                    caller_language: 'unknown',
+                    caller_emotion: 'calm',
+                    urgency_level: 'medium',
+                    confidence_score: 1.0
+                }
+
             } else {
-                this.logger.warn(`[Step 4] No panchayat for IVR number: ${ivrNumber}`)
-            }
+                this.logger.log(`[Step 5] Phase 1 Fast Match Failed. Proceeding to LLM Fallback (Phase 2).`)
 
-            // ── Step 5: LLM extraction + translation (with DB landmark context) ─
-            const extracted = await this.locationExtraction.extractLocation(transcript, knownLandmarks)
-            this.logger.log(`[Step 5] Extraction: ${JSON.stringify(extracted)}`)
+                // ── Step 6: Phase 2 - LLM Landmark Extraction & Matching ─────
+                let knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
 
-            if (panchayat) {
+                // If attempt 2, combine with previous transcripts for maximum context
+                let combinedTranscript = transcript
+                if (attemptNumber >= 2 && previousLandmarks.length > 0) {
+                    combinedTranscript = `Current audio: ${transcript}. Previous audio clues: ${previousLandmarks.join(', ')}`
+                }
+
+                extracted = await this.locationExtraction.extractLocation(combinedTranscript, knownLandmarks)
                 extracted.village = panchayat.name
+                this.logger.log(`[Step 6] LLM Extraction: ${JSON.stringify(extracted)}`)
+
+                const minConfidence = attemptNumber === 1 ? MIN_CONFIDENCE_ATTEMPT_1 : MIN_CONFIDENCE_ATTEMPT_2
+
+                if (extracted.confidence_score < minConfidence) {
+                    this.logger.warn(`Low confidence (${extracted.confidence_score}) on Attempt ${attemptNumber}`)
+                    if (attemptNumber === 1) {
+                        await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
+                        return {
+                            success: false,
+                            status: 'not_found',
+                            message: 'Low confidence — please try again with clearer pronunciation'
+                        }
+                    }
+                }
+
+                // Match pole using the AI matching logic
+                const currentLandmarks: string[] = []
+                if (extracted.landmark_english) currentLandmarks.push(extracted.landmark_english)
+                if (extracted.landmark) currentLandmarks.push(extracted.landmark)
+
+                const allLandmarkHints = [...new Set([...currentLandmarks, ...previousLandmarks].filter(h => h.trim() !== ''))]
+
+                poleId = await this.geoMatching.findNearestPole(panchayat.id, allLandmarkHints)
+
+                if (!poleId) {
+                    this.logger.warn(`[Step 6] Phase 2 LLM Match Failed for attempt ${attemptNumber}`)
+                    if (attemptNumber === 1) {
+                        await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
+                        return {
+                            success: false,
+                            status: 'not_found',
+                            message: `Could not match landmark to any pole`
+                        }
+                    }
+                    return this.createManualReviewComplaint(
+                        voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber, transcript, transcriptEnglish
+                    )
+                }
             }
 
-            // ── Step 6: Save to VoiceCall ────────────────────────────────────
+            // ── Step 7: Save to VoiceCall ────────────────────────────────────
             await this.prisma.voiceCall.update({
                 where: { id: voiceCall.id },
                 data: {
                     transcript,
-                    transcript_english: extracted.transcript_english,
+                    transcript_english: transcriptEnglish,
                     ai_extracted_json: extracted as any,
                     confidence_score: extracted.confidence_score
                 }
             })
-            this.logger.log(`[Step 6] Saved transcript + extraction`)
+            this.logger.log(`[Step 7] Saved transcript + extraction`)
 
-            // ── Step 7: Confidence check ─────────────────────────────────────
-            const minConfidence = attemptNumber === 1 ? MIN_CONFIDENCE_ATTEMPT_1 : MIN_CONFIDENCE_ATTEMPT_2
-
-            if (extracted.confidence_score < minConfidence) {
-                this.logger.warn(
-                    `[Step 7] Low confidence (${extracted.confidence_score} < ${minConfidence}) attempt ${attemptNumber}`
-                )
-
-                if (attemptNumber === 1) {
-                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                    return {
-                        success: false,
-                        status: 'not_found',
-                        message: 'Low confidence — please try again with clearer pronunciation'
-                    }
-                }
-
-                // Attempt 2+: still try matching before giving up
-                this.logger.log(`[Step 7] Attempt ${attemptNumber}: trying match despite low confidence`)
-            } else {
-                this.logger.log(`[Step 7] ✅ Confidence OK (${extracted.confidence_score} >= ${minConfidence})`)
-            }
-
-            // ── Step 8: Match pole (with combined landmarks from all attempts) ─
-            if (!panchayat) {
-                return this.createManualReviewComplaint(
-                    voiceCall.id, audioUrl, extracted, undefined, attemptNumber
-                )
-            }
-
-            // Build the combined landmark list:
-            // Current attempt's English + Tamil + all previous attempts' landmarks
-            const currentLandmarks: string[] = []
-            if (extracted.landmark_english) currentLandmarks.push(extracted.landmark_english)
-            if (extracted.landmark) currentLandmarks.push(extracted.landmark)
-
-            const allLandmarkHints = [...currentLandmarks, ...previousLandmarks]
-            // Remove duplicates
-            const uniqueHints = [...new Set(allLandmarkHints.filter(h => h.trim() !== ''))]
-
-            this.logger.log(
-                `[Step 8] Matching with ${uniqueHints.length} landmark hints: [${uniqueHints.join(' | ')}]`
-            )
-
-            const poleId = await this.geoMatching.findNearestPole(
-                panchayat.id,
-                uniqueHints  // pass ALL hints from all attempts
-            )
-
-            if (!poleId) {
-                this.logger.warn(`[Step 8] No pole matched any of ${uniqueHints.length} hints`)
-
-                if (attemptNumber === 1) {
-                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                    return {
-                        success: false,
-                        status: 'not_found',
-                        message: `Could not match landmark to any pole`
-                    }
-                }
-
-                return this.createManualReviewComplaint(
-                    voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber
-                )
-            }
-
-            // ── Step 9: Duplicate check ───────────────────────────────────────
+            // ── Step 8: Duplicate check ───────────────────────────────────────
             const callerNumber = await this.getCallerNumber(callSid)
             if (callerNumber && poleId) {
                 const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_HOURS * 60 * 60 * 1000)
@@ -264,8 +276,8 @@ export class VoiceProcessingService {
                 }
             }
 
-            // ── Step 10: Create complaint ─────────────────────────────────────
-            this.logger.log(`[Step 10] Creating complaint for pole ${poleId}`)
+            // ── Step 9: Create complaint ─────────────────────────────────────
+            this.logger.log(`[Step 9] Creating complaint for pole ${poleId}`)
 
             const complaint = await this.prisma.complaint.create({
                 data: {
@@ -273,7 +285,10 @@ export class VoiceProcessingService {
                     pole_id: poleId,
                     panchayat_id: panchayat.id,
                     complaint_type: extracted.complaint_type || 'street_light',
-                    description: extracted.transcript_english,
+                    description: extracted.call_summary || transcriptEnglish,
+                    caller_language: extracted.caller_language,
+                    caller_emotion: extracted.caller_emotion,
+                    urgency_level: extracted.urgency_level,
                     audio_url: audioUrl,
                     status: 'pending'
                 }
@@ -282,8 +297,16 @@ export class VoiceProcessingService {
             await this.updateVoiceCallStatus(voiceCall.id, 'completed')
             await this.markPreviousAttempts(callSid, voiceCall.id)
 
+            // Async background task to enrich the complaint if it was Phase 1 fast match
+            if (attemptNumber === 1 && extracted.confidence_score === 1.0) {
+                // We use `.catch` directly since we don't want to await/block Exotel
+                this.enrichComplaintWithSummary(complaint.id, audioUrl, transcript, transcriptEnglish, panchayat.id).catch(err => {
+                    this.logger.error('Async enrich failed', err)
+                })
+            }
+
             this.logger.log(
-                `[Step 10] ✅ Complaint #${complaint.id} created ` +
+                `[Step 9] ✅ Complaint #${complaint.id} created ` +
                 `(pole ${poleId}, panchayat "${panchayat.name}", attempt ${attemptNumber})`
             )
             return { success: true, status: 'completed', complaintId: complaint.id }
@@ -332,14 +355,83 @@ export class VoiceProcessingService {
     }
 
     /**
+     * Trigger background Async LLM extraction to enrich complaints created by Fast Match.
+     */
+    private async enrichComplaintWithSummary(complaintId: number, audioUrl: string, transcript: string, transcriptEnglish: string, panchayatId: number) {
+        try {
+            this.logger.log(`[Async Enrich] Starting LLM summarization for Complaint #${complaintId}`)
+            const knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayatId)
+            const extracted = await this.locationExtraction.extractLocation(transcriptEnglish, knownLandmarks)
+
+            if (extracted) {
+                await this.prisma.complaint.update({
+                    where: { id: complaintId },
+                    data: {
+                        complaint_type: extracted.complaint_type || 'street_light',
+                        description: extracted.call_summary || transcriptEnglish,
+                        caller_language: extracted.caller_language,
+                        caller_emotion: extracted.caller_emotion,
+                        urgency_level: extracted.urgency_level,
+                    }
+                })
+                this.logger.log(`[Async Enrich] ✅ Complaint #${complaintId} enriched successfully`)
+            }
+        } catch (err) {
+            this.logger.error(`[Async Enrich] Failed to enrich complaint #${complaintId}: ${(err as Error).message}`)
+        }
+    }
+
+    /**
+     * Fast Translation using Google Cloud API directly to avoid STT service dependency issues.
+     */
+    private async fastTranslateToEnglish(text: string): Promise<string> {
+        let googleKey = process.env.GOOGLE_SPEECH_API_KEY
+        if (!googleKey) {
+            try {
+                const setting = await this.prisma.systemSettings.findUnique({ where: { key: 'google_speech_api_key' } })
+                googleKey = setting?.value ?? undefined
+            } catch { } // ignore
+        }
+
+        if (!googleKey) return text
+
+        const url = `https://translation.googleapis.com/language/translate/v2?key=${googleKey}`
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 5000)
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ q: text, target: 'en' }),
+                signal: controller.signal
+            })
+            if (!response.ok) return text
+            const data = await response.json()
+            if (data?.data?.translations?.[0]?.translatedText) {
+                return data.data.translations[0].translatedText.replace(/&#(\d+);/g, (match: string, dec: number) => {
+                    return String.fromCharCode(dec)
+                }).replace(/&quot;/g, '"').replace(/&amp;/g, '&')
+            }
+            return text
+        } catch {
+            return text
+        } finally {
+            clearTimeout(timeout)
+        }
+    }
+
+    /**
      * Create a complaint flagged for manual_review.
      */
     private async createManualReviewComplaint(
         voiceCallId: number,
         audioUrl: string,
-        extracted: ExtractedLocation,
+        extracted: ExtractedLocation | null,
         panchayatId: number | undefined,
-        attemptNumber: number
+        attemptNumber: number,
+        transcript: string,
+        transcriptEnglish: string
     ): Promise<VoiceProcessingResult> {
         await this.updateVoiceCallStatus(voiceCallId, 'manual_review')
 
@@ -347,15 +439,18 @@ export class VoiceProcessingService {
             data: {
                 voice_call_id: voiceCallId,
                 panchayat_id: panchayatId ?? null,
-                complaint_type: extracted.complaint_type || 'street_light',
-                description: extracted.transcript_english,
+                complaint_type: extracted?.complaint_type || 'street_light',
+                description: extracted?.call_summary || transcriptEnglish || 'Auto Flagged for review',
+                caller_language: extracted?.caller_language || 'unknown',
+                caller_emotion: extracted?.caller_emotion || 'unknown',
+                urgency_level: extracted?.urgency_level || 'unknown',
                 audio_url: audioUrl,
                 status: 'manual_review'
             }
         })
 
         this.logger.warn(
-            `[Manual Review] Complaint #${complaint.id} (attempt ${attemptNumber}, confidence: ${extracted.confidence_score})`
+            `[Manual Review] Complaint #${complaint.id} (attempt ${attemptNumber}, confidence: ${extracted?.confidence_score ?? 0})`
         )
 
         return {

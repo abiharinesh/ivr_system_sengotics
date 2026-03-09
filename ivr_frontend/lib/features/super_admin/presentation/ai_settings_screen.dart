@@ -110,6 +110,12 @@ class AiSettingsScreen extends StatelessWidget {
         iconText = 'G';
         gradientColors = [const Color(0xFF4285F4), const Color(0xFF34A853)];
         break;
+      case 'google-speech':
+        label = 'Google Cloud STT';
+        subtitle = 'Speech-to-Text V1';
+        iconText = 'GC';
+        gradientColors = [const Color(0xFFEA4335), const Color(0xFFFBBC05)];
+        break;
       case 'groq':
         label = 'GROQ';
         subtitle = isStt ? 'Whisper STT' : 'LLaMA 3.3 Extraction';

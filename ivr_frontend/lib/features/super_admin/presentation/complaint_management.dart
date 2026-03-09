@@ -152,6 +152,12 @@ class _ComplaintCard extends StatelessWidget {
                   ),
                 if (complaint.complaintType != null)
                   _infoItem(Icons.category_rounded, complaint.complaintType!),
+                if (complaint.callerLanguage != null)
+                  _infoItem(Icons.translate_rounded, complaint.callerLanguage!),
+                if (complaint.callerEmotion != null)
+                  _infoItem(Icons.mood_rounded, complaint.callerEmotion!),
+                if (complaint.urgencyLevel != null)
+                  _infoItem(Icons.priority_high_rounded, 'Urgency: ${complaint.urgencyLevel!}'),
                 _infoItem(Icons.access_time_rounded, dateStr),
               ],
             ),
