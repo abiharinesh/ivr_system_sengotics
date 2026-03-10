@@ -160,18 +160,93 @@ export class VoiceProcessingService {
 
             this.logger.log(`[Step 4] Village = "${panchayat.name}"`)
 
-            // ── Step 5: Phase 1 - Fast Direct DB Match ───────────────────────
-            // Try to match the translated text directly against the DB poles.
-            let poleId: number | null = null
-            let extracted: ExtractedLocation | null = null
+            // ── Phase 2 (Attempt >= 2): fully asynchronous ───────────────────
+            if (attemptNumber >= 2) {
+                this.logger.log(`[Attempt ${attemptNumber}] Firing background async LLM processing and returning 200 OK instantly.`)
 
-            poleId = await this.geoMatching.strictMatchPole(panchayat.id, transcriptEnglish)
+                // Fire and forget
+                this.runPhase2Background(
+                    voiceCall, attemptNumber, previousLandmarks, transcript, transcriptEnglish,
+                    panchayat, callSid, audioUrl
+                ).catch(err => {
+                    this.logger.error(`[Phase 2 Background Error] ${(err as Error).message}`)
+                })
+
+                // Immediately return success so Exotel does not timeout
+                return { success: true, status: 'completed', message: 'Processing in background' }
+            }
+
+            // ── Phase 1 (Attempt 1): Synchronous with 13-second timeout ──────
+            // We race the Phase 1 DB match against a 13-second timer
+            const phase1Promise = this.runPhase1Match(
+                voiceCall, transcript, transcriptEnglish, panchayat, callSid, audioUrl
+            )
+
+            const timeoutPromise = new Promise<VoiceProcessingResult>((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        success: false,
+                        status: 'not_found',
+                        message: 'Phase 1 timeout exceeded 13s. Triggering Phase 2 retry.'
+                    })
+                }, 13000)
+            })
+
+            const result = await Promise.race([phase1Promise, timeoutPromise])
+
+            if (result.status === 'not_found' && result.message?.includes('timeout')) {
+                this.logger.warn(`[Step 5] Phase 1 taking too long (>13s). Aborting and returning 404 to trigger Exotel Phase 2.`)
+                // Wait, we returned 404 so Exotel triggers retry. The background phase1Promise might still finish
+                // and insert a complaint. We should actually let Exotel retry, but we need to mark voiceCall
+                // so we don't accidentally create a duplicate if the promise resolves later.
+                await this.updateVoiceCallStatus(voiceCall.id, 'timeout_aborted')
+            }
+
+            return result
+
+        } catch (error) {
+            const errMessage = (error as Error).message ?? String(error)
+            this.logger.error(`Pipeline failed: ${errMessage}`)
+
+            if (voiceCall) {
+                await this.updateVoiceCallStatus(voiceCall.id, 'failed').catch(dbErr =>
+                    this.logger.error(`Failed to update VoiceCall status: ${(dbErr as Error).message}`)
+                )
+            }
+
+            throw error
+
+        } finally {
+            releaseSlot()
+            this.logger.log(`[Concurrency] Slot released (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
+        }
+    }
+
+    /**
+     * Synchronous Phase 1 Direct Match (Attempt 1).
+     * This races against a 13 second timeout in the controller.
+     */
+    private async runPhase1Match(
+        voiceCall: any,
+        transcript: string,
+        transcriptEnglish: string,
+        panchayat: any,
+        callSid: string,
+        audioUrl: string
+    ): Promise<VoiceProcessingResult> {
+        try {
+            // Check if this call was already aborted by the timeout race
+            const currentCall = await this.prisma.voiceCall.findUnique({ where: { id: voiceCall.id }, select: { processing_status: true } })
+            if (currentCall?.processing_status === 'timeout_aborted') {
+                return { success: false, status: 'not_found', message: 'Aborted due to timeout' }
+            }
+
+            let poleId = await this.geoMatching.strictMatchPole(panchayat.id, transcriptEnglish)
 
             if (poleId) {
                 this.logger.log(`[Step 5] Phase 1 Fast Match Successful! poleId: ${poleId}`)
 
-                // Create a basic Extraction structure for the DB
-                extracted = {
+                const extracted: ExtractedLocation = {
                     village: panchayat.name,
                     landmark: transcript,
                     landmark_english: transcriptEnglish,
@@ -184,173 +259,167 @@ export class VoiceProcessingService {
                     confidence_score: 1.0
                 }
 
+                await this.prisma.voiceCall.update({
+                    where: { id: voiceCall.id },
+                    data: {
+                        transcript, transcript_english: transcriptEnglish,
+                        ai_extracted_json: extracted as any, confidence_score: 1.0
+                    }
+                })
+
+                // Duplicate check
+                const callerNumber = await this.getCallerNumber(callSid)
+                if (callerNumber) {
+                    const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_HOURS * 60 * 60 * 1000)
+                    const existingComplaint = await this.prisma.complaint.findFirst({
+                        where: {
+                            pole_id: poleId, panchayat_id: panchayat.id,
+                            created_at: { gte: dedupCutoff }, status: { in: ['pending', 'in_progress'] }
+                        },
+                        select: { id: true }
+                    })
+
+                    // Double-check abortion again right before insert
+                    const finalCheck = await this.prisma.voiceCall.findUnique({ where: { id: voiceCall.id }, select: { processing_status: true } })
+                    if (finalCheck?.processing_status === 'timeout_aborted') return { success: false, status: 'not_found', message: 'Aborted DB insert' }
+
+                    if (existingComplaint) {
+                        this.logger.warn(`[Phase 1] Duplicate detected — complaint #${existingComplaint.id} exists.`)
+                        await this.updateVoiceCallStatus(voiceCall.id, 'completed')
+                        await this.markPreviousAttempts(callSid, voiceCall.id)
+                        return { success: true, status: 'completed', complaintId: existingComplaint.id }
+                    }
+                }
+
+                const complaint = await this.prisma.complaint.create({
+                    data: {
+                        voice_call_id: voiceCall.id, pole_id: poleId, panchayat_id: panchayat.id,
+                        complaint_type: extracted.complaint_type || 'street_light',
+                        description: extracted.call_summary || transcriptEnglish,
+                        caller_language: extracted.caller_language, caller_emotion: extracted.caller_emotion,
+                        urgency_level: extracted.urgency_level, audio_url: audioUrl,
+                        status: 'pending'
+                    }
+                })
+
+                await this.updateVoiceCallStatus(voiceCall.id, 'completed')
+                await this.markPreviousAttempts(callSid, voiceCall.id)
+
+                // Async background task to enrich
+                this.enrichComplaintWithSummary(complaint.id, audioUrl, transcript, transcriptEnglish, panchayat.id).catch(err => {
+                    this.logger.error('Async enrich failed', err)
+                })
+
+                this.logger.log(`[Phase 1] ✅ Complaint #${complaint.id} created`)
+                return { success: true, status: 'completed', complaintId: complaint.id }
+
             } else {
-                this.logger.log(`[Step 5] Phase 1 Fast Match Failed. Proceeding to LLM Fallback (Phase 2).`)
+                this.logger.log(`[Phase 1] Match Failed. Need Phase 2.`)
+                await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
+                return { success: false, status: 'not_found', message: 'Phase 1 Direct Match failed.' }
+            }
+        } catch (err) {
+            this.logger.error(`[Phase 1 Error] ${(err as Error).message}`)
+            return { success: false, status: 'not_found', message: 'Error in Phase 1' }
+        }
+    }
 
-                // ── Step 6: Phase 2 - LLM Landmark Extraction & Matching ─────
-                let knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
+    /**
+     * Asynchronous Phase 2 LLM Match (Attempt >= 2).
+     * Runs silently in the background. Exotel is not waiting for this.
+     */
+    private async runPhase2Background(
+        voiceCall: any,
+        attemptNumber: number,
+        previousLandmarks: string[],
+        transcript: string,
+        transcriptEnglish: string,
+        panchayat: any,
+        callSid: string,
+        audioUrl: string
+    ): Promise<void> {
+        try {
+            this.logger.log(`[Phase 2] Starting LLM background task for ${callSid}`)
 
-                // If attempt 2, combine with previous transcripts for maximum context
-                let combinedTranscript = transcript
-                if (attemptNumber >= 2 && previousLandmarks.length > 0) {
-                    combinedTranscript = `Current audio: ${transcript}. Previous audio clues: ${previousLandmarks.join(', ')}`
-                }
+            let knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
+            let combinedTranscript = previousLandmarks.length > 0
+                ? `Current audio: ${transcript}. Previous audio clues: ${previousLandmarks.join(', ')}`
+                : transcript
 
-                extracted = await this.locationExtraction.extractLocation(combinedTranscript, knownLandmarks)
-                extracted.village = panchayat.name
-                this.logger.log(`[Step 6] LLM Extraction: ${JSON.stringify(extracted)}`)
+            const extracted = await this.locationExtraction.extractLocation(combinedTranscript, knownLandmarks)
+            extracted.village = panchayat.name
+            this.logger.log(`[Phase 2] LLM Extraction: ${JSON.stringify(extracted)}`)
 
-                const minConfidence = attemptNumber === 1 ? MIN_CONFIDENCE_ATTEMPT_1 : MIN_CONFIDENCE_ATTEMPT_2
+            const minConfidence = attemptNumber === 1 ? MIN_CONFIDENCE_ATTEMPT_1 : MIN_CONFIDENCE_ATTEMPT_2
 
-                if (extracted.confidence_score < minConfidence) {
-                    this.logger.warn(`Low confidence (${extracted.confidence_score}) on Attempt ${attemptNumber}`)
-                    if (attemptNumber === 1) {
-                        await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                        return {
-                            success: false,
-                            status: 'not_found',
-                            message: 'Low confidence — please try again with clearer pronunciation'
-                        }
-                    }
-                }
-
-                // Match pole using the AI matching logic
-                const currentLandmarks: string[] = []
-                if (extracted.landmark_english) currentLandmarks.push(extracted.landmark_english)
-                if (extracted.landmark) currentLandmarks.push(extracted.landmark)
-
-                const allLandmarkHints = [...new Set([...currentLandmarks, ...previousLandmarks].filter(h => h.trim() !== ''))]
-
-                poleId = await this.geoMatching.findNearestPole(panchayat.id, allLandmarkHints)
-
-                if (!poleId) {
-                    this.logger.warn(`[Step 6] Phase 2 LLM Match Failed for attempt ${attemptNumber}`)
-                    if (attemptNumber === 1) {
-                        await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                        return {
-                            success: false,
-                            status: 'not_found',
-                            message: `Could not match landmark to any pole`
-                        }
-                    }
-                    return this.createManualReviewComplaint(
-                        voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber, transcript, transcriptEnglish
-                    )
-                }
+            if (extracted.confidence_score < minConfidence) {
+                this.logger.warn(`[Phase 2] Low confidence (${extracted.confidence_score})`)
+                await this.createManualReviewComplaint(voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber, transcript, transcriptEnglish)
+                return
             }
 
-            // ── Step 7: Save to VoiceCall ────────────────────────────────────
+            const currentLandmarks: string[] = []
+            if (extracted.landmark_english) currentLandmarks.push(extracted.landmark_english)
+            if (extracted.landmark) currentLandmarks.push(extracted.landmark)
+
+            const allLandmarkHints = [...new Set([...currentLandmarks, ...previousLandmarks].filter(h => h.trim() !== ''))]
+
+            let poleId = await this.geoMatching.findNearestPole(panchayat.id, allLandmarkHints)
+
+            if (!poleId) {
+                this.logger.warn(`[Phase 2] Match Failed. Flagging for manual review.`)
+                await this.createManualReviewComplaint(voiceCall.id, audioUrl, extracted, panchayat.id, attemptNumber, transcript, transcriptEnglish)
+                return
+            }
+
+            // Save extraction
             await this.prisma.voiceCall.update({
                 where: { id: voiceCall.id },
                 data: {
-                    transcript,
-                    transcript_english: transcriptEnglish,
-                    ai_extracted_json: extracted as any,
-                    confidence_score: extracted.confidence_score
+                    transcript, transcript_english: transcriptEnglish,
+                    ai_extracted_json: extracted as any, confidence_score: extracted.confidence_score
                 }
             })
-            this.logger.log(`[Step 7] Saved transcript + extraction`)
 
-            // ── Step 8: Duplicate check ───────────────────────────────────────
+            // Duplicate Check
             const callerNumber = await this.getCallerNumber(callSid)
-            if (callerNumber && poleId) {
+            if (callerNumber) {
                 const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_HOURS * 60 * 60 * 1000)
                 const existingComplaint = await this.prisma.complaint.findFirst({
                     where: {
-                        pole_id: poleId,
-                        panchayat_id: panchayat.id,
-                        created_at: { gte: dedupCutoff },
-                        status: { in: ['pending', 'in_progress'] }
+                        pole_id: poleId, panchayat_id: panchayat.id,
+                        created_at: { gte: dedupCutoff }, status: { in: ['pending', 'in_progress'] }
                     },
                     select: { id: true }
                 })
 
                 if (existingComplaint) {
-                    this.logger.warn(
-                        `[Step 9] Duplicate detected — complaint #${existingComplaint.id} already exists ` +
-                        `for pole ${poleId} within ${DEDUP_WINDOW_HOURS}h. Skipping creation.`
-                    )
+                    this.logger.warn(`[Phase 2] Duplicate detected — complaint #${existingComplaint.id} already exists.`)
                     await this.updateVoiceCallStatus(voiceCall.id, 'completed')
                     await this.markPreviousAttempts(callSid, voiceCall.id)
-                    return { success: true, status: 'completed', complaintId: existingComplaint.id }
+                    return
                 }
             }
 
-            // ── Step 9: Create complaint ─────────────────────────────────────
-            this.logger.log(`[Step 9] Creating complaint for pole ${poleId}`)
-
+            // Create Complaint
             const complaint = await this.prisma.complaint.create({
                 data: {
-                    voice_call_id: voiceCall.id,
-                    pole_id: poleId,
-                    panchayat_id: panchayat.id,
+                    voice_call_id: voiceCall.id, pole_id: poleId, panchayat_id: panchayat.id,
                     complaint_type: extracted.complaint_type || 'street_light',
                     description: extracted.call_summary || transcriptEnglish,
-                    caller_language: extracted.caller_language,
-                    caller_emotion: extracted.caller_emotion,
-                    urgency_level: extracted.urgency_level,
-                    audio_url: audioUrl,
+                    caller_language: extracted.caller_language, caller_emotion: extracted.caller_emotion,
+                    urgency_level: extracted.urgency_level, audio_url: audioUrl,
                     status: 'pending'
                 }
             })
 
             await this.updateVoiceCallStatus(voiceCall.id, 'completed')
             await this.markPreviousAttempts(callSid, voiceCall.id)
+            this.logger.log(`[Phase 2 Async] ✅ Complaint #${complaint.id} created`)
 
-            // Async background task to enrich the complaint if it was Phase 1 fast match
-            if (attemptNumber === 1 && extracted.confidence_score === 1.0) {
-                // We use `.catch` directly since we don't want to await/block Exotel
-                this.enrichComplaintWithSummary(complaint.id, audioUrl, transcript, transcriptEnglish, panchayat.id).catch(err => {
-                    this.logger.error('Async enrich failed', err)
-                })
-            }
-
-            this.logger.log(
-                `[Step 9] ✅ Complaint #${complaint.id} created ` +
-                `(pole ${poleId}, panchayat "${panchayat.name}", attempt ${attemptNumber})`
-            )
-            return { success: true, status: 'completed', complaintId: complaint.id }
-
-        } catch (error) {
-            const errMessage = (error as Error).message ?? String(error)
-            this.logger.error(`Pipeline failed: ${errMessage}`)
-
-            // ── Graceful degradation ─────────────────────────────────────────
-            // If AI is completely down on attempt 2+, still create a manual_review
-            // complaint with just the audio URL so the admin can handle it.
-            if (voiceCall) {
-                try {
-                    const attemptCount = await this.prisma.voiceCall.count({ where: { call_sid: callSid } })
-                    if (attemptCount >= 2) {
-                        this.logger.warn(`[Graceful Degradation] AI failed on attempt ${attemptCount} — creating manual_review complaint`)
-                        const panchayat = await this.geoMatching.findPanchayatByIvrNumber(ivrNumber)
-                        await this.prisma.complaint.create({
-                            data: {
-                                voice_call_id: voiceCall.id,
-                                panchayat_id: panchayat?.id ?? null,
-                                complaint_type: 'street_light',
-                                description: `Auto-created: AI pipeline failed after ${attemptCount} attempts. Please listen to audio.`,
-                                audio_url: audioUrl,
-                                status: 'manual_review'
-                            }
-                        })
-                        await this.updateVoiceCallStatus(voiceCall.id, 'manual_review')
-                        return { success: true, status: 'manual_review', message: 'AI failed — flagged for manual review' }
-                    }
-                } catch (dbErr) {
-                    this.logger.error(`Graceful degradation also failed: ${(dbErr as Error).message}`)
-                }
-
-                await this.updateVoiceCallStatus(voiceCall.id, 'failed').catch(dbErr =>
-                    this.logger.error(`Failed to update VoiceCall status: ${(dbErr as Error).message}`)
-                )
-            }
-
-            throw error
-
-        } finally {
-            releaseSlot()
-            this.logger.log(`[Concurrency] Slot released (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
+        } catch (err) {
+            this.logger.error(`[Phase 2 Fatal Background Error] ${(err as Error).message}`)
+            await this.createManualReviewComplaint(voiceCall.id, audioUrl, null, panchayat.id, attemptNumber, transcript, transcriptEnglish)
         }
     }
 
