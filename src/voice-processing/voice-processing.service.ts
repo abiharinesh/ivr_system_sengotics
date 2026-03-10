@@ -131,13 +131,31 @@ export class VoiceProcessingService {
 
             this.logger.log(`[Step 3] Transcript: "${transcript}" | English: "${transcriptEnglish}"`)
 
+            // Save transcript to DB immediately so it's NEVER NULL regardless of what happens next
+            if (transcript && transcript.trim() !== '') {
+                await this.prisma.voiceCall.update({
+                    where: { id: voiceCall.id },
+                    data: { transcript, transcript_english: transcriptEnglish }
+                })
+            }
+
             if (!transcript || transcript.trim() === '') {
                 this.logger.warn(`[Step 3] Empty transcript — cannot proceed`)
-                await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                return {
-                    success: false,
-                    status: 'not_found',
-                    message: 'Could not transcribe audio — please try again'
+
+                if (attemptNumber >= 2) {
+                    // Last retry with no transcript — flag for human review so complaint is never lost
+                    this.logger.warn(`[Step 3] Attempt ${attemptNumber} also empty. Creating manual_review with audio URL.`)
+                    return this.createManualReviewComplaint(
+                        voiceCall.id, audioUrl, null, undefined, attemptNumber, '', ''
+                    )
+                } else {
+                    // Attempt 1 — return 404 so Exotel retries
+                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
+                    return {
+                        success: false,
+                        status: 'not_found',
+                        message: 'Could not transcribe audio — Exotel will retry'
+                    }
                 }
             }
 
@@ -156,13 +174,6 @@ export class VoiceProcessingService {
             // ── Phase 2 (Attempt >= 2): fully asynchronous ───────────────────
             if (attemptNumber >= 2) {
                 this.logger.log(`[Attempt ${attemptNumber}] Firing background async LLM processing and returning 200 OK instantly.`)
-
-                // Save transcript to DB immediately BEFORE backgrounding
-                await this.prisma.voiceCall.update({
-                    where: { id: voiceCall.id },
-                    data: { transcript, transcript_english: transcriptEnglish }
-                })
-                this.logger.log(`[Attempt ${attemptNumber}] Transcript saved to VoiceCall #${voiceCall.id} before backgrounding`)
 
                 // Fire and forget — with safety net that updates status on failure
                 const vcId = voiceCall.id
@@ -282,7 +293,6 @@ export class VoiceProcessingService {
                 await this.prisma.voiceCall.update({
                     where: { id: voiceCall.id },
                     data: {
-                        transcript, transcript_english: transcriptEnglish,
                         ai_extracted_json: extracted as any, confidence_score: 1.0
                     }
                 })
@@ -338,6 +348,11 @@ export class VoiceProcessingService {
             }
         } catch (err) {
             this.logger.error(`[Phase 1 Error] ${(err as Error).message}`)
+            try {
+                await this.updateVoiceCallStatus(voiceCall.id, 'failed')
+            } catch (dbErr) {
+                this.logger.error(`[Phase 1] Failed to update status: ${(dbErr as Error).message}`)
+            }
             return { success: false, status: 'not_found', message: 'Error in Phase 1' }
         }
     }
