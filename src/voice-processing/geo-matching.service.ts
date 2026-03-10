@@ -340,10 +340,13 @@ export class GeoMatchingService {
             },
         })
 
-        const result = await model.generateContent([
+        const promise = model.generateContent([
             { text: AI_MATCH_PROMPT },
             { text: userMessage }
         ])
+
+        const timeout = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Gemini match timed out')), 15000))
+        const result = await Promise.race([promise, timeout])
 
         return result.response.text() || '{}'
     }

@@ -116,10 +116,13 @@ export class VoiceToTextService {
     private async transcribeWithGroq(audioBuffer: ArrayBuffer): Promise<string> {
         const audioFile = new File([audioBuffer], 'audio.mp3', { type: 'audio/mpeg' })
 
-        const transcription = await this.openai.audio.transcriptions.create({
+        const promise = this.openai.audio.transcriptions.create({
             file: audioFile,
             model: 'whisper-large-v3',
         })
+
+        const timeout = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Groq STT timed out')), 25000))
+        const transcription = await Promise.race([promise, timeout])
 
         return transcription.text?.trim() ?? ''
     }
@@ -134,7 +137,7 @@ export class VoiceToTextService {
 
         const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' })
 
-        const result = await model.generateContent([
+        const promise = model.generateContent([
             {
                 inlineData: { mimeType, data: audioBase64 }
             },
@@ -151,6 +154,9 @@ IMPORTANT RULES:
 - Preserve the exact words spoken, including Tanglish (Tamil-English mix)`
             }
         ])
+
+        const timeout = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Gemini STT timed out')), 25000))
+        const result = await Promise.race([promise, timeout])
 
         return result.response.text()?.trim() ?? ''
     }

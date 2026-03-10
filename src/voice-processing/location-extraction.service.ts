@@ -235,10 +235,13 @@ export class LocationExtractionService {
             },
         })
 
-        const result = await model.generateContent([
+        const promise = model.generateContent([
             { text: EXTRACTION_PROMPT },
             { text: userMessage }
         ])
+
+        const timeout = new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Gemini extraction timed out')), 15000))
+        const result = await Promise.race([promise, timeout])
 
         return result.response.text() || '{}'
     }
