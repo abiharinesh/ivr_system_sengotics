@@ -82,6 +82,7 @@ export class VoiceProcessingService {
 
         // ── Concurrency limiter ──────────────────────────────────────────────
         await acquireSlot()
+        let slotReleased = false
         this.logger.log(`[Concurrency] Slot acquired (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
 
         let voiceCall: { id: number } | null = null
@@ -196,6 +197,14 @@ export class VoiceProcessingService {
 
             if (result.status === 'not_found' && result.message?.includes('timeout')) {
                 this.logger.warn(`[Step 5] Phase 1 taking too long (>13s). Aborting and returning 404 to trigger Exotel Phase 2.`)
+
+                // Immediately release the concurrency slot so Attempt 2 can start without waiting for Phase 1 to finish in the background
+                if (!slotReleased) {
+                    slotReleased = true
+                    releaseSlot()
+                    this.logger.log(`[Concurrency] Slot released early due to timeout (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
+                }
+
                 // Wait, we returned 404 so Exotel triggers retry. The background phase1Promise might still finish
                 // and insert a complaint. We should actually let Exotel retry, but we need to mark voiceCall
                 // so we don't accidentally create a duplicate if the promise resolves later.
@@ -217,8 +226,11 @@ export class VoiceProcessingService {
             throw error
 
         } finally {
-            releaseSlot()
-            this.logger.log(`[Concurrency] Slot released (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
+            if (!slotReleased) {
+                slotReleased = true
+                releaseSlot()
+                this.logger.log(`[Concurrency] Slot released in finally block (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
+            }
         }
     }
 
