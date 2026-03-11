@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Body, Query, Res, Req, Logger } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 import { VoiceProcessingService } from './voice-processing/voice-processing.service';
@@ -30,11 +31,13 @@ export class AppController {
     }
   }
 
+  @SkipThrottle()
   @Get('test')
   async ivrTestGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
     return this.handleIvrTest(data, res)
   }
 
+  @SkipThrottle()
   @Post('test')
   async ivrTestPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
     return this.handleIvrTest(data, res)
@@ -84,6 +87,7 @@ export class AppController {
     }
   }
 
+  @SkipThrottle()
   @Get('cron/process-phase2')
   async processPendingPhase2(@Query('token') token?: string, @Req() req?: Request) {
     const requiredToken = process.env.IVR_CRON_TOKEN || process.env.CRON_SECRET
