@@ -96,6 +96,32 @@ export class VoiceProcessingService {
             const attemptNumber = previousAttempts.length + 1
             this.logger.log(`[Step 1] Attempt #${attemptNumber} for CallSid: ${callSid}`)
 
+            // ── Step 1a: Global de-dup — if any previous attempt already created a complaint,
+            //             do NOT create a second complaint for this CallSid.
+            if (previousAttempts.length > 0) {
+                const previousIds = previousAttempts.map(p => p.id)
+                const existingComplaintForCall = await this.prisma.complaint.findFirst({
+                    where: {
+                        voice_call_id: { in: previousIds },
+                        status: { in: ['pending', 'in_progress', 'manual_review', 'completed'] }
+                    },
+                    select: { id: true }
+                })
+
+                if (existingComplaintForCall) {
+                    this.logger.warn(
+                        `[Dedup] Existing complaint #${existingComplaintForCall.id} found for CallSid=${callSid}. ` +
+                        `Skipping new complaint creation for this attempt.`
+                    )
+                    return {
+                        success: true,
+                        status: 'completed',
+                        complaintId: existingComplaintForCall.id,
+                        message: 'Duplicate IVR retry detected; reusing existing complaint.'
+                    }
+                }
+            }
+
             // ── Step 1b: Collect landmarks from previous attempts ────────────
             const previousLandmarks: string[] = []
             if (attemptNumber >= 2) {
@@ -140,23 +166,16 @@ export class VoiceProcessingService {
             }
 
             if (!transcript || transcript.trim() === '') {
-                this.logger.warn(`[Step 3] Empty transcript — cannot proceed`)
-
-                if (attemptNumber >= 2) {
-                    // Last retry with no transcript — flag for human review so complaint is never lost
-                    this.logger.warn(`[Step 3] Attempt ${attemptNumber} also empty. Creating manual_review with audio URL.`)
-                    return this.createManualReviewComplaint(
-                        voiceCall.id, audioUrl, null, undefined, attemptNumber, '', ''
-                    )
-                } else {
-                    // Attempt 1 — return 404 so Exotel retries
-                    await this.updateVoiceCallStatus(voiceCall.id, 'not_found')
-                    return {
-                        success: false,
-                        status: 'not_found',
-                        message: 'Could not transcribe audio — Exotel will retry'
-                    }
-                }
+                this.logger.warn(`[Step 3] Empty transcript — flagging for manual review (no 404 to Exotel)`)
+                return this.createManualReviewComplaint(
+                    voiceCall.id,
+                    audioUrl,
+                    null,
+                    undefined,
+                    attemptNumber,
+                    '',
+                    ''
+                )
             }
 
             // ── Step 4: Resolve panchayat ────────────────────────────────────
@@ -214,18 +233,18 @@ export class VoiceProcessingService {
             const result = await Promise.race([phase1Promise, timeoutPromise])
             clearTimeout(timeoutId!)
 
-            if (result.status === 'not_found' && result.message?.includes('timeout')) {
-                this.logger.warn(`[Step 5] Phase 1 taking too long (>13s). Returning 404 to trigger Phase 2.`)
-
-                // Signal the background Phase 1 promise to stop creating complaints
-                abortFlag.aborted = true
-
-                // Immediately release concurrency slot so Attempt 2 can start
-                if (!slotReleased) {
-                    slotReleased = true
-                    releaseSlot()
-                    this.logger.log(`[Concurrency] Slot released early due to timeout (${activePipelines}/${MAX_CONCURRENT_PIPELINES} active)`)
-                }
+            if (result.status === 'not_found') {
+                // Any "not_found" (timeout or match failure) is converted to manual review
+                this.logger.warn(`[Step 5] Phase 1 returned not_found. Converting to manual_review (no 404 to Exotel).`)
+                return this.createManualReviewComplaint(
+                    voiceCall.id,
+                    audioUrl,
+                    null,
+                    panchayat,
+                    attemptNumber,
+                    transcript,
+                    transcriptEnglish
+                )
             }
 
             return result
@@ -235,12 +254,19 @@ export class VoiceProcessingService {
             this.logger.error(`Pipeline failed: ${errMessage}`)
 
             if (voiceCall) {
-                await this.updateVoiceCallStatus(voiceCall.id, 'failed').catch(dbErr =>
+                try {
+                    await this.updateVoiceCallStatus(voiceCall.id, 'failed')
+                } catch (dbErr) {
                     this.logger.error(`Failed to update VoiceCall status: ${(dbErr as Error).message}`)
-                )
+                }
             }
 
-            throw error
+            // Never propagate exception to controller — treat as manual review
+            return {
+                success: true,
+                status: 'manual_review',
+                message: 'Voice pipeline failed internally; flagged for manual review'
+            }
 
         } finally {
             if (!slotReleased) {

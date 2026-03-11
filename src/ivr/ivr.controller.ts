@@ -32,7 +32,7 @@ export class IvrController {
     }
 
     private sendSuccessXml(res: Response): void {
-        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>Complaint registered successfully</Say>\n</Response>`
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>உங்கள் புகார் பதிவு செய்யப்பட்டுள்ளது. நன்றி.</Say>\n</Response>`
         res.status(200).type('application/xml').send(xml)
     }
 
@@ -66,7 +66,7 @@ export class IvrController {
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //   EP2: POLL INPUT  —  /api/ivr/poll
     //   User enters a pole keypad_id. Creates a complaint if found.
-    //   Returns 404 only if the pole doesn't exist (Exotel can retry).
+    //   Always returns XML 200 so Exotel flow is not broken.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     @Post('poll')
@@ -82,12 +82,7 @@ export class IvrController {
     private async handlePollInput(data: IvrCallbackDto, res: Response): Promise<void> {
         try {
             this.logger.log(`[EP2] Poll input received: CallSid=${data.CallSid ?? 'N/A'}`)
-            const result = await this.ivrService.handlePollInput(data)
-
-            if (!result.found) {
-                res.status(HttpStatus.NOT_FOUND).json({ message: 'Pole not found' })
-                return
-            }
+            await this.ivrService.handlePollInput(data)
         } catch (err) {
             this.logger.error(`[EP2] Error (non-fatal): ${(err as Error).message}`)
             // On error, return XML 200 instead of crashing
@@ -99,7 +94,7 @@ export class IvrController {
     //   EP3: VOICE COMPLAINT  —  /api/ivr/voice-complaint
     //   Exotel sends the recording URL after the user leaves a voice note.
     //   Transcribes → extracts landmark → matches pole → creates complaint.
-    //   Returns 404 if landmark can't be matched (triggers retry).
+    //   Always returns XML 200 (no 404) to avoid Exotel "Phase 2 URL 404" errors.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
     @Post('voice-complaint')
@@ -132,24 +127,13 @@ export class IvrController {
 
             const ivrNumber = data.CallTo || data.To || ''
 
-            // ── SYNCHRONOUS: Wait for result so Exotel gets the correct status ──
-            // 200 → complaint registered → Exotel tells caller "success"
-            // 404 → landmark not matched → Exotel asks caller to "try again"
             const result = await this.voiceProcessing.processVoiceComplaint(
                 data.CallSid,
                 data.RecordingUrl,
                 ivrNumber
             )
-
-            if (result.status === 'not_found') {
-                // 404 → Exotel triggers the retry flow (ask user to re-record)
-                res.status(HttpStatus.NOT_FOUND).json({
-                    message: result.message || 'Landmark not matched to any pole'
-                })
-                return
-            }
-
-            // completed or manual_review → tell caller "complaint registered"
+            // For completed / manual_review / not_found, always return success XML.
+            // Any "not_found" is treated as manual review on the backend side.
             this.sendSuccessXml(res)
             return
 

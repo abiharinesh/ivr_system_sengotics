@@ -56,7 +56,16 @@ export class VoiceToTextService {
         this.logger.log(`[STT:${provider}] Transcribing audio from: ${audioUrl}${retryCount > 0 ? ` (retry #${retryCount})` : ''}`)
 
         // ── Download audio ───────────────────────────────────────────────────
-        const audioBuffer = await this.downloadAudio(audioUrl, retryCount)
+        let audioBuffer: ArrayBuffer
+        try {
+            audioBuffer = await this.downloadAudio(audioUrl, retryCount)
+        } catch (err) {
+            const msg = (err as Error).message ?? String(err)
+            this.logger.error(`Audio download failed: ${msg}`)
+            // Do not break the IVR flow — return empty transcript so pipeline can fall back to manual review
+            return ''
+        }
+
         this.logger.log(`Audio downloaded: ${audioBuffer.byteLength} bytes`)
 
         try {
@@ -107,7 +116,8 @@ export class VoiceToTextService {
             }
 
             this.logger.error(`Transcription failed: ${errMessage}`)
-            throw error
+            // Swallow error and let caller handle empty transcript → manual review
+            return ''
         }
     }
 

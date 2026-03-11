@@ -136,7 +136,8 @@ export class LocationExtractionService {
         } catch (error) {
             const msg = (error as Error).message ?? String(error)
             this.logger.error(`Location extraction failed: ${msg}`)
-            throw error
+            // Return a safe default so the pipeline can fall back to manual review
+            return this.defaultExtraction(transcript)
         }
     }
 
