@@ -240,7 +240,7 @@ export class VoiceProcessingService {
                     voiceCall.id,
                     audioUrl,
                     null,
-                    panchayat,
+                    panchayat.id,
                     attemptNumber,
                     transcript,
                     transcriptEnglish
