@@ -69,6 +69,8 @@ model VoiceCall {
 
   complaints        Complaint[]
 
+  @@unique([call_sid, audio_url])
+  @@index([call_sid, attempt_number])
   @@map("voice_calls")
 }
 

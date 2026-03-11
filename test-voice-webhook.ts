@@ -24,12 +24,17 @@ async function run() {
 
     console.log(`Sending webhook for village: ${panchayat.name} (IVR: ${ivrNumber})`)
 
-    const payload = {
+    const payloadAttempt1 = {
         CallSid: callSid,
         CallFrom: '+919876543210',
         CallTo: ivrNumber,
         RecordingUrl: 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1773159742.4564145_0.mp3',
         ProcessStatus: 'ready'
+    }
+
+    const payloadAttempt2 = {
+        ...payloadAttempt1,
+        RecordingUrl: 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1772744617.3352439_0.mp3'
     }
 
     // ── ATTEMPT 1 ──────────────────────────────────────────────
@@ -39,15 +44,37 @@ async function run() {
         const res1 = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify(payloadAttempt1)
         })
         console.timeEnd('Attempt 1 Duration')
         console.log(`Status: ${res1.status}`)
         console.log(`Body: ${await res1.text()}`)
 
         await new Promise(r => setTimeout(r, 2000))
-        const voiceCall1 = await prisma.voiceCall.findFirst({ where: { call_sid: callSid }, orderBy: { created_at: 'desc' } })
-        console.log(`DB attempt_number: ${voiceCall1?.attempt_number}, status: ${voiceCall1?.processing_status}`)
+        const firstRows = await prisma.voiceCall.findMany({
+            where: { call_sid: callSid },
+            orderBy: { created_at: 'asc' }
+        })
+        const latestAfterFirst = firstRows.length ? firstRows[firstRows.length - 1] : null
+        console.log(`Voice rows after attempt 1: ${firstRows.length}`)
+        console.log(`Latest row attempt_number: ${latestAfterFirst?.attempt_number}, status: ${latestAfterFirst?.processing_status}`)
+
+        // ── DUPLICATE REPLAY: same CallSid + same RecordingUrl ──────────
+        console.log('\n--- DUPLICATE CALLBACK (SAME URL) ---')
+        const duplicateRes = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadAttempt1)
+        })
+        console.log(`Duplicate status: ${duplicateRes.status}`)
+        console.log(`Duplicate body: ${await duplicateRes.text()}`)
+
+        await new Promise(r => setTimeout(r, 2000))
+        const rowsAfterDuplicate = await prisma.voiceCall.findMany({
+            where: { call_sid: callSid },
+            orderBy: { created_at: 'asc' }
+        })
+        console.log(`Voice rows after duplicate: ${rowsAfterDuplicate.length} (should stay same as after attempt 1)`)
 
         if (res1.status === 404) {
             // ── ATTEMPT 2 (Simulating Retry) ─────────────────────────
@@ -56,7 +83,7 @@ async function run() {
             const res2 = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: JSON.stringify(payloadAttempt2)
             })
             console.timeEnd('Attempt 2 Duration')
             console.log(`Status: ${res2.status}`)
@@ -64,15 +91,29 @@ async function run() {
 
             console.log('Waiting 15 seconds to allow background Phase 2 to complete...')
             await new Promise(r => setTimeout(r, 15000))
-            const voiceCall2 = await prisma.voiceCall.findFirst({ where: { call_sid: callSid }, orderBy: { created_at: 'desc' } })
-            console.log(`DB attempt_number: ${voiceCall2?.attempt_number}, status: ${voiceCall2?.processing_status}`)
+            const voiceRows = await prisma.voiceCall.findMany({
+                where: { call_sid: callSid },
+                orderBy: { attempt_number: 'asc' }
+            })
+            console.log(`Voice rows after attempt 2: ${voiceRows.length}`)
+            console.log('Attempt numbers:', voiceRows.map(v => v.attempt_number))
         }
 
-        const complaint = await prisma.complaint.findFirst({ where: { voice_call_id: voiceCall1?.id }, include: { pole: true } })
+        const finalVoiceRows = await prisma.voiceCall.findMany({
+            where: { call_sid: callSid },
+            orderBy: { created_at: 'asc' }
+        })
+        const complaint = await prisma.complaint.findFirst({
+            where: {
+                voice_call: { is: { call_sid: callSid } }
+            },
+            include: { pole: true }
+        })
 
         console.log('\n--- LATEST COMPLAINT ---')
         console.log(complaint)
         console.log(`\nMatched Pole: ${complaint?.pole?.pole_number ?? 'None'}`)
+        console.log(`Final voice row count for CallSid: ${finalVoiceRows.length}`)
     } catch (e: any) {
         console.error('Fetch failed. Is the NestJS server running on port 3000?', e.message)
     }

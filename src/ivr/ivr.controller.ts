@@ -36,6 +36,14 @@ export class IvrController {
         res.status(200).type('application/xml').send(xml)
     }
 
+    private normalizeRecordingUrl(data: IvrCallbackDto): string {
+        return data.RecordingUrl
+            || data.recording_url
+            || data.recordingUrl
+            || data.recording
+            || ''
+    }
+
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     //   EP1: SERVICE SELECTION  —  /api/ivr/service
     //   User presses a digit (1/2/3) to choose a service type.
@@ -111,7 +119,9 @@ export class IvrController {
         try {
             this.logger.log(`[EP3] Voice complaint received: CallSid=${data.CallSid ?? 'N/A'}`)
 
-            if (!data.RecordingUrl || !data.CallSid) {
+            const recordingUrl = this.normalizeRecordingUrl(data)
+
+            if (!recordingUrl || !data.CallSid) {
                 this.logger.warn('[EP3] Missing CallSid or RecordingUrl — returning empty XML')
                 this.sendEmptyXml(res)
                 return
@@ -129,8 +139,12 @@ export class IvrController {
 
             const result = await this.voiceProcessing.processVoiceComplaint(
                 data.CallSid,
-                data.RecordingUrl,
+                recordingUrl,
                 ivrNumber
+            )
+
+            this.logger.log(
+                `[EP3] Processed callback CallSid=${data.CallSid} attempt=${result.attemptNumber ?? 'n/a'} phase=${result.phase ?? 'n/a'}`
             )
             // For completed / manual_review / not_found, always return success XML.
             // Any "not_found" is treated as manual review on the backend side.
