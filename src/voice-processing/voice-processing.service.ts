@@ -266,8 +266,12 @@ export class VoiceProcessingService {
         }
 
         const knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayat.id)
-        const extracted = await this.locationExtraction.extractLocation(combinedText, knownLandmarks)
-        extracted.village = panchayat.name
+        const extractedRaw = await this.locationExtraction.extractLocation(combinedText, knownLandmarks)
+        const extracted = this.withRequiredFields(extractedRaw, {
+            village: panchayat.name,
+            complaintType: 'street_light',
+            callSummary: transcriptEnglish || combinedText
+        })
 
         await this.prisma.voiceCall.update({
             where: { id: voiceCallId },
@@ -519,7 +523,16 @@ export class VoiceProcessingService {
     ): Promise<void> {
         try {
             const knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(panchayatId)
-            const extracted = await this.locationExtraction.extractLocation(transcriptEnglish, knownLandmarks)
+            const panchayat = await this.prisma.panchayat.findUnique({
+                where: { id: panchayatId },
+                select: { name: true }
+            })
+            const extractedRaw = await this.locationExtraction.extractLocation(transcriptEnglish, knownLandmarks)
+            const extracted = this.withRequiredFields(extractedRaw, {
+                village: panchayat?.name ?? '',
+                complaintType: 'street_light',
+                callSummary: transcriptEnglish
+            })
             await this.prisma.complaint.update({
                 where: { id: complaintId },
                 data: {
@@ -606,6 +619,25 @@ export class VoiceProcessingService {
             return call?.call_to ?? ''
         } catch {
             return ''
+        }
+    }
+
+    private withRequiredFields(
+        extracted: ExtractedLocation,
+        opts: { village: string, complaintType: string, callSummary: string }
+    ): ExtractedLocation {
+        return {
+            ...extracted,
+            village: (extracted.village || opts.village || '').trim(),
+            complaint_type: (extracted.complaint_type || opts.complaintType || 'street_light').trim(),
+            call_summary: (extracted.call_summary || opts.callSummary || '').trim(),
+            landmark: (extracted.landmark || '').trim(),
+            landmark_english: (extracted.landmark_english || extracted.landmark || opts.callSummary || '').trim(),
+            direction: (extracted.direction || 'near').trim(),
+            caller_language: (extracted.caller_language || 'unknown').trim(),
+            caller_emotion: (extracted.caller_emotion || 'unknown').trim(),
+            urgency_level: (extracted.urgency_level || 'medium').trim(),
+            confidence_score: typeof extracted.confidence_score === 'number' ? extracted.confidence_score : 0.5
         }
     }
 }
