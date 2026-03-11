@@ -140,6 +140,24 @@ model Complaint {
   @@map("complaints")
 }
 
+model CallState {
+  id                   Int       @id @default(autoincrement())
+  call_sid             String    @unique
+  phase1_status        String    @default("pending")
+  phase2_status        String    @default("pending")
+  complaint_created    Boolean   @default(false)
+  complaint_id         Int?
+  phase1_voice_call_id Int?
+  phase2_voice_call_id Int?
+  finalized_at         DateTime?
+  last_error           String?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@index([call_sid])
+  @@map("call_state")
+}
+
 model SystemSettings {
   key        String   @id
   value      String

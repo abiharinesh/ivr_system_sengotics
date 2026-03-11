@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Body, Query, Res, UseFilters, HttpStatus, Logger } from '@nestjs/common'
+import { Controller, Post, Get, Body, Query, Res, UseFilters, Logger } from '@nestjs/common'
 import { IvrService } from './ivr.service'
 import { IvrCallbackDto } from './dto/ivr-callback.dto'
 import type { Response } from 'express'
@@ -98,61 +98,80 @@ export class IvrController {
         this.sendEmptyXml(res)
     }
 
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-    //   EP3: VOICE COMPLAINT  —  /api/ivr/voice-complaint
-    //   Exotel sends the recording URL after the user leaves a voice note.
-    //   Transcribes → extracts landmark → matches pole → creates complaint.
-    //   Always returns XML 200 (no 404) to avoid Exotel "Phase 2 URL 404" errors.
-    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-    @Post('voice-complaint')
-    async handleVoiceComplaintPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
-        return this.handleVoiceComplaint(data, res)
+    @Post('voice-match')
+    async handleVoicePhase1Post(@Body() data: IvrCallbackDto, @Res() res: Response) {
+        return this.handleVoicePhase1(data, res)
     }
 
-    @Get('voice-complaint')
-    async handleVoiceComplaintGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
-        return this.handleVoiceComplaint(data, res)
+    @Get('voice-match')
+    async handleVoicePhase1Get(@Query() data: IvrCallbackDto, @Res() res: Response) {
+        return this.handleVoicePhase1(data, res)
     }
 
-    private async handleVoiceComplaint(data: IvrCallbackDto, res: Response): Promise<void> {
+    private async handleVoicePhase1(data: IvrCallbackDto, res: Response): Promise<void> {
         try {
-            this.logger.log(`[EP3] Voice complaint received: CallSid=${data.CallSid ?? 'N/A'}`)
+            this.logger.log(`[EP3-P1] Voice phase1 received: CallSid=${data.CallSid ?? 'N/A'}`)
 
             const recordingUrl = this.normalizeRecordingUrl(data)
 
             if (!recordingUrl || !data.CallSid) {
-                this.logger.warn('[EP3] Missing CallSid or RecordingUrl — returning empty XML')
+                this.logger.warn('[EP3-P1] Missing CallSid or RecordingUrl — returning empty XML')
                 this.sendEmptyXml(res)
                 return
             }
 
-            // Exotel sends a callback BEFORE the recording is ready.
-            // Only process when confirmed ready to avoid fetch errors.
             if (data.ProcessStatus && data.ProcessStatus !== 'ready') {
-                this.logger.log(`[EP3] Recording not ready (ProcessStatus=${data.ProcessStatus})`)
+                this.logger.log(`[EP3-P1] Recording not ready (ProcessStatus=${data.ProcessStatus})`)
                 this.sendEmptyXml(res)
                 return
             }
 
             const ivrNumber = data.CallTo || data.To || ''
-
-            const result = await this.voiceProcessing.processVoiceComplaint(
+            const result = await this.voiceProcessing.processPhase1Voice(
                 data.CallSid,
                 recordingUrl,
                 ivrNumber
             )
-
             this.logger.log(
-                `[EP3] Processed callback CallSid=${data.CallSid} attempt=${result.attemptNumber ?? 'n/a'} phase=${result.phase ?? 'n/a'}`
+                `[EP3-P1] Processed CallSid=${data.CallSid} attempt=${result.attemptNumber ?? 'n/a'}`
             )
-            // For completed / manual_review / not_found, always return success XML.
-            // Any "not_found" is treated as manual review on the backend side.
             this.sendSuccessXml(res)
             return
 
         } catch (err) {
-            this.logger.error(`[EP3] Error (non-fatal): ${(err as Error).message}`)
+            this.logger.error(`[EP3-P1] Error (non-fatal): ${(err as Error).message}`)
+            this.sendEmptyXml(res)
+        }
+    }
+
+    @Post('voice-llm')
+    async handleVoiceLlmPost(@Body() data: IvrCallbackDto, @Res() res: Response) {
+        return this.handleVoiceLlm(data, res)
+    }
+
+    @Get('voice-llm')
+    async handleVoiceLlmGet(@Query() data: IvrCallbackDto, @Res() res: Response) {
+        return this.handleVoiceLlm(data, res)
+    }
+
+    private async handleVoiceLlm(data: IvrCallbackDto, res: Response): Promise<void> {
+        try {
+            this.logger.log(`[EP3-P2] Voice llm received: CallSid=${data.CallSid ?? 'N/A'}`)
+
+            const recordingUrl = this.normalizeRecordingUrl(data)
+            if (!recordingUrl || !data.CallSid) {
+                this.logger.warn('[EP3-P2] Missing CallSid or RecordingUrl — returning empty XML')
+                this.sendEmptyXml(res)
+                return
+            }
+
+            const ivrNumber = data.CallTo || data.To || ''
+            await this.voiceProcessing.acceptPhase2Llm(data.CallSid, recordingUrl, ivrNumber)
+
+            // Phase2 contract: immediate success response.
+            this.sendSuccessXml(res)
+        } catch (err) {
+            this.logger.error(`[EP3-P2] Error (non-fatal): ${(err as Error).message}`)
             this.sendEmptyXml(res)
         }
     }

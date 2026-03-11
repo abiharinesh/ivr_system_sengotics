@@ -43,18 +43,29 @@ export class DbSetupService {
             await this.prisma.$executeRawUnsafe(`
                 ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS landmarks TEXT[] DEFAULT '{}';
             `)
-            // Unique constraint on (panchayat_id, keypad_id) — idempotent
+            // Keep idempotent unique semantics without failing when index/constraint already exists.
             await this.prisma.$executeRawUnsafe(`
-                DO $$ BEGIN
-                    IF NOT EXISTS (
-                        SELECT 1 FROM pg_constraint
-                        WHERE conname = 'electric_poles_panchayat_id_keypad_id_key'
-                    ) THEN
-                        ALTER TABLE electric_poles
-                            ADD CONSTRAINT electric_poles_panchayat_id_keypad_id_key
-                            UNIQUE (panchayat_id, keypad_id);
-                    END IF;
-                END $$;
+                CREATE UNIQUE INDEX IF NOT EXISTS electric_poles_panchayat_id_keypad_id_key
+                ON electric_poles (panchayat_id, keypad_id);
+            `)
+            await this.prisma.$executeRawUnsafe(`
+                CREATE TABLE IF NOT EXISTS call_state (
+                    id SERIAL PRIMARY KEY,
+                    call_sid TEXT UNIQUE NOT NULL,
+                    phase1_status TEXT NOT NULL DEFAULT 'pending',
+                    phase2_status TEXT NOT NULL DEFAULT 'pending',
+                    complaint_created BOOLEAN NOT NULL DEFAULT FALSE,
+                    complaint_id INTEGER NULL,
+                    phase1_voice_call_id INTEGER NULL,
+                    phase2_voice_call_id INTEGER NULL,
+                    finalized_at TIMESTAMP NULL,
+                    last_error TEXT NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                );
+            `)
+            await this.prisma.$executeRawUnsafe(`
+                CREATE INDEX IF NOT EXISTS call_state_call_sid_idx ON call_state(call_sid);
             `)
             console.log('✅ Schema columns verified/added.')
         } catch (err) {

@@ -47,7 +47,7 @@ export default async (req: any, res: any) => {
             (async () => {
                 try {
                     const voiceService = app.get(VoiceProcessingService)
-                    await voiceService.processPendingPhase2(5)
+                    await voiceService.processPendingPhase2Llm(5)
                 } catch (_) {}
             })()
         )

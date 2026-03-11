@@ -24,7 +24,7 @@ async function run() {
 
     console.log(`Sending webhook for village: ${panchayat.name} (IVR: ${ivrNumber})`)
 
-    const payloadAttempt1 = {
+    const payloadPhase1 = {
         CallSid: callSid,
         CallFrom: '+919876543210',
         CallTo: ivrNumber,
@@ -32,19 +32,19 @@ async function run() {
         ProcessStatus: 'ready'
     }
 
-    const payloadAttempt2 = {
-        ...payloadAttempt1,
-        RecordingUrl: 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1772744617.3352439_0.mp3'
+    const payloadPhase2 = {
+        ...payloadPhase1,
+        RecordingUrl: 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1773238135.797916_1.mp3'
     }
 
     // ── ATTEMPT 1 ──────────────────────────────────────────────
     console.log('\n--- ATTEMPT 1 ---')
     console.time('Attempt 1 Duration')
     try {
-        const res1 = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
+        const res1 = await fetch(`${BASE_URL}/api/ivr/voice-match`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadAttempt1)
+            body: JSON.stringify(payloadPhase1)
         })
         console.timeEnd('Attempt 1 Duration')
         console.log(`Status: ${res1.status}`)
@@ -61,10 +61,10 @@ async function run() {
 
         // ── DUPLICATE REPLAY: same CallSid + same RecordingUrl ──────────
         console.log('\n--- DUPLICATE CALLBACK (SAME URL) ---')
-        const duplicateRes = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
+        const duplicateRes = await fetch(`${BASE_URL}/api/ivr/voice-match`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payloadAttempt1)
+            body: JSON.stringify(payloadPhase1)
         })
         console.log(`Duplicate status: ${duplicateRes.status}`)
         console.log(`Duplicate body: ${await duplicateRes.text()}`)
@@ -76,28 +76,26 @@ async function run() {
         })
         console.log(`Voice rows after duplicate: ${rowsAfterDuplicate.length} (should stay same as after attempt 1)`)
 
-        if (res1.status === 404) {
-            // ── ATTEMPT 2 (Simulating Retry) ─────────────────────────
-            console.log('\n--- ATTEMPT 2 ---')
-            console.time('Attempt 2 Duration')
-            const res2 = await fetch(`${BASE_URL}/api/ivr/voice-complaint`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payloadAttempt2)
-            })
-            console.timeEnd('Attempt 2 Duration')
-            console.log(`Status: ${res2.status}`)
-            console.log(`Body: ${await res2.text()}`)
+        // ── PHASE 2 LLM (always immediate 200) ────────────────────────
+        console.log('\n--- PHASE 2 LLM ---')
+        console.time('Phase 2 Duration')
+        const res2 = await fetch(`${BASE_URL}/api/ivr/voice-llm`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payloadPhase2)
+        })
+        console.timeEnd('Phase 2 Duration')
+        console.log(`Status: ${res2.status}`)
+        console.log(`Body: ${await res2.text()}`)
 
-            console.log('Waiting 15 seconds to allow background Phase 2 to complete...')
-            await new Promise(r => setTimeout(r, 15000))
-            const voiceRows = await prisma.voiceCall.findMany({
-                where: { call_sid: callSid },
-                orderBy: { attempt_number: 'asc' }
-            })
-            console.log(`Voice rows after attempt 2: ${voiceRows.length}`)
-            console.log('Attempt numbers:', voiceRows.map(v => v.attempt_number))
-        }
+        console.log('Waiting 20 seconds to allow background LLM enrichment...')
+        await new Promise(r => setTimeout(r, 20000))
+        const voiceRows = await prisma.voiceCall.findMany({
+            where: { call_sid: callSid },
+            orderBy: { attempt_number: 'asc' }
+        })
+        console.log(`Voice rows after phase 2: ${voiceRows.length}`)
+        console.log('Attempt numbers:', voiceRows.map(v => v.attempt_number))
 
         const finalVoiceRows = await prisma.voiceCall.findMany({
             where: { call_sid: callSid },
