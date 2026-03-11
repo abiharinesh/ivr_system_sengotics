@@ -2,7 +2,7 @@
     "version": 2,
     "crons": [
         {
-            "path": "/api/process-phase2",
+            "path": "/worker/process-phase2",
             "schedule": "* * * * *"
         }
     ],
