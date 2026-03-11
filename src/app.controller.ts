@@ -88,7 +88,7 @@ export class AppController {
   }
 
   @SkipThrottle()
-  @Get('cron/process-phase2')
+  @Get('api/process-phase2')
   async processPendingPhase2(@Query('token') token?: string, @Req() req?: Request) {
     const requiredToken = process.env.IVR_CRON_TOKEN || process.env.CRON_SECRET
     const authHeader = req?.headers?.authorization
