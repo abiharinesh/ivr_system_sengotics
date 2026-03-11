@@ -381,6 +381,7 @@ export class VoiceProcessingService {
                     complaint_created: true,
                     complaint_id: complaint.id,
                     phase1_status: 'completed',
+                    phase2_status: 'skipped',
                     finalized_at: new Date()
                 }
             })
