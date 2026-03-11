@@ -1,5 +1,11 @@
 {
     "version": 2,
+    "crons": [
+        {
+            "path": "/cron/process-phase2",
+            "schedule": "* * * * *"
+        }
+    ],
     "rewrites": [
         {
             "source": "/(.*)",

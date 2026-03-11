@@ -1,9 +1,9 @@
-import { Controller, Get, Post, Body, Query, Res, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Res, Req, Logger } from '@nestjs/common';
 import { AppService } from './app.service';
 import { PrismaService } from './prisma/prisma.service';
 import { VoiceProcessingService } from './voice-processing/voice-processing.service';
 import { IvrCallbackDto } from './ivr/dto/ivr-callback.dto';
-import type { Response } from 'express'
+import type { Request, Response } from 'express'
 
 @Controller()
 export class AppController {
@@ -82,5 +82,19 @@ export class AppController {
       this.logger.error(`[TEST] Non-fatal error: ${error?.message || String(error)}`)
       this.sendEmptyXml(res)
     }
+  }
+
+  @Get('cron/process-phase2')
+  async processPendingPhase2(@Query('token') token?: string, @Req() req?: Request) {
+    const requiredToken = process.env.IVR_CRON_TOKEN || process.env.CRON_SECRET
+    const authHeader = req?.headers?.authorization
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : undefined
+
+    if (requiredToken && token !== requiredToken && bearerToken !== requiredToken) {
+      return { ok: false, message: 'Unauthorized token' }
+    }
+
+    const result = await this.voiceProcessing.processPendingPhase2(20)
+    return { ok: true, ...result }
   }
 }

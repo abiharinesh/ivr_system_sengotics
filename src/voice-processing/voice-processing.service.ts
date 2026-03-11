@@ -4,7 +4,6 @@ import { VoiceToTextService } from './voice-to-text.service'
 import { LocationExtractionService, ExtractedLocation } from './location-extraction.service'
 import { GeoMatchingService } from './geo-matching.service'
 
-const DEDUP_WINDOW_HOURS = 24
 const MIN_CONFIDENCE = 0.15
 const PHASE1_POLL_INTERVAL_MS = 2000
 const PHASE1_MAX_WAIT_MS = 45_000
@@ -65,6 +64,7 @@ export class VoiceProcessingService {
         // ══════════════════════════════════════════════════════════════════
         if (attemptNumber >= 2) {
             this.logger.log(`[Phase 2] Returning 200 IMMEDIATELY. All processing is background.`)
+            await this.safeUpdateStatus(voiceCallId, 'queued')
 
             this.runPhase2Pipeline(voiceCallId, callSid, audioUrl, ivrNumber).catch(err => {
                 this.logger.error(`[Phase 2 bg crash] ${(err as Error).message}`)
@@ -93,6 +93,55 @@ export class VoiceProcessingService {
             await this.safeUpdateStatus(voiceCallId, 'failed')
             return { success: false, status: 'not_found', attemptNumber, phase: 1, message: 'Phase 1 processing error' }
         }
+    }
+
+    async processPendingPhase2(limit = 10): Promise<{ scanned: number, processed: number, skipped: number }> {
+        const staleThreshold = new Date(Date.now() - 20_000)
+        const pending = await this.prisma.voiceCall.findMany({
+            where: {
+                attempt_number: { gte: 2 },
+                OR: [
+                    { processing_status: 'queued' },
+                    {
+                        processing_status: 'processing',
+                        created_at: { lte: staleThreshold }
+                    }
+                ]
+            },
+            orderBy: { created_at: 'asc' },
+            take: limit,
+            select: { id: true, call_sid: true, audio_url: true, processing_status: true, created_at: true }
+        })
+
+        let processed = 0
+        let skipped = 0
+
+        for (const row of pending) {
+            if (!row.call_sid || !row.audio_url) {
+                await this.safeUpdateStatus(row.id, 'failed')
+                skipped++
+                continue
+            }
+
+            const existing = await this.findExistingComplaintForCall(row.call_sid)
+            if (existing) {
+                await this.safeUpdateStatus(row.id, 'superseded')
+                skipped++
+                continue
+            }
+
+            const ivrNumber = await this.getIvrNumberByCallSid(row.call_sid)
+            try {
+                await this.runPhase2Pipeline(row.id, row.call_sid, row.audio_url, ivrNumber)
+                processed++
+            } catch (err) {
+                this.logger.error(`[Phase2 queue] Failed VoiceCall #${row.id}: ${(err as Error).message}`)
+                await this.safeUpdateStatus(row.id, 'failed')
+                skipped++
+            }
+        }
+
+        return { scanned: pending.length, processed, skipped }
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -193,6 +242,7 @@ export class VoiceProcessingService {
         ivrNumber: string
     ): Promise<void> {
         this.logger.log(`[Phase 2 bg] Starting for CallSid: ${callSid}`)
+        await this.safeUpdateStatus(voiceCallId, 'processing')
 
         // ── Step A: Transcribe Phase 2 audio ─────────────────────────────
         let transcript = ''
@@ -394,7 +444,6 @@ export class VoiceProcessingService {
         audioUrl: string,
         callSid: string
     ): Promise<{ id: number } | null> {
-        const dedupCutoff = new Date(Date.now() - DEDUP_WINDOW_HOURS * 60 * 60 * 1000)
         return this.prisma.$transaction(async (tx) => {
             const alreadyFinalizedForCall = await tx.complaint.findFirst({
                 where: {
@@ -409,25 +458,6 @@ export class VoiceProcessingService {
                 await tx.voiceCall.update({
                     where: { id: voiceCallId },
                     data: { processing_status: 'superseded' }
-                })
-                return null
-            }
-
-            const poleExisting = await tx.complaint.findFirst({
-                where: {
-                    pole_id: poleId,
-                    panchayat_id: panchayatId,
-                    created_at: { gte: dedupCutoff },
-                    status: { in: ['pending', 'in_progress'] }
-                },
-                select: { id: true }
-            })
-
-            if (poleExisting) {
-                this.logger.warn(`[Dedup] Pole-level duplicate — complaint #${poleExisting.id} exists`)
-                await tx.voiceCall.update({
-                    where: { id: voiceCallId },
-                    data: { processing_status: 'completed' }
                 })
                 return null
             }
@@ -659,6 +689,18 @@ export class VoiceProcessingService {
             })
         } catch (err) {
             this.logger.warn(`[Cleanup] ${(err as Error).message}`)
+        }
+    }
+
+    private async getIvrNumberByCallSid(callSid: string): Promise<string> {
+        try {
+            const call = await this.prisma.callsMaster.findUnique({
+                where: { call_sid: callSid },
+                select: { call_to: true }
+            })
+            return call?.call_to ?? ''
+        } catch {
+            return ''
         }
     }
 }
