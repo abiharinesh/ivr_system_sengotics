@@ -1,5 +1,16 @@
+import 'package:flutter/foundation.dart';
+
 class ApiConfig {
-  static const String baseUrl = 'https://ivr-system-sengotics.vercel.app';
+  static const String _prodBaseUrl = 'https://ivr-system-sengotics.vercel.app';
+  static const String _localBaseUrl = 'http://localhost:3000';
+
+  static String get baseUrl {
+    const fromDefine = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+    if (fromDefine.isNotEmpty) {
+      return fromDefine;
+    }
+    return kReleaseMode ? _prodBaseUrl : _localBaseUrl;
+  }
   // Auth
   static const String login = '/api/auth/login';
 

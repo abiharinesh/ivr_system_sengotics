@@ -9,9 +9,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     private pool: Pool
 
     constructor(private configService: ConfigService) {
+        const maxPoolConnections = parseInt(
+            configService.get<string>('DB_POOL_MAX') ?? '3',
+            10
+        )
         // Initialize PostgreSQL connection pool
         const pool = new Pool({
-            connectionString: configService.get<string>('DATABASE_URL')
+            connectionString: configService.get<string>('DATABASE_URL'),
+            max: isNaN(maxPoolConnections) ? 3 : maxPoolConnections
         })
 
         // Initialize Prisma with PostgreSQL adapter (required for Prisma v7)
