@@ -39,6 +39,12 @@ export default async (req: any, res: any) => {
         return;
     }
 
+    // Browsers request a favicon by default; avoid noisy 404 logs on Vercel.
+    if (req.method === 'GET' && (req.url === '/favicon.ico' || req.url === '/favicon.png')) {
+        res.status(204).end()
+        return
+    }
+
     const app = await bootstrap()
 
     const originalEnd = res.end.bind(res)
