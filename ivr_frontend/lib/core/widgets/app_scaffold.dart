@@ -373,18 +373,6 @@ class AppScaffold extends StatelessWidget {
         currentRoute: currentRoute,
       ),
       _NavItem(
-        icon: Icons.account_tree_rounded,
-        label: 'Panchayat Mgmt',
-	  route: '/panchayats',
-        currentRoute: currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.people_rounded,
-        label: 'User Management',
-	  route: '/users',
-        currentRoute: currentRoute,
-      ),
-      _NavItem(
         icon: Icons.report_problem_rounded,
         label: 'Complaints',
         route: '/complaints',
