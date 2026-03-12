@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/map_overview.dart';
 import '../../../core/widgets/stat_card.dart';
+import '../../../models/pole_model.dart';
 import '../bloc/pa_dashboard_bloc.dart';
 
 class PADashboard extends StatelessWidget {
@@ -142,6 +144,7 @@ class PADashboard extends StatelessWidget {
             _MapDesignCard(
               totalPoles: state.poles.length,
               panchayatName: titlePanchayat,
+              poles: state.poles,
             ),
             const SizedBox(height: 20),
 
@@ -180,7 +183,12 @@ class PADashboard extends StatelessWidget {
 class _MapDesignCard extends StatelessWidget {
   final int totalPoles;
   final String panchayatName;
-  const _MapDesignCard({required this.totalPoles, required this.panchayatName});
+  final List<PoleModel> poles;
+  const _MapDesignCard({
+    required this.totalPoles,
+    required this.panchayatName,
+    required this.poles,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -188,8 +196,9 @@ class _MapDesignCard extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 760;
         final veryCompact = constraints.maxWidth < 540;
-        final mapHeight = veryCompact ? 340.0 : 300.0;
-        final infoCardWidth = (constraints.maxWidth - 44).clamp(180.0, 230.0).toDouble();
+        final mapHeight = constraints.maxWidth < 540 ? 320.0 : 300.0;
+        final infoCardWidth =
+            (constraints.maxWidth - 44).clamp(180.0, 230.0).toDouble();
 
         return Container(
           decoration: BoxDecoration(
@@ -271,25 +280,17 @@ class _MapDesignCard extends StatelessWidget {
                   height: mapHeight,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFFa6d6dc), Color(0xFF77bec9)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
                   ),
                   child: Stack(
                     children: [
-                      const Align(
-                        alignment: Alignment(-0.1, -0.42),
-                        child: _DotMarker(color: Color(0xFF10B981)),
-                      ),
-                      const Align(
-                        alignment: Alignment(0.38, 0.2),
-                        child: _DotMarker(color: Color(0xFF3B82F6)),
-                      ),
-                      const Align(
-                        alignment: Alignment(-0.42, 0.5),
-                        child: _DotMarker(color: Color(0xFFEF4444)),
+                      Positioned.fill(
+                        child: MapOverview(
+                          poles: poles,
+                          height: mapHeight,
+                          showLegend: false,
+                          showCardDecoration: false,
+                          borderRadius: 12,
+                        ),
                       ),
                       Positioned(
                         left: 16,
@@ -323,9 +324,10 @@ class _MapDesignCard extends StatelessWidget {
                         ),
                       ),
                       Align(
-                        alignment: veryCompact
-                            ? Alignment.bottomCenter
-                            : Alignment.centerRight,
+                        alignment:
+                            veryCompact
+                                ? Alignment.bottomCenter
+                                : Alignment.centerRight,
                         child: Padding(
                           padding: EdgeInsets.only(
                             right: veryCompact ? 0 : 16,
@@ -358,7 +360,9 @@ class _MapDesignCard extends StatelessWidget {
                                     Icon(
                                       Icons.close_rounded,
                                       size: 14,
-                                      color: AppTheme.textMuted.withValues(alpha: 0.6),
+                                      color: AppTheme.textMuted.withValues(
+                                        alpha: 0.6,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -457,24 +461,6 @@ class _MapDesignCard extends StatelessWidget {
           color: active ? AppTheme.textPrimary : AppTheme.textSecondary,
           fontWeight: active ? FontWeight.w600 : FontWeight.w500,
         ),
-      ),
-    );
-  }
-}
-
-class _DotMarker extends StatelessWidget {
-  final Color color;
-  const _DotMarker({required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 14,
-      height: 14,
-      decoration: BoxDecoration(
-        color: color,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
       ),
     );
   }

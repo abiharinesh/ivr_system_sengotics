@@ -7,12 +7,18 @@ class MapOverview extends StatelessWidget {
   final List<PoleModel> poles;
   final double height;
   final LatLng? defaultCenter;
+  final bool showLegend;
+  final bool showCardDecoration;
+  final double borderRadius;
 
   const MapOverview({
     super.key,
     required this.poles,
     this.height = 350,
     this.defaultCenter,
+    this.showLegend = true,
+    this.showCardDecoration = true,
+    this.borderRadius = 18,
   });
 
   @override
@@ -56,25 +62,10 @@ class MapOverview extends StatelessWidget {
           );
         }).toSet();
 
-    return Container(
-      height: height,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/redesign/backgrounds/map_texture.jpg',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-          GoogleMap(
+    final mapContent = Stack(
+      children: [
+        Positioned.fill(
+          child: GoogleMap(
             initialCameraPosition: CameraPosition(
               target: center,
               zoom: validPoles.isEmpty ? 5.0 : 13.0,
@@ -84,17 +75,18 @@ class MapOverview extends StatelessWidget {
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
           ),
-          if (validPoles.isEmpty)
-            Container(
-              color: Colors.white70,
-              child: const Center(
-                child: Text(
-                  'No mapped poles available',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
-                ),
+        ),
+        if (validPoles.isEmpty)
+          Container(
+            color: Colors.white70,
+            child: const Center(
+              child: Text(
+                'No mapped poles available',
+                style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
               ),
             ),
-          // Legend
+          ),
+        if (showLegend)
           Positioned(
             bottom: 12,
             right: 12,
@@ -117,6 +109,31 @@ class MapOverview extends StatelessWidget {
               ),
             ),
           ),
+      ],
+    );
+
+    if (!showCardDecoration) {
+      return SizedBox(
+        height: height,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(borderRadius),
+          child: mapContent,
+        ),
+      );
+    }
+
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(child: mapContent),
         ],
       ),
     );
