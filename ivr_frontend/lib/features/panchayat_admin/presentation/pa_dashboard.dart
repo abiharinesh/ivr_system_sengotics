@@ -155,216 +155,261 @@ class _MapDesignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 760;
+        final veryCompact = constraints.maxWidth < 540;
+        final mapHeight = veryCompact ? 340.0 : 300.0;
+        final infoCardWidth = (constraints.maxWidth - 44).clamp(180.0, 230.0).toDouble();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (compact) ...[
+                  const Text(
+                    'Panchayat Asset Map (GIS View)',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Real-time status in $panchayatName',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      const Text(
-                        'Panchayat Asset Map (GIS View)',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                      _tab('All Wards', true),
+                      _tab('Poles', false),
+                      _tab('Complaints', false),
+                      _tab('Faults', false),
+                    ],
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Panchayat Asset Map (GIS View)',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Real-time status in $panchayatName',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Real-time status in $panchayatName',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
+                      _tab('All Wards', true),
+                      const SizedBox(width: 6),
+                      _tab('Poles', false),
+                      const SizedBox(width: 6),
+                      _tab('Complaints', false),
+                      const SizedBox(width: 6),
+                      _tab('Faults', false),
+                    ],
+                  ),
+                const SizedBox(height: 14),
+                Container(
+                  height: mapHeight,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFFa6d6dc), Color(0xFF77bec9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      const Align(
+                        alignment: Alignment(-0.1, -0.42),
+                        child: _DotMarker(color: Color(0xFF10B981)),
+                      ),
+                      const Align(
+                        alignment: Alignment(0.38, 0.2),
+                        child: _DotMarker(color: Color(0xFF3B82F6)),
+                      ),
+                      const Align(
+                        alignment: Alignment(-0.42, 0.5),
+                        child: _DotMarker(color: Color(0xFFEF4444)),
+                      ),
+                      Positioned(
+                        left: 16,
+                        bottom: 16,
+                        child: Container(
+                          width: veryCompact ? 120 : 130,
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'LEGEND',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppTheme.textMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 6),
+                              _LegendRow('Active (Healthy)', Color(0xFF10B981)),
+                              SizedBox(height: 4),
+                              _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
+                              SizedBox(height: 4),
+                              _LegendRow('Critical Fault', Color(0xFFEF4444)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: veryCompact
+                            ? Alignment.bottomCenter
+                            : Alignment.centerRight,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: veryCompact ? 0 : 16,
+                            top: veryCompact ? 0 : 42,
+                            bottom: veryCompact ? 62 : 0,
+                          ),
+                          child: Container(
+                            width: infoCardWidth,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.96),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'ALERT: FAULTY',
+                                      style: TextStyle(
+                                        color: AppTheme.error,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Icon(
+                                      Icons.close_rounded,
+                                      size: 14,
+                                      color: AppTheme.textMuted.withValues(alpha: 0.6),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Pole ID: PL-1021',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Ward: Ward 4',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Tech Assigned: Not Yet',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: () {},
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Assign Task',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        right: 16,
+                        bottom: veryCompact ? 16 : 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$totalPoles assets tracked',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                _tab('All Wards', true),
-                const SizedBox(width: 6),
-                _tab('Poles', false),
-                const SizedBox(width: 6),
-                _tab('Complaints', false),
-                const SizedBox(width: 6),
-                _tab('Faults', false),
               ],
             ),
-            const SizedBox(height: 14),
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                gradient: const LinearGradient(
-                  colors: [Color(0xFFa6d6dc), Color(0xFF77bec9)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Stack(
-                children: [
-                  const Positioned(
-                    left: 180,
-                    top: 80,
-                    child: _DotMarker(color: Color(0xFF10B981)),
-                  ),
-                  const Positioned(
-                    left: 270,
-                    top: 170,
-                    child: _DotMarker(color: Color(0xFF3B82F6)),
-                  ),
-                  const Positioned(
-                    left: 120,
-                    top: 210,
-                    child: _DotMarker(color: Color(0xFFEF4444)),
-                  ),
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: Container(
-                      width: 130,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'LEGEND',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 6),
-                          _LegendRow('Active (Healthy)', Color(0xFF10B981)),
-                          SizedBox(height: 4),
-                          _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
-                          SizedBox(height: 4),
-                          _LegendRow('Critical Fault', Color(0xFFEF4444)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    top: 80,
-                    child: Container(
-                      width: 210,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: AppTheme.softShadow,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text(
-                                'ALERT: FAULTY',
-                                style: TextStyle(
-                                  color: AppTheme.error,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.close_rounded,
-                                size: 14,
-                                color: AppTheme.textMuted.withValues(alpha: 0.6),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Pole ID: PL-1021',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Ward: Ward 4',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Tech Assigned: Not Yet',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 30,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'Assign Task',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '$totalPoles assets tracked',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
