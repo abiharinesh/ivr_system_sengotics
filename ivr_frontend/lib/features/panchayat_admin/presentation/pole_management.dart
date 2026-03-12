@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
@@ -405,42 +404,32 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
-                      FlutterMap(
-                        options: MapOptions(
-                          initialCenter:
+                      GoogleMap(
+                        initialCameraPosition: CameraPosition(
+                          target:
                               _selectedLocation ??
                               const LatLng(20.5937, 78.9629),
-                          initialZoom: _selectedLocation == null ? 4.0 : 15.0,
-                          onTap: (tapPosition, point) {
-                            setState(() {
-                              _selectedLocation = point;
-                              _latC.text = point.latitude.toString();
-                              _lngC.text = point.longitude.toString();
-                            });
-                          },
+                          zoom: _selectedLocation == null ? 4.0 : 15.0,
                         ),
-                        children: [
-                          TileLayer(
-                            urlTemplate:
-                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.sengotics.ivr_frontend',
-                          ),
-                          if (_selectedLocation != null)
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: _selectedLocation!,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: Colors.red,
-                                    size: 40,
+                        onTap: (point) {
+                          setState(() {
+                            _selectedLocation = point;
+                            _latC.text = point.latitude.toString();
+                            _lngC.text = point.longitude.toString();
+                          });
+                        },
+                        markers:
+                            _selectedLocation == null
+                                ? {}
+                                : {
+                                  Marker(
+                                    markerId: const MarkerId('selected_location'),
+                                    position: _selectedLocation!,
                                   ),
-                                ),
-                              ],
-                            ),
-                        ],
+                                },
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        mapToolbarEnabled: false,
                       ),
                       Positioned(
                         right: 8,

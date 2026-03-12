@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../config/app_theme.dart';
 import '../../models/pole_model.dart';
 
@@ -39,24 +38,23 @@ class MapOverview extends StatelessWidget {
     final markers =
         validPoles.map((p) {
           final isRed = p.complaintsCount > 0;
-          // You can define blue logic here if needed. We use red (problem) and green (ok).
-          // We'll use blue for poles with no keypad_id or inactive as an example, but green as default.
-          final color =
+          final markerHue =
               isRed
-                  ? Colors.red
-                  : (p.keypadId == null ? Colors.blue : Colors.green);
+                  ? BitmapDescriptor.hueRed
+                  : (p.keypadId == null
+                      ? BitmapDescriptor.hueAzure
+                      : BitmapDescriptor.hueGreen);
 
           return Marker(
-            point: LatLng(p.latitude!, p.longitude!),
-            width: 40,
-            height: 40,
-            child: Tooltip(
-              message:
-                  'Pole: ${p.poleNumber ?? 'Unknown'}\nComplaints: ${p.complaintsCount}',
-              child: Icon(Icons.location_on, color: color, size: 40),
+            markerId: MarkerId('pole_${p.id}'),
+            position: LatLng(p.latitude!, p.longitude!),
+            infoWindow: InfoWindow(
+              title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
+              snippet: 'Complaints: ${p.complaintsCount}',
             ),
+            icon: BitmapDescriptor.defaultMarkerWithHue(markerHue),
           );
-        }).toList();
+        }).toSet();
 
     return Container(
       height: height,
@@ -76,18 +74,15 @@ class MapOverview extends StatelessWidget {
               errorBuilder: (_, __, ___) => const SizedBox.shrink(),
             ),
           ),
-          FlutterMap(
-            options: MapOptions(
-              initialCenter: center,
-              initialZoom: validPoles.isEmpty ? 5.0 : 13.0,
+          GoogleMap(
+            initialCameraPosition: CameraPosition(
+              target: center,
+              zoom: validPoles.isEmpty ? 5.0 : 13.0,
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.sengotics.ivr_frontend',
-              ),
-              MarkerLayer(markers: markers),
-            ],
+            markers: markers,
+            myLocationButtonEnabled: false,
+            zoomControlsEnabled: false,
+            mapToolbarEnabled: false,
           ),
           if (validPoles.isEmpty)
             Container(
