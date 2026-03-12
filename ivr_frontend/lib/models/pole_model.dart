@@ -30,7 +30,8 @@ class PoleModel extends Equatable {
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       panchayatId: json['panchayat_id'] as int?,
-      landmarks: (json['landmarks'] as List<dynamic>?)
+      landmarks:
+          (json['landmarks'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],

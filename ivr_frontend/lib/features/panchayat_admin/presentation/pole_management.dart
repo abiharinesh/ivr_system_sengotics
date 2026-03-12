@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
+import '../../../core/widgets/list_screen_shell.dart';
 import '../bloc/pole_bloc.dart';
 
 class PoleManagement extends StatelessWidget {
@@ -16,12 +17,18 @@ class PoleManagement extends StatelessWidget {
       listener: (context, state) {
         if (state is PoleActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.accent),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.accent,
+            ),
           );
         }
         if (state is PoleError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.error),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.error,
+            ),
           );
         }
       },
@@ -50,206 +57,220 @@ class PoleManagement extends StatelessWidget {
   }
 
   Widget _buildList(BuildContext context, PoleLoaded state) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-          child: Row(
-            children: [
-              Text(
-                '${state.poles.length} pole(s)',
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
-              ),
-              const Spacer(),
-              ElevatedButton.icon(
-                onPressed: () => _showCreateDialog(context),
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Pole'),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            itemCount: state.poles.length,
-            itemBuilder: (context, index) {
-              final pole = state.poles[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return ListScreenShell(
+      title: 'Pole Management',
+      subtitle: 'Track electric pole inventory and issue counts',
+      countLabel: '${state.poles.length} pole(s)',
+      action: ElevatedButton.icon(
+        onPressed: () => _showCreateDialog(context),
+        icon: const Icon(Icons.add, size: 18),
+        label: const Text('Add Pole'),
+      ),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        itemCount: state.poles.length,
+        itemBuilder: (context, index) {
+          final pole = state.poles[index];
+          return Card(
+            margin: const EdgeInsets.only(bottom: 12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
-                              ),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: const Icon(
-                              Icons.electrical_services_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  pole.poleNumber ?? 'Pole #${pole.id}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                if (pole.keypadId != null)
-                                  Text(
-                                    'Keypad: ${pole.keypadId}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textMuted,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          PopupMenuButton<String>(
-                            onSelected: (action) {
-                              if (action == 'edit') {
-                                _showEditDialog(context, pole);
-                              } else if (action == 'delete') {
-                                _showDeleteDialog(context, pole.id);
-                              }
-                            },
-                            itemBuilder: (_) => [
-                              const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text('Delete',
-                                    style: TextStyle(color: AppTheme.error)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                      if (pole.landmarks.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 6,
-                          runSpacing: 6,
-                          children: pole.landmarks
-                              .map((l) => Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          AppTheme.primary.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      l,
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppTheme.primaryLight,
-                                      ),
-                                    ),
-                                  ))
-                              .toList(),
+                          borderRadius: BorderRadius.circular(10),
                         ),
-                      ],
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          if (pole.latitude != null && pole.longitude != null)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.location_on,
-                                    size: 14, color: AppTheme.textMuted),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '${pole.latitude!.toStringAsFixed(4)}, ${pole.longitude!.toStringAsFixed(4)}',
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                              ],
+                        child: const Icon(
+                          Icons.electrical_services_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              pole.poleNumber ?? 'Pole #${pole.id}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          const Spacer(),
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.report_problem_rounded,
-                                  size: 14, color: AppTheme.textMuted),
-                              const SizedBox(width: 4),
+                            if (pole.keypadId != null)
                               Text(
-                                '${pole.complaintsCount} complaint(s)',
+                                'Keypad: ${pole.keypadId}',
                                 style: const TextStyle(
                                   fontSize: 12,
-                                  color: AppTheme.textSecondary,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                      PopupMenuButton<String>(
+                        onSelected: (action) {
+                          if (action == 'edit') {
+                            _showEditDialog(context, pole);
+                          } else if (action == 'delete') {
+                            _showDeleteDialog(context, pole.id);
+                          }
+                        },
+                        itemBuilder:
+                            (_) => [
+                              const PopupMenuItem(
+                                value: 'edit',
+                                child: Text('Edit'),
+                              ),
+                              const PopupMenuItem(
+                                value: 'delete',
+                                child: Text(
+                                  'Delete',
+                                  style: TextStyle(color: AppTheme.error),
                                 ),
                               ),
                             ],
+                      ),
+                    ],
+                  ),
+                  if (pole.landmarks.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children:
+                          pole.landmarks
+                              .map(
+                                (l) => Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary.withValues(
+                                      alpha: 0.1,
+                                    ),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    l,
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.primary,
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      if (pole.latitude != null && pole.longitude != null)
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              size: 14,
+                              color: AppTheme.textMuted,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${pole.latitude!.toStringAsFixed(4)}, ${pole.longitude!.toStringAsFixed(4)}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      const Spacer(),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.report_problem_rounded,
+                            size: 14,
+                            color: AppTheme.textMuted,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${pole.complaintsCount} complaint(s)',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
   void _showCreateDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (ctx) => BlocProvider.value(
-        value: context.read<PoleBloc>(),
-        child: const PoleFormDialog(),
-      ),
+      builder:
+          (ctx) => BlocProvider.value(
+            value: context.read<PoleBloc>(),
+            child: const PoleFormDialog(),
+          ),
     );
   }
 
   void _showEditDialog(BuildContext context, dynamic pole) {
     showDialog(
       context: context,
-      builder: (ctx) => BlocProvider.value(
-        value: context.read<PoleBloc>(),
-        child: PoleFormDialog(pole: pole),
-      ),
+      builder:
+          (ctx) => BlocProvider.value(
+            value: context.read<PoleBloc>(),
+            child: PoleFormDialog(pole: pole),
+          ),
     );
   }
+
   void _showDeleteDialog(BuildContext context, int id) {
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Pole'),
-        content: const Text('Are you sure? This cannot be undone.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
-            onPressed: () {
-              context.read<PoleBloc>().add(DeletePole(id));
-              Navigator.pop(ctx);
-            },
-            child: const Text('Delete'),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Delete Pole'),
+            content: const Text('Are you sure? This cannot be undone.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                ),
+                onPressed: () {
+                  context.read<PoleBloc>().add(DeletePole(id));
+                  Navigator.pop(ctx);
+                },
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }
@@ -284,7 +305,10 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
       _landmarksC.text = widget.pole.landmarks.join(', ');
 
       if (widget.pole.latitude != null && widget.pole.longitude != null) {
-        _selectedLocation = LatLng(widget.pole.latitude!, widget.pole.longitude!);
+        _selectedLocation = LatLng(
+          widget.pole.latitude!,
+          widget.pole.longitude!,
+        );
       }
     }
   }
@@ -318,7 +342,10 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: AppTheme.error),
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: AppTheme.error,
+          ),
         );
       }
     } finally {
@@ -344,22 +371,29 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _poleNumC,
-                        decoration: const InputDecoration(labelText: 'Pole Number'),
+                        decoration: const InputDecoration(
+                          labelText: 'Pole Number',
+                        ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: TextFormField(
                         controller: _keypadC,
-                        decoration: const InputDecoration(labelText: 'Keypad ID'),
+                        decoration: const InputDecoration(
+                          labelText: 'Keypad ID',
+                        ),
                       ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 16),
-                
+
                 // Map Picker
-                const Text('Location', style: TextStyle(fontWeight: FontWeight.w600)),
+                const Text(
+                  'Location',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
                 const SizedBox(height: 8),
                 Container(
                   height: 250,
@@ -373,7 +407,9 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                     children: [
                       FlutterMap(
                         options: MapOptions(
-                          initialCenter: _selectedLocation ?? const LatLng(20.5937, 78.9629),
+                          initialCenter:
+                              _selectedLocation ??
+                              const LatLng(20.5937, 78.9629),
                           initialZoom: _selectedLocation == null ? 4.0 : 15.0,
                           onTap: (tapPosition, point) {
                             setState(() {
@@ -385,7 +421,8 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                         ),
                         children: [
                           TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            urlTemplate:
+                                'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                             userAgentPackageName: 'com.sengotics.ivr_frontend',
                           ),
                           if (_selectedLocation != null)
@@ -409,10 +446,20 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                         right: 8,
                         bottom: 8,
                         child: FloatingActionButton.small(
-                          onPressed: _isFetchingLocation ? null : _fetchCurrentLocation,
-                          child: _isFetchingLocation
-                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                              : const Icon(Icons.my_location),
+                          onPressed:
+                              _isFetchingLocation
+                                  ? null
+                                  : _fetchCurrentLocation,
+                          child:
+                              _isFetchingLocation
+                                  ? const SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                  : const Icon(Icons.my_location),
                         ),
                       ),
                     ],
@@ -424,7 +471,10 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _latC,
-                        decoration: const InputDecoration(labelText: 'Latitude', hintText: 'Tap on map'),
+                        decoration: const InputDecoration(
+                          labelText: 'Latitude',
+                          hintText: 'Tap on map',
+                        ),
                         keyboardType: TextInputType.number,
                         readOnly: true,
                       ),
@@ -433,7 +483,10 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                     Expanded(
                       child: TextFormField(
                         controller: _lngC,
-                        decoration: const InputDecoration(labelText: 'Longitude', hintText: 'Tap on map'),
+                        decoration: const InputDecoration(
+                          labelText: 'Longitude',
+                          hintText: 'Tap on map',
+                        ),
                         keyboardType: TextInputType.number,
                         readOnly: true,
                       ),
@@ -455,20 +508,32 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           onPressed: () {
             final data = <String, dynamic>{};
-            if (_poleNumC.text.isNotEmpty) data['pole_number'] = _poleNumC.text.trim();
-            if (_keypadC.text.isNotEmpty) data['keypad_id'] = _keypadC.text.trim();
-            if (_latC.text.isNotEmpty) data['latitude'] = double.tryParse(_latC.text);
-            if (_lngC.text.isNotEmpty) data['longitude'] = double.tryParse(_lngC.text);
+            if (_poleNumC.text.isNotEmpty) {
+              data['pole_number'] = _poleNumC.text.trim();
+            }
+            if (_keypadC.text.isNotEmpty) {
+              data['keypad_id'] = _keypadC.text.trim();
+            }
+            if (_latC.text.isNotEmpty) {
+              data['latitude'] = double.tryParse(_latC.text);
+            }
+            if (_lngC.text.isNotEmpty) {
+              data['longitude'] = double.tryParse(_lngC.text);
+            }
             if (_landmarksC.text.isNotEmpty) {
-              data['landmarks'] = _landmarksC.text
-                  .split(',')
-                  .map((e) => e.trim())
-                  .where((e) => e.isNotEmpty)
-                  .toList();
+              data['landmarks'] =
+                  _landmarksC.text
+                      .split(',')
+                      .map((e) => e.trim())
+                      .where((e) => e.isNotEmpty)
+                      .toList();
             }
             if (widget.pole == null) {
               context.read<PoleBloc>().add(CreatePole(data));
@@ -482,5 +547,4 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
       ],
     );
   }
-
 }

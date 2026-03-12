@@ -41,6 +41,7 @@ abstract class SAComplaintState extends Equatable {
 }
 
 class SAComplaintInitial extends SAComplaintState {}
+
 class SAComplaintLoading extends SAComplaintState {}
 
 class SAComplaintLoaded extends SAComplaintState {
@@ -71,14 +72,17 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
   int? _currentPanchayatFilter;
 
   SAComplaintBloc({SuperAdminRepository? repo})
-      : _repo = repo ?? SuperAdminRepository(),
-        super(SAComplaintInitial()) {
+    : _repo = repo ?? SuperAdminRepository(),
+      super(SAComplaintInitial()) {
     on<LoadSAComplaints>(_onLoad);
     on<UpdateSAComplaintStatus>(_onUpdateStatus);
     on<ResolveSAComplaint>(_onResolve);
   }
 
-  Future<void> _onLoad(LoadSAComplaints event, Emitter<SAComplaintState> emit) async {
+  Future<void> _onLoad(
+    LoadSAComplaints event,
+    Emitter<SAComplaintState> emit,
+  ) async {
     emit(SAComplaintLoading());
     _currentFilter = event.status;
     _currentPanchayatFilter = event.panchayatId;
@@ -94,22 +98,36 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
   }
 
   Future<void> _onUpdateStatus(
-      UpdateSAComplaintStatus event, Emitter<SAComplaintState> emit) async {
+    UpdateSAComplaintStatus event,
+    Emitter<SAComplaintState> emit,
+  ) async {
     try {
       await _repo.updateComplaintStatus(event.id, event.status);
       emit(SAComplaintActionSuccess('Status updated'));
-      add(LoadSAComplaints(status: _currentFilter, panchayatId: _currentPanchayatFilter));
+      add(
+        LoadSAComplaints(
+          status: _currentFilter,
+          panchayatId: _currentPanchayatFilter,
+        ),
+      );
     } on ApiException catch (e) {
       emit(SAComplaintError(e.message));
     }
   }
 
   Future<void> _onResolve(
-      ResolveSAComplaint event, Emitter<SAComplaintState> emit) async {
+    ResolveSAComplaint event,
+    Emitter<SAComplaintState> emit,
+  ) async {
     try {
       await _repo.resolveComplaint(event.id, event.poleId);
       emit(SAComplaintActionSuccess('Complaint resolved'));
-      add(LoadSAComplaints(status: _currentFilter, panchayatId: _currentPanchayatFilter));
+      add(
+        LoadSAComplaints(
+          status: _currentFilter,
+          panchayatId: _currentPanchayatFilter,
+        ),
+      );
     } on ApiException catch (e) {
       emit(SAComplaintError(e.message));
     }

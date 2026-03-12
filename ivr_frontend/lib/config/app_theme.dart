@@ -2,38 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // ── Color Palette ──────────────────────────────────────────────────────
-  static const Color bgDark = Color(0xFF0F172A);
-  static const Color bgCard = Color(0xFF1E293B);
-  static const Color bgSurface = Color(0xFF334155);
-  static const Color bgElevated = Color(0xFF475569);
+  // Brand
+  static const Color primary = Color(0xFF2563EB);
+  static const Color primaryLight = Color(0xFF3B82F6);
+  static const Color primaryDark = Color(0xFF1D4ED8);
 
-  static const Color primary = Color(0xFF3B82F6);
-  static const Color primaryLight = Color(0xFF60A5FA);
-  static const Color primaryDark = Color(0xFF2563EB);
-
+  // Semantic
   static const Color accent = Color(0xFF10B981);
-  static const Color accentLight = Color(0xFF34D399);
-
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
-  static const Color info = Color(0xFF06B6D4);
+  static const Color info = Color(0xFF0EA5E9);
 
-  static const Color textPrimary = Color(0xFFF1F5F9);
-  static const Color textSecondary = Color(0xFF94A3B8);
+  // Light Enterprise Palette
+  static const Color bgDark = Color(0xFFF6F8FC);
+  static const Color bgCard = Colors.white;
+  static const Color bgSurface = Color(0xFFF1F5F9);
+  static const Color bgElevated = Color(0xFFE2E8F0);
+  static const Color stroke = Color(0xFFE2E8F0);
+  static const Color strokeStrong = Color(0xFFCBD5E1);
+  static const Color textPrimary = Color(0xFF0F172A);
+  static const Color textSecondary = Color(0xFF475569);
   static const Color textMuted = Color(0xFF64748B);
 
-  static const Color dividerColor = Color(0xFF334155);
+  static const Color dividerColor = stroke;
 
   // ── Gradients ──────────────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+    colors: [Color(0xFF2563EB), Color(0xFF4F46E5)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient accentGradient = LinearGradient(
-    colors: [Color(0xFF10B981), Color(0xFF06B6D4)],
+    colors: [Color(0xFF10B981), Color(0xFF14B8A6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -50,8 +51,22 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
 
+  static const LinearGradient softCardGradient = LinearGradient(
+    colors: [Color(0xFFF8FAFC), Color(0xFFF1F5F9)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static List<BoxShadow> get softShadow => [
+    BoxShadow(
+      color: const Color(0xFF0F172A).withValues(alpha: 0.05),
+      blurRadius: 20,
+      offset: const Offset(0, 6),
+    ),
+  ];
+
   // ── Theme Data ────────────────────────────────────────────────────────
-  static ThemeData get darkTheme {
+  static ThemeData get lightTheme {
     final textTheme = GoogleFonts.interTextTheme().apply(
       bodyColor: textPrimary,
       displayColor: textPrimary,
@@ -59,10 +74,10 @@ class AppTheme {
 
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       scaffoldBackgroundColor: bgDark,
       textTheme: textTheme,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: primary,
         secondary: accent,
         surface: bgCard,
@@ -73,7 +88,7 @@ class AppTheme {
         onError: Colors.white,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: bgDark,
+        backgroundColor: Colors.transparent,
         foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
@@ -88,7 +103,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: dividerColor, width: 1),
+          side: const BorderSide(color: stroke, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -110,7 +125,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: textPrimary,
-          side: const BorderSide(color: dividerColor),
+          side: const BorderSide(color: strokeStrong),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -118,20 +133,18 @@ class AppTheme {
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(
-          foregroundColor: primaryLight,
-        ),
+        style: TextButton.styleFrom(foregroundColor: primaryLight),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: bgSurface,
+        fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: dividerColor),
+          borderSide: const BorderSide(color: stroke),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: dividerColor),
+          borderSide: const BorderSide(color: stroke),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -141,15 +154,16 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: error),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         hintStyle: GoogleFonts.inter(color: textMuted),
         labelStyle: GoogleFonts.inter(color: textSecondary),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: bgCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         titleTextStyle: GoogleFonts.inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
@@ -157,36 +171,27 @@ class AppTheme {
         ),
       ),
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: bgSurface,
-        contentTextStyle: GoogleFonts.inter(color: textPrimary),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        backgroundColor: const Color(0xFF111827),
+        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
-      dividerTheme: const DividerThemeData(
-        color: dividerColor,
-        thickness: 1,
-      ),
+      dividerTheme: const DividerThemeData(color: stroke, thickness: 1),
       chipTheme: ChipThemeData(
         backgroundColor: bgSurface,
-        selectedColor: primary.withValues(alpha: 0.3),
-        labelStyle: GoogleFonts.inter(color: textPrimary, fontSize: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-        ),
+        selectedColor: primary.withValues(alpha: 0.12),
+        labelStyle: GoogleFonts.inter(color: textSecondary, fontSize: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 4,
       ),
-      drawerTheme: const DrawerThemeData(
-        backgroundColor: bgCard,
-      ),
+      drawerTheme: const DrawerThemeData(backgroundColor: bgCard),
       dataTableTheme: DataTableThemeData(
-        headingRowColor: WidgetStateProperty.all(bgSurface),
-        dataRowColor: WidgetStateProperty.all(bgCard),
+        headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
+        dataRowColor: WidgetStateProperty.all(Colors.white),
         headingTextStyle: GoogleFonts.inter(
           color: textSecondary,
           fontWeight: FontWeight.w600,
@@ -197,17 +202,15 @@ class AppTheme {
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: bgCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       dropdownMenuTheme: DropdownMenuThemeData(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: bgSurface,
+          fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: dividerColor),
+            borderSide: const BorderSide(color: stroke),
           ),
         ),
       ),

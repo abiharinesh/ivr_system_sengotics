@@ -8,25 +8,29 @@ class ApiClient {
   static ApiClient? _instance;
 
   ApiClient._() {
-    _dio = Dio(BaseOptions(
-      baseUrl: ApiConfig.baseUrl,
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-      headers: {'Content-Type': 'application/json'},
-    ));
+    _dio = Dio(
+      BaseOptions(
+        baseUrl: ApiConfig.baseUrl,
+        connectTimeout: const Duration(seconds: 15),
+        receiveTimeout: const Duration(seconds: 15),
+        headers: {'Content-Type': 'application/json'},
+      ),
+    );
 
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) async {
-        final token = await SecureStorageService.getToken();
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
-        }
-        handler.next(options);
-      },
-      onError: (error, handler) {
-        handler.next(error);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await SecureStorageService.getToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          handler.next(options);
+        },
+        onError: (error, handler) {
+          handler.next(error);
+        },
+      ),
+    );
   }
 
   static ApiClient get instance {
@@ -107,18 +111,23 @@ class ApiClient {
       case 404:
         return NotFoundException(message);
       case 429:
-        return ApiException('Too many requests. Please try again later.',
-            statusCode: 429);
+        return ApiException(
+          'Too many requests. Please try again later.',
+          statusCode: 429,
+        );
       default:
         if (e.type == DioExceptionType.connectionTimeout ||
             e.type == DioExceptionType.receiveTimeout) {
-          return ApiException('Connection timed out. Please check your network.',
-              statusCode: 0);
+          return ApiException(
+            'Connection timed out. Please check your network.',
+            statusCode: 0,
+          );
         }
         if (e.type == DioExceptionType.connectionError) {
           return ApiException(
-              'Cannot connect to server. Is it running?',
-              statusCode: 0);
+            'Cannot connect to server. Is it running?',
+            statusCode: 0,
+          );
         }
         return ServerException(message);
     }

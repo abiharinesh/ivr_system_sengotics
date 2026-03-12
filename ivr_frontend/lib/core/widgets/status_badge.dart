@@ -8,18 +8,19 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final color = _getColor();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: _getColor().withValues(alpha: 0.15),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _getColor().withValues(alpha: 0.4)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         _getLabel(),
         style: TextStyle(
-          color: _getColor(),
-          fontSize: 12,
+          color: color,
+          fontSize: 11,
           fontWeight: FontWeight.w600,
         ),
       ),

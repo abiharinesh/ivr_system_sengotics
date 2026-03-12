@@ -33,6 +33,7 @@ abstract class UserMgmtState extends Equatable {
 }
 
 class UserMgmtInitial extends UserMgmtState {}
+
 class UserMgmtLoading extends UserMgmtState {}
 
 class UserMgmtLoaded extends UserMgmtState {
@@ -61,8 +62,8 @@ class UserMgmtBloc extends Bloc<UserMgmtEvent, UserMgmtState> {
   final SuperAdminRepository _repo;
 
   UserMgmtBloc({SuperAdminRepository? repo})
-      : _repo = repo ?? SuperAdminRepository(),
-        super(UserMgmtInitial()) {
+    : _repo = repo ?? SuperAdminRepository(),
+      super(UserMgmtInitial()) {
     on<LoadUsers>(_onLoad);
     on<CreateUser>(_onCreate);
     on<DeleteUser>(_onDelete);

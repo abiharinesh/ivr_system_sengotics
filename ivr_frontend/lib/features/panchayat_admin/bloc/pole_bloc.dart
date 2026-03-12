@@ -41,6 +41,7 @@ abstract class PoleState extends Equatable {
 }
 
 class PoleInitial extends PoleState {}
+
 class PoleLoading extends PoleState {}
 
 class PoleLoaded extends PoleState {
@@ -69,8 +70,8 @@ class PoleBloc extends Bloc<PoleEvent, PoleState> {
   final PanchayatAdminRepository _repo;
 
   PoleBloc({PanchayatAdminRepository? repo})
-      : _repo = repo ?? PanchayatAdminRepository(),
-        super(PoleInitial()) {
+    : _repo = repo ?? PanchayatAdminRepository(),
+      super(PoleInitial()) {
     on<LoadPoles>(_onLoad);
     on<CreatePole>(_onCreate);
     on<UpdatePole>(_onUpdate);

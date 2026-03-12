@@ -32,5 +32,9 @@ class StatsModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [totalComplaints, pendingComplaints, resolvedComplaints];
+  List<Object?> get props => [
+    totalComplaints,
+    pendingComplaints,
+    resolvedComplaints,
+  ];
 }

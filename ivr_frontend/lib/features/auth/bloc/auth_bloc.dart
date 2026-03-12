@@ -10,8 +10,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final AuthRepository _authRepository;
 
   AuthBloc({AuthRepository? authRepository})
-      : _authRepository = authRepository ?? AuthRepository(),
-        super(AuthInitial()) {
+    : _authRepository = authRepository ?? AuthRepository(),
+      super(AuthInitial()) {
     on<LoginRequested>(_onLogin);
     on<LogoutRequested>(_onLogout);
     on<AuthCheckRequested>(_onAuthCheck);
@@ -48,7 +48,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onAuthCheck(
-      AuthCheckRequested event, Emitter<AuthState> emit) async {
+    AuthCheckRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     final token = await SecureStorageService.getToken();
     final role = await SecureStorageService.getRole();
     final email = await SecureStorageService.getEmail();
@@ -56,15 +58,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final panchayatId = await SecureStorageService.getPanchayatId();
 
     if (token != null && role != null && email != null && userId != null) {
-      emit(Authenticated(
-        user: UserModel(
-          id: userId,
-          email: email,
-          role: role,
-          panchayatId: panchayatId,
+      emit(
+        Authenticated(
+          user: UserModel(
+            id: userId,
+            email: email,
+            role: role,
+            panchayatId: panchayatId,
+          ),
+          token: token,
         ),
-        token: token,
-      ));
+      );
     } else {
       emit(Unauthenticated());
     }

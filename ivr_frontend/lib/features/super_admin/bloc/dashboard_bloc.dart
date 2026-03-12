@@ -20,6 +20,7 @@ abstract class SADashState extends Equatable {
 }
 
 class SADashInitial extends SADashState {}
+
 class SADashLoading extends SADashState {}
 
 class SADashLoaded extends SADashState {
@@ -42,22 +43,22 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
   final SuperAdminRepository _repo;
 
   SADashBloc({SuperAdminRepository? repo})
-      : _repo = repo ?? SuperAdminRepository(),
-        super(SADashInitial()) {
+    : _repo = repo ?? SuperAdminRepository(),
+      super(SADashInitial()) {
     on<LoadSADashboard>(_onLoad);
   }
 
   Future<void> _onLoad(LoadSADashboard event, Emitter<SADashState> emit) async {
     emit(SADashLoading());
     try {
-      final results = await Future.wait([
-        _repo.getStats(),
-        _repo.listPoles(),
-      ]);
-      emit(SADashLoaded(
-        stats: results[0] as StatsModel,
-        poles: (results[1] as List).map((p) => PoleModel.fromJson(p)).toList(),
-      ));
+      final results = await Future.wait([_repo.getStats(), _repo.listPoles()]);
+      emit(
+        SADashLoaded(
+          stats: results[0] as StatsModel,
+          poles:
+              (results[1] as List).map((p) => PoleModel.fromJson(p)).toList(),
+        ),
+      );
     } on ApiException catch (e) {
       emit(SADashError(e.message));
     }

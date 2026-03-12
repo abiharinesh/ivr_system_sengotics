@@ -24,7 +24,10 @@ class SuperAdminRepository {
     return PanchayatModel.fromJson(data);
   }
 
-  Future<PanchayatModel> updatePanchayat(int id, Map<String, dynamic> body) async {
+  Future<PanchayatModel> updatePanchayat(
+    int id,
+    Map<String, dynamic> body,
+  ) async {
     final data = await _api.put('${ApiConfig.saPanchayats}/$id', data: body);
     return PanchayatModel.fromJson(data);
   }
@@ -49,7 +52,10 @@ class SuperAdminRepository {
   }
 
   // ── Complaints ──────────────────────────────────────────────────────────
-  Future<List<ComplaintModel>> listComplaints({String? status, int? panchayatId}) async {
+  Future<List<ComplaintModel>> listComplaints({
+    String? status,
+    int? panchayatId,
+  }) async {
     final params = <String, dynamic>{};
     if (status != null) params['status'] = status;
     if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
@@ -81,6 +87,23 @@ class SuperAdminRepository {
     return data as List;
   }
 
+  Future<Map<String, dynamic>> createPole(Map<String, dynamic> body) async {
+    final data = await _api.post(ApiConfig.saPoles, data: body);
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updatePole(
+    int id,
+    Map<String, dynamic> body,
+  ) async {
+    final data = await _api.put('${ApiConfig.saPoles}/$id', data: body);
+    return data as Map<String, dynamic>;
+  }
+
+  Future<void> deletePole(int id) async {
+    await _api.delete('${ApiConfig.saPoles}/$id');
+  }
+
   // ── Stats ───────────────────────────────────────────────────────────────
   Future<StatsModel> getStats() async {
     final data = await _api.get(ApiConfig.saStats);
@@ -94,7 +117,10 @@ class SuperAdminRepository {
   }
 
   Future<Map<String, dynamic>> setSttProvider(String provider) async {
-    final data = await _api.put(ApiConfig.saSttProvider, data: {'provider': provider});
+    final data = await _api.put(
+      ApiConfig.saSttProvider,
+      data: {'provider': provider},
+    );
     return data as Map<String, dynamic>;
   }
 
@@ -104,7 +130,10 @@ class SuperAdminRepository {
   }
 
   Future<Map<String, dynamic>> setLlmProvider(String provider) async {
-    final data = await _api.put(ApiConfig.saLlmProvider, data: {'provider': provider});
+    final data = await _api.put(
+      ApiConfig.saLlmProvider,
+      data: {'provider': provider},
+    );
     return data as Map<String, dynamic>;
   }
 }

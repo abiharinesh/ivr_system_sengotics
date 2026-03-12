@@ -32,6 +32,7 @@ abstract class SettingsState extends Equatable {
 }
 
 class SettingsInitial extends SettingsState {}
+
 class SettingsLoading extends SettingsState {}
 
 class SettingsLoaded extends SettingsState {
@@ -39,21 +40,21 @@ class SettingsLoaded extends SettingsState {
   final List<String> availableSttProviders;
   final String llmProvider;
   final List<String> availableLlmProviders;
-  
+
   SettingsLoaded({
     required this.sttProvider,
     required this.availableSttProviders,
     required this.llmProvider,
     required this.availableLlmProviders,
   });
-  
+
   @override
   List<Object?> get props => [
-        sttProvider,
-        availableSttProviders,
-        llmProvider,
-        availableLlmProviders
-      ];
+    sttProvider,
+    availableSttProviders,
+    llmProvider,
+    availableLlmProviders,
+  ];
 }
 
 class SettingsActionSuccess extends SettingsState {
@@ -75,8 +76,8 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   final SuperAdminRepository _repo;
 
   SettingsBloc({SuperAdminRepository? repo})
-      : _repo = repo ?? SuperAdminRepository(),
-        super(SettingsInitial()) {
+    : _repo = repo ?? SuperAdminRepository(),
+      super(SettingsInitial()) {
     on<LoadProviders>(_onLoad);
     on<SetSttProvider>(_onSetStt);
     on<SetLlmProvider>(_onSetLlm);
@@ -87,25 +88,32 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     try {
       final sttData = await _repo.getSttProvider();
       final llmData = await _repo.getLlmProvider();
-      
-      emit(SettingsLoaded(
-        sttProvider: sttData['provider'] as String? ?? 'gemini',
-        availableSttProviders: (sttData['available_providers'] as List?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            ['gemini', 'groq', 'rapidapi'],
-        llmProvider: llmData['provider'] as String? ?? 'gemini',
-        availableLlmProviders: (llmData['available_providers'] as List?)
-                ?.map((e) => e.toString())
-                .toList() ??
-            ['gemini', 'groq'],
-      ));
+
+      emit(
+        SettingsLoaded(
+          sttProvider: sttData['provider'] as String? ?? 'gemini',
+          availableSttProviders:
+              (sttData['available_providers'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ['gemini', 'groq', 'rapidapi', 'google-speech'],
+          llmProvider: llmData['provider'] as String? ?? 'gemini',
+          availableLlmProviders:
+              (llmData['available_providers'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ['gemini', 'groq'],
+        ),
+      );
     } on ApiException catch (e) {
       emit(SettingsError(e.message));
     }
   }
 
-  Future<void> _onSetStt(SetSttProvider event, Emitter<SettingsState> emit) async {
+  Future<void> _onSetStt(
+    SetSttProvider event,
+    Emitter<SettingsState> emit,
+  ) async {
     try {
       await _repo.setSttProvider(event.provider);
       emit(SettingsActionSuccess('STT provider set to ${event.provider}'));
@@ -115,7 +123,10 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
     }
   }
 
-  Future<void> _onSetLlm(SetLlmProvider event, Emitter<SettingsState> emit) async {
+  Future<void> _onSetLlm(
+    SetLlmProvider event,
+    Emitter<SettingsState> emit,
+  ) async {
     try {
       await _repo.setLlmProvider(event.provider);
       emit(SettingsActionSuccess('LLM provider set to ${event.provider}'));

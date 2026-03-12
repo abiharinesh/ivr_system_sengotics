@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/dashboard_panels.dart';
 import '../bloc/settings_bloc.dart';
 
 class AiSettingsScreen extends StatelessWidget {
@@ -12,12 +13,18 @@ class AiSettingsScreen extends StatelessWidget {
       listener: (context, state) {
         if (state is SettingsActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.accent),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.accent,
+            ),
           );
         }
         if (state is SettingsError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.error),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.error,
+            ),
           );
         }
       },
@@ -39,35 +46,39 @@ class AiSettingsScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const DashboardPanel(
+            title: 'AI Provider Control',
+            subtitle: 'Configure speech and language intelligence providers',
+            child: SizedBox.shrink(),
+          ),
+          const SizedBox(height: 16),
           const Text(
             'STT Provider',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           const Text(
             'Choose the AI provider for speech-to-text processing',
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
 
           // STT Provider Cards
-          ...state.availableSttProviders.map((provider) => _buildProviderCard(
-                context: context,
-                provider: provider,
-                isActive: provider == state.sttProvider,
-                isStt: true,
-              )),
+          ...state.availableSttProviders.map(
+            (provider) => _buildProviderCard(
+              context: context,
+              provider: provider,
+              isActive: provider == state.sttProvider,
+              isStt: true,
+            ),
+          ),
 
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           const Text(
             'LLM Provider',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 20,
               fontWeight: FontWeight.w700,
               color: AppTheme.textPrimary,
             ),
@@ -80,12 +91,14 @@ class AiSettingsScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
           // LLM Provider Cards
-          ...state.availableLlmProviders.map((provider) => _buildProviderCard(
-                context: context,
-                provider: provider,
-                isActive: provider == state.llmProvider,
-                isStt: false,
-              )),
+          ...state.availableLlmProviders.map(
+            (provider) => _buildProviderCard(
+              context: context,
+              provider: provider,
+              isActive: provider == state.llmProvider,
+              isStt: false,
+            ),
+          ),
         ],
       ),
     );
@@ -142,28 +155,31 @@ class AiSettingsScreen extends StatelessWidget {
         onTap: () {
           if (!isActive) {
             context.read<SettingsBloc>().add(
-                isStt ? SetSttProvider(provider) : SetLlmProvider(provider));
+              isStt ? SetSttProvider(provider) : SetLlmProvider(provider),
+            );
           }
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 300),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppTheme.bgCard,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: isActive ? AppTheme.accent : AppTheme.dividerColor,
               width: isActive ? 2 : 1,
             ),
-            boxShadow: isActive
-                ? [
-                    BoxShadow(
-                      color: AppTheme.accent.withValues(alpha: 0.15),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                    )
-                  ]
-                : null,
+            boxShadow:
+                isActive
+                    ? [
+                      BoxShadow(
+                        color: AppTheme.accent.withValues(alpha: 0.15),
+                        blurRadius: 20,
+                        spreadRadius: 0,
+                      ),
+                      ...AppTheme.softShadow,
+                    ]
+                    : AppTheme.softShadow,
           ),
           child: Row(
             children: [
@@ -216,7 +232,10 @@ class AiSettingsScreen extends StatelessWidget {
               // Active Indicator
               if (isActive)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.accent.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(20),
@@ -227,7 +246,11 @@ class AiSettingsScreen extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.check_circle, color: AppTheme.accent, size: 16),
+                      Icon(
+                        Icons.check_circle,
+                        color: AppTheme.accent,
+                        size: 16,
+                      ),
                       SizedBox(width: 4),
                       Text(
                         'Active',
@@ -244,7 +267,10 @@ class AiSettingsScreen extends StatelessWidget {
                 OutlinedButton(
                   onPressed: () {
                     context.read<SettingsBloc>().add(
-                        isStt ? SetSttProvider(provider) : SetLlmProvider(provider));
+                      isStt
+                          ? SetSttProvider(provider)
+                          : SetLlmProvider(provider),
+                    );
                   },
                   child: const Text('Activate'),
                 ),

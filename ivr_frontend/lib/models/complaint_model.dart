@@ -51,15 +51,22 @@ class ComplaintModel extends Equatable {
       urgencyLevel: json['urgency_level'] as String?,
       status: json['status'] as String? ?? 'pending',
       createdAt: DateTime.parse(json['created_at'] as String),
-      pole: json['pole'] != null
-          ? PoleInfo.fromJson(json['pole'] as Map<String, dynamic>)
-          : null,
-      panchayat: json['panchayat'] != null
-          ? PanchayatInfo.fromJson(json['panchayat'] as Map<String, dynamic>)
-          : null,
-      voiceCall: json['voice_call'] != null
-          ? VoiceCallInfo.fromJson(json['voice_call'] as Map<String, dynamic>)
-          : null,
+      pole:
+          json['pole'] != null
+              ? PoleInfo.fromJson(json['pole'] as Map<String, dynamic>)
+              : null,
+      panchayat:
+          json['panchayat'] != null
+              ? PanchayatInfo.fromJson(
+                json['panchayat'] as Map<String, dynamic>,
+              )
+              : null,
+      voiceCall:
+          json['voice_call'] != null
+              ? VoiceCallInfo.fromJson(
+                json['voice_call'] as Map<String, dynamic>,
+              )
+              : null,
     );
   }
 
@@ -107,10 +114,7 @@ class PanchayatInfo {
   PanchayatInfo({required this.id, required this.name});
 
   factory PanchayatInfo.fromJson(Map<String, dynamic> json) {
-    return PanchayatInfo(
-      id: json['id'] as int,
-      name: json['name'] as String,
-    );
+    return PanchayatInfo(id: json['id'] as int, name: json['name'] as String);
   }
 }
 

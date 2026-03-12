@@ -41,6 +41,7 @@ abstract class PanchayatState extends Equatable {
 }
 
 class PanchayatInitial extends PanchayatState {}
+
 class PanchayatLoading extends PanchayatState {}
 
 class PanchayatLoaded extends PanchayatState {
@@ -69,15 +70,18 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
   final SuperAdminRepository _repo;
 
   PanchayatBloc({SuperAdminRepository? repo})
-      : _repo = repo ?? SuperAdminRepository(),
-        super(PanchayatInitial()) {
+    : _repo = repo ?? SuperAdminRepository(),
+      super(PanchayatInitial()) {
     on<LoadPanchayats>(_onLoad);
     on<CreatePanchayat>(_onCreate);
     on<UpdatePanchayat>(_onUpdate);
     on<DeletePanchayat>(_onDelete);
   }
 
-  Future<void> _onLoad(LoadPanchayats event, Emitter<PanchayatState> emit) async {
+  Future<void> _onLoad(
+    LoadPanchayats event,
+    Emitter<PanchayatState> emit,
+  ) async {
     emit(PanchayatLoading());
     try {
       final data = await _repo.listPanchayats();
@@ -87,7 +91,10 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     }
   }
 
-  Future<void> _onCreate(CreatePanchayat event, Emitter<PanchayatState> emit) async {
+  Future<void> _onCreate(
+    CreatePanchayat event,
+    Emitter<PanchayatState> emit,
+  ) async {
     try {
       await _repo.createPanchayat(event.data);
       emit(PanchayatActionSuccess('Panchayat created successfully'));
@@ -97,7 +104,10 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     }
   }
 
-  Future<void> _onUpdate(UpdatePanchayat event, Emitter<PanchayatState> emit) async {
+  Future<void> _onUpdate(
+    UpdatePanchayat event,
+    Emitter<PanchayatState> emit,
+  ) async {
     try {
       await _repo.updatePanchayat(event.id, event.data);
       emit(PanchayatActionSuccess('Panchayat updated successfully'));
@@ -107,7 +117,10 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     }
   }
 
-  Future<void> _onDelete(DeletePanchayat event, Emitter<PanchayatState> emit) async {
+  Future<void> _onDelete(
+    DeletePanchayat event,
+    Emitter<PanchayatState> emit,
+  ) async {
     try {
       await _repo.deletePanchayat(event.id);
       emit(PanchayatActionSuccess('Panchayat deleted successfully'));

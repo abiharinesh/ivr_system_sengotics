@@ -16,6 +16,10 @@ import '../features/super_admin/presentation/panchayat_management.dart';
 import '../features/super_admin/presentation/user_management.dart';
 import '../features/super_admin/presentation/complaint_management.dart';
 import '../features/super_admin/presentation/ai_settings_screen.dart';
+import '../features/super_admin/presentation/voice_calls_screen.dart';
+import '../features/super_admin/presentation/ivr_logs_screen.dart';
+import '../features/super_admin/presentation/analytics_screen.dart';
+import '../features/super_admin/presentation/super_admin_pole_management.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
@@ -41,10 +45,7 @@ GoRouter createRouter(AuthBloc authBloc) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/login',
-        builder: (context, state) => const LoginScreen(),
-      ),
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       ShellRoute(
         builder: (context, state, child) {
           final authState = authBloc.state;
@@ -81,20 +82,26 @@ GoRouter createRouter(AuthBloc authBloc) {
           // Super Admin Routes
           GoRoute(
             path: '/panchayats',
-            builder: (context, state) => BlocProvider(
-              create: (_) => PanchayatBloc()..add(LoadPanchayats()),
-              child: const PanchayatManagement(),
-            ),
+            builder:
+                (context, state) => BlocProvider(
+                  create: (_) => PanchayatBloc()..add(LoadPanchayats()),
+                  child: const PanchayatManagement(),
+                ),
           ),
           GoRoute(
             path: '/users',
-            builder: (context, state) => MultiBlocProvider(
-              providers: [
-                BlocProvider(create: (_) => UserMgmtBloc()..add(LoadUsers())),
-                BlocProvider(create: (_) => PanchayatBloc()..add(LoadPanchayats())),
-              ],
-              child: const UserManagement(),
-            ),
+            builder:
+                (context, state) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (_) => UserMgmtBloc()..add(LoadUsers()),
+                    ),
+                    BlocProvider(
+                      create: (_) => PanchayatBloc()..add(LoadPanchayats()),
+                    ),
+                  ],
+                  child: const UserManagement(),
+                ),
           ),
           GoRoute(
             path: '/complaints',
@@ -102,33 +109,69 @@ GoRouter createRouter(AuthBloc authBloc) {
               final authState = authBloc.state;
               if (authState is Authenticated && authState.user.isSuperAdmin) {
                 return BlocProvider(
-                  create: (_) =>
-                      SAComplaintBloc()..add(LoadSAComplaints()),
+                  create: (_) => SAComplaintBloc()..add(LoadSAComplaints()),
                   child: const ComplaintManagement(),
                 );
               }
               return BlocProvider(
-                create: (_) =>
-                    PAComplaintBloc()..add(LoadPAComplaints()),
+                create: (_) => PAComplaintBloc()..add(LoadPAComplaints()),
                 child: const PAComplaintManagement(),
               );
             },
           ),
           GoRoute(
             path: '/ai-settings',
-            builder: (context, state) => BlocProvider(
-              create: (_) => SettingsBloc()..add(LoadProviders()),
-              child: const AiSettingsScreen(),
-            ),
+            builder:
+                (context, state) => BlocProvider(
+                  create: (_) => SettingsBloc()..add(LoadProviders()),
+                  child: const AiSettingsScreen(),
+                ),
+          ),
+
+          // Voice & IVR
+          GoRoute(
+            path: '/voice-calls',
+            builder: (context, state) => const VoiceCallsScreen(),
+          ),
+          GoRoute(
+            path: '/ivr-logs',
+            builder: (context, state) => const IvrLogsScreen(),
+          ),
+          GoRoute(
+            path: '/analytics',
+            builder: (context, state) => const AnalyticsScreen(),
           ),
 
           // Panchayat Admin Routes
           GoRoute(
             path: '/poles',
-            builder: (context, state) => BlocProvider(
-              create: (_) => PoleBloc()..add(LoadPoles()),
-              child: const PoleManagement(),
-            ),
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin =
+                  authState is Authenticated && authState.user.isSuperAdmin;
+              if (isSuperAdmin) {
+                return const SuperAdminPoleManagement();
+              }
+              return BlocProvider(
+                create: (_) => PoleBloc()..add(LoadPoles()),
+                child: const PoleManagement(),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/pole-management',
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin =
+                  authState is Authenticated && authState.user.isSuperAdmin;
+              if (isSuperAdmin) {
+                return const SuperAdminPoleManagement();
+              }
+              return BlocProvider(
+                create: (_) => PoleBloc()..add(LoadPoles()),
+                child: const PoleManagement(),
+              );
+            },
           ),
         ],
       ),
@@ -150,6 +193,14 @@ String _getTitle(String location) {
       return 'AI Settings';
     case '/poles':
       return 'Pole Management';
+	case '/pole-management':
+	  return 'Pole Management';
+	case '/voice-calls':
+	  return 'Voice Calls';
+	case '/ivr-logs':
+	  return 'IVR Logs';
+	case '/analytics':
+	  return 'Analytics';
     default:
       return 'IVR System';
   }

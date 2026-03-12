@@ -36,11 +36,43 @@ export class SuperAdminController {
         return this.superAdminService.deletePanchayat(id)
     }
 
-    // ── Pole Management (Read-Only across all panchayats) ───────────────────
+    // ── Pole Management (all panchayats) ─────────────────────────────────────
+    @Post('poles')
+    createPole(@Body() body: {
+        panchayat_id: number
+        pole_number?: string
+        keypad_id?: string
+        latitude?: number
+        longitude?: number
+        landmarks?: string[]
+    }) {
+        return this.superAdminService.createPole(body)
+    }
+
     @Get('poles')
     listPoles(@Query('panchayat_id') pid?: string) {
         const panchayatId = pid ? parseInt(pid, 10) : undefined
         return this.superAdminService.listPoles(isNaN(panchayatId as number) ? undefined : panchayatId)
+    }
+
+    @Put('poles/:id')
+    updatePole(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: {
+            panchayat_id?: number
+            pole_number?: string
+            keypad_id?: string
+            latitude?: number
+            longitude?: number
+            landmarks?: string[]
+        }
+    ) {
+        return this.superAdminService.updatePole(id, body)
+    }
+
+    @Delete('poles/:id')
+    deletePole(@Param('id', ParseIntPipe) id: number) {
+        return this.superAdminService.deletePole(id)
     }
 
     // ── Admin User Management ──────────────────────────────────────────────

@@ -40,6 +40,7 @@ abstract class PAComplaintState extends Equatable {
 }
 
 class PAComplaintInitial extends PAComplaintState {}
+
 class PAComplaintLoading extends PAComplaintState {}
 
 class PAComplaintLoaded extends PAComplaintState {
@@ -69,14 +70,17 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
   String? _currentFilter;
 
   PAComplaintBloc({PanchayatAdminRepository? repo})
-      : _repo = repo ?? PanchayatAdminRepository(),
-        super(PAComplaintInitial()) {
+    : _repo = repo ?? PanchayatAdminRepository(),
+      super(PAComplaintInitial()) {
     on<LoadPAComplaints>(_onLoad);
     on<UpdatePAComplaintStatus>(_onUpdateStatus);
     on<ResolvePAComplaint>(_onResolve);
   }
 
-  Future<void> _onLoad(LoadPAComplaints event, Emitter<PAComplaintState> emit) async {
+  Future<void> _onLoad(
+    LoadPAComplaints event,
+    Emitter<PAComplaintState> emit,
+  ) async {
     emit(PAComplaintLoading());
     _currentFilter = event.status;
     try {
@@ -88,7 +92,9 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
   }
 
   Future<void> _onUpdateStatus(
-      UpdatePAComplaintStatus event, Emitter<PAComplaintState> emit) async {
+    UpdatePAComplaintStatus event,
+    Emitter<PAComplaintState> emit,
+  ) async {
     try {
       await _repo.updateComplaintStatus(event.id, event.status);
       emit(PAComplaintActionSuccess('Status updated'));
@@ -99,7 +105,9 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
   }
 
   Future<void> _onResolve(
-      ResolvePAComplaint event, Emitter<PAComplaintState> emit) async {
+    ResolvePAComplaint event,
+    Emitter<PAComplaintState> emit,
+  ) async {
     try {
       await _repo.resolveComplaint(event.id, event.poleId);
       emit(PAComplaintActionSuccess('Complaint resolved'));

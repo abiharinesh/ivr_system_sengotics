@@ -1,0 +1,198 @@
+import 'package:flutter/material.dart';
+import '../../../config/app_theme.dart';
+import '../../../core/widgets/list_screen_shell.dart';
+
+class VoiceCallsScreen extends StatelessWidget {
+  const VoiceCallsScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    // Placeholder demo data – in a real app this would
+    // come from an API / bloc.
+    final calls = List.generate(
+      8,
+      (index) => _VoiceCallItem(
+        campaignName: 'Power outage alert #$index',
+        status: index.isEven ? 'Completed' : 'In progress',
+        recipients: 120 + index * 10,
+        answered: 90 + index * 7,
+        createdAt: 'Today · ${(9 + index)}:00 AM',
+      ),
+    );
+
+    return ListScreenShell(
+      title: 'Voice Call Campaigns',
+      subtitle: 'Broadcast IVR alerts and monitor reach',
+      countLabel: '${calls.length} campaign(s)',
+      action: ElevatedButton.icon(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Voice campaign creation will be available soon.'),
+              backgroundColor: AppTheme.primary,
+            ),
+          );
+        },
+        icon: const Icon(Icons.add_call, size: 18),
+        label: const Text('New Voice Campaign'),
+      ),
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        itemBuilder: (context, index) {
+          final item = calls[index];
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.campaign_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.campaignName,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.createdAt,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      _StatusChip(label: item.status),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.people_rounded,
+                        size: 16,
+                        color: AppTheme.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.recipients} recipients',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(
+                        Icons.phone_in_talk_rounded,
+                        size: 16,
+                        color: AppTheme.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${item.answered} answered',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
+                        ),
+                      ),
+                      const Spacer(),
+                      TextButton.icon(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Detailed call report coming soon.'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                        label: const Text('View report'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemCount: calls.length,
+      ),
+    );
+  }
+}
+
+class _VoiceCallItem {
+  final String campaignName;
+  final String status;
+  final int recipients;
+  final int answered;
+  final String createdAt;
+
+  _VoiceCallItem({
+    required this.campaignName,
+    required this.status,
+    required this.recipients,
+    required this.answered,
+    required this.createdAt,
+  });
+}
+
+class _StatusChip extends StatelessWidget {
+  final String label;
+  const _StatusChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompleted = label.toLowerCase().contains('completed');
+    final color = isCompleted ? AppTheme.accent : AppTheme.warning;
+    final bg = color.withValues(alpha: 0.12);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isCompleted ? Icons.check_circle_rounded : Icons.timelapse_rounded,
+            size: 14,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

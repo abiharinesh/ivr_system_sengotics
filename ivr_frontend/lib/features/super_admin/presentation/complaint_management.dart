@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_badge.dart';
+import '../../../core/widgets/list_screen_shell.dart';
 import '../../../models/complaint_model.dart';
 import '../bloc/complaint_bloc.dart';
 
@@ -17,8 +18,22 @@ class ComplaintManagement extends StatefulWidget {
 class _ComplaintManagementState extends State<ComplaintManagement> {
   String? _selectedStatus;
 
-  final _statuses = [null, 'pending', 'in_progress', 'resolved', 'manual_review', 'rejected'];
-  final _statusLabels = ['All', 'Pending', 'In Progress', 'Resolved', 'Manual Review', 'Rejected'];
+  final _statuses = [
+    null,
+    'pending',
+    'in_progress',
+    'resolved',
+    'manual_review',
+    'rejected',
+  ];
+  final _statusLabels = [
+    'All',
+    'Pending',
+    'In Progress',
+    'Resolved',
+    'Manual Review',
+    'Rejected',
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -26,51 +41,59 @@ class _ComplaintManagementState extends State<ComplaintManagement> {
       listener: (context, state) {
         if (state is SAComplaintActionSuccess) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.accent),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.accent,
+            ),
           );
         }
         if (state is SAComplaintError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.message), backgroundColor: AppTheme.error),
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppTheme.error,
+            ),
           );
         }
       },
       builder: (context, state) {
-        return Column(
-          children: [
-            // Filter Chips
-            Container(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: List.generate(_statuses.length, (i) {
-                    final isSelected = _selectedStatus == _statuses[i];
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        label: Text(_statusLabels[i]),
-                        selected: isSelected,
-                        onSelected: (_) {
-                          setState(() => _selectedStatus = _statuses[i]);
-                          context.read<SAComplaintBloc>().add(
-                                LoadSAComplaints(status: _selectedStatus),
-                              );
-                        },
-                        selectedColor: AppTheme.primary.withValues(alpha: 0.3),
-                        checkmarkColor: AppTheme.primaryLight,
-                      ),
-                    );
-                  }),
+        final count = state is SAComplaintLoaded ? state.complaints.length : 0;
+        return ListScreenShell(
+          title: 'Complaint Management',
+          subtitle: 'Track and resolve incoming voice complaints',
+          countLabel: '$count complaint(s)',
+          action: ElevatedButton.icon(
+            onPressed:
+                () => context.read<SAComplaintBloc>().add(
+                  LoadSAComplaints(status: _selectedStatus),
                 ),
-              ),
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: const Text('Refresh'),
+          ),
+          filters: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(_statuses.length, (i) {
+                final isSelected = _selectedStatus == _statuses[i];
+                return Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: FilterChip(
+                    label: Text(_statusLabels[i]),
+                    selected: isSelected,
+                    onSelected: (_) {
+                      setState(() => _selectedStatus = _statuses[i]);
+                      context.read<SAComplaintBloc>().add(
+                        LoadSAComplaints(status: _selectedStatus),
+                      );
+                    },
+                    selectedColor: AppTheme.primary.withValues(alpha: 0.12),
+                    checkmarkColor: AppTheme.primary,
+                  ),
+                );
+              }),
             ),
-
-            // Content
-            Expanded(
-              child: _buildContent(context, state),
-            ),
-          ],
+          ),
+          child: _buildContent(context, state),
         );
       },
     );
@@ -91,8 +114,9 @@ class _ComplaintManagementState extends State<ComplaintManagement> {
       return ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         itemCount: state.complaints.length,
-        itemBuilder: (context, index) =>
-            _ComplaintCard(complaint: state.complaints[index]),
+        itemBuilder:
+            (context, index) =>
+                _ComplaintCard(complaint: state.complaints[index]),
       );
     }
     return const SizedBox.shrink();
@@ -106,10 +130,13 @@ class _ComplaintCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMM d, yyyy – h:mm a').format(complaint.createdAt);
+    final dateStr = DateFormat(
+      'MMM d, yyyy – h:mm a',
+    ).format(complaint.createdAt);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
+      elevation: 0,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -134,7 +161,10 @@ class _ComplaintCard extends StatelessWidget {
             if (complaint.description != null)
               Text(
                 complaint.description!,
-                style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                style: const TextStyle(
+                  color: AppTheme.textSecondary,
+                  fontSize: 14,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -144,7 +174,10 @@ class _ComplaintCard extends StatelessWidget {
               runSpacing: 8,
               children: [
                 if (complaint.panchayat != null)
-                  _infoItem(Icons.location_city_rounded, complaint.panchayat!.name),
+                  _infoItem(
+                    Icons.location_city_rounded,
+                    complaint.panchayat!.name,
+                  ),
                 if (complaint.pole != null)
                   _infoItem(
                     Icons.electrical_services_rounded,
@@ -157,7 +190,10 @@ class _ComplaintCard extends StatelessWidget {
                 if (complaint.callerEmotion != null)
                   _infoItem(Icons.mood_rounded, complaint.callerEmotion!),
                 if (complaint.urgencyLevel != null)
-                  _infoItem(Icons.priority_high_rounded, 'Urgency: ${complaint.urgencyLevel!}'),
+                  _infoItem(
+                    Icons.priority_high_rounded,
+                    'Urgency: ${complaint.urgencyLevel!}',
+                  ),
                 _infoItem(Icons.access_time_rounded, dateStr),
               ],
             ),
@@ -207,7 +243,10 @@ class _ComplaintCard extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: AppTheme.textMuted),
         const SizedBox(width: 4),
-        Text(text, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        Text(
+          text,
+          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+        ),
       ],
     );
   }
@@ -220,18 +259,31 @@ class _ComplaintCard extends StatelessWidget {
           _showResolveDialog(context);
         } else {
           context.read<SAComplaintBloc>().add(
-                UpdateSAComplaintStatus(complaint.id, action),
-              );
+            UpdateSAComplaintStatus(complaint.id, action),
+          );
         }
       },
-      itemBuilder: (_) => [
-        const PopupMenuItem(value: 'pending', child: Text('Mark Pending')),
-        const PopupMenuItem(value: 'in_progress', child: Text('Mark In Progress')),
-        const PopupMenuItem(value: 'resolved', child: Text('Mark Resolved')),
-        const PopupMenuItem(value: 'rejected', child: Text('Mark Rejected')),
-        if (complaint.status == 'manual_review')
-          const PopupMenuItem(value: 'resolve', child: Text('Assign Pole & Resolve')),
-      ],
+      itemBuilder:
+          (_) => [
+            const PopupMenuItem(value: 'pending', child: Text('Mark Pending')),
+            const PopupMenuItem(
+              value: 'in_progress',
+              child: Text('Mark In Progress'),
+            ),
+            const PopupMenuItem(
+              value: 'resolved',
+              child: Text('Mark Resolved'),
+            ),
+            const PopupMenuItem(
+              value: 'rejected',
+              child: Text('Mark Rejected'),
+            ),
+            if (complaint.status == 'manual_review')
+              const PopupMenuItem(
+                value: 'resolve',
+                child: Text('Assign Pole & Resolve'),
+              ),
+          ],
     );
   }
 
@@ -239,39 +291,43 @@ class _ComplaintCard extends StatelessWidget {
     final poleIdC = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Resolve Complaint'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Assign this complaint to an electric pole:',
-              style: TextStyle(color: AppTheme.textSecondary),
+      builder:
+          (ctx) => AlertDialog(
+            title: const Text('Resolve Complaint'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Assign this complaint to an electric pole:',
+                  style: TextStyle(color: AppTheme.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: poleIdC,
+                  decoration: const InputDecoration(labelText: 'Pole ID'),
+                  keyboardType: TextInputType.number,
+                ),
+              ],
             ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: poleIdC,
-              decoration: const InputDecoration(labelText: 'Pole ID'),
-              keyboardType: TextInputType.number,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () {
-              final poleId = int.tryParse(poleIdC.text);
-              if (poleId != null) {
-                context.read<SAComplaintBloc>().add(
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final poleId = int.tryParse(poleIdC.text);
+                  if (poleId != null) {
+                    context.read<SAComplaintBloc>().add(
                       ResolveSAComplaint(complaint.id, poleId),
                     );
-                Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Resolve'),
+                    Navigator.pop(ctx);
+                  }
+                },
+                child: const Text('Resolve'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
   }
 }

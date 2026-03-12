@@ -25,9 +25,10 @@ class UserModel extends Equatable {
       role: json['role'] as String,
       panchayatId: json['panchayat_id'] as int?,
       panchayatName: json['panchayat']?['name'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'] as String)
-          : null,
+      createdAt:
+          json['created_at'] != null
+              ? DateTime.parse(json['created_at'] as String)
+              : null,
     );
   }
 
@@ -46,7 +47,7 @@ class AuthResponse {
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     final token = json['access_token'] as String;
-    
+
     // Decode JWT payload
     final parts = token.split('.');
     Map<String, dynamic> payload = {};
@@ -55,7 +56,7 @@ class AuthResponse {
       final String decoded = utf8.decode(base64Url.decode(normalized));
       payload = jsonDecode(decoded);
     }
-    
+
     return AuthResponse(
       accessToken: token,
       user: UserModel.fromJson({

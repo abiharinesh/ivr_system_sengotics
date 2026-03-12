@@ -21,13 +21,18 @@ abstract class PADashState extends Equatable {
 }
 
 class PADashInitial extends PADashState {}
+
 class PADashLoading extends PADashState {}
 
 class PADashLoaded extends PADashState {
   final StatsModel stats;
   final UserModel profile;
   final List<PoleModel> poles;
-  PADashLoaded({required this.stats, required this.profile, required this.poles});
+  PADashLoaded({
+    required this.stats,
+    required this.profile,
+    required this.poles,
+  });
   @override
   List<Object?> get props => [stats, profile, poles];
 }
@@ -44,8 +49,8 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
   final PanchayatAdminRepository _repo;
 
   PADashBloc({PanchayatAdminRepository? repo})
-      : _repo = repo ?? PanchayatAdminRepository(),
-        super(PADashInitial()) {
+    : _repo = repo ?? PanchayatAdminRepository(),
+      super(PADashInitial()) {
     on<LoadPADashboard>(_onLoad);
   }
 
@@ -57,11 +62,13 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
         _repo.getMe(),
         _repo.listPoles(),
       ]);
-      emit(PADashLoaded(
-        stats: results[0] as StatsModel,
-        profile: results[1] as UserModel,
-        poles: results[2] as List<PoleModel>,
-      ));
+      emit(
+        PADashLoaded(
+          stats: results[0] as StatsModel,
+          profile: results[1] as UserModel,
+          poles: results[2] as List<PoleModel>,
+        ),
+      );
     } on ApiException catch (e) {
       emit(PADashError(e.message));
     }

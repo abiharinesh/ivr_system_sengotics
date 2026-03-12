@@ -45,6 +45,38 @@ export class SuperAdminService {
     }
 
     // ── Poles (all) ────────────────────────────────────────────────────────
+    async createPole(data: {
+        panchayat_id: number
+        pole_number?: string
+        keypad_id?: string
+        latitude?: number
+        longitude?: number
+        landmarks?: string[]
+    }) {
+        await this.ensurePanchayatExists(data.panchayat_id)
+
+        const pole = await this.prisma.electricPole.create({
+            data: {
+                panchayat_id: data.panchayat_id,
+                pole_number: data.pole_number,
+                keypad_id: data.keypad_id,
+                latitude: data.latitude,
+                longitude: data.longitude,
+                landmarks: data.landmarks ?? []
+            }
+        })
+
+        if (data.latitude !== undefined && data.longitude !== undefined) {
+            await this.prisma.$executeRaw`
+                UPDATE electric_poles
+                SET location = ST_SetSRID(ST_MakePoint(${data.longitude}, ${data.latitude}), 4326)
+                WHERE id = ${pole.id}
+            `
+        }
+
+        return pole
+    }
+
     async listPoles(panchayatId?: number) {
         return this.prisma.electricPole.findMany({
             where: {
@@ -53,6 +85,49 @@ export class SuperAdminService {
             include: { panchayat: true },
             orderBy: { id: 'desc' }
         })
+    }
+
+    async updatePole(
+        poleId: number,
+        data: {
+            panchayat_id?: number
+            pole_number?: string
+            keypad_id?: string
+            latitude?: number
+            longitude?: number
+            landmarks?: string[]
+        }
+    ) {
+        const existing = await this.prisma.electricPole.findUnique({ where: { id: poleId } })
+        if (!existing) throw new NotFoundException(`Pole #${poleId} not found`)
+
+        if (data.panchayat_id) {
+            await this.ensurePanchayatExists(data.panchayat_id)
+        }
+
+        const updated = await this.prisma.electricPole.update({
+            where: { id: poleId },
+            data
+        })
+
+        const lat = data.latitude ?? updated.latitude
+        const lng = data.longitude ?? updated.longitude
+        if (lat !== null && lat !== undefined && lng !== null && lng !== undefined) {
+            await this.prisma.$executeRaw`
+                UPDATE electric_poles
+                SET location = ST_SetSRID(ST_MakePoint(${lng}, ${lat}), 4326)
+                WHERE id = ${poleId}
+            `
+        }
+
+        return updated
+    }
+
+    async deletePole(poleId: number) {
+        const existing = await this.prisma.electricPole.findUnique({ where: { id: poleId } })
+        if (!existing) throw new NotFoundException(`Pole #${poleId} not found`)
+        await this.prisma.electricPole.delete({ where: { id: poleId } })
+        return { success: true }
     }
 
     // ── User (Panchayat Admin) Management ──────────────────────────────────

@@ -45,15 +45,13 @@ class AppScaffold extends StatelessWidget {
     }
 
     return Scaffold(
+      backgroundColor: AppTheme.bgDark,
       body: Row(
         children: [
           _buildSidebar(context),
           Expanded(
             child: Column(
-              children: [
-                _buildTopBar(context),
-                Expanded(child: body),
-              ],
+              children: [_buildTopBar(context), Expanded(child: body)],
             ),
           ),
         ],
@@ -64,12 +62,10 @@ class AppScaffold extends StatelessWidget {
 
   Widget _buildSidebar(BuildContext context) {
     return Container(
-      width: 260,
-      decoration: const BoxDecoration(
-        color: AppTheme.bgCard,
-        border: Border(
-          right: BorderSide(color: AppTheme.dividerColor),
-        ),
+      width: 270,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(right: BorderSide(color: AppTheme.stroke)),
       ),
       child: Column(
         children: [
@@ -84,8 +80,11 @@ class AppScaffold extends StatelessWidget {
                     gradient: AppTheme.primaryGradient,
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  child: const Icon(Icons.phone_in_talk_rounded,
-                      color: Colors.white, size: 22),
+                  child: const Icon(
+                    Icons.phone_in_talk_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -93,7 +92,7 @@ class AppScaffold extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'IVR System',
+                        'GramPanchayat',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -101,7 +100,7 @@ class AppScaffold extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        'Sengotics',
+                        'Operations Console',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
@@ -116,12 +115,18 @@ class AppScaffold extends StatelessWidget {
           ),
           const Divider(height: 1),
           const SizedBox(height: 8),
+          _navLabel('MAIN MENU'),
 
           // Navigation Items
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: _getNavItems(),
+              children: [
+                ..._getPrimaryNavItems(),
+                const SizedBox(height: 12),
+                _navLabel('REPORTS & SYSTEM'),
+                ..._getSecondaryNavItems(),
+              ],
             ),
           ),
 
@@ -137,7 +142,9 @@ class AppScaffold extends StatelessWidget {
                   child: Text(
                     userEmail.isNotEmpty ? userEmail[0].toUpperCase() : '?',
                     style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.w600),
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -167,8 +174,11 @@ class AppScaffold extends StatelessWidget {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.logout_rounded,
-                      size: 18, color: AppTheme.textMuted),
+                  icon: const Icon(
+                    Icons.logout_rounded,
+                    size: 18,
+                    color: AppTheme.textMuted,
+                  ),
                   onPressed: onLogout,
                   tooltip: 'Logout',
                 ),
@@ -182,25 +192,63 @@ class AppScaffold extends StatelessWidget {
 
   Widget _buildTopBar(BuildContext context) {
     return Container(
-      height: 64,
+      height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: AppTheme.bgDark,
-        border: Border(
-          bottom: BorderSide(color: AppTheme.dividerColor),
-        ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppTheme.stroke)),
       ),
       child: Row(
         children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.textPrimary,
+          Expanded(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 420),
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.bgSurface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const TextField(
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'Search complaints, poles or users...',
+                  hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                  prefixIcon: Icon(
+                    Icons.search,
+                    size: 18,
+                    color: AppTheme.textMuted,
+                  ),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                ),
+              ),
             ),
           ),
-          const Spacer(),
+          const SizedBox(width: 16),
+          SizedBox(
+            height: 42,
+            child: ElevatedButton.icon(
+              onPressed: () {},
+              icon: const Icon(Icons.add, size: 16),
+              label: const Text('New Complaint'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.notifications_none_rounded),
+            color: AppTheme.textMuted,
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.mail_outline_rounded),
+            color: AppTheme.textMuted,
+          ),
         ],
       ),
     );
@@ -211,18 +259,19 @@ class AppScaffold extends StatelessWidget {
       child: Column(
         children: [
           DrawerHeader(
-            decoration: const BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-            ),
+            decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Icon(Icons.phone_in_talk_rounded,
-                    color: Colors.white, size: 36),
+                const Icon(
+                  Icons.phone_in_talk_rounded,
+                  color: Colors.white,
+                  size: 36,
+                ),
                 const SizedBox(height: 8),
                 const Text(
-                  'IVR System',
+                  'GramPanchayat',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -231,17 +280,19 @@ class AppScaffold extends StatelessWidget {
                 ),
                 Text(
                   userEmail,
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
             ),
           ),
           Expanded(
             child: ListView(
-              children: _getNavItems(),
+              children: [
+                ..._getPrimaryNavItems(),
+                const SizedBox(height: 12),
+                _navLabel('REPORTS & SYSTEM'),
+                ..._getSecondaryNavItems(),
+              ],
             ),
           ),
         ],
@@ -249,7 +300,7 @@ class AppScaffold extends StatelessWidget {
     );
   }
 
-  List<Widget> _getNavItems() {
+  List<Widget> _getPrimaryNavItems() {
     if (userRole == 'super_admin') {
       return [
         _NavItem(
@@ -259,27 +310,39 @@ class AppScaffold extends StatelessWidget {
           currentRoute: currentRoute,
         ),
         _NavItem(
-          icon: Icons.location_city_rounded,
-          label: 'Panchayats',
-          route: '/panchayats',
-          currentRoute: currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.people_rounded,
-          label: 'Users',
-          route: '/users',
-          currentRoute: currentRoute,
-        ),
-        _NavItem(
           icon: Icons.report_problem_rounded,
           label: 'Complaints',
           route: '/complaints',
           currentRoute: currentRoute,
         ),
         _NavItem(
-          icon: Icons.smart_toy_rounded,
-          label: 'AI Settings',
-          route: '/ai-settings',
+          icon: Icons.alt_route_rounded,
+          label: 'Pole Management',
+		  route: '/poles',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.call_rounded,
+          label: 'Voice Calls',
+		  route: '/voice-calls',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.receipt_long_rounded,
+          label: 'IVR Logs',
+		  route: '/ivr-logs',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.account_tree_rounded,
+          label: 'Panchayat Mgmt',
+          route: '/panchayats',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.people_rounded,
+          label: 'User Management',
+          route: '/users',
           currentRoute: currentRoute,
         ),
       ];
@@ -298,6 +361,30 @@ class AppScaffold extends StatelessWidget {
         currentRoute: currentRoute,
       ),
       _NavItem(
+        icon: Icons.call_rounded,
+        label: 'Voice Calls',
+	  route: '/voice-calls',
+        currentRoute: currentRoute,
+      ),
+      _NavItem(
+        icon: Icons.receipt_long_rounded,
+        label: 'IVR Logs',
+	  route: '/ivr-logs',
+        currentRoute: currentRoute,
+      ),
+      _NavItem(
+        icon: Icons.account_tree_rounded,
+        label: 'Panchayat Mgmt',
+	  route: '/panchayats',
+        currentRoute: currentRoute,
+      ),
+      _NavItem(
+        icon: Icons.people_rounded,
+        label: 'User Management',
+	  route: '/users',
+        currentRoute: currentRoute,
+      ),
+      _NavItem(
         icon: Icons.report_problem_rounded,
         label: 'Complaints',
         route: '/complaints',
@@ -305,12 +392,47 @@ class AppScaffold extends StatelessWidget {
       ),
     ];
   }
+
+  List<Widget> _getSecondaryNavItems() {
+    return [
+      _NavItem(
+        icon: Icons.insights_rounded,
+        label: 'Analytics',
+		  route: '/analytics',
+        currentRoute: currentRoute,
+      ),
+      _NavItem(
+        icon: Icons.settings_rounded,
+        label: 'Settings',
+        route: '/ai-settings',
+        currentRoute: currentRoute,
+      ),
+    ];
+  }
+
+  Widget _navLabel(String label) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.7,
+            color: AppTheme.textMuted,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String route;
+  final String? route;
   final String currentRoute;
 
   const _NavItem({
@@ -320,7 +442,8 @@ class _NavItem extends StatelessWidget {
     required this.currentRoute,
   });
 
-  bool get isActive => currentRoute == route;
+  bool get isActive => route != null && currentRoute == route;
+  bool get isEnabled => route != null;
 
   @override
   Widget build(BuildContext context) {
@@ -332,32 +455,43 @@ class _NavItem extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
           onTap: () {
+            if (!isEnabled) {
+              return;
+            }
             if (!isActive) {
               if (Scaffold.of(context).isDrawerOpen) {
                 Navigator.of(context).pop();
               }
-              context.go(route);
+              context.go(route!);
             }
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
             decoration: BoxDecoration(
-              color: isActive
-                  ? AppTheme.primary.withValues(alpha: 0.15)
-                  : Colors.transparent,
+              color:
+                  isActive
+                      ? AppTheme.primary.withValues(alpha: 0.1)
+                      : Colors.transparent,
               borderRadius: BorderRadius.circular(10),
-              border: isActive
-                  ? Border.all(
-                      color: AppTheme.primary.withValues(alpha: 0.3))
-                  : null,
+              border:
+                  isActive
+                      ? Border.all(
+                        color: AppTheme.primary.withValues(alpha: 0.2),
+                      )
+                      : null,
             ),
             child: Row(
               children: [
                 Icon(
                   icon,
                   size: 20,
-                  color: isActive ? AppTheme.primaryLight : AppTheme.textMuted,
+                  color:
+                      isActive
+                          ? AppTheme.primaryLight
+                          : isEnabled
+                          ? AppTheme.textMuted
+                          : AppTheme.textMuted.withValues(alpha: 0.55),
                 ),
                 const SizedBox(width: 12),
                 Text(
@@ -365,9 +499,12 @@ class _NavItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                    color: isActive
-                        ? AppTheme.textPrimary
-                        : AppTheme.textSecondary,
+                    color:
+                        isActive
+                            ? AppTheme.textPrimary
+                            : isEnabled
+                            ? AppTheme.textSecondary
+                            : AppTheme.textMuted.withValues(alpha: 0.7),
                   ),
                 ),
               ],

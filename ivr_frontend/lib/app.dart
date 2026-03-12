@@ -28,7 +28,7 @@ class _AppView extends StatelessWidget {
     return MaterialApp.router(
       title: 'IVR System - Sengotics',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme,
       routerConfig: router,
     );
   }
