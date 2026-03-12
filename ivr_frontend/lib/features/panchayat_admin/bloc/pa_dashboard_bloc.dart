@@ -28,13 +28,15 @@ class PADashLoaded extends PADashState {
   final StatsModel stats;
   final UserModel profile;
   final List<PoleModel> poles;
+  final String? warningMessage;
   PADashLoaded({
     required this.stats,
     required this.profile,
     required this.poles,
+    this.warningMessage,
   });
   @override
-  List<Object?> get props => [stats, profile, poles];
+  List<Object?> get props => [stats, profile, poles, warningMessage];
 }
 
 class PADashError extends PADashState {
@@ -56,21 +58,53 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
 
   Future<void> _onLoad(LoadPADashboard event, Emitter<PADashState> emit) async {
     emit(PADashLoading());
+    final errors = <String>[];
+    StatsModel? stats;
+    UserModel? profile;
+    List<PoleModel>? poles;
+
     try {
-      final results = await Future.wait([
-        _repo.getStats(),
-        _repo.getMe(),
-        _repo.listPoles(),
-      ]);
-      emit(
-        PADashLoaded(
-          stats: results[0] as StatsModel,
-          profile: results[1] as UserModel,
-          poles: results[2] as List<PoleModel>,
-        ),
-      );
+      stats = await _repo.getStats();
     } on ApiException catch (e) {
-      emit(PADashError(e.message));
+      errors.add('Stats unavailable: ${e.message}');
     }
+
+    try {
+      profile = await _repo.getMe();
+    } on ApiException catch (e) {
+      errors.add('Profile unavailable: ${e.message}');
+    }
+
+    try {
+      poles = await _repo.listPoles();
+    } on ApiException catch (e) {
+      errors.add('Poles unavailable: ${e.message}');
+    }
+
+    if (stats == null && profile == null && poles == null) {
+      emit(PADashError(errors.join('\n')));
+      return;
+    }
+
+    emit(
+      PADashLoaded(
+        stats: stats ??
+            const StatsModel(
+              totalComplaints: 0,
+              pendingComplaints: 0,
+              resolvedComplaints: 0,
+              manualReviewComplaints: 0,
+              totalPoles: 0,
+              totalPanchayats: 0,
+              totalAdmins: 0,
+            ),
+        profile:
+            profile ??
+            const UserModel(id: 0, email: '', role: 'panchayat_admin'),
+        poles: poles ?? const [],
+        warningMessage:
+            errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
+      ),
+    );
   }
 }

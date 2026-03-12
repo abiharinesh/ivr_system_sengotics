@@ -26,9 +26,10 @@ class SADashLoading extends SADashState {}
 class SADashLoaded extends SADashState {
   final StatsModel stats;
   final List<PoleModel> poles;
-  SADashLoaded({required this.stats, required this.poles});
+  final String? warningMessage;
+  SADashLoaded({required this.stats, required this.poles, this.warningMessage});
   @override
-  List<Object?> get props => [stats, poles];
+  List<Object?> get props => [stats, poles, warningMessage];
 }
 
 class SADashError extends SADashState {
@@ -50,17 +51,44 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
 
   Future<void> _onLoad(LoadSADashboard event, Emitter<SADashState> emit) async {
     emit(SADashLoading());
+    final errors = <String>[];
+    StatsModel? stats;
+    List<PoleModel>? poles;
+
     try {
-      final results = await Future.wait([_repo.getStats(), _repo.listPoles()]);
-      emit(
-        SADashLoaded(
-          stats: results[0] as StatsModel,
-          poles:
-              (results[1] as List).map((p) => PoleModel.fromJson(p)).toList(),
-        ),
-      );
+      stats = await _repo.getStats();
     } on ApiException catch (e) {
-      emit(SADashError(e.message));
+      errors.add('Stats unavailable: ${e.message}');
     }
+
+    try {
+      final rawPoles = await _repo.listPoles();
+      poles = rawPoles.map((p) => PoleModel.fromJson(p)).toList();
+    } on ApiException catch (e) {
+      errors.add('Poles unavailable: ${e.message}');
+    }
+
+    if (stats == null && poles == null) {
+      emit(SADashError(errors.join('\n')));
+      return;
+    }
+
+    emit(
+      SADashLoaded(
+        stats: stats ??
+            const StatsModel(
+              totalComplaints: 0,
+              pendingComplaints: 0,
+              resolvedComplaints: 0,
+              manualReviewComplaints: 0,
+              totalPoles: 0,
+              totalPanchayats: 0,
+              totalAdmins: 0,
+            ),
+        poles: poles ?? const [],
+        warningMessage:
+            errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
+      ),
+    );
   }
 }

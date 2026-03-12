@@ -42,12 +42,20 @@ class ApiClient {
 
   // GET
   Future<dynamic> get(String path, {Map<String, dynamic>? queryParams}) async {
-    try {
-      final response = await _dio.get(path, queryParameters: queryParams);
-      return response.data;
-    } on DioException catch (e) {
-      throw _handleError(e);
+    const maxAttempts = 2;
+    for (var attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        final response = await _dio.get(path, queryParameters: queryParams);
+        return response.data;
+      } on DioException catch (e) {
+        final shouldRetry = _shouldRetry(e) && attempt < maxAttempts;
+        if (!shouldRetry) {
+          throw _handleError(e);
+        }
+        await Future.delayed(Duration(milliseconds: 350 * attempt));
+      }
     }
+    throw ApiException('Failed to load data');
   }
 
   // POST
@@ -131,5 +139,15 @@ class ApiClient {
         }
         return ServerException(message);
     }
+  }
+
+  bool _shouldRetry(DioException e) {
+    final statusCode = e.response?.statusCode;
+    if (statusCode != null && statusCode >= 500) {
+      return true;
+    }
+    return e.type == DioExceptionType.connectionTimeout ||
+        e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.connectionError;
   }
 }
