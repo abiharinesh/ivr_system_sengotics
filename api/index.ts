@@ -3,6 +3,7 @@ import { ValidationPipe } from '@nestjs/common'
 import { ExpressAdapter } from '@nestjs/platform-express'
 import { AppModule } from '../src/app.module'
 import { VoiceProcessingService } from '../src/voice-processing/voice-processing.service'
+import { DbSetupService } from '../src/prisma/db-setup.service'
 import express from 'express'
 import { waitUntil } from '@vercel/functions'
 
@@ -25,6 +26,9 @@ async function bootstrap() {
     }))
 
     await app.init()
+    // Keep serverless startup schema checks aligned with local bootstrap.
+    const dbSetupService = app.get(DbSetupService)
+    await dbSetupService.bootstrapDb()
     cachedApp = app
     return app
 }

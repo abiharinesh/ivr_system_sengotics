@@ -147,4 +147,10 @@ export class SuperAdminController {
     getStats() {
         return this.superAdminService.getStats()
     }
+
+    // Backward-compatible alias used by some dashboard clients.
+    @Get('state')
+    getState() {
+        return this.superAdminService.getState()
+    }
 }

@@ -435,6 +435,26 @@ export class SuperAdminService {
         }
     }
 
+    async getState() {
+        const [stats, phase1Pending, phase1Failed, phase2Pending, phase2Failed] = await Promise.all([
+            this.getStats(),
+            this.prisma.callState.count({ where: { phase1_status: 'pending' } }),
+            this.prisma.callState.count({ where: { phase1_status: 'failed' } }),
+            this.prisma.callState.count({ where: { phase2_status: 'pending' } }),
+            this.prisma.callState.count({ where: { phase2_status: 'failed' } })
+        ])
+
+        return {
+            ...stats,
+            call_pipeline: {
+                phase1_pending: phase1Pending,
+                phase1_failed: phase1Failed,
+                phase2_pending: phase2Pending,
+                phase2_failed: phase2Failed
+            }
+        }
+    }
+
     // ── Private Helpers ────────────────────────────────────────────────────
 
     private async ensurePanchayatExists(id: number): Promise<void> {
