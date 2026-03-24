@@ -21,18 +21,17 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: FittedBox(
-        alignment: Alignment.topLeft,
-        fit: BoxFit.scaleDown,
-        child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 240;
+        final padding = compact ? 12.0 : 20.0;
+        final titleSize = compact ? 15.0 : 13.0;
+        final deltaSize = compact ? 13.0 : 11.0;
+        final valueSize = compact ? 26.0 : 28.0;
+        final iconSize = compact ? 20.0 : 22.0;
+        final iconPadding = compact ? 8.0 : 10.0;
+
+        final content = Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -40,18 +39,18 @@ class StatCard extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(iconPadding),
                   decoration: BoxDecoration(
                     gradient: gradient,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 22),
+                  child: Icon(icon, color: Colors.white, size: iconSize),
                 ),
-                const SizedBox(width: 8),
-                if (delta != null)
+                if (delta != null) ...[
+                  SizedBox(width: compact ? 6 : 8),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: compact ? 6 : 8,
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
@@ -62,36 +61,61 @@ class StatCard extends StatelessWidget {
                     child: Text(
                       delta!,
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: deltaSize,
                         color:
                             positiveDelta ? AppTheme.accent : AppTheme.error,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
+                ] else
+                  const SizedBox(width: 8),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: compact ? 10 : 12),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 13,
+              style: TextStyle(
+                fontSize: titleSize,
                 color: AppTheme.textSecondary,
                 fontWeight: FontWeight.w500,
               ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: compact ? 4 : 6),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 28,
+              style: TextStyle(
+                fontSize: valueSize,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textPrimary,
               ),
             ),
           ],
-        ),
-      ),
+        );
+
+        final hasBoundedHeight = constraints.maxHeight.isFinite;
+        final tightHeight = hasBoundedHeight && constraints.maxHeight < 140;
+        final useScaleDown = !compact || tightHeight;
+
+        return Container(
+          padding: EdgeInsets.all(padding),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: useScaleDown
+              ? FittedBox(
+                  alignment: Alignment.topLeft,
+                  fit: BoxFit.scaleDown,
+                  child: content,
+                )
+              : content,
+        );
+      },
     );
   }
 }

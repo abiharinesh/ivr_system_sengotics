@@ -24,15 +24,17 @@ dependencies:
   geolocator: ^14.0.2
   google_maps_flutter: ^2.14.0
   google_maps_flutter_web: ^0.5.14+3
+  flutter_dotenv: ^5.2.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0
+  flutter_lints: ^4.0.0
 
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/redesign/
     - assets/redesign/backgrounds/
     - assets/redesign/illustrations/

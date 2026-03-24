@@ -111,12 +111,17 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
           subtitle: 'No complaints for the selected filter',
         );
       }
-      return ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: state.complaints.length,
-        itemBuilder:
-            (context, index) =>
-                _PAComplaintCard(complaint: state.complaints[index]),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            itemCount: state.complaints.length,
+            itemBuilder:
+                (context, index) =>
+                    _PAComplaintCard(complaint: state.complaints[index]),
+          );
+        },
       );
     }
     return const SizedBox.shrink();
@@ -269,9 +274,12 @@ class _PAComplaintCard extends StatelessWidget {
       children: [
         Icon(icon, size: 14, color: AppTheme.textMuted),
         const SizedBox(width: 4),
-        Text(
-          text,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+        Flexible(
+          child: Text(
+            text,
+            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );

@@ -34,9 +34,12 @@ class IvrLogsScreen extends StatelessWidget {
         icon: const Icon(Icons.filter_list_rounded, size: 18),
         label: const Text('Filters'),
       ),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-        itemBuilder: (context, index) {
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.separated(
+            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, hPad),
+            itemBuilder: (context, index) {
           final item = logs[index];
           return Card(
             child: Padding(
@@ -165,8 +168,10 @@ class IvrLogsScreen extends StatelessWidget {
             ),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemCount: logs.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemCount: logs.length,
+          );
+        },
       ),
     );
   }

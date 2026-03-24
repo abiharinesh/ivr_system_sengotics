@@ -36,8 +36,11 @@ class VoiceCallsScreen extends StatelessWidget {
         icon: const Icon(Icons.add_call, size: 18),
         label: const Text('New Voice Campaign'),
       ),
-      child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.separated(
+            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, hPad),
         itemBuilder: (context, index) {
           final item = calls[index];
           return Card(
@@ -71,6 +74,8 @@ class VoiceCallsScreen extends StatelessWidget {
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                             const SizedBox(height: 2),
                             Text(
@@ -79,64 +84,127 @@ class VoiceCallsScreen extends StatelessWidget {
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ],
                         ),
                       ),
-                      _StatusChip(label: item.status),
+                      const SizedBox(width: 8),
+                      Flexible(child: _StatusChip(label: item.status)),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.people_rounded,
-                        size: 16,
-                        color: AppTheme.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${item.recipients} recipients',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Icon(
-                        Icons.phone_in_talk_rounded,
-                        size: 16,
-                        color: AppTheme.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${item.answered} answered',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                      const Spacer(),
-                      TextButton.icon(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Detailed call report coming soon.'),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final narrow = constraints.maxWidth < 400;
+                      if (narrow) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.people_rounded,
+                                  size: 16,
+                                  color: AppTheme.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${item.recipients} recipients',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(width: 12),
+                                const Icon(
+                                  Icons.phone_in_talk_rounded,
+                                  size: 16,
+                                  color: AppTheme.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    '${item.answered} answered',
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                        icon: const Icon(Icons.bar_chart_rounded, size: 18),
-                        label: const Text('View report'),
-                      ),
-                    ],
+                            const SizedBox(height: 8),
+                            TextButton.icon(
+                              onPressed: () {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Detailed call report coming soon.'),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                              label: const Text('View report'),
+                            ),
+                          ],
+                        );
+                      }
+                      return Row(
+                        children: [
+                          const Icon(
+                            Icons.people_rounded,
+                            size: 16,
+                            color: AppTheme.textMuted,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${item.recipients} recipients',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Icon(
+                            Icons.phone_in_talk_rounded,
+                            size: 16,
+                            color: AppTheme.textMuted,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${item.answered} answered',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                          const Spacer(),
+                          TextButton.icon(
+                            onPressed: () {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Detailed call report coming soon.'),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.bar_chart_rounded, size: 18),
+                            label: const Text('View report'),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ],
               ),
             ),
           );
         },
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
-        itemCount: calls.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemCount: calls.length,
+          );
+        },
       ),
     );
   }
@@ -182,12 +250,15 @@ class _StatusChip extends StatelessWidget {
             color: color,
           ),
           const SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],

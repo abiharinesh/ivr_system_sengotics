@@ -127,8 +127,11 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
         ],
       ),
       filters: _buildFilters(panchayatIds),
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.builder(
+            padding: EdgeInsets.fromLTRB(hPad, 0, hPad, hPad),
         itemCount: poles.length,
         itemBuilder: (context, index) {
           final pole = poles[index];
@@ -310,6 +313,8 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                 ],
               ),
             ),
+          );
+        },
           );
         },
       ),

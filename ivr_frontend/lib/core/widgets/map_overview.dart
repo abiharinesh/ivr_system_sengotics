@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../config/app_theme.dart';
 import '../../models/pole_model.dart';
 
 class MapOverview extends StatelessWidget {
   final List<PoleModel> poles;
   final double height;
-  final LatLng? defaultCenter;
+  final gmap.LatLng? defaultCenter;
   final bool showLegend;
   final bool showCardDecoration;
   final double borderRadius;
@@ -28,9 +28,9 @@ class MapOverview extends StatelessWidget {
         poles.where((p) => p.latitude != null && p.longitude != null).toList();
 
     // Calculate center
-    LatLng center =
+    gmap.LatLng center =
         defaultCenter ??
-        const LatLng(20.5937, 78.9629); // Default to India roughly
+        const gmap.LatLng(20.5937, 78.9629); // Default to India roughly
     if (validPoles.isNotEmpty) {
       double sumLat = 0;
       double sumLng = 0;
@@ -38,7 +38,7 @@ class MapOverview extends StatelessWidget {
         sumLat += p.latitude!;
         sumLng += p.longitude!;
       }
-      center = LatLng(sumLat / validPoles.length, sumLng / validPoles.length);
+      center = gmap.LatLng(sumLat / validPoles.length, sumLng / validPoles.length);
     }
 
     final markers =
@@ -46,31 +46,34 @@ class MapOverview extends StatelessWidget {
           final isRed = p.complaintsCount > 0;
           final markerHue =
               isRed
-                  ? BitmapDescriptor.hueRed
+                  ? gmap.BitmapDescriptor.hueRed
                   : (p.keypadId == null
-                      ? BitmapDescriptor.hueAzure
-                      : BitmapDescriptor.hueGreen);
+                      ? gmap.BitmapDescriptor.hueAzure
+                      : gmap.BitmapDescriptor.hueGreen);
 
-          return Marker(
-            markerId: MarkerId('pole_${p.id}'),
-            position: LatLng(p.latitude!, p.longitude!),
-            infoWindow: InfoWindow(
+          return gmap.Marker(
+            markerId: gmap.MarkerId('pole_${p.id}'),
+            position: gmap.LatLng(p.latitude!, p.longitude!),
+            infoWindow: gmap.InfoWindow(
               title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
               snippet: 'Complaints: ${p.complaintsCount}',
             ),
-            icon: BitmapDescriptor.defaultMarkerWithHue(markerHue),
+            icon: gmap.BitmapDescriptor.defaultMarkerWithHue(markerHue),
           );
         }).toSet();
+
+
 
     final mapContent = Stack(
       children: [
         Positioned.fill(
-          child: GoogleMap(
-            initialCameraPosition: CameraPosition(
+          child: gmap.GoogleMap(
+            initialCameraPosition: gmap.CameraPosition(
               target: center,
               zoom: validPoles.isEmpty ? 5.0 : 13.0,
             ),
             markers: markers,
+            mapType: gmap.MapType.normal,
             myLocationButtonEnabled: false,
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,

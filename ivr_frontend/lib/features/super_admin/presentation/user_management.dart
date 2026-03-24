@@ -64,11 +64,14 @@ class UserManagement extends StatelessWidget {
         icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Admin'),
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: state.users.length,
-        itemBuilder: (context, index) {
-          final user = state.users[index];
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            itemCount: state.users.length,
+            itemBuilder: (context, index) {
+              final user = state.users[index];
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             child: ListTile(
@@ -143,6 +146,8 @@ class UserManagement extends StatelessWidget {
                                 _showDeleteDialog(context, user.id, user.email),
                       ),
             ),
+              );
+            },
           );
         },
       ),

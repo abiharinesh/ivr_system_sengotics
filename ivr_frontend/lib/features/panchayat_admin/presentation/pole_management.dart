@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
@@ -65,8 +65,11 @@ class PoleManagement extends StatelessWidget {
         icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Pole'),
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
         itemCount: state.poles.length,
         itemBuilder: (context, index) {
           final pole = state.poles[index];
@@ -220,6 +223,8 @@ class PoleManagement extends StatelessWidget {
             ),
           );
         },
+          );
+        },
       ),
     );
   }
@@ -290,7 +295,7 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
   final _landmarksC = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  LatLng? _selectedLocation;
+  gmap.LatLng? _selectedLocation;
   bool _isFetchingLocation = false;
 
   @override
@@ -304,7 +309,7 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
       _landmarksC.text = widget.pole.landmarks.join(', ');
 
       if (widget.pole.latitude != null && widget.pole.longitude != null) {
-        _selectedLocation = LatLng(
+        _selectedLocation = gmap.LatLng(
           widget.pole.latitude!,
           widget.pole.longitude!,
         );
@@ -334,7 +339,7 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
 
       Position position = await Geolocator.getCurrentPosition();
       setState(() {
-        _selectedLocation = LatLng(position.latitude, position.longitude);
+        _selectedLocation = gmap.LatLng(position.latitude, position.longitude);
         _latC.text = position.latitude.toString();
         _lngC.text = position.longitude.toString();
       });
@@ -354,12 +359,44 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final mapWidget = gmap.GoogleMap(
+      initialCameraPosition: gmap.CameraPosition(
+        target:
+            _selectedLocation ??
+            const gmap.LatLng(20.5937, 78.9629),
+        zoom: _selectedLocation == null ? 4.0 : 15.0,
+      ),
+      onTap: (point) {
+        setState(() {
+          _selectedLocation = point;
+          _latC.text = point.latitude.toString();
+          _lngC.text = point.longitude.toString();
+        });
+      },
+      markers:
+          _selectedLocation == null
+              ? {}
+              : {
+                gmap.Marker(
+                  markerId: const gmap.MarkerId('selected_location'),
+                  position: _selectedLocation!,
+                ),
+              },
+      myLocationButtonEnabled: false,
+      zoomControlsEnabled: false,
+      mapToolbarEnabled: false,
+    );
+
     return AlertDialog(
       title: Text(widget.pole == null ? 'Add Electric Pole' : 'Edit Pole'),
       content: Form(
         key: _formKey,
-        child: SizedBox(
-          width: 600,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width < 640
+                ? MediaQuery.of(context).size.width * 0.9
+                : 600,
+          ),
           child: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -404,33 +441,7 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                   clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
-                      GoogleMap(
-                        initialCameraPosition: CameraPosition(
-                          target:
-                              _selectedLocation ??
-                              const LatLng(20.5937, 78.9629),
-                          zoom: _selectedLocation == null ? 4.0 : 15.0,
-                        ),
-                        onTap: (point) {
-                          setState(() {
-                            _selectedLocation = point;
-                            _latC.text = point.latitude.toString();
-                            _lngC.text = point.longitude.toString();
-                          });
-                        },
-                        markers:
-                            _selectedLocation == null
-                                ? {}
-                                : {
-                                  Marker(
-                                    markerId: const MarkerId('selected_location'),
-                                    position: _selectedLocation!,
-                                  ),
-                                },
-                        myLocationButtonEnabled: false,
-                        zoomControlsEnabled: false,
-                        mapToolbarEnabled: false,
-                      ),
+                      mapWidget,
                       Positioned(
                         right: 8,
                         bottom: 8,

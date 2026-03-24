@@ -48,6 +48,7 @@ class SuperAdminDashboard extends StatelessWidget {
 
   Widget _buildDashboard(BuildContext context, SADashLoaded state) {
     final stats = state.stats;
+    final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -55,7 +56,7 @@ class SuperAdminDashboard extends StatelessWidget {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -89,12 +90,14 @@ class SuperAdminDashboard extends StatelessWidget {
             ],
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 900 ? 4 : 2;
+                final w = constraints.maxWidth;
+                final crossAxisCount = w > 900 ? 4 : 2;
+                final isMobile = w < 600;
                 return GridView.count(
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 1.85,
+                  childAspectRatio: isMobile ? 1.45 : 1.85,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
@@ -178,207 +181,265 @@ class _MapDesignCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final w = constraints.maxWidth;
+        final compact = w < 760;
+        final veryCompact = w < 540;
+        final ultraCompact = w < 380;
+        final mapHeight = veryCompact ? 280.0 : 300.0;
+        final infoCardWidth =
+            (w - 44).clamp(140.0, 230.0).toDouble();
+
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(veryCompact ? 10 : 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                if (compact) ...[
+                  Text(
+                    ultraCompact ? 'Asset Map (GIS)' : 'Panchayat Asset Map (GIS View)',
+                    style: TextStyle(
+                      fontSize: ultraCompact ? 16 : 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    ultraCompact
+                        ? 'Real-time pole status'
+                        : 'Real-time status of electric poles and local infrastructure',
+                    style: TextStyle(
+                      fontSize: ultraCompact ? 12 : 14,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
                     children: [
-                      Text(
-                        'Panchayat Asset Map (GIS View)',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+                      _tab('All Wards', true),
+                      _tab('Poles', false),
+                      _tab('Complaints', false),
+                      _tab('Faults', false),
+                    ],
+                  ),
+                ] else
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Panchayat Asset Map (GIS View)',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              'Real-time status of electric poles and local infrastructure',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Real-time status of electric poles and local infrastructure',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
+                      _tab('All Wards', true),
+                      const SizedBox(width: 6),
+                      _tab('Poles', false),
+                      const SizedBox(width: 6),
+                      _tab('Complaints', false),
+                      const SizedBox(width: 6),
+                      _tab('Faults', false),
+                    ],
+                  ),
+                SizedBox(height: veryCompact ? 10 : 14),
+                Container(
+                  height: mapHeight,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: Stack(
+                    clipBehavior: Clip.hardEdge,
+                    children: [
+                      Positioned.fill(
+                        child: MapOverview(
+                          poles: poles,
+                          height: mapHeight,
+                          showLegend: false,
+                          showCardDecoration: false,
+                          borderRadius: 12,
+                        ),
+                      ),
+                      Positioned(
+                        left: veryCompact ? 6 : 16,
+                        bottom: veryCompact ? 6 : 16,
+                        child: Container(
+                          width: ultraCompact ? 95 : (veryCompact ? 110 : 130),
+                          padding: EdgeInsets.all(veryCompact ? 6 : 10),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.95),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'LEGEND',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: AppTheme.textMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(height: 6),
+                              _LegendRow('Active (Healthy)', Color(0xFF10B981)),
+                              SizedBox(height: 4),
+                              _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
+                              SizedBox(height: 4),
+                              _LegendRow('Critical Fault', Color(0xFFEF4444)),
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (!ultraCompact)
+                      Align(
+                        alignment: veryCompact
+                            ? Alignment.bottomCenter
+                            : Alignment.centerRight,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: veryCompact ? 0 : 16,
+                            top: veryCompact ? 0 : 80,
+                            bottom: veryCompact ? 56 : 0,
+                          ),
+                          child: Container(
+                            width: infoCardWidth,
+                            padding: EdgeInsets.all(veryCompact ? 10 : 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.96),
+                              borderRadius: BorderRadius.circular(10),
+                              boxShadow: AppTheme.softShadow,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Text(
+                                      'ALERT: FAULTY',
+                                      style: TextStyle(
+                                        color: AppTheme.error,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Icon(
+                                      Icons.close_rounded,
+                                      size: 14,
+                                      color: AppTheme.textMuted.withValues(
+                                        alpha: 0.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                const Text(
+                                  'Pole ID: PL-1021',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Ward: Ward 4',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                const Text(
+                                  'Tech Assigned: Not Yet',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 30,
+                                  child: ElevatedButton(
+                                    onPressed: () {},
+                                    style: ElevatedButton.styleFrom(
+                                      padding: EdgeInsets.zero,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Assign Task',
+                                      style: TextStyle(fontSize: 12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: veryCompact ? 6 : null,
+                        right: veryCompact ? 6 : 16,
+                        bottom: veryCompact ? 6 : 14,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            '$totalPoles assets tracked',
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.textSecondary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                _tab('All Wards', true),
-                const SizedBox(width: 6),
-                _tab('Poles', false),
-                const SizedBox(width: 6),
-                _tab('Complaints', false),
-                const SizedBox(width: 6),
-                _tab('Faults', false),
               ],
             ),
-            const SizedBox(height: 14),
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Stack(
-                children: [
-                  Positioned.fill(
-                    child: MapOverview(
-                      poles: poles,
-                      height: 300,
-                      showLegend: false,
-                      showCardDecoration: false,
-                      borderRadius: 12,
-                    ),
-                  ),
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: Container(
-                      width: 130,
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'LEGEND',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          SizedBox(height: 6),
-                          _LegendRow('Active (Healthy)', Color(0xFF10B981)),
-                          SizedBox(height: 4),
-                          _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
-                          SizedBox(height: 4),
-                          _LegendRow('Critical Fault', Color(0xFFEF4444)),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    top: 80,
-                    child: Container(
-                      width: 210,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.96),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: AppTheme.softShadow,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const Text(
-                                'ALERT: FAULTY',
-                                style: TextStyle(
-                                  color: AppTheme.error,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const Spacer(),
-                              Icon(
-                                Icons.close_rounded,
-                                size: 14,
-                                color: AppTheme.textMuted.withValues(
-                                  alpha: 0.6,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          const Text(
-                            'Pole ID: PL-1021',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Ward: Ward 4',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Tech Assigned: Not Yet',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 30,
-                            child: ElevatedButton(
-                              onPressed: () {},
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.zero,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              child: const Text(
-                                'Assign Task',
-                                style: TextStyle(fontSize: 12),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    right: 16,
-                    bottom: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 5,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Text(
-                        '$totalPoles assets tracked',
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -410,6 +471,7 @@ class _LegendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 8,
@@ -417,9 +479,13 @@ class _LegendRow extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
       ],
     );
@@ -445,18 +511,43 @@ class _ComplaintTrendCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Complaint Resolution Trend',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                _LegendDot('Current Week', AppTheme.primary),
-                SizedBox(width: 12),
-                _LegendDot('Last Week', Color(0xFFBFDBFE)),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 380;
+                if (narrow) {
+                  return const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Complaint Resolution Trend',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 10),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 6,
+                        children: [
+                          _LegendDot('Current Week', AppTheme.primary),
+                          _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+                return const Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Complaint Resolution Trend',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    _LegendDot('Current Week', AppTheme.primary),
+                    SizedBox(width: 12),
+                    _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 14),
             SizedBox(
@@ -572,14 +663,17 @@ class _CategoryCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          row.$1,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                        Expanded(
+                          child: Text(
+                            row.$1,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Text(
                           '${(row.$2 * 100).round()}%',
                           style: const TextStyle(
@@ -628,11 +722,13 @@ class _RecentActivityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Text(
-                  'Recent Activity',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                Expanded(
+                  child: Text(
+                    'Recent Activity',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
                 TextButton(onPressed: () {}, child: const Text('View All')),
               ],
             ),
@@ -701,6 +797,7 @@ class _ActivityLine extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -710,6 +807,8 @@ class _ActivityLine extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -718,6 +817,8 @@ class _ActivityLine extends StatelessWidget {
                     fontSize: 12,
                     color: AppTheme.textSecondary,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -726,6 +827,7 @@ class _ActivityLine extends StatelessWidget {
                     fontSize: 11,
                     color: AppTheme.textMuted,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

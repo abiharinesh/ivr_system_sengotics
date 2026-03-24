@@ -68,11 +68,14 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
         icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Panchayat'),
       ),
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        itemCount: state.panchayats.length,
-        itemBuilder: (context, index) {
-          final p = state.panchayats[index];
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+          return ListView.builder(
+            padding: EdgeInsets.symmetric(horizontal: hPad),
+            itemCount: state.panchayats.length,
+            itemBuilder: (context, index) {
+              final p = state.panchayats[index];
           return Card(
             margin: const EdgeInsets.only(bottom: 12),
             child: Padding(
@@ -166,6 +169,8 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                 ],
               ),
             ),
+              );
+            },
           );
         },
       ),

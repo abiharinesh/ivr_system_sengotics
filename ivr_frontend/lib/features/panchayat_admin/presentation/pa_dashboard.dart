@@ -54,6 +54,7 @@ class PADashboard extends StatelessWidget {
     final stats = state.stats;
     final profile = state.profile;
     final titlePanchayat = profile.panchayatName ?? 'This Panchayat';
+    final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -61,7 +62,7 @@ class PADashboard extends StatelessWidget {
       },
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -96,12 +97,14 @@ class PADashboard extends StatelessWidget {
             ],
             LayoutBuilder(
               builder: (context, constraints) {
-                final crossAxisCount = constraints.maxWidth > 900 ? 4 : 2;
+                final w = constraints.maxWidth;
+                final crossAxisCount = w > 900 ? 4 : 2;
+                final isMobile = w < 600;
                 return GridView.count(
                   crossAxisCount: crossAxisCount,
                   crossAxisSpacing: 16,
                   mainAxisSpacing: 16,
-                  childAspectRatio: 1.85,
+                  childAspectRatio: isMobile ? 1.45 : 1.85,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   children: [
@@ -194,11 +197,13 @@ class _MapDesignCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final compact = constraints.maxWidth < 760;
-        final veryCompact = constraints.maxWidth < 540;
-        final mapHeight = constraints.maxWidth < 540 ? 320.0 : 300.0;
+        final w = constraints.maxWidth;
+        final compact = w < 760;
+        final veryCompact = w < 540;
+        final ultraCompact = w < 380;
+        final mapHeight = veryCompact ? 280.0 : 300.0;
         final infoCardWidth =
-            (constraints.maxWidth - 44).clamp(180.0, 230.0).toDouble();
+            (w - 44).clamp(140.0, 230.0).toDouble();
 
         return Container(
           decoration: BoxDecoration(
@@ -208,15 +213,15 @@ class _MapDesignCard extends StatelessWidget {
             boxShadow: AppTheme.softShadow,
           ),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(veryCompact ? 10 : 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (compact) ...[
-                  const Text(
-                    'Panchayat Asset Map (GIS View)',
+                  Text(
+                    ultraCompact ? 'Asset Map (GIS)' : 'Panchayat Asset Map (GIS View)',
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: ultraCompact ? 16 : 20,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.textPrimary,
                     ),
@@ -224,8 +229,8 @@ class _MapDesignCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Real-time status in $panchayatName',
-                    style: const TextStyle(
-                      fontSize: 12,
+                    style: TextStyle(
+                      fontSize: ultraCompact ? 12 : 14,
                       color: AppTheme.textSecondary,
                     ),
                   ),
@@ -275,13 +280,15 @@ class _MapDesignCard extends StatelessWidget {
                       _tab('Faults', false),
                     ],
                   ),
-                const SizedBox(height: 14),
+                SizedBox(height: veryCompact ? 10 : 14),
                 Container(
                   height: mapHeight,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  clipBehavior: Clip.hardEdge,
                   child: Stack(
+                    clipBehavior: Clip.hardEdge,
                     children: [
                       Positioned.fill(
                         child: MapOverview(
@@ -293,17 +300,18 @@ class _MapDesignCard extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        left: 16,
-                        bottom: 16,
+                        left: veryCompact ? 6 : 16,
+                        bottom: veryCompact ? 6 : 16,
                         child: Container(
-                          width: veryCompact ? 120 : 130,
-                          padding: const EdgeInsets.all(10),
+                          width: ultraCompact ? 95 : (veryCompact ? 110 : 130),
+                          padding: EdgeInsets.all(veryCompact ? 6 : 10),
                           decoration: BoxDecoration(
                             color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 'LEGEND',
@@ -323,6 +331,7 @@ class _MapDesignCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (!ultraCompact)
                       Align(
                         alignment:
                             veryCompact
@@ -332,7 +341,7 @@ class _MapDesignCard extends StatelessWidget {
                           padding: EdgeInsets.only(
                             right: veryCompact ? 0 : 16,
                             top: veryCompact ? 0 : 42,
-                            bottom: veryCompact ? 62 : 0,
+                            bottom: veryCompact ? 56 : 0,
                           ),
                           child: Container(
                             width: infoCardWidth,
@@ -414,8 +423,9 @@ class _MapDesignCard extends StatelessWidget {
                         ),
                       ),
                       Positioned(
-                        right: 16,
-                        bottom: veryCompact ? 16 : 14,
+                        left: veryCompact ? 6 : null,
+                        right: veryCompact ? 6 : 16,
+                        bottom: veryCompact ? 6 : 14,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 10,
@@ -474,6 +484,7 @@ class _LegendRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: 8,
@@ -481,9 +492,13 @@ class _LegendRow extends StatelessWidget {
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
         const SizedBox(width: 5),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
         ),
       ],
     );
@@ -509,18 +524,43 @@ class _ComplaintTrendCard extends StatelessWidget {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Complaint Resolution Trend',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                  ),
-                ),
-                _LegendDot('Current Week', AppTheme.primary),
-                SizedBox(width: 12),
-                _LegendDot('Last Week', Color(0xFFBFDBFE)),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final narrow = constraints.maxWidth < 380;
+                if (narrow) {
+                  return const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Complaint Resolution Trend',
+                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                      ),
+                      SizedBox(height: 10),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 6,
+                        children: [
+                          _LegendDot('Current Week', AppTheme.primary),
+                          _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+                return const Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Complaint Resolution Trend',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                    _LegendDot('Current Week', AppTheme.primary),
+                    SizedBox(width: 12),
+                    _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 14),
             SizedBox(
@@ -636,14 +676,17 @@ class _CategoryCard extends StatelessWidget {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          row.$1,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                        Expanded(
+                          child: Text(
+                            row.$1,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        const Spacer(),
+                        const SizedBox(width: 8),
                         Text(
                           '${(row.$2 * 100).round()}%',
                           style: const TextStyle(
@@ -693,11 +736,13 @@ class _RecentActivityCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Text(
-                  'Recent Activity',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                Expanded(
+                  child: Text(
+                    'Recent Activity',
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                const Spacer(),
                 TextButton(onPressed: () {}, child: const Text('View All')),
               ],
             ),
@@ -763,6 +808,7 @@ class _ActivityLine extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -772,6 +818,8 @@ class _ActivityLine extends StatelessWidget {
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -780,6 +828,8 @@ class _ActivityLine extends StatelessWidget {
                     fontSize: 12,
                     color: AppTheme.textSecondary,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -788,6 +838,7 @@ class _ActivityLine extends StatelessWidget {
                     fontSize: 11,
                     color: AppTheme.textMuted,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

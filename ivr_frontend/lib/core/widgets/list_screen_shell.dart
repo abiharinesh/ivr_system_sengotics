@@ -24,11 +24,14 @@ class ListScreenShell extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 640;
+        final isMobile = constraints.maxWidth < 400;
+        final hMargin = isMobile ? 12.0 : 24.0;
+        final innerPad = isMobile ? 12.0 : 18.0;
         return Column(
           children: [
             Container(
-              margin: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-              padding: const EdgeInsets.all(18),
+              margin: EdgeInsets.fromLTRB(hMargin, 20, hMargin, 12),
+              padding: EdgeInsets.all(innerPad),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
