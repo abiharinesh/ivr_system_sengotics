@@ -17,13 +17,13 @@ Restrict the key to your domain in Google Cloud Console (e.g. `*.vercel.app` and
 So the Flutter app gets the key at build time, run the inject script before building:
 
 ```bash
-cd ivr_frontend && sh scripts/inject_env.sh && flutter pub get && flutter build web
+cd ivr_frontend && sh scripts/vercel_build.sh
 ```
 
 If the frontend is the only thing deployed (root = `ivr_frontend`):
 
 ```bash
-sh scripts/inject_env.sh && flutter pub get && flutter build web
+sh scripts/vercel_build.sh
 ```
 
 **Output directory:** `build/web`
