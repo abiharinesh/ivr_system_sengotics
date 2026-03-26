@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../config/app_theme.dart';
+import '../env_maps_loader.dart';
 import '../../models/pole_model.dart';
 
 class MapOverview extends StatelessWidget {
@@ -64,21 +66,33 @@ class MapOverview extends StatelessWidget {
 
 
 
+    final mapUnavailableOnWeb = kIsWeb && !isMapsJsReady;
+
     final mapContent = Stack(
       children: [
         Positioned.fill(
-          child: gmap.GoogleMap(
-            initialCameraPosition: gmap.CameraPosition(
-              target: center,
-              zoom: validPoles.isEmpty ? 5.0 : 13.0,
-            ),
-            markers: markers,
-            mapType: gmap.MapType.normal,
-            myLocationButtonEnabled: false,
-            zoomControlsEnabled: false,
-            mapToolbarEnabled: false,
+          child: mapUnavailableOnWeb
+              ? Container(
+                  color: Colors.white70,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    'Map unavailable. Check internet/API key and refresh.',
+                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                )
+              : gmap.GoogleMap(
+                  initialCameraPosition: gmap.CameraPosition(
+                    target: center,
+                    zoom: validPoles.isEmpty ? 5.0 : 13.0,
+                  ),
+                  markers: markers,
+                  mapType: gmap.MapType.normal,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapToolbarEnabled: false,
+                ),
           ),
-        ),
         if (validPoles.isEmpty)
           Container(
             color: Colors.white70,

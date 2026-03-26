@@ -1,13 +1,23 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConfig {
   static const String _prodBaseUrl = 'https://ivr-system-sengotics.vercel.app';
   static const String _localBaseUrl = 'http://localhost:3000';
 
+  /// Override order: `--dart-define=API_BASE_URL=...` → `.env` `API_BASE_URL` → defaults.
+  /// Web defaults to the live server in debug (browser CORS/hosting); mobile/desktop debug uses local API.
   static String get baseUrl {
     const fromDefine = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (fromDefine.isNotEmpty) {
       return fromDefine;
+    }
+    final fromEnv = dotenv.env['API_BASE_URL']?.trim();
+    if (fromEnv != null && fromEnv.isNotEmpty) {
+      return fromEnv;
+    }
+    if (kIsWeb) {
+      return _prodBaseUrl;
     }
     return kReleaseMode ? _prodBaseUrl : _localBaseUrl;
   }

@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:js_interop';
 import 'package:web/web.dart' as web;
 
-/// Injects the Google Maps JS script with [apiKey] and returns when loaded.
-Future<void> ensureMapsScriptLoaded(String? apiKey) async {
-  if (apiKey == null || apiKey.isEmpty) return;
+/// Injects the Google Maps JS script with [apiKey] and returns true if loaded.
+Future<bool> ensureMapsScriptLoaded(String? apiKey) async {
+  if (apiKey == null || apiKey.isEmpty) return false;
   final key = apiKey.trim();
   final src =
       'https://maps.googleapis.com/maps/api/js?key=$key&loading=async&libraries=marker&v=weekly';
@@ -15,7 +15,7 @@ Future<void> ensureMapsScriptLoaded(String? apiKey) async {
   if (existingScript != null) {
     final existingSrc = (existingScript as web.HTMLScriptElement).src;
     if (existingSrc.contains('loading=async')) {
-      return;
+      return true;
     }
     // Remove stale direct-loader scripts to avoid warning spam.
     existingScript.remove();
@@ -26,14 +26,14 @@ Future<void> ensureMapsScriptLoaded(String? apiKey) async {
     ..async = true
     ..defer = true;
 
-  final completer = Completer<void>();
+  final completer = Completer<bool>();
 
   late JSFunction onLoad;
   late JSFunction onError;
 
   onLoad = ((web.Event _) {
     if (!completer.isCompleted) {
-      completer.complete();
+      completer.complete(true);
     }
     script.removeEventListener('load', onLoad);
     script.removeEventListener('error', onError);
@@ -41,7 +41,7 @@ Future<void> ensureMapsScriptLoaded(String? apiKey) async {
 
   onError = ((web.Event _) {
     if (!completer.isCompleted) {
-      completer.complete();
+      completer.complete(false);
     }
     script.removeEventListener('load', onLoad);
     script.removeEventListener('error', onError);

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../config/app_theme.dart';
+import '../../../core/env_maps_loader.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../bloc/pole_bloc.dart';
@@ -359,33 +361,44 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final mapWidget = gmap.GoogleMap(
-      initialCameraPosition: gmap.CameraPosition(
-        target:
-            _selectedLocation ??
-            const gmap.LatLng(20.5937, 78.9629),
-        zoom: _selectedLocation == null ? 4.0 : 15.0,
-      ),
-      onTap: (point) {
-        setState(() {
-          _selectedLocation = point;
-          _latC.text = point.latitude.toString();
-          _lngC.text = point.longitude.toString();
-        });
-      },
-      markers:
-          _selectedLocation == null
-              ? {}
-              : {
-                gmap.Marker(
-                  markerId: const gmap.MarkerId('selected_location'),
-                  position: _selectedLocation!,
-                ),
+    final mapUnavailableOnWeb = kIsWeb && !isMapsJsReady;
+    final Widget mapWidget =
+        mapUnavailableOnWeb
+            ? Container(
+              color: Colors.black12,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.all(12),
+              child: const Text(
+                'Map unavailable. Check internet/API key and refresh.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppTheme.textSecondary),
+              ),
+            )
+            : gmap.GoogleMap(
+              initialCameraPosition: gmap.CameraPosition(
+                target: _selectedLocation ?? const gmap.LatLng(20.5937, 78.9629),
+                zoom: _selectedLocation == null ? 4.0 : 15.0,
+              ),
+              onTap: (point) {
+                setState(() {
+                  _selectedLocation = point;
+                  _latC.text = point.latitude.toString();
+                  _lngC.text = point.longitude.toString();
+                });
               },
-      myLocationButtonEnabled: false,
-      zoomControlsEnabled: false,
-      mapToolbarEnabled: false,
-    );
+              markers:
+                  _selectedLocation == null
+                      ? {}
+                      : {
+                        gmap.Marker(
+                          markerId: const gmap.MarkerId('selected_location'),
+                          position: _selectedLocation!,
+                        ),
+                      },
+              myLocationButtonEnabled: false,
+              zoomControlsEnabled: false,
+              mapToolbarEnabled: false,
+            );
 
     return AlertDialog(
       title: Text(widget.pole == null ? 'Add Electric Pole' : 'Edit Pole'),

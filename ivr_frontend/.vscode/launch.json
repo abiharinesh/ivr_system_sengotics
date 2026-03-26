@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Web (Chrome, live API)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome", "--dart-define=API_BASE_URL=https://ivr-system-sengotics.vercel.app"]
+    },
+    {
+      "name": "Flutter Web (Chrome, local API)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "args": ["-d", "chrome", "--dart-define=API_BASE_URL=http://localhost:3000"]
+    }
+  ]
+}
