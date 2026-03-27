@@ -3,9 +3,12 @@ const MANIFEST = 'flutter-app-manifest';
 const TEMP = 'flutter-temp-cache';
 const CACHE_NAME = 'flutter-app-cache';
 
-const RESOURCES = {"assets/AssetManifest.bin": "818e40f7c5360b86817c9bceb98c98f4",
-"assets/AssetManifest.bin.json": "46e251d9093e9659d1a86a2ef7b30147",
-"assets/AssetManifest.json": "2ebbf9174e500bf880a0d954a1f4a073",
+const RESOURCES = {"assets/AssetManifest.bin": "426f7e4a8f472c4d2ef4c40715a7e93d",
+"assets/AssetManifest.bin.json": "3ad12feea9442067bb0b3a0dccefdcb8",
+"assets/AssetManifest.json": "688ab185a42c99ae723e58dc8982b41d",
+"assets/assets/map_markers/active_green.png": "4bb41cc035d201c710603c91e535747a",
+"assets/assets/map_markers/fault_red.png": "c0b08ee538c8084bd174166259097ad4",
+"assets/assets/map_markers/inactive_yellow.png": "ad53a5b35ab49fa80f5a692ad839b6d0",
 "assets/assets/redesign/avatars/admin_1.jpg": "4d5bbf3e52203e7f5f1774e3b7ae71dd",
 "assets/assets/redesign/avatars/admin_2.jpg": "ee7f23d6cb6677f1dcc534bc67752105",
 "assets/assets/redesign/avatars/technician_1.jpg": "a910f2eade4dfc0c6b6527480595472a",
@@ -33,14 +36,14 @@ const RESOURCES = {"assets/AssetManifest.bin": "818e40f7c5360b86817c9bceb98c98f4
 "canvaskit/skwasm_st.wasm": "56c3973560dfcbf28ce47cebe40f3206",
 "favicon.png": "5dcef449791fa27946b3d35ad8803796",
 "flutter.js": "76f08d47ff9f5715220992f993002504",
-"flutter_bootstrap.js": "926f9f01ece7ab5cd64ee27c439faf11",
+"flutter_bootstrap.js": "195746a449f018ed966e15d851892633",
 "icons/Icon-192.png": "ac9a721a12bbc803b44f645561ecb1e1",
 "icons/Icon-512.png": "96e752610906ba2a93c65f8abe1645f1",
 "icons/Icon-maskable-192.png": "c457ef57daa1d16f64b27b786ec2ea3c",
 "icons/Icon-maskable-512.png": "301a7604d45b3e739efc881eb04896ea",
 "index.html": "d750a5e4b4881af30a545517d18a4394",
 "/": "d750a5e4b4881af30a545517d18a4394",
-"main.dart.js": "02f721c3207e721956ff9ef4c1effc87",
+"main.dart.js": "f19612257de5ac5490c99884e11cfca6",
 "manifest.json": "8804833c6e87f534592d1a0c7cc3d151",
 "version.json": "ac1fc62f98e6557106014547657ebcf2"};
 // The application shell files that are downloaded before a service worker can

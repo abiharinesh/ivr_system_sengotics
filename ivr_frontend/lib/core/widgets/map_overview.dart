@@ -5,13 +5,24 @@ import '../../config/app_theme.dart';
 import '../env_maps_loader.dart';
 import '../../models/pole_model.dart';
 
-class MapOverview extends StatelessWidget {
+enum PoleMarkerStatus { active, inactive, fault }
+
+class MapOverview extends StatefulWidget {
   final List<PoleModel> poles;
   final double height;
   final gmap.LatLng? defaultCenter;
   final bool showLegend;
   final bool showCardDecoration;
   final double borderRadius;
+  final ValueChanged<PoleModel>? onPoleTap;
+  final bool showInfoWindow;
+  final bool focusFaultPolesFirst;
+  final gmap.BitmapDescriptor Function(PoleModel pole, PoleMarkerStatus status)?
+  markerIconBuilder;
+  final bool usePngMarkers;
+  final String faultMarkerAsset;
+  final String activeMarkerAsset;
+  final String inactiveMarkerAsset;
 
   const MapOverview({
     super.key,
@@ -21,46 +32,237 @@ class MapOverview extends StatelessWidget {
     this.showLegend = true,
     this.showCardDecoration = true,
     this.borderRadius = 18,
+    this.onPoleTap,
+    this.showInfoWindow = true,
+    this.focusFaultPolesFirst = false,
+    this.markerIconBuilder,
+    this.usePngMarkers = false,
+    this.faultMarkerAsset = 'assets/map_markers/fault_red.png',
+    this.activeMarkerAsset = 'assets/map_markers/active_green.png',
+    this.inactiveMarkerAsset = 'assets/map_markers/inactive_yellow.png',
   });
+
+  @override
+  State<MapOverview> createState() => _MapOverviewState();
+}
+
+class _MapOverviewState extends State<MapOverview> {
+  gmap.GoogleMapController? _mapController;
+  gmap.BitmapDescriptor? _faultPngMarker;
+  gmap.BitmapDescriptor? _activePngMarker;
+  gmap.BitmapDescriptor? _inactivePngMarker;
+
+  List<PoleModel> get _validPoles =>
+      widget.poles.where((p) => p.latitude != null && p.longitude != null).toList();
+
+  PoleMarkerStatus _statusForPole(PoleModel pole) {
+    if (pole.hasCriticalIssues) return PoleMarkerStatus.fault;
+    if (pole.hasManualReviewIssues) return PoleMarkerStatus.inactive;
+    if (pole.keypadId == null) return PoleMarkerStatus.inactive;
+    return PoleMarkerStatus.active;
+  }
+
+  gmap.BitmapDescriptor _defaultMarkerForStatus(PoleMarkerStatus status) {
+    if (widget.usePngMarkers) {
+      final pngMarker = _pngMarkerForStatus(status);
+      if (pngMarker != null) return pngMarker;
+    }
+
+    switch (status) {
+      case PoleMarkerStatus.fault:
+        return gmap.BitmapDescriptor.defaultMarkerWithHue(
+          gmap.BitmapDescriptor.hueRed,
+        );
+      case PoleMarkerStatus.inactive:
+        return gmap.BitmapDescriptor.defaultMarkerWithHue(
+          gmap.BitmapDescriptor.hueAzure,
+        );
+      case PoleMarkerStatus.active:
+        return gmap.BitmapDescriptor.defaultMarkerWithHue(
+          gmap.BitmapDescriptor.hueGreen,
+        );
+    }
+  }
+
+  gmap.BitmapDescriptor? _pngMarkerForStatus(PoleMarkerStatus status) {
+    switch (status) {
+      case PoleMarkerStatus.fault:
+        return _faultPngMarker;
+      case PoleMarkerStatus.inactive:
+        return _inactivePngMarker;
+      case PoleMarkerStatus.active:
+        return _activePngMarker;
+    }
+  }
+
+  Future<void> _loadPngMarkers() async {
+    if (!widget.usePngMarkers || widget.markerIconBuilder != null) return;
+
+    try {
+      final imageConfig = const ImageConfiguration(size: Size(36, 36));
+      final fault = await gmap.BitmapDescriptor.fromAssetImage(
+        imageConfig,
+        widget.faultMarkerAsset,
+      );
+      final active = await gmap.BitmapDescriptor.fromAssetImage(
+        imageConfig,
+        widget.activeMarkerAsset,
+      );
+      final inactive = await gmap.BitmapDescriptor.fromAssetImage(
+        imageConfig,
+        widget.inactiveMarkerAsset,
+      );
+      if (!mounted) return;
+      setState(() {
+        _faultPngMarker = fault;
+        _activePngMarker = active;
+        _inactivePngMarker = inactive;
+      });
+    } catch (_) {
+      // If marker assets are unavailable on a platform/build,
+      // the map falls back to default hue markers.
+    }
+  }
+
+  gmap.LatLng _centroidOf(List<PoleModel> poles) {
+    double sumLat = 0;
+    double sumLng = 0;
+    for (final pole in poles) {
+      sumLat += pole.latitude!;
+      sumLng += pole.longitude!;
+    }
+    return gmap.LatLng(sumLat / poles.length, sumLng / poles.length);
+  }
+
+  List<PoleModel> _preferredCameraPoles(List<PoleModel> validPoles) {
+    if (!widget.focusFaultPolesFirst) return validPoles;
+    final faultPoles =
+        validPoles.where((pole) => pole.hasOpenIssues).toList();
+    return faultPoles.isNotEmpty ? faultPoles : validPoles;
+  }
+
+  gmap.LatLng _initialCenter(List<PoleModel> validPoles) {
+    if (validPoles.isEmpty) {
+      return widget.defaultCenter ?? const gmap.LatLng(20.5937, 78.9629);
+    }
+
+    final preferred = _preferredCameraPoles(validPoles);
+    return _centroidOf(preferred);
+  }
+
+  Future<void> _moveCameraToPreferredPoles({
+    required List<PoleModel> validPoles,
+    required bool animate,
+  }) async {
+    final controller = _mapController;
+    if (controller == null || validPoles.isEmpty) return;
+
+    final targetPoles = _preferredCameraPoles(validPoles);
+    if (targetPoles.isEmpty) return;
+
+    if (targetPoles.length == 1) {
+      final pole = targetPoles.first;
+      final update = gmap.CameraUpdate.newLatLngZoom(
+        gmap.LatLng(pole.latitude!, pole.longitude!),
+        15,
+      );
+      if (animate) {
+        await controller.animateCamera(update);
+      } else {
+        await controller.moveCamera(update);
+      }
+      return;
+    }
+
+    final latitudes = targetPoles.map((pole) => pole.latitude!).toList();
+    final longitudes = targetPoles.map((pole) => pole.longitude!).toList();
+    final bounds = gmap.LatLngBounds(
+      southwest: gmap.LatLng(
+        latitudes.reduce((a, b) => a < b ? a : b),
+        longitudes.reduce((a, b) => a < b ? a : b),
+      ),
+      northeast: gmap.LatLng(
+        latitudes.reduce((a, b) => a > b ? a : b),
+        longitudes.reduce((a, b) => a > b ? a : b),
+      ),
+    );
+    try {
+      final update = gmap.CameraUpdate.newLatLngBounds(bounds, 50);
+      if (animate) {
+        await controller.animateCamera(update);
+      } else {
+        await controller.moveCamera(update);
+      }
+    } catch (_) {
+      final fallback = gmap.CameraUpdate.newLatLngZoom(_centroidOf(targetPoles), 13);
+      if (animate) {
+        await controller.animateCamera(fallback);
+      } else {
+        await controller.moveCamera(fallback);
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPngMarkers();
+  }
+
+  @override
+  void didUpdateWidget(covariant MapOverview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final shouldReloadPngMarkers =
+        widget.usePngMarkers &&
+        (oldWidget.usePngMarkers != widget.usePngMarkers ||
+            oldWidget.faultMarkerAsset != widget.faultMarkerAsset ||
+            oldWidget.activeMarkerAsset != widget.activeMarkerAsset ||
+            oldWidget.inactiveMarkerAsset != widget.inactiveMarkerAsset);
+    if (shouldReloadPngMarkers) {
+      _loadPngMarkers();
+    }
+
+    final shouldRefocus =
+        oldWidget.poles != widget.poles ||
+        oldWidget.focusFaultPolesFirst != widget.focusFaultPolesFirst;
+    if (shouldRefocus && _mapController != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _moveCameraToPreferredPoles(validPoles: _validPoles, animate: true);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     // Collect valid locations
-    final validPoles =
-        poles.where((p) => p.latitude != null && p.longitude != null).toList();
+    final validPoles = _validPoles;
 
     // Calculate center
-    gmap.LatLng center =
-        defaultCenter ??
-        const gmap.LatLng(20.5937, 78.9629); // Default to India roughly
-    if (validPoles.isNotEmpty) {
-      double sumLat = 0;
-      double sumLng = 0;
-      for (var p in validPoles) {
-        sumLat += p.latitude!;
-        sumLng += p.longitude!;
-      }
-      center = gmap.LatLng(sumLat / validPoles.length, sumLng / validPoles.length);
-    }
+    final center = _initialCenter(validPoles);
 
     final markers =
         validPoles.map((p) {
-          final isRed = p.complaintsCount > 0;
-          final markerHue =
-              isRed
-                  ? gmap.BitmapDescriptor.hueRed
-                  : (p.keypadId == null
-                      ? gmap.BitmapDescriptor.hueAzure
-                      : gmap.BitmapDescriptor.hueGreen);
+          final status = _statusForPole(p);
+          final markerIcon =
+              widget.markerIconBuilder?.call(p, status) ??
+              _defaultMarkerForStatus(status);
 
           return gmap.Marker(
             markerId: gmap.MarkerId('pole_${p.id}'),
             position: gmap.LatLng(p.latitude!, p.longitude!),
-            infoWindow: gmap.InfoWindow(
-              title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
-              snippet: 'Complaints: ${p.complaintsCount}',
-            ),
-            icon: gmap.BitmapDescriptor.defaultMarkerWithHue(markerHue),
+            infoWindow:
+                widget.showInfoWindow
+                    ? gmap.InfoWindow(
+                      title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
+                      snippet:
+                          'Pending: ${p.pendingComplaints}, '
+                          'Processing: ${p.inProgressComplaints}, '
+                          'Manual: ${p.manualReviewComplaints}',
+                    )
+                    : gmap.InfoWindow.noText,
+            icon: markerIcon,
+            onTap: () => widget.onPoleTap?.call(p),
           );
         }).toSet();
 
@@ -86,6 +288,13 @@ class MapOverview extends StatelessWidget {
                     target: center,
                     zoom: validPoles.isEmpty ? 5.0 : 13.0,
                   ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                    _moveCameraToPreferredPoles(
+                      validPoles: validPoles,
+                      animate: false,
+                    );
+                  },
                   markers: markers,
                   mapType: gmap.MapType.normal,
                   myLocationButtonEnabled: false,
@@ -103,7 +312,7 @@ class MapOverview extends StatelessWidget {
               ),
             ),
           ),
-        if (showLegend)
+        if (widget.showLegend)
           Positioned(
             bottom: 12,
             right: 12,
@@ -121,7 +330,7 @@ class MapOverview extends StatelessWidget {
                   SizedBox(width: 12),
                   _LegendItem(color: Colors.red, label: 'Issue'),
                   SizedBox(width: 12),
-                  _LegendItem(color: Colors.blue, label: 'Inactive'),
+                  _LegendItem(color: Colors.amber, label: 'Inactive'),
                 ],
               ),
             ),
@@ -129,21 +338,21 @@ class MapOverview extends StatelessWidget {
       ],
     );
 
-    if (!showCardDecoration) {
+    if (!widget.showCardDecoration) {
       return SizedBox(
-        height: height,
+        height: widget.height,
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(borderRadius),
+          borderRadius: BorderRadius.circular(widget.borderRadius),
           child: mapContent,
         ),
       );
     }
 
     return Container(
-      height: height,
+      height: widget.height,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
       ),

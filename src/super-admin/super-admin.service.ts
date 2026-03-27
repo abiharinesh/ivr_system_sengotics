@@ -82,7 +82,11 @@ export class SuperAdminService {
             where: {
                 ...(panchayatId && !isNaN(panchayatId) && { panchayat_id: panchayatId })
             },
-            include: { panchayat: true },
+            include: {
+                panchayat: true,
+                _count: { select: { complaints: true } },
+                complaints: { select: { status: true } }
+            },
             orderBy: { id: 'desc' }
         })
     }

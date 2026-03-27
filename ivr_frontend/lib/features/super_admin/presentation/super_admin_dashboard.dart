@@ -174,10 +174,39 @@ class SuperAdminDashboard extends StatelessWidget {
   }
 }
 
-class _MapDesignCard extends StatelessWidget {
+class _MapDesignCard extends StatefulWidget {
   final int totalPoles;
   final List<PoleModel> poles;
   const _MapDesignCard({required this.totalPoles, required this.poles});
+
+  @override
+  State<_MapDesignCard> createState() => _MapDesignCardState();
+}
+
+class _MapDesignCardState extends State<_MapDesignCard> {
+  PoleModel? _selectedPole;
+
+  bool _isFault(PoleModel pole) => pole.hasCriticalIssues;
+
+  String _statusLabel(PoleModel pole) {
+    if (_isFault(pole)) return 'ALERT: FAULTY';
+    if (pole.hasManualReviewIssues) return 'ALERT: MANUAL REVIEW';
+    if (pole.keypadId == null) return 'STATUS: INACTIVE';
+    return 'STATUS: ACTIVE';
+  }
+
+  Color _statusColor(PoleModel pole) {
+    if (_isFault(pole)) return AppTheme.error;
+    if (pole.hasManualReviewIssues) return AppTheme.warning;
+    if (pole.keypadId == null) return AppTheme.textMuted;
+    return AppTheme.accent;
+  }
+
+  String _poleDisplayId(PoleModel pole) {
+    final number = pole.poleNumber?.trim();
+    if (number == null || number.isEmpty) return 'PL-${pole.id}';
+    return number;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -280,11 +309,16 @@ class _MapDesignCard extends StatelessWidget {
                     children: [
                       Positioned.fill(
                         child: MapOverview(
-                          poles: poles,
+                          poles: widget.poles,
                           height: mapHeight,
                           showLegend: false,
                           showCardDecoration: false,
                           borderRadius: 12,
+                          showInfoWindow: false,
+                          focusFaultPolesFirst: true,
+                          usePngMarkers: true,
+                          onPoleTap:
+                              (pole) => setState(() => _selectedPole = pole),
                         ),
                       ),
                       Positioned(
@@ -319,96 +353,113 @@ class _MapDesignCard extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (!ultraCompact)
-                      Align(
-                        alignment: veryCompact
-                            ? Alignment.bottomCenter
-                            : Alignment.centerRight,
-                        child: Padding(
-                          padding: EdgeInsets.only(
-                            right: veryCompact ? 0 : 16,
-                            top: veryCompact ? 0 : 80,
-                            bottom: veryCompact ? 56 : 0,
-                          ),
-                          child: Container(
-                            width: infoCardWidth,
-                            padding: EdgeInsets.all(veryCompact ? 10 : 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.96),
-                              borderRadius: BorderRadius.circular(10),
-                              boxShadow: AppTheme.softShadow,
+                      if (_selectedPole != null)
+                        Align(
+                          alignment:
+                              veryCompact
+                                  ? Alignment.bottomCenter
+                                  : Alignment.centerRight,
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              right: veryCompact ? 0 : 16,
+                              top: veryCompact ? 0 : 80,
+                              bottom: veryCompact ? 56 : 0,
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Text(
-                                      'ALERT: FAULTY',
-                                      style: TextStyle(
-                                        color: AppTheme.error,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w800,
+                            child: Container(
+                              width: ultraCompact ? w - 24 : infoCardWidth,
+                              padding: EdgeInsets.all(veryCompact ? 10 : 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.96),
+                                borderRadius: BorderRadius.circular(10),
+                                boxShadow: AppTheme.softShadow,
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        _statusLabel(_selectedPole!),
+                                        style: TextStyle(
+                                          color: _statusColor(_selectedPole!),
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                        ),
                                       ),
-                                    ),
-                                    const Spacer(),
-                                    Icon(
-                                      Icons.close_rounded,
-                                      size: 14,
-                                      color: AppTheme.textMuted.withValues(
-                                        alpha: 0.6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 6),
-                                const Text(
-                                  'Pole ID: PL-1021',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'Ward: Ward 4',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                const Text(
-                                  'Tech Assigned: Not Yet',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: AppTheme.textSecondary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                SizedBox(
-                                  width: double.infinity,
-                                  height: 30,
-                                  child: ElevatedButton(
-                                    onPressed: () {},
-                                    style: ElevatedButton.styleFrom(
-                                      padding: EdgeInsets.zero,
-                                      shape: RoundedRectangleBorder(
+                                      const Spacer(),
+                                      InkWell(
+                                        onTap:
+                                            () =>
+                                                setState(() => _selectedPole = null),
                                         borderRadius: BorderRadius.circular(8),
+                                        child: Icon(
+                                          Icons.close_rounded,
+                                          size: 16,
+                                          color: AppTheme.textMuted.withValues(
+                                            alpha: 0.7,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                    child: const Text(
-                                      'Assign Task',
-                                      style: TextStyle(fontSize: 12),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Pole ID: ${_poleDisplayId(_selectedPole!)}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
                                     ),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Pending: ${_selectedPole!.pendingComplaints}, '
+                                    'Processing: ${_selectedPole!.inProgressComplaints}, '
+                                    'Manual: ${_selectedPole!.manualReviewComplaints}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Keypad: ${_selectedPole!.keypadId ?? 'Not linked'}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Pole Ref: PL-${_selectedPole!.id}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 30,
+                                    child: ElevatedButton(
+                                      onPressed: () {},
+                                      style: ElevatedButton.styleFrom(
+                                        padding: EdgeInsets.zero,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'Assign Task',
+                                        style: TextStyle(fontSize: 12),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
-                      ),
                       Positioned(
                         left: veryCompact ? 6 : null,
                         right: veryCompact ? 6 : 16,
@@ -423,7 +474,7 @@ class _MapDesignCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            '$totalPoles assets tracked',
+                            '${widget.totalPoles} assets tracked',
                             style: const TextStyle(
                               fontSize: 11,
                               color: AppTheme.textSecondary,

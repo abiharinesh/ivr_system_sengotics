@@ -48,7 +48,10 @@ export class PanchayatAdminService {
     async listPoles(panchayatId: number) {
         return this.prisma.electricPole.findMany({
             where: { panchayat_id: panchayatId },
-            include: { _count: { select: { complaints: true } } }
+            include: {
+                _count: { select: { complaints: true } },
+                complaints: { select: { status: true } }
+            }
         })
     }
 
