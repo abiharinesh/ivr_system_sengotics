@@ -1,12 +1,19 @@
 import { NestFactory } from '@nestjs/core'
+import { NestExpressApplication } from '@nestjs/platform-express'
 import { ValidationPipe, Logger } from '@nestjs/common'
+import { join } from 'path'
 import { AppModule } from './app.module'
 import { DbSetupService } from './prisma/db-setup.service'
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap')
 
-  const app = await NestFactory.create(AppModule)
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    rawBody: true,
+  })
+
+  const uploadDir = join(process.cwd(), 'uploads')
+  app.useStaticAssets(uploadDir, { prefix: '/uploads/' })
 
   // Enable CORS for frontend access
   app.enableCors()

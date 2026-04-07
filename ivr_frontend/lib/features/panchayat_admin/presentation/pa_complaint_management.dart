@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/assign_electrician_dialog.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -21,6 +22,7 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
   final _statuses = [
     null,
     'pending',
+    'reassign_required',
     'in_progress',
     'resolved',
     'manual_review',
@@ -29,6 +31,7 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
   final _statusLabels = [
     'All',
     'Pending',
+    'Reassign',
     'In Progress',
     'Resolved',
     'Manual Review',
@@ -128,6 +131,9 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
   }
 }
 
+bool _canAssignElectrician(String status) =>
+    status == 'pending' || status == 'reassign_required';
+
 class _PAComplaintCard extends StatelessWidget {
   final ComplaintModel complaint;
 
@@ -160,9 +166,20 @@ class _PAComplaintCard extends StatelessWidget {
                 const Spacer(),
                 PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: AppTheme.textMuted),
-                  onSelected: (action) {
+                  onSelected: (action) async {
                     if (action == 'resolve') {
                       _showResolveDialog(context);
+                    } else if (action == 'assign_electrician') {
+                      final id = await showAssignElectricianDialog(
+                        context: context,
+                        complaint: complaint,
+                        isSuperAdmin: false,
+                      );
+                      if (id != null && context.mounted) {
+                        context.read<PAComplaintBloc>().add(
+                          AssignPAComplaintElectrician(complaint.id, id),
+                        );
+                      }
                     } else {
                       context.read<PAComplaintBloc>().add(
                         UpdatePAComplaintStatus(complaint.id, action),
@@ -171,6 +188,11 @@ class _PAComplaintCard extends StatelessWidget {
                   },
                   itemBuilder:
                       (_) => [
+                        if (_canAssignElectrician(complaint.status))
+                          const PopupMenuItem(
+                            value: 'assign_electrician',
+                            child: Text('Assign electrician'),
+                          ),
                         const PopupMenuItem(
                           value: 'pending',
                           child: Text('Mark Pending'),

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import '../../config/api_config.dart';
 import '../storage/secure_storage.dart';
@@ -82,6 +84,42 @@ class ApiClient {
   Future<dynamic> patch(String path, {dynamic data}) async {
     try {
       final response = await _dio.patch(path, data: data);
+      return response.data;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Binary GET (ZIP downloads).
+  Future<Uint8List> getBytes(String path) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      );
+      final data = response.data;
+      if (data == null) throw ApiException('Empty response body');
+      return Uint8List.fromList(data);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  /// Multipart POST (e.g. image + geotag fields).
+  Future<dynamic> postMultipart(String path, FormData formData) async {
+    try {
+      final response = await _dio.post(
+        path,
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+          receiveTimeout: const Duration(seconds: 60),
+          sendTimeout: const Duration(seconds: 60),
+        ),
+      );
       return response.data;
     } on DioException catch (e) {
       throw _handleError(e);

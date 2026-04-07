@@ -20,6 +20,8 @@ import '../features/super_admin/presentation/voice_calls_screen.dart';
 import '../features/super_admin/presentation/ivr_logs_screen.dart';
 import '../features/super_admin/presentation/analytics_screen.dart';
 import '../features/super_admin/presentation/super_admin_pole_management.dart';
+import '../features/super_admin/presentation/agent_management.dart';
+import '../features/super_admin/presentation/electrician_management.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
@@ -27,9 +29,26 @@ import '../features/panchayat_admin/bloc/pa_complaint_bloc.dart';
 import '../features/panchayat_admin/presentation/pa_dashboard.dart';
 import '../features/panchayat_admin/presentation/pole_management.dart';
 import '../features/panchayat_admin/presentation/pa_complaint_management.dart';
+import '../features/panchayat_admin/presentation/electrician_management.dart';
+
+import '../features/agent/presentation/agent_dashboard_screen.dart';
+import '../features/agent/presentation/agent_pole_list_screen.dart';
+import '../features/agent/presentation/agent_pole_detail_screen.dart';
+import '../features/agent/presentation/agent_add_pole_screen.dart';
+import '../features/electrician/presentation/electrician_dashboard_screen.dart';
+import '../features/electrician/presentation/electrician_jobs_screen.dart';
+import '../features/electrician/presentation/electrician_complaint_detail_screen.dart';
 
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
+
+String _homeForRole(Authenticated auth) {
+  final u = auth.user;
+  if (u.isSuperAdmin || u.isPanchayatAdmin) return '/dashboard';
+  if (u.isAgent) return '/agent';
+  if (u.isElectrician) return '/electrician';
+  return '/dashboard';
+}
 
 GoRouter createRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -37,11 +56,25 @@ GoRouter createRouter(AuthBloc authBloc) {
     refreshListenable: GoRouterRefreshStream(authBloc.stream),
     redirect: (context, state) {
       final authState = authBloc.state;
-      final isLoggedIn = authState is Authenticated;
       final isLoginRoute = state.matchedLocation == '/login';
+      final loc = state.matchedLocation;
 
-      if (!isLoggedIn && !isLoginRoute) return '/login';
-      if (isLoggedIn && isLoginRoute) return '/dashboard';
+      if (authState is! Authenticated) {
+        return isLoginRoute ? null : '/login';
+      }
+
+      final authed = authState;
+      if (isLoginRoute) return _homeForRole(authed);
+
+      final u = authed.user;
+      if (u.isAgent || u.isElectrician) {
+        if (u.isAgent && !loc.startsWith('/agent')) return '/agent';
+        if (u.isElectrician && !loc.startsWith('/electrician')) return '/electrician';
+      }
+
+      if ((u.isSuperAdmin || u.isPanchayatAdmin) && (loc.startsWith('/agent') || loc.startsWith('/electrician'))) {
+        return '/dashboard';
+      }
       return null;
     },
     routes: [
@@ -61,6 +94,40 @@ GoRouter createRouter(AuthBloc authBloc) {
           );
         },
         routes: [
+          GoRoute(
+            path: '/agent',
+            builder: (context, state) => const AgentDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/agent/poles',
+            builder: (context, state) => const AgentPoleListScreen(),
+          ),
+          GoRoute(
+            path: '/agent/poles/add',
+            builder: (context, state) => const AgentAddPoleScreen(),
+          ),
+          GoRoute(
+            path: '/agent/poles/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return AgentPoleDetailScreen(poleId: id);
+            },
+          ),
+          GoRoute(
+            path: '/electrician',
+            builder: (context, state) => const ElectricianDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/electrician/jobs',
+            builder: (context, state) => const ElectricianJobsScreen(),
+          ),
+          GoRoute(
+            path: '/electrician/jobs/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return ElectricianComplaintDetailScreen(complaintId: id);
+            },
+          ),
           // Dashboard
           GoRoute(
             path: '/dashboard',
@@ -118,6 +185,29 @@ GoRouter createRouter(AuthBloc authBloc) {
                 child: const PAComplaintManagement(),
               );
             },
+          ),
+          GoRoute(
+            path: '/superadmin/electricians',
+            builder: (context, state) => const SuperAdminElectricianManagement(),
+          ),
+          GoRoute(
+            path: '/admin/electricians',
+            builder: (context, state) => const PanchayatElectricianManagement(),
+          ),
+          GoRoute(
+            path: '/fieldops/agents',
+            builder:
+                (context, state) => MultiBlocProvider(
+                  providers: [
+                    BlocProvider(
+                      create: (_) => UserMgmtBloc()..add(LoadUsers()),
+                    ),
+                    BlocProvider(
+                      create: (_) => PanchayatBloc()..add(LoadPanchayats()),
+                    ),
+                  ],
+                  child: const AgentManagement(),
+                ),
           ),
           GoRoute(
             path: '/ai-settings',
@@ -181,6 +271,16 @@ GoRouter createRouter(AuthBloc authBloc) {
 
 String _getTitle(String location) {
   switch (location) {
+    case '/agent':
+      return 'Agent — Home';
+    case '/agent/poles':
+      return 'Agent — Poles';
+    case '/agent/poles/add':
+      return 'Agent — New pole';
+    case '/electrician':
+      return 'Electrician — Home';
+    case '/electrician/jobs':
+      return 'Electrician — Jobs';
     case '/dashboard':
       return 'Dashboard';
     case '/panchayats':
@@ -189,6 +289,11 @@ String _getTitle(String location) {
       return 'User Management';
     case '/complaints':
       return 'Complaint Management';
+    case '/superadmin/electricians':
+    case '/admin/electricians':
+      return 'Field electricians';
+    case '/fieldops/agents':
+      return 'Field agents';
     case '/ai-settings':
       return 'AI Settings';
     case '/poles':
@@ -202,6 +307,8 @@ String _getTitle(String location) {
 	case '/analytics':
 	  return 'Analytics';
     default:
+      if (location.startsWith('/agent/poles/')) return 'Pole detail';
+      if (location.startsWith('/electrician/jobs/')) return 'Complaint';
       return 'IVR System';
   }
 }

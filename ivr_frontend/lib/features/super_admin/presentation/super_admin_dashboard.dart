@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/dashboard_category_breakdown_card.dart';
+import '../../../core/widgets/dashboard_recent_activity_card.dart';
+import '../../../core/widgets/dashboard_resolution_trend_card.dart';
 import '../../../core/widgets/map_overview.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../models/pole_model.dart';
@@ -146,27 +150,36 @@ class SuperAdminDashboard extends StatelessWidget {
             LayoutBuilder(
               builder: (context, constraints) {
                 final twoColumn = constraints.maxWidth > 980;
+                final trend = DashboardResolutionTrendCard(
+                  trend: state.insights.resolutionTrend,
+                );
+                final category = DashboardCategoryBreakdownCard(
+                  categories: state.insights.byCategory,
+                );
                 if (!twoColumn) {
-                  return const Column(
+                  return Column(
                     children: [
-                      _ComplaintTrendCard(),
-                      SizedBox(height: 16),
-                      _CategoryCard(),
+                      trend,
+                      const SizedBox(height: 16),
+                      category,
                     ],
                   );
                 }
-                return const Row(
+                return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(flex: 2, child: _ComplaintTrendCard()),
-                    SizedBox(width: 16),
-                    Expanded(child: _CategoryCard()),
+                    Expanded(flex: 2, child: trend),
+                    const SizedBox(width: 16),
+                    Expanded(child: category),
                   ],
                 );
               },
             ),
             const SizedBox(height: 20),
-            const _RecentActivityCard(),
+            DashboardRecentActivityCard(
+              items: state.insights.recentActivity,
+              onViewAll: () => context.go('/complaints'),
+            ),
           ],
         ),
       ),
@@ -539,352 +552,6 @@ class _LegendRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _ComplaintTrendCard extends StatelessWidget {
-  const _ComplaintTrendCard();
-
-  @override
-  Widget build(BuildContext context) {
-    const base = [22.0, 38.0, 33.0, 54.0, 57.0, 18.0, 9.0];
-    const overlay = [28.0, 42.0, 35.0, 62.0, 59.0, 22.0, 14.0];
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final narrow = constraints.maxWidth < 380;
-                if (narrow) {
-                  return const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Complaint Resolution Trend',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                      ),
-                      SizedBox(height: 10),
-                      Wrap(
-                        spacing: 12,
-                        runSpacing: 6,
-                        children: [
-                          _LegendDot('Current Week', AppTheme.primary),
-                          _LegendDot('Last Week', Color(0xFFBFDBFE)),
-                        ],
-                      ),
-                    ],
-                  );
-                }
-                return const Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Complaint Resolution Trend',
-                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                    _LegendDot('Current Week', AppTheme.primary),
-                    SizedBox(width: 12),
-                    _LegendDot('Last Week', Color(0xFFBFDBFE)),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 14),
-            SizedBox(
-              height: 190,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: List.generate(7, (i) {
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 2),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          Stack(
-                            alignment: Alignment.bottomCenter,
-                            children: [
-                              Container(
-                                height: overlay[i] * 2.2,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFBFDBFE),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                              Container(
-                                height: base[i] * 2.2,
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primary,
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            days[i],
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textMuted,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _LegendDot extends StatelessWidget {
-  final String label;
-  final Color color;
-  const _LegendDot(this.label, this.color);
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 7,
-          height: 7,
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
-        ),
-      ],
-    );
-  }
-}
-
-class _CategoryCard extends StatelessWidget {
-  const _CategoryCard();
-
-  @override
-  Widget build(BuildContext context) {
-    const rows = [
-      ('Water Supply', 0.82, Color(0xFF3B82F6)),
-      ('Street Lighting', 0.64, Color(0xFFF59E0B)),
-      ('Road Maintenance', 0.45, Color(0xFF10B981)),
-      ('Waste Management', 0.91, Color(0xFF8B5CF6)),
-    ];
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'By Category',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-            ),
-            const SizedBox(height: 12),
-            ...rows.map((row) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            row.$1,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          '${(row.$2 * 100).round()}%',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(999),
-                      child: LinearProgressIndicator(
-                        minHeight: 6,
-                        value: row.$2,
-                        valueColor: AlwaysStoppedAnimation<Color>(row.$3),
-                        backgroundColor: AppTheme.bgSurface,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentActivityCard extends StatelessWidget {
-  const _RecentActivityCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke),
-        boxShadow: AppTheme.softShadow,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Recent Activity',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                TextButton(onPressed: () {}, child: const Text('View All')),
-              ],
-            ),
-            const SizedBox(height: 8),
-            const _ActivityLine(
-              icon: Icons.add_circle_outline_rounded,
-              color: AppTheme.primary,
-              title: 'New Complaint Registered',
-              subtitle:
-                  'Complaint #CMP-4201 reported from Ward 2 (Water Leakage)',
-              time: '12 mins ago',
-            ),
-            const _ActivityLine(
-              icon: Icons.check_circle_outline_rounded,
-              color: AppTheme.accent,
-              title: 'Pole Maintenance Completed',
-              subtitle:
-                  'Technician Amit S. fixed flickering light on Pole PL-009',
-              time: '2 hours ago',
-            ),
-            const _ActivityLine(
-              icon: Icons.campaign_rounded,
-              color: AppTheme.warning,
-              title: 'Voice Alert Broadcasted',
-              subtitle:
-                  'IVR notification sent to 120 residents regarding scheduled power cut',
-              time: '5 hours ago',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActivityLine extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final String time;
-  const _ActivityLine({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 26,
-            height: 26,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.13),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, size: 14, color: color),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppTheme.textSecondary,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AppTheme.textMuted,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

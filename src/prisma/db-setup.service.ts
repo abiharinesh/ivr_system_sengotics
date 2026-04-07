@@ -36,41 +36,186 @@ export class DbSetupService {
      * (added after the initial migration). Safe to run repeatedly.
      */
     private async ensureSchema() {
-        try {
-            await this.prisma.$executeRawUnsafe(`
-                ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS keypad_id TEXT;
-            `)
-            await this.prisma.$executeRawUnsafe(`
-                ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS landmarks TEXT[] DEFAULT '{}';
-            `)
-            // Keep idempotent unique semantics without failing when index/constraint already exists.
-            await this.prisma.$executeRawUnsafe(`
-                CREATE UNIQUE INDEX IF NOT EXISTS electric_poles_panchayat_id_keypad_id_key
-                ON electric_poles (panchayat_id, keypad_id);
-            `)
-            await this.prisma.$executeRawUnsafe(`
-                CREATE TABLE IF NOT EXISTS call_state (
-                    id SERIAL PRIMARY KEY,
-                    call_sid TEXT UNIQUE NOT NULL,
-                    phase1_status TEXT NOT NULL DEFAULT 'pending',
-                    phase2_status TEXT NOT NULL DEFAULT 'pending',
-                    complaint_created BOOLEAN NOT NULL DEFAULT FALSE,
-                    complaint_id INTEGER NULL,
-                    phase1_voice_call_id INTEGER NULL,
-                    phase2_voice_call_id INTEGER NULL,
-                    finalized_at TIMESTAMP NULL,
-                    last_error TEXT NULL,
-                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-                );
-            `)
-            await this.prisma.$executeRawUnsafe(`
-                CREATE INDEX IF NOT EXISTS call_state_call_sid_idx ON call_state(call_sid);
-            `)
-            console.log('✅ Schema columns verified/added.')
-        } catch (err) {
-            console.warn('⚠️ Schema migration step failed (non-fatal):', err.message)
+        const execSafe = async (sql: string) => {
+            try {
+                await this.prisma.$executeRawUnsafe(sql)
+            } catch (err) {
+                console.warn('⚠️ Schema step failed (non-fatal):', err?.message ?? err)
+            }
         }
+
+        // Users/auth compatibility
+        await execSafe(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                email TEXT UNIQUE,
+                password_hash TEXT,
+                role TEXT NOT NULL DEFAULT 'panchayat_admin',
+                panchayat_id INTEGER NULL,
+                phone_e164 TEXT NULL,
+                created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT;`)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash TEXT;`)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'panchayat_admin';`)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS panchayat_id INTEGER;`)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_e164 TEXT;`)
+        await execSafe(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;`)
+        await execSafe(`CREATE UNIQUE INDEX IF NOT EXISTS users_email_key ON users(email);`)
+        await execSafe(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'users_panchayat_id_fkey'
+                ) THEN
+                    ALTER TABLE users
+                        ADD CONSTRAINT users_panchayat_id_fkey
+                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                END IF;
+            END $$;
+        `)
+
+        // Voice pipeline compatibility
+        await execSafe(`ALTER TABLE voice_calls ADD COLUMN IF NOT EXISTS transcript_english TEXT;`)
+        await execSafe(`ALTER TABLE voice_calls ADD COLUMN IF NOT EXISTS attempt_number INTEGER NOT NULL DEFAULT 1;`)
+        await execSafe(`
+            CREATE UNIQUE INDEX IF NOT EXISTS voice_calls_call_sid_audio_url_key
+            ON voice_calls(call_sid, audio_url);
+        `)
+        await execSafe(`
+            CREATE INDEX IF NOT EXISTS voice_calls_call_sid_attempt_number_idx
+            ON voice_calls(call_sid, attempt_number);
+        `)
+
+        // Poles compatibility
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS keypad_id TEXT;`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS landmarks TEXT[] DEFAULT '{}';`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_url TEXT;`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_latitude DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_longitude DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_captured_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_uploaded_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE electric_poles ADD COLUMN IF NOT EXISTS image_uploaded_by INTEGER;`)
+        await execSafe(`
+            CREATE UNIQUE INDEX IF NOT EXISTS electric_poles_panchayat_id_keypad_id_key
+            ON electric_poles(panchayat_id, keypad_id);
+        `)
+        await execSafe(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'electric_poles_image_uploaded_by_fkey'
+                ) THEN
+                    ALTER TABLE electric_poles
+                        ADD CONSTRAINT electric_poles_image_uploaded_by_fkey
+                        FOREIGN KEY (image_uploaded_by) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                END IF;
+            END $$;
+        `)
+
+        // Complaints compatibility
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS caller_language TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS caller_emotion TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS urgency_level TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS audio_url TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS category TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS whatsapp_done_ack_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS assigned_electrician_id INTEGER;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS assigned_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolved_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_image_url TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_note TEXT;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_image_latitude DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_image_longitude DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_image_captured_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_distance_meters DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_location_valid BOOLEAN;`)
+        await execSafe(`ALTER TABLE complaints ADD COLUMN IF NOT EXISTS resolution_submitted_key TEXT;`)
+        await execSafe(`
+            CREATE UNIQUE INDEX IF NOT EXISTS complaints_resolution_submitted_key_key
+            ON complaints(resolution_submitted_key);
+        `)
+        await execSafe(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM pg_constraint WHERE conname = 'complaints_assigned_electrician_id_fkey'
+                ) THEN
+                    ALTER TABLE complaints
+                        ADD CONSTRAINT complaints_assigned_electrician_id_fkey
+                        FOREIGN KEY (assigned_electrician_id) REFERENCES users(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                END IF;
+            END $$;
+        `)
+
+        // Call-state table used by admin state API
+        await execSafe(`
+            CREATE TABLE IF NOT EXISTS call_state (
+                id SERIAL PRIMARY KEY,
+                call_sid TEXT UNIQUE NOT NULL,
+                phase1_status TEXT NOT NULL DEFAULT 'pending',
+                phase2_status TEXT NOT NULL DEFAULT 'pending',
+                complaint_created BOOLEAN NOT NULL DEFAULT FALSE,
+                complaint_id INTEGER NULL,
+                phase1_voice_call_id INTEGER NULL,
+                phase2_voice_call_id INTEGER NULL,
+                finalized_at TIMESTAMP NULL,
+                last_error TEXT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+            );
+        `)
+        await execSafe(`CREATE INDEX IF NOT EXISTS call_state_call_sid_idx ON call_state(call_sid);`)
+
+        // Settings/exports tables used by dashboard flows
+        await execSafe(`
+            CREATE TABLE IF NOT EXISTS system_settings (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+            );
+        `)
+        await execSafe(`
+            CREATE TABLE IF NOT EXISTS export_jobs (
+                id SERIAL PRIMARY KEY,
+                created_by_user_id INTEGER NOT NULL,
+                panchayat_id INTEGER NULL,
+                electrician_user_id INTEGER NOT NULL,
+                range_from TIMESTAMP(3) NOT NULL,
+                range_to TIMESTAMP(3) NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                result_relative_path TEXT NULL,
+                error_message TEXT NULL,
+                row_count INTEGER NULL,
+                created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                completed_at TIMESTAMP(3) NULL
+            );
+        `)
+        await execSafe(`CREATE INDEX IF NOT EXISTS export_jobs_electrician_user_id_idx ON export_jobs(electrician_user_id);`)
+        await execSafe(`CREATE INDEX IF NOT EXISTS export_jobs_status_idx ON export_jobs(status);`)
+        await execSafe(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_jobs_created_by_user_id_fkey') THEN
+                    ALTER TABLE export_jobs
+                        ADD CONSTRAINT export_jobs_created_by_user_id_fkey
+                        FOREIGN KEY (created_by_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_jobs_electrician_user_id_fkey') THEN
+                    ALTER TABLE export_jobs
+                        ADD CONSTRAINT export_jobs_electrician_user_id_fkey
+                        FOREIGN KEY (electrician_user_id) REFERENCES users(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                END IF;
+                IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_jobs_panchayat_id_fkey') THEN
+                    ALTER TABLE export_jobs
+                        ADD CONSTRAINT export_jobs_panchayat_id_fkey
+                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                END IF;
+            END $$;
+        `)
+
+        console.log('✅ Schema columns verified/added.')
     }
 
     private async seed() {

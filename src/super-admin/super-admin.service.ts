@@ -1,14 +1,34 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../prisma/prisma.service'
 import * as bcrypt from 'bcrypt'
+import { validateComplaintStatus } from '../common/complaint-status'
+import {
+    buildResolutionTrend,
+    mergeRecentActivity,
+    utcMondayWeekStart,
+    type ComplaintResolutionFields,
+} from '../common/dashboard-insights'
+import { PanchayatAdminService } from '../panchayat-admin/panchayat-admin.service'
 
-/** Allowed complaint status values. */
-const VALID_STATUSES = ['pending', 'in_progress', 'resolved', 'manual_review', 'rejected'] as const
+const STAFF_ROLES = ['agent', 'electrician'] as const
 
 @Injectable()
 export class SuperAdminService {
     private readonly logger = new Logger(SuperAdminService.name)
-    constructor(private prisma: PrismaService) { }
+    constructor(
+        private prisma: PrismaService,
+        private readonly panchayatAdmin: PanchayatAdminService
+    ) { }
+
+    /** Delegate to panchayat-scoped assign (validates electrician + WhatsApp notify). */
+    async assignElectricianGlobal(complaintId: number, electricianUserId: number) {
+        const complaint = await this.prisma.complaint.findUnique({ where: { id: complaintId } })
+        if (!complaint) throw new NotFoundException(`Complaint #${complaintId} not found`)
+        if (!complaint.panchayat_id) {
+            throw new BadRequestException('Complaint has no panchayat context')
+        }
+        return this.panchayatAdmin.assignElectrician(complaint.panchayat_id, complaintId, electricianUserId)
+    }
 
     // ── Panchayat Management ────────────────────────────────────────────────
 
@@ -159,6 +179,43 @@ export class SuperAdminService {
         })
     }
 
+    /** Agent or electrician login for field ops (scoped to panchayat). */
+    async createStaffUser(data: {
+        email: string
+        password: string
+        role: string
+        panchayat_id: number
+        phone_e164?: string | null
+    }) {
+        if (!STAFF_ROLES.includes(data.role as (typeof STAFF_ROLES)[number])) {
+            throw new BadRequestException(`role must be one of: ${STAFF_ROLES.join(', ')}`)
+        }
+        if (!data.password || data.password.length < 8) {
+            throw new BadRequestException('Password must be at least 8 characters long')
+        }
+        await this.ensurePanchayatExists(data.panchayat_id)
+        const existing = await this.prisma.user.findUnique({ where: { email: data.email } })
+        if (existing) throw new ForbiddenException('Email already in use')
+        const password_hash = await bcrypt.hash(data.password, 10)
+        return this.prisma.user.create({
+            data: {
+                email: data.email,
+                password_hash,
+                role: data.role,
+                panchayat_id: data.panchayat_id,
+                phone_e164: data.phone_e164?.trim() || null,
+            },
+            select: {
+                id: true,
+                email: true,
+                role: true,
+                panchayat_id: true,
+                phone_e164: true,
+                created_at: true,
+            },
+        })
+    }
+
     async listUsers() {
         return this.prisma.user.findMany({
             select: {
@@ -191,34 +248,36 @@ export class SuperAdminService {
     // ── Complaints (all) ───────────────────────────────────────────────────
 
     async listComplaints(status?: string, panchayatId?: number) {
-        // Validate status if provided
-        if (status && !VALID_STATUSES.includes(status as any)) {
-            throw new BadRequestException(
-                `Invalid status "${status}". Must be one of: ${VALID_STATUSES.join(', ')}`
-            )
-        }
+        if (status) validateComplaintStatus(status)
 
         return this.prisma.complaint.findMany({
             where: {
                 ...(status && { status }),
                 ...(panchayatId && !isNaN(panchayatId) && { panchayat_id: panchayatId })
             },
-            include: { pole: true, panchayat: true, voice_call: true },
+            include: {
+                pole: true,
+                panchayat: true,
+                voice_call: true,
+                assigned_electrician: { select: { id: true, email: true } },
+            },
             orderBy: { created_at: 'desc' }
         })
     }
 
     async updateComplaintStatus(id: number, status: string) {
-        if (!VALID_STATUSES.includes(status as any)) {
-            throw new BadRequestException(
-                `Invalid status "${status}". Must be one of: ${VALID_STATUSES.join(', ')}`
-            )
-        }
+        validateComplaintStatus(status)
 
         const complaint = await this.prisma.complaint.findUnique({ where: { id } })
         if (!complaint) throw new NotFoundException(`Complaint #${id} not found`)
 
-        return this.prisma.complaint.update({ where: { id }, data: { status } })
+        return this.prisma.complaint.update({
+            where: { id },
+            data: {
+                status,
+                ...(status === 'resolved' ? { resolved_at: new Date() } : {}),
+            },
+        })
     }
 
     /**
@@ -417,6 +476,107 @@ export class SuperAdminService {
     }
 
     // ── Stats ──────────────────────────────────────────────────────────────
+
+    async getDashboardInsights() {
+        const now = new Date()
+        const currentWeekStart = utcMondayWeekStart(now)
+        const lastWeekStart = new Date(currentWeekStart)
+        lastWeekStart.setUTCDate(lastWeekStart.getUTCDate() - 7)
+        const currentWeekEnd = new Date(currentWeekStart)
+        currentWeekEnd.setUTCDate(currentWeekEnd.getUTCDate() + 7)
+
+        const trendOr = [
+            { resolved_at: { gte: lastWeekStart, lt: currentWeekEnd } },
+            {
+                AND: [
+                    { status: { in: ['resolved_pending_confirmation', 'resolved'] } },
+                    {
+                        resolution_image_captured_at: {
+                            gte: lastWeekStart,
+                            lt: currentWeekEnd,
+                        },
+                    },
+                ],
+            },
+        ]
+
+        const [forTrend, byCat, newRows, resRows, subRows] = await Promise.all([
+            this.prisma.complaint.findMany({
+                where: { OR: trendOr },
+                select: {
+                    id: true,
+                    resolved_at: true,
+                    resolution_image_captured_at: true,
+                    status: true,
+                },
+            }),
+            this.prisma.complaint.groupBy({
+                by: ['complaint_type'],
+                where: {},
+                _count: { _all: true },
+                orderBy: { _count: { complaint_type: 'desc' } },
+                take: 8,
+            }),
+            this.prisma.complaint.findMany({
+                orderBy: { created_at: 'desc' },
+                take: 5,
+                select: {
+                    id: true,
+                    complaint_type: true,
+                    description: true,
+                    status: true,
+                    created_at: true,
+                    resolved_at: true,
+                    resolution_image_captured_at: true,
+                },
+            }),
+            this.prisma.complaint.findMany({
+                where: { resolved_at: { not: null } },
+                orderBy: { resolved_at: 'desc' },
+                take: 5,
+                select: {
+                    id: true,
+                    complaint_type: true,
+                    description: true,
+                    status: true,
+                    created_at: true,
+                    resolved_at: true,
+                    resolution_image_captured_at: true,
+                },
+            }),
+            this.prisma.complaint.findMany({
+                where: {
+                    status: 'resolved_pending_confirmation',
+                    resolved_at: null,
+                    resolution_image_captured_at: { not: null },
+                },
+                orderBy: { resolution_image_captured_at: 'desc' },
+                take: 5,
+                select: {
+                    id: true,
+                    complaint_type: true,
+                    description: true,
+                    status: true,
+                    created_at: true,
+                    resolved_at: true,
+                    resolution_image_captured_at: true,
+                },
+            }),
+        ])
+
+        const resolution_trend = buildResolutionTrend(forTrend)
+        const by_category = byCat.map((r) => ({
+            label: r.complaint_type?.trim() || 'Other',
+            count: r._count._all,
+        }))
+        const recent_activity = mergeRecentActivity(
+            newRows as ComplaintResolutionFields[],
+            resRows as ComplaintResolutionFields[],
+            subRows as ComplaintResolutionFields[]
+        )
+
+        return { resolution_trend, by_category, recent_activity }
+    }
 
     async getStats() {
         const [complaints, pending, resolved, manual_review, poles, panchayats, users] = await Promise.all([

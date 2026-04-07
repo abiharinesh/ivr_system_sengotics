@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import '../../../core/api/api_client.dart';
 import '../../../config/api_config.dart';
 import '../../../models/panchayat_model.dart';
 import '../../../models/complaint_model.dart';
 import '../../../models/user_model.dart';
 import '../../../models/stats_model.dart';
+import '../../../models/dashboard_insights_model.dart';
 
 class SuperAdminRepository {
   final ApiClient _api = ApiClient.instance;
@@ -47,6 +50,11 @@ class SuperAdminRepository {
     return UserModel.fromJson(data);
   }
 
+  Future<UserModel> createStaffUser(Map<String, dynamic> body) async {
+    final data = await _api.post('${ApiConfig.saUsers}/staff', data: body);
+    return UserModel.fromJson(data);
+  }
+
   Future<void> deleteUser(int id) async {
     await _api.delete('${ApiConfig.saUsers}/$id');
   }
@@ -75,6 +83,14 @@ class SuperAdminRepository {
     final data = await _api.patch(
       '${ApiConfig.saComplaints}/$id/resolve',
       data: {'pole_id': poleId},
+    );
+    return ComplaintModel.fromJson(data);
+  }
+
+  Future<ComplaintModel> assignElectrician(int complaintId, int electricianUserId) async {
+    final data = await _api.patch(
+      '${ApiConfig.saComplaints}/$complaintId/assign-electrician',
+      data: {'electrician_user_id': electricianUserId},
     );
     return ComplaintModel.fromJson(data);
   }
@@ -110,6 +126,11 @@ class SuperAdminRepository {
     return StatsModel.fromJson(data);
   }
 
+  Future<DashboardInsights> getDashboardInsights() async {
+    final data = await _api.get(ApiConfig.saDashboardInsights);
+    return DashboardInsights.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
   // ── AI Providers ─────────────────────────────────────────────────────────
   Future<Map<String, dynamic>> getSttProvider() async {
     final data = await _api.get(ApiConfig.saSttProvider);
@@ -135,5 +156,69 @@ class SuperAdminRepository {
       data: {'provider': provider},
     );
     return data as Map<String, dynamic>;
+  }
+
+  Future<List<dynamic>> listElectricians({int? panchayatId}) async {
+    final data = await _api.get(
+      ApiConfig.saElectricians,
+      queryParams: panchayatId != null ? {'panchayat_id': panchayatId.toString()} : null,
+    );
+    return List<dynamic>.from(data as List);
+  }
+
+  Future<Map<String, dynamic>> createElectrician({
+    required int panchayatId,
+    required String email,
+    required String password,
+    String? phoneE164,
+  }) async {
+    final data = await _api.post(ApiConfig.saElectricians, data: {
+      'panchayat_id': panchayatId,
+      'email': email,
+      'password': password,
+      if (phoneE164 != null && phoneE164.isNotEmpty) 'phone_e164': phoneE164,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> getElectricianStats({
+    required int electricianId,
+    required String preset,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final data = await _api.get(
+      '${ApiConfig.saElectricians}/$electricianId/stats',
+      queryParams: {
+        'preset': preset,
+        if (dateFrom != null) 'date_from': dateFrom,
+        if (dateTo != null) 'date_to': dateTo,
+      },
+    );
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> startExportResolved({
+    required int electricianUserId,
+    required String preset,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final data = await _api.post(ApiConfig.saExportElectricianResolved, data: {
+      'electrician_user_id': electricianUserId,
+      'preset': preset,
+      if (dateFrom != null) 'date_from': dateFrom,
+      if (dateTo != null) 'date_to': dateTo,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> getExportJob(int jobId) async {
+    final data = await _api.get(ApiConfig.saExportJob(jobId));
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Uint8List> downloadExportZip(int jobId) async {
+    return _api.getBytes(ApiConfig.saExportDownload(jobId));
   }
 }

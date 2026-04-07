@@ -40,6 +40,9 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Local media uploads (poles / resolution proofs)
+/uploads
+
 # temp directory
 .temp
 .tmp
@@ -58,4 +61,5 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 .env
 
 # Flutter frontend build artifacts
-ivr_frontend/build/
+/build
+/ivr_frontend/build/

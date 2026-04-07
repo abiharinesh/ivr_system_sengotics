@@ -1,6 +1,22 @@
 import 'dart:convert';
 import 'package:equatable/equatable.dart';
 
+int _jsonInt(dynamic v, [int fallback = 0]) {
+  if (v == null) return fallback;
+  if (v is int) return v;
+  if (v is double) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+int? _jsonIntOpt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is double) return v.toInt();
+  if (v is String) return int.tryParse(v);
+  return null;
+}
+
 class UserModel extends Equatable {
   final int id;
   final String email;
@@ -20,10 +36,10 @@ class UserModel extends Equatable {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] as int,
+      id: _jsonInt(json['id']),
       email: json['email'] as String,
       role: json['role'] as String,
-      panchayatId: json['panchayat_id'] as int?,
+      panchayatId: _jsonIntOpt(json['panchayat_id']),
       panchayatName: json['panchayat']?['name'] as String?,
       createdAt:
           json['created_at'] != null
@@ -34,6 +50,11 @@ class UserModel extends Equatable {
 
   bool get isSuperAdmin => role == 'super_admin';
   bool get isPanchayatAdmin => role == 'panchayat_admin';
+  bool get isAgent => role == 'agent';
+  bool get isElectrician => role == 'electrician';
+
+  /// Panchayat-scoped field roles share the same panchayat_id as admins.
+  bool get isFieldStaff => isAgent || isElectrician;
 
   @override
   List<Object?> get props => [id, email, role, panchayatId];
@@ -60,10 +81,11 @@ class AuthResponse {
     return AuthResponse(
       accessToken: token,
       user: UserModel.fromJson({
-        'id': payload['sub'] ?? 0,
-        'email': payload['email'] ?? '',
-        'role': json['role'] ?? payload['role'] ?? 'user',
-        'panchayat_id': json['panchayat_id'] ?? payload['panchayat_id'],
+        'id': _jsonInt(payload['sub']),
+        'email': '${payload['email'] ?? json['email'] ?? ''}',
+        'role': '${json['role'] ?? payload['role'] ?? 'user'}',
+        'panchayat_id':
+            _jsonIntOpt(json['panchayat_id']) ?? _jsonIntOpt(payload['panchayat_id']),
       }),
     );
   }

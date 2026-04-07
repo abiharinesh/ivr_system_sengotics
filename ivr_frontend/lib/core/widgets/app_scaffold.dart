@@ -164,7 +164,13 @@ class AppScaffold extends StatelessWidget {
                       Text(
                         userRole == 'super_admin'
                             ? 'Super Admin'
-                            : 'Panchayat Admin',
+                            : userRole == 'panchayat_admin'
+                                ? 'Panchayat Admin'
+                                : userRole == 'agent'
+                                    ? 'Field agent'
+                                    : userRole == 'electrician'
+                                        ? 'Electrician'
+                                        : userRole,
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
@@ -301,6 +307,44 @@ class AppScaffold extends StatelessWidget {
   }
 
   List<Widget> _getPrimaryNavItems() {
+    if (userRole == 'agent') {
+      return [
+        _NavItem(
+          icon: Icons.dashboard_rounded,
+          label: 'Home',
+          route: '/agent',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.list_alt_rounded,
+          label: 'Poles',
+          route: '/agent/poles',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.add_location_alt_rounded,
+          label: 'New pole',
+          route: '/agent/poles/add',
+          currentRoute: currentRoute,
+        ),
+      ];
+    }
+    if (userRole == 'electrician') {
+      return [
+        _NavItem(
+          icon: Icons.dashboard_rounded,
+          label: 'Home',
+          route: '/electrician',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.electrical_services_rounded,
+          label: 'My jobs',
+          route: '/electrician/jobs',
+          currentRoute: currentRoute,
+        ),
+      ];
+    }
     if (userRole == 'super_admin') {
       return [
         _NavItem(
@@ -313,6 +357,18 @@ class AppScaffold extends StatelessWidget {
           icon: Icons.report_problem_rounded,
           label: 'Complaints',
           route: '/complaints',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.engineering_rounded,
+          label: 'Electricians',
+          route: '/superadmin/electricians',
+          currentRoute: currentRoute,
+        ),
+        _NavItem(
+          icon: Icons.group_rounded,
+          label: 'Agents',
+          route: '/fieldops/agents',
           currentRoute: currentRoute,
         ),
         _NavItem(
@@ -378,10 +434,19 @@ class AppScaffold extends StatelessWidget {
         route: '/complaints',
         currentRoute: currentRoute,
       ),
+      _NavItem(
+        icon: Icons.engineering_rounded,
+        label: 'Electricians',
+        route: '/admin/electricians',
+        currentRoute: currentRoute,
+      ),
     ];
   }
 
   List<Widget> _getSecondaryNavItems() {
+    if (userRole == 'agent' || userRole == 'electrician') {
+      return [];
+    }
     return [
       _NavItem(
         icon: Icons.insights_rounded,

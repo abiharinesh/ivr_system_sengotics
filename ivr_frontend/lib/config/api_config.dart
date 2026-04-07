@@ -21,6 +21,17 @@ class ApiConfig {
     }
     return kReleaseMode ? _prodBaseUrl : _localBaseUrl;
   }
+
+  /// Public URLs for files served at `/uploads/...` on the API host.
+  static String fileUrl(String? relativeOrAbsolute) {
+    if (relativeOrAbsolute == null || relativeOrAbsolute.isEmpty) {
+      return '';
+    }
+    if (relativeOrAbsolute.startsWith('http')) {
+      return relativeOrAbsolute;
+    }
+    return '$baseUrl$relativeOrAbsolute';
+  }
   // Auth
   static const String login = '/api/auth/login';
 
@@ -29,13 +40,34 @@ class ApiConfig {
   static const String saUsers = '/api/superadmin/users';
   static const String saComplaints = '/api/superadmin/complaints';
   static const String saStats = '/api/superadmin/stats';
+  static const String saDashboardInsights = '/api/superadmin/dashboard/insights';
   static const String saPoles = '/api/superadmin/poles';
   static const String saSttProvider = '/api/superadmin/settings/stt-provider';
   static const String saLlmProvider = '/api/superadmin/settings/llm-provider';
+  static const String saElectricians = '/api/superadmin/electricians';
+  static const String saExportElectricianResolved =
+      '/api/superadmin/exports/electrician-resolved';
+  static String saExportJob(int jobId) => '/api/superadmin/exports/$jobId';
+  static String saExportDownload(int jobId) =>
+      '/api/superadmin/exports/$jobId/download';
 
   // Panchayat Admin
   static const String paMe = '/api/admin/me';
   static const String paStats = '/api/admin/stats';
+  static const String paDashboardInsights = '/api/admin/dashboard/insights';
   static const String paPoles = '/api/admin/poles';
   static const String paComplaints = '/api/admin/complaints';
+  static const String paElectricians = '/api/admin/electricians';
+  static const String paExportElectricianResolved =
+      '/api/admin/exports/electrician-resolved';
+  static String paExportJob(int jobId) => '/api/admin/exports/$jobId';
+  static String paExportDownload(int jobId) =>
+      '/api/admin/exports/$jobId/download';
+
+  // Field agent (pole geophotos)
+  static const String agentPoles = '/api/agent/poles';
+
+  // Electrician
+  static const String electricianMe = '/api/electrician/me';
+  static const String electricianComplaints = '/api/electrician/complaints';
 }

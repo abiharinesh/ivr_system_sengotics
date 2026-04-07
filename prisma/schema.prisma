@@ -85,6 +85,7 @@ model Panchayat {
   electric_poles ElectricPole[]
   complaints     Complaint[]
   users          User[]
+  export_jobs    ExportJob[]
 
   @@map("panchayats")
 }
@@ -95,9 +96,15 @@ model User {
   password_hash String
   role          String     @default("panchayat_admin")
   panchayat_id  Int?
+  phone_e164    String?
   created_at    DateTime   @default(now())
 
-  panchayat     Panchayat? @relation(fields: [panchayat_id], references: [id])
+  panchayat            Panchayat?    @relation(fields: [panchayat_id], references: [id])
+  assigned_complaints  Complaint[]   @relation("AssignedElectrician")
+  pole_image_uploads   ElectricPole[] @relation("PoleImageUploader")
+
+  export_jobs_created    ExportJob[] @relation("ExportJobCreator")
+  export_jobs_as_subject ExportJob[] @relation("ExportJobElectrician")
 
   @@map("users")
 }
@@ -112,8 +119,16 @@ model ElectricPole {
   panchayat_id Int?
   landmarks    String[]                             @default([])
 
-  panchayat    Panchayat?   @relation(fields: [panchayat_id], references: [id])
-  complaints   Complaint[]
+  image_url           String?
+  image_latitude      Float?
+  image_longitude     Float?
+  image_captured_at   DateTime?
+  image_uploaded_at   DateTime?
+  image_uploaded_by   Int?
+
+  panchayat     Panchayat?   @relation(fields: [panchayat_id], references: [id])
+  complaints    Complaint[]
+  image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
 
   @@unique([panchayat_id, keypad_id])
   @@map("electric_poles")
@@ -133,9 +148,26 @@ model Complaint {
   status          String   @default("pending")
   created_at      DateTime @default(now())
 
-  voice_call     VoiceCall?    @relation(fields: [voice_call_id], references: [id])
-  pole           ElectricPole? @relation(fields: [pole_id], references: [id])
-  panchayat      Panchayat?    @relation(fields: [panchayat_id], references: [id])
+  category                String?
+  whatsapp_done_ack_at    DateTime?
+
+  assigned_electrician_id Int?
+  assigned_at             DateTime?
+  resolved_at             DateTime?
+
+  resolution_image_url            String?
+  resolution_note                 String?
+  resolution_image_latitude       Float?
+  resolution_image_longitude      Float?
+  resolution_image_captured_at    DateTime?
+  resolution_distance_meters      Float?
+  resolution_location_valid       Boolean?
+  resolution_submitted_key        String? @unique
+
+  voice_call          VoiceCall?    @relation(fields: [voice_call_id], references: [id])
+  pole                ElectricPole? @relation(fields: [pole_id], references: [id])
+  panchayat           Panchayat?    @relation(fields: [panchayat_id], references: [id])
+  assigned_electrician User?       @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
 
   @@map("complaints")
 }
@@ -164,4 +196,28 @@ model SystemSettings {
   updated_at DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+/** Async ZIP export of resolved complaints + proof images (admin). */
+model ExportJob {
+  id                   Int       @id @default(autoincrement())
+  created_by_user_id   Int
+  panchayat_id         Int?
+  electrician_user_id  Int
+  range_from           DateTime
+  range_to             DateTime
+  status               String    @default("pending")
+  result_relative_path String?
+  error_message        String?
+  row_count            Int?
+  created_at           DateTime  @default(now())
+  completed_at         DateTime?
+
+  created_by  User      @relation("ExportJobCreator", fields: [created_by_user_id], references: [id])
+  electrician User      @relation("ExportJobElectrician", fields: [electrician_user_id], references: [id])
+  panchayat   Panchayat? @relation(fields: [panchayat_id], references: [id])
+
+  @@index([electrician_user_id])
+  @@index([status])
+  @@map("export_jobs")
 }

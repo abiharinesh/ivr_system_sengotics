@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../models/stats_model.dart';
 import '../../../models/pole_model.dart';
+import '../../../models/dashboard_insights_model.dart';
 import '../data/super_admin_repository.dart';
 
 // Events
@@ -26,10 +27,16 @@ class SADashLoading extends SADashState {}
 class SADashLoaded extends SADashState {
   final StatsModel stats;
   final List<PoleModel> poles;
+  final DashboardInsights insights;
   final String? warningMessage;
-  SADashLoaded({required this.stats, required this.poles, this.warningMessage});
+  SADashLoaded({
+    required this.stats,
+    required this.poles,
+    required this.insights,
+    this.warningMessage,
+  });
   @override
-  List<Object?> get props => [stats, poles, warningMessage];
+  List<Object?> get props => [stats, poles, insights, warningMessage];
 }
 
 class SADashError extends SADashState {
@@ -54,6 +61,7 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
     final errors = <String>[];
     StatsModel? stats;
     List<PoleModel>? poles;
+    DashboardInsights? insights;
 
     try {
       stats = await _repo.getStats();
@@ -68,7 +76,13 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
       errors.add('Poles unavailable: ${e.message}');
     }
 
-    if (stats == null && poles == null) {
+    try {
+      insights = await _repo.getDashboardInsights();
+    } on ApiException catch (e) {
+      errors.add('Dashboard insights unavailable: ${e.message}');
+    }
+
+    if (stats == null && poles == null && insights == null) {
       emit(SADashError(errors.join('\n')));
       return;
     }
@@ -86,6 +100,16 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
               totalAdmins: 0,
             ),
         poles: poles ?? const [],
+        insights:
+            insights ??
+            const DashboardInsights(
+              resolutionTrend: ResolutionTrend(
+                currentWeek: [0, 0, 0, 0, 0, 0, 0],
+                lastWeek: [0, 0, 0, 0, 0, 0, 0],
+              ),
+              byCategory: [],
+              recentActivity: [],
+            ),
         warningMessage:
             errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
       ),

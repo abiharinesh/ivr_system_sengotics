@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import '../../../core/api/api_client.dart';
 import '../../../config/api_config.dart';
 import '../../../models/user_model.dart';
 import '../../../models/complaint_model.dart';
 import '../../../models/pole_model.dart';
 import '../../../models/stats_model.dart';
+import '../../../models/dashboard_insights_model.dart';
 
 class PanchayatAdminRepository {
   final ApiClient _api = ApiClient.instance;
@@ -18,6 +21,11 @@ class PanchayatAdminRepository {
   Future<StatsModel> getStats() async {
     final data = await _api.get(ApiConfig.paStats);
     return StatsModel.fromJson(data);
+  }
+
+  Future<DashboardInsights> getDashboardInsights() async {
+    final data = await _api.get(ApiConfig.paDashboardInsights);
+    return DashboardInsights.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
   // ── Poles ───────────────────────────────────────────────────────────────
@@ -62,5 +70,72 @@ class PanchayatAdminRepository {
       data: {'pole_id': poleId},
     );
     return ComplaintModel.fromJson(data);
+  }
+
+  Future<ComplaintModel> assignElectrician(int complaintId, int electricianUserId) async {
+    final data = await _api.patch(
+      '${ApiConfig.paComplaints}/$complaintId/assign-electrician',
+      data: {'electrician_user_id': electricianUserId},
+    );
+    return ComplaintModel.fromJson(data);
+  }
+
+  Future<List<dynamic>> listElectricians() async {
+    final data = await _api.get(ApiConfig.paElectricians);
+    return List<dynamic>.from(data as List);
+  }
+
+  Future<Map<String, dynamic>> createElectrician({
+    required String email,
+    required String password,
+    String? phoneE164,
+  }) async {
+    final data = await _api.post(ApiConfig.paElectricians, data: {
+      'email': email,
+      'password': password,
+      if (phoneE164 != null && phoneE164.isNotEmpty) 'phone_e164': phoneE164,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> getElectricianStats({
+    required int electricianId,
+    required String preset,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final data = await _api.get(
+      '${ApiConfig.paElectricians}/$electricianId/stats',
+      queryParams: {
+        'preset': preset,
+        if (dateFrom != null) 'date_from': dateFrom,
+        if (dateTo != null) 'date_to': dateTo,
+      },
+    );
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> startExportResolved({
+    required int electricianUserId,
+    required String preset,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    final data = await _api.post(ApiConfig.paExportElectricianResolved, data: {
+      'electrician_user_id': electricianUserId,
+      'preset': preset,
+      if (dateFrom != null) 'date_from': dateFrom,
+      if (dateTo != null) 'date_to': dateTo,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> getExportJob(int jobId) async {
+    final data = await _api.get(ApiConfig.paExportJob(jobId));
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Uint8List> downloadExportZip(int jobId) async {
+    return _api.getBytes(ApiConfig.paExportDownload(jobId));
   }
 }

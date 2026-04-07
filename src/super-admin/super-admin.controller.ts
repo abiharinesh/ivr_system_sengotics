@@ -1,5 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Patch, Body, Param, Query, Req, ParseIntPipe, UseGuards } from '@nestjs/common'
+import {
+    Controller,
+    Get,
+    Post,
+    Put,
+    Delete,
+    Patch,
+    Body,
+    Param,
+    Query,
+    Req,
+    Res,
+    ParseIntPipe,
+    UseGuards,
+    BadRequestException,
+} from '@nestjs/common'
+import type { Response } from 'express'
 import { SuperAdminService } from './super-admin.service'
+import { ElectricianOpsService } from '../field-ops/field-ops.service'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
@@ -8,7 +25,10 @@ import { Roles } from '../auth/decorators/roles.decorator'
 @Roles('super_admin')
 @Controller('api/superadmin')
 export class SuperAdminController {
-    constructor(private readonly superAdminService: SuperAdminService) { }
+    constructor(
+        private readonly superAdminService: SuperAdminService,
+        private readonly electricianOps: ElectricianOpsService
+    ) { }
 
     // ── Panchayat Management ────────────────────────────────────────────────
     @Post('panchayats')
@@ -81,6 +101,20 @@ export class SuperAdminController {
         return this.superAdminService.createPanchayatAdmin(body)
     }
 
+    @Post('users/staff')
+    createStaffUser(
+        @Body()
+        body: {
+            email: string
+            password: string
+            role: string
+            panchayat_id: number
+            phone_e164?: string
+        }
+    ) {
+        return this.superAdminService.createStaffUser(body)
+    }
+
     @Get('users')
     listUsers() {
         return this.superAdminService.listUsers()
@@ -107,6 +141,14 @@ export class SuperAdminController {
     @Patch('complaints/:id/resolve')
     resolveComplaint(@Param('id', ParseIntPipe) id: number, @Body() body: { pole_id: number }) {
         return this.superAdminService.resolveComplaint(id, body.pole_id)
+    }
+
+    @Patch('complaints/:id/assign-electrician')
+    assignElectricianSa(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { electrician_user_id: number }
+    ) {
+        return this.superAdminService.assignElectricianGlobal(id, body.electrician_user_id)
     }
 
     // ── STT Provider Settings ────────────────────────────────────────────────
@@ -143,6 +185,11 @@ export class SuperAdminController {
     }
 
     // ── Stats ──────────────────────────────────────────────────────────────
+    @Get('dashboard/insights')
+    getDashboardInsights() {
+        return this.superAdminService.getDashboardInsights()
+    }
+
     @Get('stats')
     getStats() {
         return this.superAdminService.getStats()
@@ -152,5 +199,74 @@ export class SuperAdminController {
     @Get('state')
     getState() {
         return this.superAdminService.getState()
+    }
+
+    // ── Electricians & ZIP exports (global) ─────────────────────────────
+    @Get('electricians')
+    listElectricians(@Query('panchayat_id') pid?: string) {
+        const panchayatId = pid ? parseInt(pid, 10) : undefined
+        return this.electricianOps.listAllElectricians(isNaN(panchayatId as number) ? undefined : panchayatId)
+    }
+
+    @Post('electricians')
+    createElectricianGlobal(
+        @Body()
+        body: { panchayat_id: number; email: string; password: string; phone_e164?: string }
+    ) {
+        return this.electricianOps.createElectricianForPanchayat(body.panchayat_id, {
+            email: body.email,
+            password: body.password,
+            phone_e164: body.phone_e164,
+        })
+    }
+
+    @Get('electricians/:id/stats')
+    electricianStats(
+        @Param('id', ParseIntPipe) id: number,
+        @Query('preset') preset: string,
+        @Query('date_from') dateFrom?: string,
+        @Query('date_to') dateTo?: string
+    ) {
+        if (!preset) throw new BadRequestException('preset query required')
+        return this.electricianOps.getElectricianStats(id, null, preset, dateFrom, dateTo)
+    }
+
+    @Post('exports/electrician-resolved')
+    startElectricianExport(
+        @Req() req: any,
+        @Body()
+        body: { electrician_user_id: number; preset: string; date_from?: string; date_to?: string }
+    ) {
+        return this.electricianOps.createResolvedExportJob({
+            createdByUserId: req.user?.id,
+            scopedPanchayatId: null,
+            electricianId: body.electrician_user_id,
+            preset: body.preset,
+            dateFrom: body.date_from,
+            dateTo: body.date_to,
+        })
+    }
+
+    @Get('exports/:jobId')
+    getExportJob(@Req() req: any, @Param('jobId', ParseIntPipe) jobId: number) {
+        return this.electricianOps.getExportJob(jobId, {
+            id: req.user?.id,
+            role: req.user?.role,
+            panchayat_id: req.user?.panchayat_id,
+        })
+    }
+
+    @Get('exports/:jobId/download')
+    async downloadExport(@Req() req: any, @Res() res: Response, @Param('jobId', ParseIntPipe) jobId: number) {
+        const meta = await this.electricianOps.getExportJob(jobId, {
+            id: req.user?.id,
+            role: req.user?.role,
+            panchayat_id: req.user?.panchayat_id,
+        })
+        if (meta.status !== 'ready' || !meta.download_url) {
+            throw new BadRequestException('Export not ready or failed')
+        }
+        const abs = this.electricianOps.resolveExportAbsolutePath(meta.download_url)
+        res.download(abs, `electrician-export-job-${jobId}.zip`)
     }
 }

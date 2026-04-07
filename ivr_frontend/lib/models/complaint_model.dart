@@ -74,8 +74,14 @@ class ComplaintModel extends Equatable {
     switch (status) {
       case 'pending':
         return 'Pending';
+      case 'assigned':
+        return 'Assigned';
       case 'in_progress':
         return 'In Progress';
+      case 'resolved_pending_confirmation':
+        return 'Awaiting confirmation';
+      case 'reassign_required':
+        return 'Reassign required';
       case 'resolved':
         return 'Resolved';
       case 'manual_review':

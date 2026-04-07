@@ -31,8 +31,14 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case 'pending':
         return AppTheme.warning;
+      case 'assigned':
+        return AppTheme.info;
       case 'in_progress':
         return AppTheme.info;
+      case 'resolved_pending_confirmation':
+        return AppTheme.primaryLight;
+      case 'reassign_required':
+        return AppTheme.warning;
       case 'resolved':
         return AppTheme.accent;
       case 'manual_review':
@@ -48,8 +54,14 @@ class StatusBadge extends StatelessWidget {
     switch (status) {
       case 'pending':
         return 'Pending';
+      case 'assigned':
+        return 'Assigned';
       case 'in_progress':
         return 'In Progress';
+      case 'resolved_pending_confirmation':
+        return 'Awaiting confirmation';
+      case 'reassign_required':
+        return 'Reassign required';
       case 'resolved':
         return 'Resolved';
       case 'manual_review':

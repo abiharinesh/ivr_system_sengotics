@@ -10,6 +10,11 @@ import { VoiceProcessingModule } from './voice-processing/voice-processing.modul
 import { AuthModule } from './auth/auth.module'
 import { SuperAdminModule } from './super-admin/super-admin.module'
 import { PanchayatAdminModule } from './panchayat-admin/panchayat-admin.module'
+import { StorageModule } from './storage/storage.module'
+import { AgentModule } from './agent/agent.module'
+import { ElectricianModule } from './electrician/electrician.module'
+import { WhatsAppModule } from './whatsapp/whatsapp.module'
+import { ElectricianOpsModule } from './field-ops/field-ops.module'
 
 @Module({
   imports: [
@@ -22,11 +27,16 @@ import { PanchayatAdminModule } from './panchayat-admin/panchayat-admin.module'
       limit: 30,    // 30 requests per 60s (generous default)
     }]),
     PrismaModule,
+    StorageModule,
     IvrModule,
     VoiceProcessingModule,
     AuthModule,
+    WhatsAppModule,
+    ElectricianOpsModule,
     SuperAdminModule,
-    PanchayatAdminModule
+    PanchayatAdminModule,
+    AgentModule,
+    ElectricianModule
   ],
   controllers: [AppController],
   providers: [

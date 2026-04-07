@@ -81,8 +81,18 @@ class UserMgmtBloc extends Bloc<UserMgmtEvent, UserMgmtState> {
 
   Future<void> _onCreate(CreateUser event, Emitter<UserMgmtState> emit) async {
     try {
-      await _repo.createUser(event.data);
-      emit(UserMgmtActionSuccess('Admin user created successfully'));
+      final role = (event.data['role'] ?? 'panchayat_admin').toString();
+      if (role == 'agent' || role == 'electrician') {
+        await _repo.createStaffUser(event.data);
+        emit(
+          UserMgmtActionSuccess(
+            '${role[0].toUpperCase()}${role.substring(1)} user created successfully',
+          ),
+        );
+      } else {
+        await _repo.createUser(event.data);
+        emit(UserMgmtActionSuccess('Admin user created successfully'));
+      }
       add(LoadUsers());
     } on ApiException catch (e) {
       emit(UserMgmtError(e.message));

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'config/app_theme.dart';
 import 'config/app_router.dart';
+import 'core/offline/offline_sync_host.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/auth/bloc/auth_event.dart';
 
@@ -30,6 +31,7 @@ class _AppView extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       routerConfig: router,
+      builder: (context, child) => OfflineSyncHost(child: child),
     );
   }
 }

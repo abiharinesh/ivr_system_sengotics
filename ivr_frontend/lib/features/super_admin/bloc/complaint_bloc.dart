@@ -34,6 +34,14 @@ class ResolveSAComplaint extends SAComplaintEvent {
   List<Object?> get props => [id, poleId];
 }
 
+class AssignSAComplaintElectrician extends SAComplaintEvent {
+  final int complaintId;
+  final int electricianUserId;
+  AssignSAComplaintElectrician(this.complaintId, this.electricianUserId);
+  @override
+  List<Object?> get props => [complaintId, electricianUserId];
+}
+
 // ── States ────────────────────────────────────────────────────────────────
 abstract class SAComplaintState extends Equatable {
   @override
@@ -77,6 +85,7 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
     on<LoadSAComplaints>(_onLoad);
     on<UpdateSAComplaintStatus>(_onUpdateStatus);
     on<ResolveSAComplaint>(_onResolve);
+    on<AssignSAComplaintElectrician>(_onAssignElectrician);
   }
 
   Future<void> _onLoad(
@@ -122,6 +131,24 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
     try {
       await _repo.resolveComplaint(event.id, event.poleId);
       emit(SAComplaintActionSuccess('Complaint resolved'));
+      add(
+        LoadSAComplaints(
+          status: _currentFilter,
+          panchayatId: _currentPanchayatFilter,
+        ),
+      );
+    } on ApiException catch (e) {
+      emit(SAComplaintError(e.message));
+    }
+  }
+
+  Future<void> _onAssignElectrician(
+    AssignSAComplaintElectrician event,
+    Emitter<SAComplaintState> emit,
+  ) async {
+    try {
+      await _repo.assignElectrician(event.complaintId, event.electricianUserId);
+      emit(SAComplaintActionSuccess('Electrician assigned'));
       add(
         LoadSAComplaints(
           status: _currentFilter,

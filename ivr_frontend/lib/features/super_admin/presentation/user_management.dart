@@ -3,11 +3,48 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
+import '../../../models/user_model.dart';
+import '../data/super_admin_repository.dart';
 import '../bloc/user_bloc.dart';
-import '../bloc/panchayat_bloc.dart';
 
-class UserManagement extends StatelessWidget {
-  const UserManagement({super.key});
+class UserManagement extends StatefulWidget {
+  const UserManagement({
+    super.key,
+    this.initialRoleFilter,
+    this.lockRoleFilter = false,
+    this.customTitle,
+    this.customSubtitle,
+  });
+
+  final String? initialRoleFilter;
+  final bool lockRoleFilter;
+  final String? customTitle;
+  final String? customSubtitle;
+
+  @override
+  State<UserManagement> createState() => _UserManagementState();
+}
+
+class _UserManagementState extends State<UserManagement> {
+  final _repo = SuperAdminRepository();
+  static const _roleOptions = <String>[
+    'all',
+    'super_admin',
+    'panchayat_admin',
+    'agent',
+    'electrician',
+  ];
+
+  String _activeRole = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    final initial = widget.initialRoleFilter;
+    if (initial != null && _roleOptions.contains(initial)) {
+      _activeRole = initial;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,117 +72,211 @@ class UserManagement extends StatelessWidget {
           return const Center(child: CircularProgressIndicator());
         }
         if (state is UserMgmtLoaded) {
-          if (state.users.isEmpty) {
+          final filtered = _filteredUsers(state.users);
+          if (filtered.isEmpty) {
             return EmptyState(
               icon: Icons.people_rounded,
-              title: 'No Users',
-              subtitle: 'Create admin users to manage panchayats',
+              title: _titleForFilter(_activeRole),
+              subtitle: _subtitleForFilter(_activeRole),
               action: ElevatedButton.icon(
-                onPressed: () => _showCreateDialog(context),
+                onPressed: () => _showCreateDialog(context, _activeRole),
                 icon: const Icon(Icons.add),
-                label: const Text('Add Admin'),
+                label: Text(_addLabelForFilter(_activeRole)),
               ),
             );
           }
-          return _buildList(context, state);
+          return _buildList(context, filtered);
         }
         return const SizedBox.shrink();
       },
     );
   }
 
-  Widget _buildList(BuildContext context, UserMgmtLoaded state) {
+  List<UserModel> _filteredUsers(List<UserModel> users) {
+    if (_activeRole == 'all') return users;
+    return users.where((u) => u.role == _activeRole).toList();
+  }
+
+  String _labelForRole(String role) {
+    switch (role) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'panchayat_admin':
+        return 'Panchayat Admin';
+      case 'agent':
+        return 'Agent';
+      case 'electrician':
+        return 'Electrician';
+      default:
+        return role;
+    }
+  }
+
+  String _titleForFilter(String role) {
+    if (widget.customTitle != null) return widget.customTitle!;
+    switch (role) {
+      case 'agent':
+        return 'Agent Management';
+      case 'electrician':
+        return 'Electrician Management';
+      default:
+        return 'User Management';
+    }
+  }
+
+  String _subtitleForFilter(String role) {
+    if (widget.customSubtitle != null) return widget.customSubtitle!;
+    switch (role) {
+      case 'agent':
+        return 'Create and manage field agents';
+      case 'electrician':
+        return 'Create and manage electricians';
+      default:
+        return 'Manage super-admin, admin, and field staff access';
+    }
+  }
+
+  String _addLabelForFilter(String role) {
+    switch (role) {
+      case 'agent':
+        return 'Add Agent';
+      case 'electrician':
+        return 'Add Electrician';
+      default:
+        return 'Add User';
+    }
+  }
+
+  Widget _buildList(BuildContext context, List<UserModel> filteredUsers) {
     return ListScreenShell(
-      title: 'User Management',
-      subtitle: 'Manage super-admin and panchayat-admin access',
-      countLabel: '${state.users.length} user(s)',
+      title: _titleForFilter(_activeRole),
+      subtitle: _subtitleForFilter(_activeRole),
+      countLabel: '${filteredUsers.length} user(s)',
       action: ElevatedButton.icon(
-        onPressed: () => _showCreateDialog(context),
+        onPressed: () => _showCreateDialog(context, _activeRole),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Add Admin'),
+        label: Text(_addLabelForFilter(_activeRole)),
       ),
+      filters:
+          widget.lockRoleFilter
+              ? null
+              : SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children:
+                      _roleOptions.map((role) {
+                        final selected = _activeRole == role;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: FilterChip(
+                            label: Text(role == 'all' ? 'All' : _labelForRole(role)),
+                            selected: selected,
+                            onSelected: (_) {
+                              setState(() => _activeRole = role);
+                            },
+                            selectedColor: AppTheme.primary.withValues(alpha: 0.12),
+                            checkmarkColor: AppTheme.primary,
+                          ),
+                        );
+                      }).toList(),
+                ),
+              ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
           return ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: hPad),
-            itemCount: state.users.length,
+            itemCount: filteredUsers.length,
             itemBuilder: (context, index) {
-              final user = state.users[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: ListTile(
-              contentPadding: const EdgeInsets.all(16),
-              leading: CircleAvatar(
-                backgroundColor:
-                    user.isSuperAdmin
-                        ? AppTheme.warning.withValues(alpha: 0.15)
-                        : AppTheme.primary.withValues(alpha: 0.1),
-                child: Icon(
-                  user.isSuperAdmin
-                      ? Icons.admin_panel_settings_rounded
-                      : Icons.person_rounded,
-                  color:
-                      user.isSuperAdmin ? AppTheme.warning : AppTheme.primary,
-                ),
-              ),
-              title: Text(
-                user.email,
-                style: const TextStyle(fontWeight: FontWeight.w600),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
+              final user = filteredUsers[index];
+              final isField = user.isFieldStaff;
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: ListTile(
+                  contentPadding: const EdgeInsets.all(16),
+                  leading: CircleAvatar(
+                    backgroundColor:
+                        user.isSuperAdmin
+                            ? AppTheme.warning.withValues(alpha: 0.15)
+                            : isField
+                            ? AppTheme.primary.withValues(alpha: 0.15)
+                            : AppTheme.accent.withValues(alpha: 0.12),
+                    child: Icon(
+                      user.isSuperAdmin
+                          ? Icons.admin_panel_settings_rounded
+                          : user.isAgent
+                          ? Icons.group_rounded
+                          : user.isElectrician
+                          ? Icons.engineering_rounded
+                          : Icons.person_rounded,
                       color:
                           user.isSuperAdmin
-                              ? AppTheme.warning.withValues(alpha: 0.12)
-                              : AppTheme.accent.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      user.isSuperAdmin ? 'Super Admin' : 'Panchayat Admin',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            user.isSuperAdmin
-                                ? AppTheme.warning
-                                : AppTheme.accent,
-                      ),
+                              ? AppTheme.warning
+                              : isField
+                              ? AppTheme.primary
+                              : AppTheme.accent,
                     ),
                   ),
-                  if (user.panchayatName != null) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      user.panchayatName!,
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              trailing:
-                  user.isSuperAdmin
-                      ? null
-                      : IconButton(
-                        icon: const Icon(
-                          Icons.delete_outline,
-                          color: AppTheme.error,
+                  title: Text(
+                    user.email,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
                         ),
-                        onPressed:
-                            () =>
-                                _showDeleteDialog(context, user.id, user.email),
+                        decoration: BoxDecoration(
+                          color:
+                              user.isSuperAdmin
+                                  ? AppTheme.warning.withValues(alpha: 0.12)
+                                  : AppTheme.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          _labelForRole(user.role),
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                user.isSuperAdmin
+                                    ? AppTheme.warning
+                                    : AppTheme.accent,
+                          ),
+                        ),
                       ),
-            ),
+                      if (user.panchayatName != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          user.panchayatName!,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  trailing:
+                      user.isSuperAdmin
+                          ? null
+                          : IconButton(
+                            icon: const Icon(
+                              Icons.delete_outline,
+                              color: AppTheme.error,
+                            ),
+                            onPressed:
+                                () => _showDeleteDialog(
+                                  context,
+                                  user.id,
+                                  user.email,
+                                ),
+                          ),
+                ),
               );
             },
           );
@@ -154,16 +285,31 @@ class UserManagement extends StatelessWidget {
     );
   }
 
-  void _showCreateDialog(BuildContext context) {
+  Future<void> _showCreateDialog(BuildContext context, String activeRole) async {
     final emailC = TextEditingController();
     final passC = TextEditingController();
     int? selectedPanchayatId;
     final formKey = GlobalKey<FormState>();
+    final lockRole = widget.lockRoleFilter && widget.initialRoleFilter != null;
+    String selectedRole =
+        (activeRole != 'all' ? activeRole : 'panchayat_admin').toString();
+    if (selectedRole == 'super_admin') {
+      selectedRole = 'panchayat_admin';
+    }
 
-    // Get panchayats list from the panchayat bloc
-    final panchayatState = context.read<PanchayatBloc>().state;
-    final panchayats =
-        panchayatState is PanchayatLoaded ? panchayatState.panchayats : [];
+    List<dynamic> panchayats = const [];
+    try {
+      panchayats = await _repo.listPanchayats();
+      if (panchayats.isNotEmpty) {
+        selectedPanchayatId = panchayats.first.id as int;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load panchayats: $e')),
+      );
+      return;
+    }
 
     showDialog(
       context: context,
@@ -171,13 +317,39 @@ class UserManagement extends StatelessWidget {
           (ctx) => StatefulBuilder(
             builder:
                 (ctx, setDialogState) => AlertDialog(
-                  title: const Text('Create Panchayat Admin'),
+                  title: Text('Create ${_labelForRole(selectedRole)}'),
                   content: Form(
                     key: formKey,
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          if (!lockRole)
+                            DropdownButtonFormField<String>(
+                              value: selectedRole,
+                              decoration: const InputDecoration(
+                                labelText: 'Role *',
+                              ),
+                              items: const [
+                                DropdownMenuItem(
+                                  value: 'panchayat_admin',
+                                  child: Text('Panchayat Admin'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'agent',
+                                  child: Text('Agent'),
+                                ),
+                                DropdownMenuItem(
+                                  value: 'electrician',
+                                  child: Text('Electrician'),
+                                ),
+                              ],
+                              onChanged: (v) {
+                                if (v == null) return;
+                                setDialogState(() => selectedRole = v);
+                              },
+                            ),
+                          if (!lockRole) const SizedBox(height: 12),
                           TextFormField(
                             controller: emailC,
                             decoration: const InputDecoration(
@@ -210,6 +382,7 @@ class UserManagement extends StatelessWidget {
                             decoration: const InputDecoration(
                               labelText: 'Panchayat *',
                             ),
+                            hint: const Text('Select panchayat'),
                             items:
                                 panchayats
                                     .map(
@@ -238,12 +411,17 @@ class UserManagement extends StatelessWidget {
                       onPressed: () {
                         if (formKey.currentState!.validate() &&
                             selectedPanchayatId != null) {
+                          final payload = <String, dynamic>{
+                            'email': emailC.text.trim(),
+                            'password': passC.text,
+                            'panchayat_id': selectedPanchayatId,
+                          };
+                          if (selectedRole == 'agent' ||
+                              selectedRole == 'electrician') {
+                            payload['role'] = selectedRole;
+                          }
                           context.read<UserMgmtBloc>().add(
-                            CreateUser({
-                              'email': emailC.text.trim(),
-                              'password': passC.text,
-                              'panchayat_id': selectedPanchayatId,
-                            }),
+                            CreateUser(payload),
                           );
                           Navigator.pop(ctx);
                         }

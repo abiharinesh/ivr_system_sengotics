@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Capture geotagged photos of poles and completed repairs.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Attach GPS coordinates to photos for verification.</string>
 </dict>
 </plist>

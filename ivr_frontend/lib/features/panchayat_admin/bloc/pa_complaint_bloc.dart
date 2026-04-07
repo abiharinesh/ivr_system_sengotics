@@ -33,6 +33,14 @@ class ResolvePAComplaint extends PAComplaintEvent {
   List<Object?> get props => [id, poleId];
 }
 
+class AssignPAComplaintElectrician extends PAComplaintEvent {
+  final int complaintId;
+  final int electricianUserId;
+  AssignPAComplaintElectrician(this.complaintId, this.electricianUserId);
+  @override
+  List<Object?> get props => [complaintId, electricianUserId];
+}
+
 // ── States ────────────────────────────────────────────────────────────────
 abstract class PAComplaintState extends Equatable {
   @override
@@ -75,6 +83,7 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
     on<LoadPAComplaints>(_onLoad);
     on<UpdatePAComplaintStatus>(_onUpdateStatus);
     on<ResolvePAComplaint>(_onResolve);
+    on<AssignPAComplaintElectrician>(_onAssignElectrician);
   }
 
   Future<void> _onLoad(
@@ -111,6 +120,19 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
     try {
       await _repo.resolveComplaint(event.id, event.poleId);
       emit(PAComplaintActionSuccess('Complaint resolved'));
+      add(LoadPAComplaints(status: _currentFilter));
+    } on ApiException catch (e) {
+      emit(PAComplaintError(e.message));
+    }
+  }
+
+  Future<void> _onAssignElectrician(
+    AssignPAComplaintElectrician event,
+    Emitter<PAComplaintState> emit,
+  ) async {
+    try {
+      await _repo.assignElectrician(event.complaintId, event.electricianUserId);
+      emit(PAComplaintActionSuccess('Electrician assigned'));
       add(LoadPAComplaints(status: _currentFilter));
     } on ApiException catch (e) {
       emit(PAComplaintError(e.message));
