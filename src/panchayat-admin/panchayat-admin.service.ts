@@ -107,6 +107,43 @@ export class PanchayatAdminService {
         })
     }
 
+    async createComplaint(
+        panchayatId: number,
+        data: {
+            pole_id: number
+            complaint_type?: string
+            description?: string
+            urgency_level?: string
+            caller_language?: string
+            caller_emotion?: string
+        }
+    ) {
+        const pole = await this.prisma.electricPole.findUnique({ where: { id: data.pole_id } })
+        if (!pole) throw new NotFoundException(`Pole #${data.pole_id} not found`)
+        if (pole.panchayat_id !== panchayatId) {
+            throw new ForbiddenException('Access denied — pole belongs to another panchayat')
+        }
+
+        const complaint = await this.prisma.complaint.create({
+            data: {
+                pole_id: data.pole_id,
+                panchayat_id: panchayatId,
+                complaint_type: data.complaint_type?.trim() || 'manual_reported',
+                description: data.description?.trim() || null,
+                urgency_level: data.urgency_level?.trim() || null,
+                caller_language: data.caller_language?.trim() || null,
+                caller_emotion: data.caller_emotion?.trim() || null,
+                status: 'pending',
+            },
+            include: {
+                pole: true,
+                assigned_electrician: { select: { id: true, email: true } },
+            },
+        })
+
+        return this.autoAssignComplaintRoundRobin(panchayatId, complaint.id)
+    }
+
     async updateComplaintStatus(panchayatId: number, complaintId: number, status: string) {
         validateComplaintStatus(status)
 
@@ -173,6 +210,70 @@ export class PanchayatAdminService {
         return updated
     }
 
+    async autoAssignComplaintRoundRobin(panchayatId: number, complaintId: number) {
+        const complaint = await this.prisma.complaint.findUnique({
+            where: { id: complaintId },
+            include: { pole: true, assigned_electrician: { select: { id: true, email: true } } },
+        })
+        if (!complaint) throw new NotFoundException(`Complaint #${complaintId} not found`)
+        if (complaint.panchayat_id !== panchayatId) {
+            throw new ForbiddenException('Access denied — complaint belongs to another panchayat')
+        }
+        if (!['pending', 'reassign_required'].includes(complaint.status)) {
+            return complaint
+        }
+
+        const electricians = await this.prisma.user.findMany({
+            where: { role: 'electrician', panchayat_id: panchayatId },
+            select: { id: true },
+            orderBy: { id: 'asc' },
+        })
+        if (electricians.length === 0) {
+            this.logger.warn(`No electricians available for panchayat #${panchayatId}`)
+            return complaint
+        }
+
+        const latestAssignments = await this.prisma.complaint.findMany({
+            where: {
+                panchayat_id: panchayatId,
+                assigned_electrician_id: { in: electricians.map((e) => e.id) },
+                assigned_at: { not: null },
+            },
+            select: { assigned_electrician_id: true, assigned_at: true },
+            orderBy: [{ assigned_at: 'desc' }],
+        })
+
+        const lastAssignedByElectrician = new Map<number, Date | null>()
+        for (const row of latestAssignments) {
+            const electricianId = row.assigned_electrician_id
+            if (electricianId == null) continue
+            if (!lastAssignedByElectrician.has(electricianId)) {
+                lastAssignedByElectrician.set(electricianId, row.assigned_at)
+            }
+        }
+
+        electricians.sort((a, b) => {
+            const aLast = lastAssignedByElectrician.get(a.id) ?? null
+            const bLast = lastAssignedByElectrician.get(b.id) ?? null
+            if (aLast == null && bLast == null) return a.id - b.id
+            if (aLast == null) return -1
+            if (bLast == null) return 1
+            const cmp = aLast.getTime() - bLast.getTime()
+            if (cmp !== 0) return cmp
+            return a.id - b.id
+        })
+
+        const selected = electricians[0]
+        try {
+            return await this.assignElectrician(panchayatId, complaintId, selected.id)
+        } catch (err: any) {
+            this.logger.warn(
+                `Round-robin auto assignment failed for complaint #${complaintId}: ${err?.message ?? err}`
+            )
+            return complaint
+        }
+    }
+
     /**
      * Resolve a manual_review complaint by assigning it to a pole.
      * Scoped: pole must belong to this admin's panchayat.
@@ -208,7 +309,7 @@ export class PanchayatAdminService {
         await this.learnLandmark(complaint, pole)
 
         this.logger.log(`✅ Complaint #${complaintId} resolved → pole #${poleId}`)
-        return updated
+        return this.autoAssignComplaintRoundRobin(panchayatId, complaintId)
     }
 
     /** Learn new landmark phrases from resolved voice complaints. */

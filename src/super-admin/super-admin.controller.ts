@@ -132,6 +132,21 @@ export class SuperAdminController {
         return this.superAdminService.listComplaints(status, isNaN(panchayatId as number) ? undefined : panchayatId)
     }
 
+    @Post('complaints')
+    createComplaint(
+        @Body()
+        body: {
+            pole_id: number
+            complaint_type?: string
+            description?: string
+            urgency_level?: string
+            caller_language?: string
+            caller_emotion?: string
+        }
+    ) {
+        return this.superAdminService.createComplaint(body)
+    }
+
     @Patch('complaints/:id/status')
     updateComplaintStatus(@Param('id', ParseIntPipe) id: number, @Body() body: { status: string }) {
         return this.superAdminService.updateComplaintStatus(id, body.status)

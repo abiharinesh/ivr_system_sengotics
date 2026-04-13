@@ -80,6 +80,25 @@ class PanchayatAdminRepository {
     return ComplaintModel.fromJson(data);
   }
 
+  Future<ComplaintModel> createComplaint({
+    required int poleId,
+    required String complaintType,
+    required String description,
+    String? urgencyLevel,
+  }) async {
+    final data = await _api.post(
+      ApiConfig.paComplaints,
+      data: {
+        'pole_id': poleId,
+        'complaint_type': complaintType,
+        'description': description,
+        if (urgencyLevel != null && urgencyLevel.isNotEmpty)
+          'urgency_level': urgencyLevel,
+      },
+    );
+    return ComplaintModel.fromJson(data);
+  }
+
   Future<List<dynamic>> listElectricians() async {
     final data = await _api.get(ApiConfig.paElectricians);
     return List<dynamic>.from(data as List);

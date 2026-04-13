@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import '../data/agent_repository.dart';
 
 class AgentPoleListScreen extends StatefulWidget {
-  const AgentPoleListScreen({super.key});
+  final String initialSearch;
+
+  const AgentPoleListScreen({super.key, this.initialSearch = ''});
 
   @override
   State<AgentPoleListScreen> createState() => _AgentPoleListScreenState();
@@ -20,6 +22,7 @@ class _AgentPoleListScreenState extends State<AgentPoleListScreen> {
   @override
   void initState() {
     super.initState();
+    _search.text = widget.initialSearch.trim();
     _load();
   }
 
@@ -27,6 +30,16 @@ class _AgentPoleListScreenState extends State<AgentPoleListScreen> {
   void dispose() {
     _search.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant AgentPoleListScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.initialSearch.trim();
+    if (next != oldWidget.initialSearch.trim() && next != _search.text.trim()) {
+      _search.text = next;
+      _load();
+    }
   }
 
   Future<void> _load() async {

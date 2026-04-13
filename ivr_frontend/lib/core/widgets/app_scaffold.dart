@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../config/app_theme.dart';
+import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
+import '../../features/super_admin/data/super_admin_repository.dart';
+import '../../models/dashboard_insights_model.dart';
+import '../../models/pole_model.dart';
+import 'pole_picker_dialog.dart';
 
-class AppScaffold extends StatelessWidget {
+class AppScaffold extends StatefulWidget {
   final String title;
   final Widget body;
   final String currentRoute;
@@ -23,24 +28,45 @@ class AppScaffold extends StatelessWidget {
   });
 
   @override
+  State<AppScaffold> createState() => _AppScaffoldState();
+}
+
+class _AppScaffoldState extends State<AppScaffold> {
+  late final TextEditingController _topSearchController;
+  final GlobalKey _notificationIconKey = GlobalKey();
+  final GlobalKey _mailIconKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    _topSearchController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _topSearchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
 
     if (isMobile) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(title),
+          title: Text(widget.title),
           actions: [
             IconButton(
               icon: const Icon(Icons.logout_rounded),
-              onPressed: onLogout,
+              onPressed: widget.onLogout,
               tooltip: 'Logout',
             ),
           ],
         ),
         drawer: _buildDrawer(context),
-        body: body,
-        floatingActionButton: floatingActionButton,
+        body: widget.body,
+        floatingActionButton: widget.floatingActionButton,
       );
     }
 
@@ -51,25 +77,24 @@ class AppScaffold extends StatelessWidget {
           _buildSidebar(context),
           Expanded(
             child: Column(
-              children: [_buildTopBar(context), Expanded(child: body)],
+              children: [_buildTopBar(context), Expanded(child: widget.body)],
             ),
           ),
         ],
       ),
-      floatingActionButton: floatingActionButton,
+      floatingActionButton: widget.floatingActionButton,
     );
   }
 
   Widget _buildSidebar(BuildContext context) {
     return Container(
       width: 270,
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(right: BorderSide(color: AppTheme.stroke)),
       ),
       child: Column(
         children: [
-          // Logo / Brand
           Container(
             padding: const EdgeInsets.all(24),
             child: Row(
@@ -116,8 +141,6 @@ class AppScaffold extends StatelessWidget {
           const Divider(height: 1),
           const SizedBox(height: 8),
           _navLabel('MAIN MENU'),
-
-          // Navigation Items
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -129,8 +152,6 @@ class AppScaffold extends StatelessWidget {
               ],
             ),
           ),
-
-          // User section
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -140,7 +161,9 @@ class AppScaffold extends StatelessWidget {
                   radius: 18,
                   backgroundColor: AppTheme.primary,
                   child: Text(
-                    userEmail.isNotEmpty ? userEmail[0].toUpperCase() : '?',
+                    widget.userEmail.isNotEmpty
+                        ? widget.userEmail[0].toUpperCase()
+                        : '?',
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w600,
@@ -153,7 +176,7 @@ class AppScaffold extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        userEmail,
+                        widget.userEmail,
                         style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textPrimary,
@@ -162,15 +185,15 @@ class AppScaffold extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        userRole == 'super_admin'
+                        widget.userRole == 'super_admin'
                             ? 'Super Admin'
-                            : userRole == 'panchayat_admin'
+                            : widget.userRole == 'panchayat_admin'
                                 ? 'Panchayat Admin'
-                                : userRole == 'agent'
+                                : widget.userRole == 'agent'
                                     ? 'Field agent'
-                                    : userRole == 'electrician'
+                                    : widget.userRole == 'electrician'
                                         ? 'Electrician'
-                                        : userRole,
+                                        : widget.userRole,
                         style: const TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
@@ -185,7 +208,7 @@ class AppScaffold extends StatelessWidget {
                     size: 18,
                     color: AppTheme.textMuted,
                   ),
-                  onPressed: onLogout,
+                  onPressed: widget.onLogout,
                   tooltip: 'Logout',
                 ),
               ],
@@ -200,7 +223,7 @@ class AppScaffold extends StatelessWidget {
     return Container(
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: AppTheme.stroke)),
       ),
@@ -214,8 +237,11 @@ class AppScaffold extends StatelessWidget {
                 color: AppTheme.bgSurface,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const TextField(
-                decoration: InputDecoration(
+              child: TextField(
+                controller: _topSearchController,
+                textInputAction: TextInputAction.search,
+                onSubmitted: (_) => _handleTopSearch(context),
+                decoration: const InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Search complaints, poles or users...',
                   hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMuted),
@@ -236,7 +262,7 @@ class AppScaffold extends StatelessWidget {
           SizedBox(
             height: 42,
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () => _handleNewComplaint(context),
               icon: const Icon(Icons.add, size: 16),
               label: const Text('New Complaint'),
               style: ElevatedButton.styleFrom(
@@ -246,14 +272,28 @@ class AppScaffold extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           IconButton(
-            onPressed: () {},
+            key: _notificationIconKey,
+            onPressed:
+                () => _openActivityCenter(
+                  context,
+                  initialTab: 0,
+                  anchorKey: _notificationIconKey,
+                ),
             icon: const Icon(Icons.notifications_none_rounded),
             color: AppTheme.textMuted,
+            tooltip: 'Notifications',
           ),
           IconButton(
-            onPressed: () {},
+            key: _mailIconKey,
+            onPressed:
+                () => _openActivityCenter(
+                  context,
+                  initialTab: 1,
+                  anchorKey: _mailIconKey,
+                ),
             icon: const Icon(Icons.mail_outline_rounded),
             color: AppTheme.textMuted,
+            tooltip: 'Mail',
           ),
         ],
       ),
@@ -265,7 +305,7 @@ class AppScaffold extends StatelessWidget {
       child: Column(
         children: [
           DrawerHeader(
-            decoration: BoxDecoration(gradient: AppTheme.primaryGradient),
+            decoration: const BoxDecoration(gradient: AppTheme.primaryGradient),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
@@ -285,7 +325,7 @@ class AppScaffold extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  userEmail,
+                  widget.userEmail,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
@@ -307,99 +347,99 @@ class AppScaffold extends StatelessWidget {
   }
 
   List<Widget> _getPrimaryNavItems() {
-    if (userRole == 'agent') {
+    if (widget.userRole == 'agent') {
       return [
         _NavItem(
           icon: Icons.dashboard_rounded,
           label: 'Home',
           route: '/agent',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.list_alt_rounded,
           label: 'Poles',
           route: '/agent/poles',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.add_location_alt_rounded,
           label: 'New pole',
           route: '/agent/poles/add',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
       ];
     }
-    if (userRole == 'electrician') {
+    if (widget.userRole == 'electrician') {
       return [
         _NavItem(
           icon: Icons.dashboard_rounded,
           label: 'Home',
           route: '/electrician',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.electrical_services_rounded,
           label: 'My jobs',
           route: '/electrician/jobs',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
       ];
     }
-    if (userRole == 'super_admin') {
+    if (widget.userRole == 'super_admin') {
       return [
         _NavItem(
           icon: Icons.dashboard_rounded,
           label: 'Dashboard',
           route: '/dashboard',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.report_problem_rounded,
           label: 'Complaints',
           route: '/complaints',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.engineering_rounded,
           label: 'Electricians',
           route: '/superadmin/electricians',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.group_rounded,
           label: 'Agents',
           route: '/fieldops/agents',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.alt_route_rounded,
           label: 'Pole Management',
-		  route: '/poles',
-          currentRoute: currentRoute,
+          route: '/poles',
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.call_rounded,
           label: 'Voice Calls',
-		  route: '/voice-calls',
-          currentRoute: currentRoute,
+          route: '/voice-calls',
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.receipt_long_rounded,
           label: 'IVR Logs',
-		  route: '/ivr-logs',
-          currentRoute: currentRoute,
+          route: '/ivr-logs',
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.account_tree_rounded,
           label: 'Panchayat Mgmt',
           route: '/panchayats',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
         _NavItem(
           icon: Icons.people_rounded,
           label: 'User Management',
           route: '/users',
-          currentRoute: currentRoute,
+          currentRoute: widget.currentRoute,
         ),
       ];
     }
@@ -408,57 +448,57 @@ class AppScaffold extends StatelessWidget {
         icon: Icons.dashboard_rounded,
         label: 'Dashboard',
         route: '/dashboard',
-        currentRoute: currentRoute,
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.electrical_services_rounded,
         label: 'Poles',
         route: '/poles',
-        currentRoute: currentRoute,
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.call_rounded,
         label: 'Voice Calls',
-	  route: '/voice-calls',
-        currentRoute: currentRoute,
+        route: '/voice-calls',
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.receipt_long_rounded,
         label: 'IVR Logs',
-	  route: '/ivr-logs',
-        currentRoute: currentRoute,
+        route: '/ivr-logs',
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.report_problem_rounded,
         label: 'Complaints',
         route: '/complaints',
-        currentRoute: currentRoute,
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.engineering_rounded,
         label: 'Electricians',
         route: '/admin/electricians',
-        currentRoute: currentRoute,
+        currentRoute: widget.currentRoute,
       ),
     ];
   }
 
   List<Widget> _getSecondaryNavItems() {
-    if (userRole == 'agent' || userRole == 'electrician') {
+    if (widget.userRole == 'agent' || widget.userRole == 'electrician') {
       return [];
     }
     return [
       _NavItem(
         icon: Icons.insights_rounded,
         label: 'Analytics',
-		  route: '/analytics',
-        currentRoute: currentRoute,
+        route: '/analytics',
+        currentRoute: widget.currentRoute,
       ),
       _NavItem(
         icon: Icons.settings_rounded,
         label: 'Settings',
         route: '/ai-settings',
-        currentRoute: currentRoute,
+        currentRoute: widget.currentRoute,
       ),
     ];
   }
@@ -478,6 +518,454 @@ class AppScaffold extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  void _handleTopSearch(BuildContext context) {
+    final term = _topSearchController.text.trim();
+    if (widget.userRole == 'agent') {
+      final route =
+          term.isEmpty ? '/agent/poles' : '/agent/poles?q=${Uri.encodeComponent(term)}';
+      context.go(route);
+      return;
+    }
+    if (widget.userRole == 'electrician') {
+      final route = term.isEmpty
+          ? '/electrician/jobs'
+          : '/electrician/jobs?q=${Uri.encodeComponent(term)}';
+      context.go(route);
+      return;
+    }
+    final route =
+        term.isEmpty ? '/complaints' : '/complaints?q=${Uri.encodeComponent(term)}';
+    context.go(route);
+  }
+
+  void _handleNewComplaint(BuildContext context) {
+    if (widget.userRole == 'super_admin' || widget.userRole == 'panchayat_admin') {
+      _openNewComplaintFlow(context);
+      return;
+    }
+    if (widget.userRole == 'agent') {
+      context.go('/agent/poles/add');
+      return;
+    }
+    context.go('/electrician/jobs');
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('New complaint creation is managed by admins.')),
+    );
+  }
+
+  Future<void> _openNewComplaintFlow(BuildContext context) async {
+    try {
+      final poles = await _loadPolesForRole();
+      if (!context.mounted) return;
+      final selectedPole = await showPolePickerDialog(
+        context: context,
+        poles: poles,
+        title: 'Select Pole for New Complaint',
+        confirmLabel: 'Continue',
+      );
+      if (!context.mounted || selectedPole == null) return;
+
+      final payload = await showDialog<_ManualComplaintPayload>(
+        context: context,
+        builder: (_) => const _ManualComplaintFormDialog(),
+      );
+      if (!context.mounted || payload == null) return;
+
+      await _createComplaintForRole(
+        poleId: selectedPole.id,
+        complaintType: payload.complaintType,
+        description: payload.description,
+        urgencyLevel: payload.urgencyLevel,
+      );
+      if (!context.mounted) return;
+      context.go('/complaints');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Complaint created successfully.')),
+      );
+    } catch (err) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not create complaint: $err')),
+      );
+    }
+  }
+
+  Future<List<PoleModel>> _loadPolesForRole() async {
+    if (widget.userRole == 'super_admin') {
+      final raw = await SuperAdminRepository().listPoles();
+      return raw
+          .whereType<Map>()
+          .map((j) => PoleModel.fromJson(Map<String, dynamic>.from(j)))
+          .toList();
+    }
+    return PanchayatAdminRepository().listPoles();
+  }
+
+  Future<void> _createComplaintForRole({
+    required int poleId,
+    required String complaintType,
+    required String description,
+    String? urgencyLevel,
+  }) async {
+    if (widget.userRole == 'super_admin') {
+      await SuperAdminRepository().createComplaint(
+        poleId: poleId,
+        complaintType: complaintType,
+        description: description,
+        urgencyLevel: urgencyLevel,
+      );
+      return;
+    }
+    await PanchayatAdminRepository().createComplaint(
+      poleId: poleId,
+      complaintType: complaintType,
+      description: description,
+      urgencyLevel: urgencyLevel,
+    );
+  }
+
+  Future<void> _openActivityCenter(
+    BuildContext context, {
+    required int initialTab,
+    required GlobalKey anchorKey,
+  }) async {
+    final dataFuture = _loadActivityData();
+
+    final anchorCtx = anchorKey.currentContext;
+    if (anchorCtx == null) {
+      return;
+    }
+
+    final renderObject = anchorCtx.findRenderObject();
+    if (renderObject is! RenderBox) {
+      return;
+    }
+
+    final overlay = Overlay.of(context).context.findRenderObject();
+    if (overlay is! RenderBox) {
+      return;
+    }
+
+    const popupWidth = 420.0;
+    const horizontalMargin = 12.0;
+    const verticalGap = 8.0;
+    final anchorTopLeft = renderObject.localToGlobal(Offset.zero, ancestor: overlay);
+    final anchorBottomLeft = renderObject.localToGlobal(
+      Offset(0, renderObject.size.height),
+      ancestor: overlay,
+    );
+
+    final maxPopupWidth = overlay.size.width - (horizontalMargin * 2);
+    final resolvedPopupWidth =
+        maxPopupWidth < popupWidth ? maxPopupWidth.clamp(280.0, popupWidth) : popupWidth;
+    final desiredLeft = anchorTopLeft.dx + renderObject.size.width - resolvedPopupWidth;
+    final clampedLeft = desiredLeft.clamp(
+      horizontalMargin,
+      overlay.size.width - resolvedPopupWidth - horizontalMargin,
+    );
+
+    final maxPopupHeight = overlay.size.height * 0.72;
+    final desiredTop = anchorBottomLeft.dy + verticalGap;
+    final clampedTop = desiredTop.clamp(
+      horizontalMargin,
+      overlay.size.height - maxPopupHeight - horizontalMargin,
+    );
+
+    await showGeneralDialog<void>(
+      context: context,
+      barrierLabel: 'Close',
+      barrierDismissible: true,
+      barrierColor: Colors.black26,
+      transitionDuration: const Duration(milliseconds: 120),
+      pageBuilder: (dialogContext, _, __) {
+        return Stack(
+          children: [
+            Positioned(
+              left: clampedLeft.toDouble(),
+              top: clampedTop.toDouble(),
+              width: resolvedPopupWidth.toDouble(),
+              height: maxPopupHeight,
+              child: Material(
+                elevation: 8,
+                borderRadius: BorderRadius.circular(14),
+                clipBehavior: Clip.antiAlias,
+                color: Colors.white,
+                child: FutureBuilder<_TopBarActivityData>(
+                  future: dataFuture,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState != ConnectionState.done) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Text(
+                          'Unable to load activity right now.',
+                          style: TextStyle(color: Colors.red.shade700),
+                        ),
+                      );
+                    }
+                    final data = snapshot.data ?? const _TopBarActivityData.empty();
+                    return DefaultTabController(
+                      length: 2,
+                      initialIndex: initialTab,
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 8),
+                          const TabBar(
+                            tabs: [
+                              Tab(
+                                icon: Icon(Icons.notifications_none_rounded),
+                                text: 'Activity',
+                              ),
+                              Tab(
+                                icon: Icon(Icons.mail_outline_rounded),
+                                text: 'Messages',
+                              ),
+                            ],
+                          ),
+                          Expanded(
+                            child: TabBarView(
+                              children: [
+                                _ActivityList(
+                                  items: data.recentActivity,
+                                  emptyMessage: data.emptyMessage,
+                                ),
+                                _CategoryList(
+                                  items: data.byCategory,
+                                  emptyMessage: data.emptyMessage,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<_TopBarActivityData> _loadActivityData() async {
+    if (widget.userRole == 'super_admin') {
+      final insights = await SuperAdminRepository().getDashboardInsights();
+      return _TopBarActivityData.fromInsights(insights);
+    }
+    if (widget.userRole == 'panchayat_admin') {
+      final insights = await PanchayatAdminRepository().getDashboardInsights();
+      return _TopBarActivityData.fromInsights(insights);
+    }
+    return const _TopBarActivityData(
+      recentActivity: [],
+      byCategory: [],
+      emptyMessage: 'Notifications and inbox are not enabled for this role yet.',
+    );
+  }
+}
+
+class _ManualComplaintPayload {
+  final String complaintType;
+  final String description;
+  final String? urgencyLevel;
+
+  const _ManualComplaintPayload({
+    required this.complaintType,
+    required this.description,
+    this.urgencyLevel,
+  });
+}
+
+class _ManualComplaintFormDialog extends StatefulWidget {
+  const _ManualComplaintFormDialog();
+
+  @override
+  State<_ManualComplaintFormDialog> createState() =>
+      _ManualComplaintFormDialogState();
+}
+
+class _ManualComplaintFormDialogState extends State<_ManualComplaintFormDialog> {
+  final _formKey = GlobalKey<FormState>();
+  final _descriptionController = TextEditingController();
+  String _complaintType = 'street_light';
+  String _urgency = 'medium';
+
+  @override
+  void dispose() {
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New Complaint Details'),
+      content: SizedBox(
+        width: 420,
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: _complaintType,
+                items: const [
+                  DropdownMenuItem(
+                    value: 'street_light',
+                    child: Text('Street light issue'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'power_outage',
+                    child: Text('Power outage'),
+                  ),
+                  DropdownMenuItem(
+                    value: 'wire_damage',
+                    child: Text('Wire damage'),
+                  ),
+                  DropdownMenuItem(value: 'other', child: Text('Other')),
+                ],
+                onChanged:
+                    (v) => setState(() => _complaintType = v ?? 'street_light'),
+                decoration: const InputDecoration(labelText: 'Complaint type'),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: _urgency,
+                items: const [
+                  DropdownMenuItem(value: 'low', child: Text('Low')),
+                  DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                  DropdownMenuItem(value: 'high', child: Text('High')),
+                ],
+                onChanged: (v) => setState(() => _urgency = v ?? 'medium'),
+                decoration: const InputDecoration(labelText: 'Urgency'),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Issue description',
+                  hintText: 'Describe the complaint',
+                ),
+                validator:
+                    (v) =>
+                        (v == null || v.trim().isEmpty)
+                            ? 'Description is required'
+                            : null,
+              ),
+            ],
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            if (!_formKey.currentState!.validate()) return;
+            Navigator.of(context).pop(
+              _ManualComplaintPayload(
+                complaintType: _complaintType,
+                description: _descriptionController.text.trim(),
+                urgencyLevel: _urgency,
+              ),
+            );
+          },
+          child: const Text('Create Complaint'),
+        ),
+      ],
+    );
+  }
+}
+
+class _TopBarActivityData {
+  final List<RecentActivityItem> recentActivity;
+  final List<CategoryCount> byCategory;
+  final String emptyMessage;
+
+  const _TopBarActivityData({
+    required this.recentActivity,
+    required this.byCategory,
+    required this.emptyMessage,
+  });
+
+  const _TopBarActivityData.empty()
+      : recentActivity = const [],
+        byCategory = const [],
+        emptyMessage = 'No recent updates.';
+
+  factory _TopBarActivityData.fromInsights(DashboardInsights insights) {
+    return _TopBarActivityData(
+      recentActivity: insights.recentActivity,
+      byCategory: insights.byCategory,
+      emptyMessage: 'No recent updates available.',
+    );
+  }
+}
+
+class _ActivityList extends StatelessWidget {
+  final List<RecentActivityItem> items;
+  final String emptyMessage;
+
+  const _ActivityList({required this.items, required this.emptyMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(child: Text(emptyMessage));
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return ListTile(
+          leading: const Icon(Icons.circle_notifications_rounded),
+          title: Text(item.title),
+          subtitle: Text('${item.subtitle}\n${item.at}'),
+          isThreeLine: true,
+          onTap: () => context.go(
+            '/complaints?q=${Uri.encodeComponent(item.complaintId.toString())}',
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _CategoryList extends StatelessWidget {
+  final List<CategoryCount> items;
+  final String emptyMessage;
+
+  const _CategoryList({required this.items, required this.emptyMessage});
+
+  @override
+  Widget build(BuildContext context) {
+    if (items.isEmpty) {
+      return Center(child: Text(emptyMessage));
+    }
+    return ListView.separated(
+      padding: const EdgeInsets.all(12),
+      itemCount: items.length,
+      separatorBuilder: (_, __) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return ListTile(
+          leading: const Icon(Icons.mark_email_read_outlined),
+          title: Text(item.label),
+          trailing: Text(item.count.toString()),
+          subtitle: const Text('Category summary from recent operations'),
+        );
+      },
     );
   }
 }

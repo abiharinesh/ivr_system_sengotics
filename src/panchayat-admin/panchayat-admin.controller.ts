@@ -92,6 +92,21 @@ export class PanchayatAdminController {
         return this.service.listComplaints(this.getPanchayatId(req), status)
     }
 
+    @Post('complaints')
+    createComplaint(
+        @Req() req: AuthenticatedRequest,
+        @Body() body: {
+            pole_id: number
+            complaint_type?: string
+            description?: string
+            urgency_level?: string
+            caller_language?: string
+            caller_emotion?: string
+        }
+    ) {
+        return this.service.createComplaint(this.getPanchayatId(req), body)
+    }
+
     @Patch('complaints/:id/status')
     updateComplaintStatus(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number, @Body() body: { status: string }) {
         return this.service.updateComplaintStatus(this.getPanchayatId(req), id, body.status)

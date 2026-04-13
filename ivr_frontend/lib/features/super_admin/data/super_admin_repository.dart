@@ -95,6 +95,25 @@ class SuperAdminRepository {
     return ComplaintModel.fromJson(data);
   }
 
+  Future<ComplaintModel> createComplaint({
+    required int poleId,
+    required String complaintType,
+    required String description,
+    String? urgencyLevel,
+  }) async {
+    final data = await _api.post(
+      ApiConfig.saComplaints,
+      data: {
+        'pole_id': poleId,
+        'complaint_type': complaintType,
+        'description': description,
+        if (urgencyLevel != null && urgencyLevel.isNotEmpty)
+          'urgency_level': urgencyLevel,
+      },
+    );
+    return ComplaintModel.fromJson(data);
+  }
+
   // ── Poles ───────────────────────────────────────────────────────────────
   Future<List<dynamic>> listPoles({int? panchayatId}) async {
     final params = <String, dynamic>{};

@@ -265,6 +265,41 @@ export class SuperAdminService {
         })
     }
 
+    async createComplaint(data: {
+        pole_id: number
+        complaint_type?: string
+        description?: string
+        urgency_level?: string
+        caller_language?: string
+        caller_emotion?: string
+    }) {
+        const pole = await this.prisma.electricPole.findUnique({ where: { id: data.pole_id } })
+        if (!pole) throw new NotFoundException(`Pole #${data.pole_id} not found`)
+        if (!pole.panchayat_id) {
+            throw new BadRequestException('Selected pole has no panchayat context')
+        }
+
+        const complaint = await this.prisma.complaint.create({
+            data: {
+                pole_id: data.pole_id,
+                panchayat_id: pole.panchayat_id,
+                complaint_type: data.complaint_type?.trim() || 'manual_reported',
+                description: data.description?.trim() || null,
+                urgency_level: data.urgency_level?.trim() || null,
+                caller_language: data.caller_language?.trim() || null,
+                caller_emotion: data.caller_emotion?.trim() || null,
+                status: 'pending',
+            },
+            include: {
+                pole: true,
+                panchayat: true,
+                assigned_electrician: { select: { id: true, email: true } },
+            },
+        })
+
+        return this.panchayatAdmin.autoAssignComplaintRoundRobin(pole.panchayat_id, complaint.id)
+    }
+
     async updateComplaintStatus(id: number, status: string) {
         validateComplaintStatus(status)
 
@@ -317,7 +352,10 @@ export class SuperAdminService {
         await this.learnLandmark(complaint, pole)
 
         this.logger.log(`✅ Complaint #${complaintId} resolved → pole #${poleId}`)
-        return updated
+        if (!pole.panchayat_id) {
+            return updated
+        }
+        return this.panchayatAdmin.autoAssignComplaintRoundRobin(pole.panchayat_id, complaintId)
     }
 
     /**

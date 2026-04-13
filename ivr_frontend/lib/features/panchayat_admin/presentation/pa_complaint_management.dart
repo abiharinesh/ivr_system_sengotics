@@ -5,12 +5,21 @@ import '../../../config/app_theme.dart';
 import '../../../core/widgets/assign_electrician_dialog.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
+import '../../../core/widgets/pole_picker_dialog.dart';
 import '../../../core/widgets/status_badge.dart';
 import '../../../models/complaint_model.dart';
+import '../data/panchayat_admin_repository.dart';
 import '../bloc/pa_complaint_bloc.dart';
 
 class PAComplaintManagement extends StatefulWidget {
-  const PAComplaintManagement({super.key});
+  final String initialQuery;
+  final bool openCreate;
+
+  const PAComplaintManagement({
+    super.key,
+    this.initialQuery = '',
+    this.openCreate = false,
+  });
 
   @override
   State<PAComplaintManagement> createState() => _PAComplaintManagementState();
@@ -18,6 +27,8 @@ class PAComplaintManagement extends StatefulWidget {
 
 class _PAComplaintManagementState extends State<PAComplaintManagement> {
   String? _selectedStatus;
+  String _query = '';
+  bool _createPromptShown = false;
 
   final _statuses = [
     null,
@@ -37,6 +48,65 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
     'Manual Review',
     'Rejected',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _query = widget.initialQuery.trim().toLowerCase();
+  }
+
+  @override
+  void didUpdateWidget(covariant PAComplaintManagement oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final next = widget.initialQuery.trim().toLowerCase();
+    if (next != oldWidget.initialQuery.trim().toLowerCase()) {
+      setState(() => _query = next);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (widget.openCreate && !_createPromptShown) {
+      _createPromptShown = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        showDialog<void>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('New Complaint'),
+            content: const Text(
+              'Manual complaint creation is not configured yet. '
+              'Use IVR intake flow, or add backend support for manual creation.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+  }
+
+  List<ComplaintModel> _filterByQuery(List<ComplaintModel> source) {
+    if (_query.isEmpty) return source;
+    return source.where((c) {
+      final chunks = <String>[
+        c.id.toString(),
+        c.status,
+        c.description ?? '',
+        c.complaintType ?? '',
+        c.callerLanguage ?? '',
+        c.callerEmotion ?? '',
+        c.urgencyLevel ?? '',
+        c.pole?.poleNumber ?? '',
+      ];
+      return chunks.any((x) => x.toLowerCase().contains(_query));
+    }).toList();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +130,9 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
         }
       },
       builder: (context, state) {
-        final count = state is PAComplaintLoaded ? state.complaints.length : 0;
+        final count = state is PAComplaintLoaded
+            ? _filterByQuery(state.complaints).length
+            : 0;
         return ListScreenShell(
           title: 'Complaints',
           subtitle: 'Manage panchayat complaints and assignments',
@@ -107,7 +179,8 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state is PAComplaintLoaded) {
-      if (state.complaints.isEmpty) {
+      final filtered = _filterByQuery(state.complaints);
+      if (filtered.isEmpty) {
         return const EmptyState(
           icon: Icons.check_circle_outline,
           title: 'No Complaints',
@@ -119,10 +192,8 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
           return ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: hPad),
-            itemCount: state.complaints.length,
-            itemBuilder:
-                (context, index) =>
-                    _PAComplaintCard(complaint: state.complaints[index]),
+            itemCount: filtered.length,
+            itemBuilder: (context, index) => _PAComplaintCard(complaint: filtered[index]),
           );
         },
       );
@@ -308,46 +379,28 @@ class _PAComplaintCard extends StatelessWidget {
   }
 
   void _showResolveDialog(BuildContext context) {
-    final poleIdC = TextEditingController();
-    showDialog(
-      context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('Resolve Complaint'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Assign this complaint to an electric pole:',
-                  style: TextStyle(color: AppTheme.textSecondary),
-                ),
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: poleIdC,
-                  decoration: const InputDecoration(labelText: 'Pole ID'),
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final poleId = int.tryParse(poleIdC.text);
-                  if (poleId != null) {
-                    context.read<PAComplaintBloc>().add(
-                      ResolvePAComplaint(complaint.id, poleId),
-                    );
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text('Resolve'),
-              ),
-            ],
-          ),
-    );
+    _showResolveWithMap(context);
+  }
+
+  Future<void> _showResolveWithMap(BuildContext context) async {
+    try {
+      final poles = await PanchayatAdminRepository().listPoles();
+      if (!context.mounted) return;
+      final selected = await showPolePickerDialog(
+        context: context,
+        poles: poles,
+        title: 'Map complaint to pole',
+        confirmLabel: 'Assign Pole & Resolve',
+      );
+      if (!context.mounted || selected == null) return;
+      context.read<PAComplaintBloc>().add(
+        ResolvePAComplaint(complaint.id, selected.id),
+      );
+    } catch (err) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load poles: $err')),
+      );
+    }
   }
 }

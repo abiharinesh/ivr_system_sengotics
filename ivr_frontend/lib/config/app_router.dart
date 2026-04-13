@@ -100,7 +100,9 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/agent/poles',
-            builder: (context, state) => const AgentPoleListScreen(),
+            builder: (context, state) => AgentPoleListScreen(
+              initialSearch: state.uri.queryParameters['q'] ?? '',
+            ),
           ),
           GoRoute(
             path: '/agent/poles/add',
@@ -119,7 +121,9 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/electrician/jobs',
-            builder: (context, state) => const ElectricianJobsScreen(),
+            builder: (context, state) => ElectricianJobsScreen(
+              initialSearch: state.uri.queryParameters['q'] ?? '',
+            ),
           ),
           GoRoute(
             path: '/electrician/jobs/:id',
@@ -173,16 +177,24 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/complaints',
             builder: (context, state) {
+              final query = state.uri.queryParameters['q'] ?? '';
+              final openCreate = state.uri.queryParameters['action'] == 'new';
               final authState = authBloc.state;
               if (authState is Authenticated && authState.user.isSuperAdmin) {
                 return BlocProvider(
                   create: (_) => SAComplaintBloc()..add(LoadSAComplaints()),
-                  child: const ComplaintManagement(),
+                  child: ComplaintManagement(
+                    initialQuery: query,
+                    openCreate: openCreate,
+                  ),
                 );
               }
               return BlocProvider(
                 create: (_) => PAComplaintBloc()..add(LoadPAComplaints()),
-                child: const PAComplaintManagement(),
+                child: PAComplaintManagement(
+                  initialQuery: query,
+                  openCreate: openCreate,
+                ),
               );
             },
           ),
