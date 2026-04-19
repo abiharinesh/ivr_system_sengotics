@@ -1,0 +1,19 @@
+{
+  "name": "pole-service",
+  "sourceRoot": "apps/pole-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build pole-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start pole-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/pole-service/main.js", "cwd": "." }
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "name": "agent-service",
+  "sourceRoot": "apps/agent-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build agent-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start agent-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/agent-service/main.js", "cwd": "." }
+    }
+  }
+}

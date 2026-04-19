@@ -1,0 +1,19 @@
+{
+  "name": "quotation-service",
+  "sourceRoot": "apps/quotation-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build quotation-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start quotation-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/quotation-service/main.js", "cwd": "." }
+    }
+  }
+}

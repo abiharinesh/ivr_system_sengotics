@@ -1,9 +1,9 @@
 {
     "version": 2,
-    "rewrites": [
-        {
-            "source": "/api/(.*)",
-            "destination": "/api"
+    "functions": {
+        "api/**/*.ts": {
+            "memory": 1024,
+            "maxDuration": 15
         }
-    ]
+    }
 }

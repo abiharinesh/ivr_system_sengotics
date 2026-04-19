@@ -1,0 +1,19 @@
+{
+  "name": "work-order-service",
+  "sourceRoot": "apps/work-order-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build work-order-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start work-order-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/work-order-service/main.js", "cwd": "." }
+    }
+  }
+}

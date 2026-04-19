@@ -1,0 +1,19 @@
+{
+  "name": "whatsapp-service",
+  "sourceRoot": "apps/whatsapp-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build whatsapp-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start whatsapp-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/whatsapp-service/main.js", "cwd": "." }
+    }
+  }
+}

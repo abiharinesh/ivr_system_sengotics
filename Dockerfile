@@ -22,17 +22,21 @@ COPY . .
 # Expose port
 EXPOSE 3000
 
-CMD ["npm", "run", "start:dev"]
+CMD ["npm", "run", "dev"]
 
 # Build stage
 FROM development AS build
 WORKDIR /usr/src/app
+ARG APP_NAME=api-gateway
 
-RUN npm run build
+# Only build the specified microservice using Nx
+RUN npx nx run ${APP_NAME}:build
 
 # Production stage
 FROM base AS production
 WORKDIR /usr/src/app
+ARG APP_NAME=api-gateway
+ENV APP_NAME=${APP_NAME}
 
 # Copy package files
 COPY package*.json ./
@@ -51,4 +55,5 @@ COPY --from=build /usr/src/app/dist ./dist
 # Expose port
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+# Start the specific microservice
+CMD node dist/apps/${APP_NAME}/main.js

@@ -1,0 +1,19 @@
+{
+  "name": "geo-verification-service",
+  "sourceRoot": "apps/geo-verification-service/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js build geo-verification-service", "cwd": "." }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node ./node_modules/@nestjs/cli/bin/nest.js start geo-verification-service --watch", "cwd": "." }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": { "command": "node dist/apps/geo-verification-service/main.js", "cwd": "." }
+    }
+  }
+}

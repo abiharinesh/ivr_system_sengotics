@@ -86,6 +86,8 @@ model Panchayat {
   complaints     Complaint[]
   users          User[]
   export_jobs    ExportJob[]
+  tenders        Tender[]
+  work_orders    WorkOrder[]
 
   @@map("panchayats")
 }
@@ -105,6 +107,10 @@ model User {
 
   export_jobs_created    ExportJob[] @relation("ExportJobCreator")
   export_jobs_as_subject ExportJob[] @relation("ExportJobElectrician")
+  created_tenders        Tender[]    @relation("TenderCreator")
+  awarded_work_orders    WorkOrder[] @relation("WorkOrderApprover")
+  vendor_quotations      Quotation[] @relation("QuotationVendorUser")
+  vendor_invite_links    TenderInviteLink[] @relation("InviteVendorUser")
 
   @@map("users")
 }
@@ -129,6 +135,8 @@ model ElectricPole {
   panchayat     Panchayat?   @relation(fields: [panchayat_id], references: [id])
   complaints    Complaint[]
   image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
+  work_order_items WorkOrderItem[]
+  work_proofs      WorkProof[]
 
   @@unique([panchayat_id, keypad_id])
   @@map("electric_poles")
@@ -168,6 +176,10 @@ model Complaint {
   pole                ElectricPole? @relation(fields: [pole_id], references: [id])
   panchayat           Panchayat?    @relation(fields: [panchayat_id], references: [id])
   assigned_electrician User?       @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
+  tender_links         TenderComplaint[]
+  work_order_items     WorkOrderItem[]
+  work_proofs          WorkProof[]
+  resolution_audits    ComplaintResolutionAudit[]
 
   @@map("complaints")
 }
@@ -220,4 +232,225 @@ model ExportJob {
   @@index([electrician_user_id])
   @@index([status])
   @@map("export_jobs")
+}
+
+enum TenderStatus {
+  draft
+  open_for_quotations
+  awarded
+  cancelled
+}
+
+enum QuotationStatus {
+  submitted
+  shortlisted
+  awarded
+  rejected
+}
+
+enum WorkOrderStatus {
+  created
+  in_progress
+  completed
+  cancelled
+}
+
+enum WorkProofStatus {
+  pending_verification
+  matched
+  unmatched_manual_review
+  rejected
+}
+
+enum LinkPurpose {
+  tender_submission
+  work_upload
+}
+
+model Tender {
+  id                  Int         @id @default(autoincrement())
+  tender_code         String      @unique
+  panchayat_id        Int
+  complaint_count     Int
+  required_quantity   Int
+  light_type          String?
+  work_type           String
+  submission_deadline DateTime
+  scoring_config      Json
+  status              TenderStatus @default(open_for_quotations)
+  created_by_user_id  Int
+  created_at          DateTime    @default(now())
+  updated_at          DateTime    @updatedAt
+
+  panchayat           Panchayat   @relation(fields: [panchayat_id], references: [id])
+  created_by          User        @relation("TenderCreator", fields: [created_by_user_id], references: [id])
+  complaint_links     TenderComplaint[]
+  invite_links        TenderInviteLink[]
+  quotations          Quotation[]
+  work_orders         WorkOrder[]
+
+  @@index([panchayat_id, status])
+  @@map("tenders")
+}
+
+model TenderComplaint {
+  id           Int       @id @default(autoincrement())
+  tender_id    Int
+  complaint_id Int
+  created_at   DateTime  @default(now())
+
+  tender       Tender    @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  complaint    Complaint @relation(fields: [complaint_id], references: [id], onDelete: Cascade)
+
+  @@unique([tender_id, complaint_id])
+  @@index([complaint_id])
+  @@map("tender_complaints")
+}
+
+model TenderInviteLink {
+  id               Int         @id @default(autoincrement())
+  tender_id        Int
+  purpose          LinkPurpose
+  token_hash       String      @unique
+  token_hint       String?
+  expires_at       DateTime
+  max_submissions  Int?
+  used_count       Int         @default(0)
+  is_revoked       Boolean     @default(false)
+  vendor_user_id   Int?
+  work_order_id    Int?
+  created_at       DateTime    @default(now())
+
+  tender           Tender      @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  vendor_user      User?       @relation("InviteVendorUser", fields: [vendor_user_id], references: [id])
+  work_order       WorkOrder?  @relation(fields: [work_order_id], references: [id], onDelete: SetNull)
+
+  @@index([tender_id, purpose, expires_at])
+  @@map("tender_invite_links")
+}
+
+model Quotation {
+  id                    Int             @id @default(autoincrement())
+  tender_id             Int
+  vendor_user_id        Int?
+  company_name          String
+  contact_person        String
+  mobile_number         String
+  quantity              Int
+  price_per_light       Float
+  installation_cost     Float           @default(0)
+  total_cost            Float
+  delivery_days         Int
+  warranty_months       Int
+  seller_rating         Float           @default(3)
+  experience_years      Int             @default(1)
+  document_url          String?
+  notes                 String?
+  score_breakdown       Json?
+  final_score           Float?
+  status                QuotationStatus @default(submitted)
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
+
+  tender                Tender          @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  vendor_user           User?           @relation("QuotationVendorUser", fields: [vendor_user_id], references: [id])
+  work_order            WorkOrder?
+
+  @@index([tender_id, status, final_score])
+  @@map("quotations")
+}
+
+model WorkOrder {
+  id                   Int             @id @default(autoincrement())
+  work_order_code      String          @unique
+  tender_id            Int
+  quotation_id         Int             @unique
+  panchayat_id         Int
+  approved_by_user_id  Int
+  assigned_vendor_name String
+  assigned_vendor_phone String
+  quantity             Int
+  status               WorkOrderStatus @default(created)
+  due_date             DateTime?
+  completed_at         DateTime?
+  created_at           DateTime        @default(now())
+  updated_at           DateTime        @updatedAt
+
+  tender               Tender          @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  quotation            Quotation       @relation(fields: [quotation_id], references: [id], onDelete: Restrict)
+  panchayat            Panchayat       @relation(fields: [panchayat_id], references: [id])
+  approved_by          User            @relation("WorkOrderApprover", fields: [approved_by_user_id], references: [id])
+  items                WorkOrderItem[]
+  proof_links          TenderInviteLink[]
+  proofs               WorkProof[]
+
+  @@index([panchayat_id, status])
+  @@map("work_orders")
+}
+
+model WorkOrderItem {
+  id             Int        @id @default(autoincrement())
+  work_order_id  Int
+  complaint_id   Int
+  pole_id        Int
+  created_at     DateTime   @default(now())
+
+  work_order     WorkOrder  @relation(fields: [work_order_id], references: [id], onDelete: Cascade)
+  complaint      Complaint  @relation(fields: [complaint_id], references: [id], onDelete: Restrict)
+  pole           ElectricPole @relation(fields: [pole_id], references: [id], onDelete: Restrict)
+
+  @@unique([work_order_id, complaint_id])
+  @@index([pole_id])
+  @@map("work_order_items")
+}
+
+model WorkProof {
+  id                     Int             @id @default(autoincrement())
+  work_order_id          Int
+  complaint_id           Int?
+  pole_id                Int?
+  image_url              String
+  before_image_url       String?
+  after_image_url        String?
+  captured_at            DateTime?
+  uploaded_at            DateTime        @default(now())
+  latitude               Float?
+  longitude              Float?
+  exif_latitude          Float?
+  exif_longitude         Float?
+  distance_meters        Float?
+  adaptive_radius_meters Float?
+  match_confidence       Float?
+  image_hash             String?         @unique
+  status                 WorkProofStatus @default(pending_verification)
+  submitted_by_name      String?
+  submitted_by_phone     String?
+  verification_note      String?
+
+  work_order             WorkOrder       @relation(fields: [work_order_id], references: [id], onDelete: Cascade)
+  complaint              Complaint?      @relation(fields: [complaint_id], references: [id], onDelete: SetNull)
+  pole                   ElectricPole?   @relation(fields: [pole_id], references: [id], onDelete: SetNull)
+  audit_entries          ComplaintResolutionAudit[]
+
+  @@index([work_order_id, status])
+  @@index([complaint_id])
+  @@map("work_proofs")
+}
+
+model ComplaintResolutionAudit {
+  id              Int      @id @default(autoincrement())
+  complaint_id    Int
+  work_proof_id   Int?
+  action          String
+  actor_type      String
+  actor_id        Int?
+  note            String?
+  metadata        Json?
+  created_at      DateTime @default(now())
+
+  complaint       Complaint  @relation(fields: [complaint_id], references: [id], onDelete: Cascade)
+  work_proof      WorkProof? @relation(fields: [work_proof_id], references: [id], onDelete: SetNull)
+
+  @@index([complaint_id, created_at])
+  @@map("complaint_resolution_audits")
 }

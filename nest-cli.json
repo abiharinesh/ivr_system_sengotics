@@ -1,8 +1,140 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/api-gateway/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": false,
+    "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/api-gateway",
+  "projects": {
+    "admin-service": {
+      "type": "application",
+      "root": "apps/admin-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/admin-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/admin-service/tsconfig.app.json"
+      }
+    },
+    "agent-service": {
+      "type": "application",
+      "root": "apps/agent-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/agent-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/agent-service/tsconfig.app.json"
+      }
+    },
+    "api-gateway": {
+      "type": "application",
+      "root": "apps/api-gateway",
+      "entryFile": "main",
+      "sourceRoot": "apps/api-gateway/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/api-gateway/tsconfig.app.json"
+      }
+    },
+    "auth-service": {
+      "type": "application",
+      "root": "apps/auth-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/auth-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/auth-service/tsconfig.app.json"
+      }
+    },
+    "complaint-service": {
+      "type": "application",
+      "root": "apps/complaint-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/complaint-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/complaint-service/tsconfig.app.json"
+      }
+    },
+    "electrician-service": {
+      "type": "application",
+      "root": "apps/electrician-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/electrician-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/electrician-service/tsconfig.app.json"
+      }
+    },
+    "geo-verification-service": {
+      "type": "application",
+      "root": "apps/geo-verification-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/geo-verification-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/geo-verification-service/tsconfig.app.json"
+      }
+    },
+    "ivr-service": {
+      "type": "application",
+      "root": "apps/ivr-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/ivr-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/ivr-service/tsconfig.app.json"
+      }
+    },
+    "pole-service": {
+      "type": "application",
+      "root": "apps/pole-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/pole-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/pole-service/tsconfig.app.json"
+      }
+    },
+    "quotation-service": {
+      "type": "application",
+      "root": "apps/quotation-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/quotation-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/quotation-service/tsconfig.app.json"
+      }
+    },
+    "shared": {
+      "type": "library",
+      "root": "libs/shared",
+      "entryFile": "index",
+      "sourceRoot": "libs/shared/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/shared/tsconfig.lib.json"
+      }
+    },
+    "tender-service": {
+      "type": "application",
+      "root": "apps/tender-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/tender-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/tender-service/tsconfig.app.json"
+      }
+    },
+    "whatsapp-service": {
+      "type": "application",
+      "root": "apps/whatsapp-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/whatsapp-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/whatsapp-service/tsconfig.app.json"
+      }
+    },
+    "work-order-service": {
+      "type": "application",
+      "root": "apps/work-order-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/work-order-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/work-order-service/tsconfig.app.json"
+      }
+    }
   }
 }

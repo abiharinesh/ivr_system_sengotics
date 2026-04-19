@@ -26,9 +26,12 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+      args:
+        APP_NAME: api-gateway
     container_name: ivr_backend_prod
     restart: always
-    command: sh -c "npx prisma migrate deploy && node dist/main"
+    # Render command if any overrides are needed, else Dockerfile CMD is preferred
+    command: sh -c "npx prisma migrate deploy && node dist/apps/api-gateway/main.js"
     ports:
       - "${PORT:-3000}:3000"
     env_file:
