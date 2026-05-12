@@ -15,6 +15,7 @@ import { AgentModule } from './agent/agent.module'
 import { ElectricianModule } from './electrician/electrician.module'
 import { WhatsAppModule } from './whatsapp/whatsapp.module'
 import { ElectricianOpsModule } from './field-ops/field-ops.module'
+import { TenderModule } from './tender/tender.module'
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { ElectricianOpsModule } from './field-ops/field-ops.module'
     SuperAdminModule,
     PanchayatAdminModule,
     AgentModule,
-    ElectricianModule
+    ElectricianModule,
+    TenderModule
   ],
   controllers: [AppController],
   providers: [

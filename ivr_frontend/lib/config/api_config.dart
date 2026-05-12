@@ -6,20 +6,27 @@ class ApiConfig {
   static const String _localBaseUrl = 'http://localhost:3000';
 
   /// Override order: `--dart-define=API_BASE_URL=...` → `.env` `API_BASE_URL` → defaults.
-  /// Web defaults to the live server in debug (browser CORS/hosting); mobile/desktop debug uses local API.
+  /// Defaults: release builds → prod; debug builds → http://localhost:3000 (web + mobile/desktop).
+  /// Web release without an override still falls back to prod for hosted deploys.
   static String get baseUrl {
     const fromDefine = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     if (fromDefine.isNotEmpty) {
       return fromDefine;
     }
-    final fromEnv = dotenv.env['API_BASE_URL']?.trim();
+    String? fromEnv;
+    try {
+      fromEnv = dotenv.env['API_BASE_URL']?.trim();
+    } catch (_) {
+      // dotenv may not be initialized yet (e.g. in tests); fall through to defaults.
+      fromEnv = null;
+    }
     if (fromEnv != null && fromEnv.isNotEmpty) {
       return fromEnv;
     }
-    if (kIsWeb) {
-      return _prodBaseUrl;
+    if (!kReleaseMode) {
+      return _localBaseUrl;
     }
-    return kReleaseMode ? _prodBaseUrl : _localBaseUrl;
+    return _prodBaseUrl;
   }
 
   /// Public URLs for files served at `/uploads/...` on the API host.

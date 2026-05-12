@@ -86,6 +86,8 @@ model Panchayat {
   complaints     Complaint[]
   users          User[]
   export_jobs    ExportJob[]
+  vendors        Vendor[]
+  tenders        Tender[]
 
   @@map("panchayats")
 }
@@ -105,6 +107,11 @@ model User {
 
   export_jobs_created    ExportJob[] @relation("ExportJobCreator")
   export_jobs_as_subject ExportJob[] @relation("ExportJobElectrician")
+
+  tenders_created          Tender[]                   @relation("TenderCreator")
+  tender_documents         TenderDocument[]           @relation("TenderDocGenerator")
+  field_sessions_created   FieldVerificationSession[] @relation("FieldSessionCreator")
+  tender_audit_events      TenderAuditLog[]           @relation("TenderAuditActor")
 
   @@map("users")
 }
@@ -129,6 +136,11 @@ model ElectricPole {
   panchayat     Panchayat?   @relation(fields: [panchayat_id], references: [id])
   complaints    Complaint[]
   image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
+
+  tender_line_items         TenderLineItem[]
+  field_uploads_matched     FieldVerificationUpload[]   @relation("FieldUploadMatched")
+  field_uploads_manual      FieldVerificationUpload[]   @relation("FieldUploadManual")
+  tender_checklist_items    TenderFieldChecklistItem[]
 
   @@unique([panchayat_id, keypad_id])
   @@map("electric_poles")
@@ -168,6 +180,8 @@ model Complaint {
   pole                ElectricPole? @relation(fields: [pole_id], references: [id])
   panchayat           Panchayat?    @relation(fields: [panchayat_id], references: [id])
   assigned_electrician User?       @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
+
+  tender_line_items   TenderLineItem[]
 
   @@map("complaints")
 }
@@ -220,4 +234,233 @@ model ExportJob {
   @@index([electrician_user_id])
   @@index([status])
   @@map("export_jobs")
+}
+
+// =====================================================================
+//  TENDER WORKFLOW (Phase 1)
+// =====================================================================
+
+/** Vendor master, panchayat-scoped. Phone is required and normalized to E.164. */
+model Vendor {
+  id           Int      @id @default(autoincrement())
+  panchayat_id Int
+  name         String
+  phone_e164   String
+  place        String?
+  notes        String?
+  active       Boolean  @default(true)
+  created_at   DateTime @default(now())
+
+  panchayat   Panchayat            @relation(fields: [panchayat_id], references: [id])
+  invites     TenderVendorInvite[]
+  quotations  TenderQuotation[]
+  documents   TenderDocument[]
+
+  @@unique([panchayat_id, phone_e164])
+  @@index([panchayat_id])
+  @@map("vendors")
+}
+
+/** Top-level tender. Drives status machine, milestone rules, and document chain. */
+model Tender {
+  id                              Int       @id @default(autoincrement())
+  panchayat_id                    Int
+  status                          String    @default("draft")
+  title_ta                        String?
+  title_en                        String?
+  narrative_ta                    String?
+  narrative_en                    String?
+  anchor_date                     DateTime?
+  milestone_rules                 Json?
+  quotation_access_mode           String    @default("invited_only")
+  auto_resolve_linked_complaints  Boolean   @default(false)
+  officer_self_inspection         Boolean   @default(false)
+  public_token                    String?   @unique
+  awarded_quotation_id            Int?      @unique
+  work_order_date                 DateTime?
+  work_completed_at               DateTime?
+  inspection_done_at              DateTime?
+  inspection_notes                String?
+  payment_meta                    Json?
+  created_by_user_id              Int
+  created_at                      DateTime  @default(now())
+  updated_at                      DateTime  @updatedAt
+
+  panchayat             Panchayat                  @relation(fields: [panchayat_id], references: [id])
+  created_by            User                       @relation("TenderCreator", fields: [created_by_user_id], references: [id])
+  awarded_quotation     TenderQuotation?           @relation("AwardedQuotation", fields: [awarded_quotation_id], references: [id])
+  invites               TenderVendorInvite[]
+  line_items            TenderLineItem[]
+  quotations            TenderQuotation[]          @relation("TenderQuotations")
+  documents             TenderDocument[]
+  verification_sessions FieldVerificationSession[]
+  checklist_items       TenderFieldChecklistItem[]
+  audit_logs            TenderAuditLog[]
+
+  @@index([panchayat_id, status])
+  @@map("tenders")
+}
+
+/** Vendor invitation join table for invited_only access mode. */
+model TenderVendorInvite {
+  id         Int      @id @default(autoincrement())
+  tender_id  Int
+  vendor_id  Int
+  created_at DateTime @default(now())
+
+  tender Tender @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  vendor Vendor @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
+
+  @@unique([tender_id, vendor_id])
+  @@map("tender_vendor_invites")
+}
+
+/** Per-line work item; may link to an electric pole and/or a complaint. */
+model TenderLineItem {
+  id             Int      @id @default(autoincrement())
+  tender_id      Int
+  seq            Int      @default(1)
+  description_ta String?
+  description_en String?
+  quantity       Decimal? @db.Decimal(12, 3)
+  unit           String?
+  pole_id        Int?
+  complaint_id   Int?
+
+  tender         Tender                     @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  pole           ElectricPole?              @relation(fields: [pole_id], references: [id])
+  complaint      Complaint?                 @relation(fields: [complaint_id], references: [id])
+  checklist_items TenderFieldChecklistItem[]
+
+  @@index([tender_id])
+  @@map("tender_line_items")
+}
+
+/** Bidder quotation. May come from public POST or officer offline entry. */
+model TenderQuotation {
+  id                   Int      @id @default(autoincrement())
+  tender_id            Int
+  vendor_id            Int?
+  submitter_name       String
+  submitter_phone_e164 String
+  amount               Decimal  @db.Decimal(12, 2)
+  remarks              String?
+  attachment_url       String?
+  source               String   @default("officer_entry")
+  screening_outcome    String   @default("pending")
+  superseded_by_id     Int?
+  submitted_ip_hash    String?
+  submitted_at         DateTime @default(now())
+
+  tender             Tender            @relation("TenderQuotations", fields: [tender_id], references: [id], onDelete: Cascade)
+  vendor             Vendor?           @relation(fields: [vendor_id], references: [id])
+  superseded_by      TenderQuotation?  @relation("Superseded", fields: [superseded_by_id], references: [id])
+  successors         TenderQuotation[] @relation("Superseded")
+  awarded_for_tender Tender?           @relation("AwardedQuotation")
+
+  @@index([tender_id])
+  @@map("tender_quotations")
+}
+
+/** Generated PDF artifact with version chain. status: pending|ready|failed. */
+model TenderDocument {
+  id                   Int       @id @default(autoincrement())
+  tender_id            Int
+  template_id          String
+  vendor_id            Int?
+  version              Int       @default(1)
+  field_overrides      Json?
+  storage_path         String?
+  generated_at         DateTime?
+  generated_by_user_id Int?
+  status               String    @default("pending")
+  error_message        String?
+  created_at           DateTime  @default(now())
+
+  tender       Tender  @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  vendor       Vendor? @relation(fields: [vendor_id], references: [id])
+  generated_by User?   @relation("TenderDocGenerator", fields: [generated_by_user_id], references: [id])
+
+  @@index([tender_id, template_id])
+  @@map("tender_documents")
+}
+
+/** Token-gated bucket for field-staff EXIF photo uploads. */
+model FieldVerificationSession {
+  id                 Int       @id @default(autoincrement())
+  tender_id          Int
+  token              String    @unique
+  expires_at         DateTime?
+  pole_subset_ids    Int[]     @default([])
+  created_by_user_id Int
+  confirmed_at       DateTime?
+  created_at         DateTime  @default(now())
+
+  tender     Tender                    @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  created_by User                      @relation("FieldSessionCreator", fields: [created_by_user_id], references: [id])
+  uploads    FieldVerificationUpload[]
+
+  @@index([tender_id])
+  @@map("field_verification_sessions")
+}
+
+/** Single image upload with EXIF + nearest-pole match result. */
+model FieldVerificationUpload {
+  id               Int       @id @default(autoincrement())
+  session_id       Int
+  image_url        String
+  exif_lat         Float?
+  exif_lng         Float?
+  captured_at      DateTime?
+  matched_pole_id  Int?
+  manual_pole_id   Int?
+  distance_meters  Float?
+  match_confidence String    @default("unmatched")
+  notes            String?
+  uploaded_at      DateTime  @default(now())
+
+  session         FieldVerificationSession   @relation(fields: [session_id], references: [id], onDelete: Cascade)
+  matched_pole    ElectricPole?              @relation("FieldUploadMatched", fields: [matched_pole_id], references: [id])
+  manual_pole     ElectricPole?              @relation("FieldUploadManual", fields: [manual_pole_id], references: [id])
+  checklist_items TenderFieldChecklistItem[]
+
+  @@index([session_id])
+  @@map("field_verification_uploads")
+}
+
+/** Officer-facing checklist row per pole/line item; required for tender completion. */
+model TenderFieldChecklistItem {
+  id                  Int      @id @default(autoincrement())
+  tender_id           Int
+  pole_id             Int?
+  line_item_id        Int?
+  is_done             Boolean  @default(false)
+  verified_upload_id  Int?
+  notes               String?
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  tender          Tender                   @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  pole            ElectricPole?            @relation(fields: [pole_id], references: [id])
+  line_item       TenderLineItem?          @relation(fields: [line_item_id], references: [id])
+  verified_upload FieldVerificationUpload? @relation(fields: [verified_upload_id], references: [id])
+
+  @@index([tender_id])
+  @@map("tender_field_checklist_items")
+}
+
+/** Append-only audit trail for tender state transitions and PDF generations. */
+model TenderAuditLog {
+  id            Int      @id @default(autoincrement())
+  tender_id     Int
+  actor_user_id Int?
+  event         String
+  payload       Json?
+  created_at    DateTime @default(now())
+
+  tender Tender @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  actor  User?  @relation("TenderAuditActor", fields: [actor_user_id], references: [id])
+
+  @@index([tender_id])
+  @@map("tender_audit_logs")
 }

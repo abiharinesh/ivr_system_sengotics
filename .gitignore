@@ -62,3 +62,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
 # Flutter frontend build artifacts
 /ivr_frontend/build/
+
+# Local reference images / scratch
+/refer/
+_tmp_*.py

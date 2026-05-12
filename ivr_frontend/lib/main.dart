@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_web_plugins/url_strategy.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-
 import 'app.dart';
 import 'core/env_maps_loader.dart';
 import 'core/offline/field_outbox.dart';

@@ -108,6 +108,55 @@ class ApiClient {
     }
   }
 
+  /// Binary GET that also surfaces the response's filename (from
+  /// `Content-Disposition: attachment; filename="..."`) and content type so
+  /// downloads can save with a sensible name across web/mobile.
+  Future<DownloadedFile> getDownload(String path) async {
+    try {
+      final response = await _dio.get<List<int>>(
+        path,
+        options: Options(
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(minutes: 3),
+        ),
+      );
+      final data = response.data;
+      if (data == null) throw ApiException('Empty response body');
+      final headers = response.headers;
+      final disposition = headers.value('content-disposition');
+      final contentType = headers.value('content-type');
+      return DownloadedFile(
+        bytes: Uint8List.fromList(data),
+        filename: _filenameFromDisposition(disposition) ?? _filenameFromPath(path),
+        contentType: contentType,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  static String? _filenameFromDisposition(String? disposition) {
+    if (disposition == null || disposition.isEmpty) return null;
+    // RFC 5987 form: filename*=UTF-8''my%20file.pdf
+    final star = RegExp(r"filename\*\s*=\s*[^']*'[^']*'([^;]+)", caseSensitive: false)
+        .firstMatch(disposition);
+    if (star != null) {
+      try {
+        return Uri.decodeComponent(star.group(1)!.trim());
+      } catch (_) {}
+    }
+    // Legacy form: filename="something.pdf" or filename=something.pdf
+    final plain = RegExp(r'filename\s*=\s*"?([^";]+)"?', caseSensitive: false)
+        .firstMatch(disposition);
+    return plain?.group(1)?.trim();
+  }
+
+  static String? _filenameFromPath(String path) {
+    final clean = path.split('?').first;
+    final segs = clean.split('/').where((s) => s.isNotEmpty).toList();
+    return segs.isEmpty ? null : segs.last;
+  }
+
   /// Multipart POST (e.g. image + geotag fields).
   Future<dynamic> postMultipart(String path, FormData formData) async {
     try {
@@ -188,4 +237,16 @@ class ApiClient {
         e.type == DioExceptionType.receiveTimeout ||
         e.type == DioExceptionType.connectionError;
   }
+}
+
+/// Container for a downloaded file produced by [ApiClient.getDownload].
+class DownloadedFile {
+  final Uint8List bytes;
+  final String? filename;
+  final String? contentType;
+  const DownloadedFile({
+    required this.bytes,
+    this.filename,
+    this.contentType,
+  });
 }

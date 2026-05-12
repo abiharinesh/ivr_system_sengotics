@@ -368,10 +368,10 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
               color: Colors.black12,
               alignment: Alignment.center,
               padding: const EdgeInsets.all(12),
-              child: const Text(
-                'Map unavailable. Check internet/API key and refresh.',
+              child: Text(
+                mapsWebUnavailableMessage,
                 textAlign: TextAlign.center,
-                style: TextStyle(color: AppTheme.textSecondary),
+                style: const TextStyle(color: AppTheme.textSecondary),
               ),
             )
             : gmap.GoogleMap(

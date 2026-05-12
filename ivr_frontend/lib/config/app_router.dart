@@ -39,6 +39,13 @@ import '../features/electrician/presentation/electrician_dashboard_screen.dart';
 import '../features/electrician/presentation/electrician_jobs_screen.dart';
 import '../features/electrician/presentation/electrician_complaint_detail_screen.dart';
 
+import '../features/tenders/presentation/tender_list_screen.dart';
+import '../features/tenders/presentation/tender_create_screen.dart';
+import '../features/tenders/presentation/tender_detail_screen.dart';
+import '../features/tenders/presentation/vendor_directory_screen.dart';
+import '../features/tenders/presentation/public_tender_screen.dart';
+import '../features/tenders/presentation/public_field_upload_screen.dart';
+
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
 
@@ -58,6 +65,9 @@ GoRouter createRouter(AuthBloc authBloc) {
       final authState = authBloc.state;
       final isLoginRoute = state.matchedLocation == '/login';
       final loc = state.matchedLocation;
+
+      // Public no-auth routes (tender link + field session upload).
+      if (loc.startsWith('/public/')) return null;
 
       if (authState is! Authenticated) {
         return isLoginRoute ? null : '/login';
@@ -79,6 +89,17 @@ GoRouter createRouter(AuthBloc authBloc) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      // Public seller and field-staff routes (no auth shell).
+      GoRoute(
+        path: '/public/tenders/:token',
+        builder: (context, state) =>
+            PublicTenderScreen(token: state.pathParameters['token']!),
+      ),
+      GoRoute(
+        path: '/public/field/:token',
+        builder: (context, state) =>
+            PublicFieldUploadScreen(token: state.pathParameters['token']!),
+      ),
       ShellRoute(
         builder: (context, state, child) {
           final authState = authBloc.state;
@@ -275,6 +296,27 @@ GoRouter createRouter(AuthBloc authBloc) {
               );
             },
           ),
+
+          // Tender workflow (officer)
+          GoRoute(
+            path: '/tenders',
+            builder: (context, state) => const TenderListScreen(),
+          ),
+          GoRoute(
+            path: '/tenders/new',
+            builder: (context, state) => const TenderCreateScreen(),
+          ),
+          GoRoute(
+            path: '/tenders/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return TenderDetailScreen(tenderId: id);
+            },
+          ),
+          GoRoute(
+            path: '/vendors',
+            builder: (context, state) => const VendorDirectoryScreen(),
+          ),
         ],
       ),
     ],
@@ -318,7 +360,14 @@ String _getTitle(String location) {
 	  return 'IVR Logs';
 	case '/analytics':
 	  return 'Analytics';
+    case '/tenders':
+      return 'Tenders';
+    case '/tenders/new':
+      return 'New tender';
+    case '/vendors':
+      return 'Vendor directory';
     default:
+      if (location.startsWith('/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
       if (location.startsWith('/electrician/jobs/')) return 'Complaint';
       return 'IVR System';

@@ -277,9 +277,10 @@ class _MapOverviewState extends State<MapOverview> {
               ? Container(
                   color: Colors.white70,
                   alignment: Alignment.center,
-                  child: const Text(
-                    'Map unavailable. Check internet/API key and refresh.',
-                    style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  padding: const EdgeInsets.all(20),
+                  child: Text(
+                    mapsWebUnavailableMessage,
+                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 )

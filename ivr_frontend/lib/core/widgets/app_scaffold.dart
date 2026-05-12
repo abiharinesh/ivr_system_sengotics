@@ -86,6 +86,29 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
   }
 
+  /// Pick the nav route that is the longest prefix of [currentRoute].
+  /// Returns null if no candidate matches.
+  String? _activeRouteFor(Iterable<String?> routes, String currentRoute) {
+    String? best;
+    for (final r in routes) {
+      if (r == null) continue;
+      if (currentRoute == r || currentRoute.startsWith('$r/')) {
+        if (best == null || r.length > best.length) best = r;
+      }
+    }
+    return best;
+  }
+
+  /// Convenience: all primary + secondary nav routes for the current role.
+  Iterable<String?> _allNavRoutes() sync* {
+    for (final s in _primaryNavSpecs()) {
+      yield s.route;
+    }
+    for (final s in _secondaryNavSpecs()) {
+      yield s.route;
+    }
+  }
+
   Widget _buildSidebar(BuildContext context) {
     return Container(
       width: 270,
@@ -346,161 +369,77 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
   }
 
-  List<Widget> _getPrimaryNavItems() {
+  List<_NavSpec> _primaryNavSpecs() {
     if (widget.userRole == 'agent') {
-      return [
-        _NavItem(
-          icon: Icons.dashboard_rounded,
-          label: 'Home',
-          route: '/agent',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.list_alt_rounded,
-          label: 'Poles',
-          route: '/agent/poles',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.add_location_alt_rounded,
-          label: 'New pole',
-          route: '/agent/poles/add',
-          currentRoute: widget.currentRoute,
-        ),
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/agent'),
+        _NavSpec(icon: Icons.list_alt_rounded, label: 'Poles', route: '/agent/poles'),
+        _NavSpec(icon: Icons.add_location_alt_rounded, label: 'New pole', route: '/agent/poles/add'),
       ];
     }
     if (widget.userRole == 'electrician') {
-      return [
-        _NavItem(
-          icon: Icons.dashboard_rounded,
-          label: 'Home',
-          route: '/electrician',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.electrical_services_rounded,
-          label: 'My jobs',
-          route: '/electrician/jobs',
-          currentRoute: widget.currentRoute,
-        ),
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/electrician'),
+        _NavSpec(icon: Icons.electrical_services_rounded, label: 'My jobs', route: '/electrician/jobs'),
       ];
     }
     if (widget.userRole == 'super_admin') {
-      return [
-        _NavItem(
-          icon: Icons.dashboard_rounded,
-          label: 'Dashboard',
-          route: '/dashboard',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.report_problem_rounded,
-          label: 'Complaints',
-          route: '/complaints',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.engineering_rounded,
-          label: 'Electricians',
-          route: '/superadmin/electricians',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.group_rounded,
-          label: 'Agents',
-          route: '/fieldops/agents',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.alt_route_rounded,
-          label: 'Pole Management',
-          route: '/poles',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.call_rounded,
-          label: 'Voice Calls',
-          route: '/voice-calls',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.receipt_long_rounded,
-          label: 'IVR Logs',
-          route: '/ivr-logs',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.account_tree_rounded,
-          label: 'Panchayat Mgmt',
-          route: '/panchayats',
-          currentRoute: widget.currentRoute,
-        ),
-        _NavItem(
-          icon: Icons.people_rounded,
-          label: 'User Management',
-          route: '/users',
-          currentRoute: widget.currentRoute,
-        ),
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+        _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/superadmin/electricians'),
+        _NavSpec(icon: Icons.group_rounded, label: 'Agents', route: '/fieldops/agents'),
+        _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
+        _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
+        _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
+        _NavSpec(icon: Icons.account_tree_rounded, label: 'Panchayat Mgmt', route: '/panchayats'),
+        _NavSpec(icon: Icons.people_rounded, label: 'User Management', route: '/users'),
       ];
     }
-    return [
-      _NavItem(
-        icon: Icons.dashboard_rounded,
-        label: 'Dashboard',
-        route: '/dashboard',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.electrical_services_rounded,
-        label: 'Poles',
-        route: '/poles',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.call_rounded,
-        label: 'Voice Calls',
-        route: '/voice-calls',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.receipt_long_rounded,
-        label: 'IVR Logs',
-        route: '/ivr-logs',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.report_problem_rounded,
-        label: 'Complaints',
-        route: '/complaints',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.engineering_rounded,
-        label: 'Electricians',
-        route: '/admin/electricians',
-        currentRoute: widget.currentRoute,
-      ),
+    return const [
+      _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
+      _NavSpec(icon: Icons.electrical_services_rounded, label: 'Poles', route: '/poles'),
+      _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
+      _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
+      _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+      _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/admin/electricians'),
+      _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
+      _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/vendors'),
     ];
   }
 
-  List<Widget> _getSecondaryNavItems() {
+  List<_NavSpec> _secondaryNavSpecs() {
     if (widget.userRole == 'agent' || widget.userRole == 'electrician') {
-      return [];
+      return const [];
     }
-    return [
-      _NavItem(
-        icon: Icons.insights_rounded,
-        label: 'Analytics',
-        route: '/analytics',
-        currentRoute: widget.currentRoute,
-      ),
-      _NavItem(
-        icon: Icons.settings_rounded,
-        label: 'Settings',
-        route: '/ai-settings',
-        currentRoute: widget.currentRoute,
-      ),
+    return const [
+      _NavSpec(icon: Icons.insights_rounded, label: 'Analytics', route: '/analytics'),
+      _NavSpec(icon: Icons.settings_rounded, label: 'Settings', route: '/ai-settings'),
     ];
+  }
+
+  List<Widget> _getPrimaryNavItems() {
+    final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
+    return _primaryNavSpecs()
+        .map((s) => _NavItem(
+              icon: s.icon,
+              label: s.label,
+              route: s.route,
+              isActive: s.route != null && s.route == active,
+            ))
+        .toList();
+  }
+
+  List<Widget> _getSecondaryNavItems() {
+    final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
+    return _secondaryNavSpecs()
+        .map((s) => _NavItem(
+              icon: s.icon,
+              label: s.label,
+              route: s.route,
+              isActive: s.route != null && s.route == active,
+            ))
+        .toList();
   }
 
   Widget _navLabel(String label) {
@@ -970,20 +909,26 @@ class _CategoryList extends StatelessWidget {
   }
 }
 
+class _NavSpec {
+  final IconData icon;
+  final String label;
+  final String? route;
+  const _NavSpec({required this.icon, required this.label, required this.route});
+}
+
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String? route;
-  final String currentRoute;
+  final bool isActive;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.route,
-    required this.currentRoute,
+    required this.isActive,
   });
 
-  bool get isActive => route != null && currentRoute == route;
   bool get isEnabled => route != null;
 
   @override
