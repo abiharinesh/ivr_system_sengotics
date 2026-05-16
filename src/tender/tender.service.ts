@@ -5,7 +5,7 @@ import {
     NotFoundException,
 } from '@nestjs/common'
 import { randomBytes } from 'crypto'
-import { PrismaService } from '../prisma/prisma.service'
+import { PrismaService, PrismaTx } from '../prisma/prisma.service'
 import { normalizePhoneE164 } from '../common/phone.util'
 import { DEFAULT_MILESTONE_RULES, MilestoneRule } from '../common/milestone.util'
 import {
@@ -138,7 +138,8 @@ export class TenderService {
             ? body.milestone_rules
             : DEFAULT_MILESTONE_RULES
 
-        const result = await this.prisma.$transaction(async (tx) => {
+        const result = await this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
             const tender = await tx.tender.create({
                 data: {
                     panchayat_id: panchayatId,

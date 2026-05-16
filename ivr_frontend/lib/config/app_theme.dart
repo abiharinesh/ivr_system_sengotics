@@ -2,6 +2,50 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  static List<String> _fontFallback() {
+    final tamil = GoogleFonts.notoSansTamil().fontFamily;
+    return [
+      if (tamil != null) tamil,
+      'Noto Sans Tamil',
+      'Noto Sans',
+      'sans-serif',
+    ];
+  }
+
+  static TextStyle _inter({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+  }) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+    ).copyWith(fontFamilyFallback: _fontFallback());
+  }
+
+  static TextTheme _withFontFallback(TextTheme textTheme) {
+    final fallback = _fontFallback();
+    TextStyle? add(TextStyle? s) => s?.copyWith(fontFamilyFallback: fallback);
+    return textTheme.copyWith(
+      displayLarge: add(textTheme.displayLarge),
+      displayMedium: add(textTheme.displayMedium),
+      displaySmall: add(textTheme.displaySmall),
+      headlineLarge: add(textTheme.headlineLarge),
+      headlineMedium: add(textTheme.headlineMedium),
+      headlineSmall: add(textTheme.headlineSmall),
+      titleLarge: add(textTheme.titleLarge),
+      titleMedium: add(textTheme.titleMedium),
+      titleSmall: add(textTheme.titleSmall),
+      bodyLarge: add(textTheme.bodyLarge),
+      bodyMedium: add(textTheme.bodyMedium),
+      bodySmall: add(textTheme.bodySmall),
+      labelLarge: add(textTheme.labelLarge),
+      labelMedium: add(textTheme.labelMedium),
+      labelSmall: add(textTheme.labelSmall),
+    );
+  }
+
   // Brand
   static const Color primary = Color(0xFF2563EB);
   static const Color primaryLight = Color(0xFF3B82F6);
@@ -67,9 +111,11 @@ class AppTheme {
 
   // ── Theme Data ────────────────────────────────────────────────────────
   static ThemeData get lightTheme {
-    final textTheme = GoogleFonts.interTextTheme().apply(
-      bodyColor: textPrimary,
-      displayColor: textPrimary,
+    final textTheme = _withFontFallback(
+      GoogleFonts.interTextTheme().apply(
+        bodyColor: textPrimary,
+        displayColor: textPrimary,
+      ),
     );
 
     return ThemeData(
@@ -92,7 +138,7 @@ class AppTheme {
         foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: _inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: textPrimary,
@@ -116,7 +162,7 @@ class AppTheme {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: _inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
           ),
@@ -158,13 +204,13 @@ class AppTheme {
           horizontal: 16,
           vertical: 14,
         ),
-        hintStyle: GoogleFonts.inter(color: textMuted),
-        labelStyle: GoogleFonts.inter(color: textSecondary),
+        hintStyle: _inter(color: textMuted),
+        labelStyle: _inter(color: textSecondary),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: bgCard,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: _inter(
           fontSize: 20,
           fontWeight: FontWeight.w600,
           color: textPrimary,
@@ -172,7 +218,7 @@ class AppTheme {
       ),
       snackBarTheme: SnackBarThemeData(
         backgroundColor: const Color(0xFF111827),
-        contentTextStyle: GoogleFonts.inter(color: Colors.white),
+        contentTextStyle: _inter(color: Colors.white),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
@@ -180,7 +226,7 @@ class AppTheme {
       chipTheme: ChipThemeData(
         backgroundColor: bgSurface,
         selectedColor: primary.withValues(alpha: 0.12),
-        labelStyle: GoogleFonts.inter(color: textSecondary, fontSize: 12),
+        labelStyle: _inter(color: textSecondary, fontSize: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -192,12 +238,12 @@ class AppTheme {
       dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
         dataRowColor: WidgetStateProperty.all(Colors.white),
-        headingTextStyle: GoogleFonts.inter(
+        headingTextStyle: _inter(
           color: textSecondary,
           fontWeight: FontWeight.w600,
           fontSize: 12,
         ),
-        dataTextStyle: GoogleFonts.inter(color: textPrimary, fontSize: 13),
+        dataTextStyle: _inter(color: textPrimary, fontSize: 13),
         dividerThickness: 1,
       ),
       popupMenuTheme: PopupMenuThemeData(

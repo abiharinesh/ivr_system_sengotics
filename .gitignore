@@ -59,6 +59,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 /generated/prisma
 
 .env
+ivr_frontend/.env
 
 # Flutter frontend build artifacts
 /ivr_frontend/build/

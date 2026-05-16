@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common'
-import { PrismaService } from '../prisma/prisma.service'
+import { PrismaService, PrismaTx } from '../prisma/prisma.service'
 import { VoiceToTextService } from './voice-to-text.service'
 import { LocationExtractionService, ExtractedLocation } from './location-extraction.service'
 import { GeoMatchingService } from './geo-matching.service'
@@ -298,7 +298,8 @@ export class VoiceProcessingService {
         audioUrl: string,
         phase: PhaseKind
     ): Promise<{ voiceCallId: number, attemptNumber: number, isDuplicate: boolean }> {
-        return this.prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
             const duplicate = await tx.voiceCall.findFirst({
                 where: { call_sid: callSid, audio_url: audioUrl },
                 orderBy: { id: 'desc' },
@@ -352,7 +353,8 @@ export class VoiceProcessingService {
         extracted: ExtractedLocation,
         audioUrl: string
     ): Promise<{ id: number } | null> {
-        return this.prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
             const state = await tx.callState.findUnique({ where: { call_sid: callSid } })
             if (state?.complaint_created) {
                 await tx.voiceCall.update({ where: { id: voiceCallId }, data: { processing_status: 'superseded' } })
@@ -399,7 +401,8 @@ export class VoiceProcessingService {
         extracted: ExtractedLocation,
         audioUrl: string
     ): Promise<void> {
-        await this.prisma.$transaction(async (tx) => {
+        await this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
             const state = await tx.callState.findUnique({ where: { call_sid: callSid } })
             if (state?.complaint_created) {
                 await tx.voiceCall.update({ where: { id: voiceCallId }, data: { processing_status: 'completed' } })
@@ -444,7 +447,8 @@ export class VoiceProcessingService {
         transcript: string,
         transcriptEnglish: string
     ): Promise<void> {
-        await this.prisma.$transaction(async (tx) => {
+        await this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
             await tx.voiceCall.update({
                 where: { id: voiceCallId },
                 data: { transcript: transcript || undefined, transcript_english: transcriptEnglish || undefined, processing_status: 'manual_review' }
