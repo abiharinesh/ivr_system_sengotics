@@ -1,0 +1,11 @@
+ivr_frontend
+android
+ios
+test
+**/*.spec.ts
+**/*.test.ts
+coverage
+.git
+.github
+*.md
+uploads
