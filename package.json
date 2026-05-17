@@ -12,7 +12,7 @@
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
-    "vercel-build": "npx prisma generate && nest build && tsc --project . --outDir . api/index.ts",
+    "vercel-build": "npx prisma generate && nest build && tsc api/index.ts --outDir . --lib es2020 --target es2020 --module commonjs --esModuleInterop --skipLibCheck",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
