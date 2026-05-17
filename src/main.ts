@@ -45,7 +45,15 @@ async function bootstrap() {
   logger.log(`Application is running on: http://localhost:${port}`)
 }
 
-bootstrap().catch(err => {
-  console.error('❌ Application failed to start:', err)
-  process.exit(1)
-})
+// Only run the standalone server when this file is executed directly
+// (i.e. `nest start` / `node dist/main`). On Vercel the entry is
+// `api/index.ts`; main.ts must NOT auto-bootstrap there or it crashes the
+// serverless function with "No exports found in module .../src/main.js".
+if (!process.env.VERCEL) {
+  bootstrap().catch(err => {
+    console.error('❌ Application failed to start:', err)
+    process.exit(1)
+  })
+}
+
+export {}

@@ -9,3 +9,10 @@ coverage
 .github
 *.md
 uploads
+
+# Local-only Nest bootstrap entry. Vercel must NOT see this file:
+# its top-level bootstrap()+app.listen() boots Nest at module load and has no
+# default export, which makes Vercel's auto-detection invoke it as the function
+# and crash with "No exports found in module .../src/main.js".
+# api/index.ts is the real serverless entry; main.ts is only used by `npm start`.
+src/main.ts

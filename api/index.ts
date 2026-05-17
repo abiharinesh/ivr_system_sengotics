@@ -1,3 +1,11 @@
+// Surface module-load and uncaught errors in Vercel logs *before* anything else.
+process.on('uncaughtException', (err) => {
+    console.error('[FATAL] uncaughtException:', err)
+})
+process.on('unhandledRejection', (reason) => {
+    console.error('[FATAL] unhandledRejection:', reason)
+})
+
 import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import { ExpressAdapter } from '@nestjs/platform-express'
@@ -10,39 +18,57 @@ import { waitUntil } from '@vercel/functions'
 const server = express()
 
 let cachedApp: any
+let bootstrapError: Error | null = null
+
+function assertRequiredEnv() {
+    const required = ['DATABASE_URL', 'JWT_SECRET']
+    const missing = required.filter((k) => !process.env[k])
+    if (missing.length) {
+        throw new Error(
+            `Missing required environment variables on Vercel: ${missing.join(', ')}. ` +
+            `Set them in Project → Settings → Environment Variables and redeploy.`
+        )
+    }
+}
 
 async function bootstrap() {
     if (cachedApp) return cachedApp
-
-    const app = await NestFactory.create(AppModule, new ExpressAdapter(server))
-
-    app.enableCors()
-
-    app.useGlobalPipes(new ValidationPipe({
-        whitelist: false,
-        forbidNonWhitelisted: false,
-        transform: true,
-        disableErrorMessages: false
-    }))
+    if (bootstrapError) throw bootstrapError
 
     try {
-        await app.init()
-    } catch (err) {
-        console.error('NestFactory init failed:', err)
-        throw err
-    }
+        assertRequiredEnv()
 
-    // Run DB bootstrap in background with timeout to prevent cold start failures
-    const dbSetupService = app.get(DbSetupService)
-    Promise.race([
-        dbSetupService.bootstrapDb(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 8000))
-    ]).catch(err => {
-        console.warn('DB bootstrap failed (non-fatal):', err.message)
-    })
-    
-    cachedApp = app
-    return app
+        const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
+            logger: ['error', 'warn', 'log'],
+        })
+
+        app.enableCors()
+
+        app.useGlobalPipes(new ValidationPipe({
+            whitelist: false,
+            forbidNonWhitelisted: false,
+            transform: true,
+            disableErrorMessages: false
+        }))
+
+        await app.init()
+
+        // Run DB bootstrap in background with timeout to prevent cold start failures
+        const dbSetupService = app.get(DbSetupService)
+        Promise.race([
+            dbSetupService.bootstrapDb(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 8000))
+        ]).catch(err => {
+            console.warn('DB bootstrap failed (non-fatal):', err?.message ?? err)
+        })
+
+        cachedApp = app
+        return app
+    } catch (err) {
+        console.error('[BOOTSTRAP] failed:', err)
+        bootstrapError = err instanceof Error ? err : new Error(String(err))
+        throw bootstrapError
+    }
 }
 
 export default async (req: any, res: any) => {
@@ -58,6 +84,22 @@ export default async (req: any, res: any) => {
     // Browsers request a favicon by default; avoid noisy 404 logs on Vercel.
     if (req.method === 'GET' && (req.url === '/favicon.ico' || req.url === '/favicon.png')) {
         res.status(204).end()
+        return
+    }
+
+    // Lightweight health endpoint that doesn't require the Nest app to boot.
+    // Lets us confirm the function itself is alive even if Nest fails to init.
+    if (req.method === 'GET' && (req.url === '/__health' || req.url === '/api/__health')) {
+        res.status(200).json({
+            ok: true,
+            bootstrapped: Boolean(cachedApp),
+            bootstrapError: bootstrapError ? bootstrapError.message : null,
+            env: {
+                DATABASE_URL: Boolean(process.env.DATABASE_URL),
+                JWT_SECRET: Boolean(process.env.JWT_SECRET),
+                NODE_ENV: process.env.NODE_ENV ?? null,
+            },
+        })
         return
     }
 
@@ -79,8 +121,15 @@ export default async (req: any, res: any) => {
 
         server(req, res)
     } catch (error) {
-        console.error('Request handler error:', error)
-        res.status(500).json({ error: 'Internal server error', message: error instanceof Error ? error.message : String(error) })
+        const err = error instanceof Error ? error : new Error(String(error))
+        console.error('[HANDLER] error:', err)
+        if (!res.headersSent) {
+            res.status(500).json({
+                error: 'Internal server error',
+                message: err.message,
+                stack: process.env.VERCEL_ENV !== 'production' ? err.stack : undefined,
+            })
+        }
     }
 }
 
