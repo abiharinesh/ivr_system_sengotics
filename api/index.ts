@@ -25,10 +25,22 @@ async function bootstrap() {
         disableErrorMessages: false
     }))
 
-    await app.init()
-    // Keep serverless startup schema checks aligned with local bootstrap.
+    try {
+        await app.init()
+    } catch (err) {
+        console.error('NestFactory init failed:', err)
+        throw err
+    }
+
+    // Run DB bootstrap in background with timeout to prevent cold start failures
     const dbSetupService = app.get(DbSetupService)
-    await dbSetupService.bootstrapDb()
+    Promise.race([
+        dbSetupService.bootstrapDb(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 8000))
+    ]).catch(err => {
+        console.warn('DB bootstrap failed (non-fatal):', err.message)
+    })
+    
     cachedApp = app
     return app
 }
@@ -49,22 +61,27 @@ export default async (req: any, res: any) => {
         return
     }
 
-    const app = await bootstrap()
+    try {
+        const app = await bootstrap()
 
-    const originalEnd = res.end.bind(res)
-    res.end = function (...args: any[]) {
-        waitUntil(
-            (async () => {
-                try {
-                    const voiceService = app.get(VoiceProcessingService)
-                    await voiceService.processPendingPhase2Llm(5)
-                } catch (_) {}
-            })()
-        )
-        return originalEnd(...args)
+        const originalEnd = res.end.bind(res)
+        res.end = function (...args: any[]) {
+            waitUntil(
+                (async () => {
+                    try {
+                        const voiceService = app.get(VoiceProcessingService)
+                        await voiceService.processPendingPhase2Llm(5)
+                    } catch (_) {}
+                })()
+            )
+            return originalEnd(...args)
+        }
+
+        server(req, res)
+    } catch (error) {
+        console.error('Request handler error:', error)
+        res.status(500).json({ error: 'Internal server error', message: error instanceof Error ? error.message : String(error) })
     }
-
-    server(req, res)
 }
 
 export const config = {
