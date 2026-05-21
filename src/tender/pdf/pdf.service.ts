@@ -158,8 +158,9 @@ export class TenderPdfService {
             },
         })
 
-        // Fire-and-forget: same pattern as ExportJob.
-        void this.process(doc.id).catch((e) =>
+        // Run processing in-request on serverless so the invocation lifecycle
+        // cannot drop the background promise and leave status stuck at "pending".
+        await this.process(doc.id).catch((e) =>
             this.logger.error(`PDF job ${doc.id} failed: ${e?.message ?? e}`),
         )
         await this.audit.record({
@@ -168,7 +169,7 @@ export class TenderPdfService {
             event: 'document:generate',
             payload: { template_id: tpl, version, document_id: doc.id, vendor_id: doc.vendor_id },
         })
-        return doc
+        return this.prisma.tenderDocument.findUnique({ where: { id: doc.id } })
     }
 
     private async process(docId: number): Promise<void> {

@@ -53,11 +53,12 @@ async function bootstrap() {
 
         await app.init()
 
-        // Run DB bootstrap in background with timeout to prevent cold start failures
+        // Run DB bootstrap in background with a generous timeout to reduce
+        // noisy warnings on slower cold starts.
         const dbSetupService = app.get(DbSetupService)
         Promise.race([
             dbSetupService.bootstrapDb(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 8000))
+            new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 30000))
         ]).catch(err => {
             console.warn('DB bootstrap failed (non-fatal):', err?.message ?? err)
         })
