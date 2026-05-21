@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -eu
 
 echo "Installing Flutter SDK..."
 git clone https://github.com/flutter/flutter.git --depth 1 -b stable /tmp/flutter

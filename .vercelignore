@@ -1,6 +1,11 @@
-ivr_frontend/
-android/
-ios/
+# Backend deploy: skip heavy Flutter/mobile paths (do NOT ignore all of ivr_frontend/
+# or the separate Flutter Vercel project cannot find scripts/vercel_build.sh).
+ivr_frontend/android/
+ivr_frontend/ios/
+ivr_frontend/.dart_tool/
+ivr_frontend/build/
+ivr_frontend/.flutter-plugins
+ivr_frontend/.flutter-plugins-dependencies
 test/
 coverage/
 uploads/
