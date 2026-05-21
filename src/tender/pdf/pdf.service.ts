@@ -25,6 +25,21 @@ export class TenderPdfService {
         private readonly milestones: MilestoneService,
     ) {}
 
+    private getUploadsRoot(): string {
+        // Vercel serverless has a writable temp filesystem only under /tmp.
+        if (process.env.VERCEL) return path.join('/tmp', 'uploads')
+        return path.join(process.cwd(), 'uploads')
+    }
+
+    private storagePathToAbsolute(storagePath: string): string {
+        const rel = storagePath.replace(/^\/+/, '')
+        if (!rel.startsWith('uploads/')) {
+            throw new ForbiddenException('Invalid storage path')
+        }
+        const withinUploads = rel.slice('uploads/'.length)
+        return path.join(this.getUploadsRoot(), withinUploads)
+    }
+
     private async ensureTenderOwned(panchayatId: number, tenderId: number) {
         const t = await this.prisma.tender.findUnique({ where: { id: tenderId } })
         if (!t) throw new NotFoundException(`Tender #${tenderId} not found`)
@@ -161,41 +176,16 @@ export class TenderPdfService {
         if (!doc) return
 
         try {
-            const ctx = await this.buildContext(
-                doc.tender_id,
-                doc.template_id as DocumentTemplateId,
-                doc.version,
-                doc.vendor_id,
-                (doc.field_overrides as Record<string, unknown> | null) ?? null,
-            )
-            const html = renderTemplate(doc.template_id, ctx)
-
-            const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
-            const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
-            const root = path.join(process.cwd(), 'uploads', subdir)
-            await fs.mkdir(root, { recursive: true })
-
-            // Always write the HTML artifact (browser-printable).
-            const htmlAbs = path.join(root, `${baseName}.html`)
-            await fs.writeFile(htmlAbs, html, 'utf8')
-            const htmlRel = `/uploads/${subdir}/${baseName}.html`.replace(/\\/g, '/')
-
-            // Best-effort PDF render via puppeteer if available.
-            let storagePath = htmlRel
-            const pdfBuf = await renderHtmlToPdfBuffer(html)
-            if (pdfBuf) {
-                const pdfAbs = path.join(root, `${baseName}.pdf`)
-                await fs.writeFile(pdfAbs, pdfBuf)
-                storagePath = `/uploads/${subdir}/${baseName}.pdf`.replace(/\\/g, '/')
-            }
-
+            const storagePath = await this.renderAndPersistArtifacts(doc)
             await this.prisma.tenderDocument.update({
                 where: { id: docId },
                 data: {
                     status: 'ready',
                     storage_path: storagePath,
                     generated_at: new Date(),
-                    error_message: pdfBuf ? null : 'puppeteer unavailable; HTML version produced',
+                    error_message: storagePath.endsWith('.pdf')
+                        ? null
+                        : 'puppeteer unavailable; HTML version produced',
                 },
             })
         } catch (err: any) {
@@ -209,19 +199,71 @@ export class TenderPdfService {
         }
     }
 
-    list(panchayatId: number, tenderId: number) {
-        return this.ensureTenderOwned(panchayatId, tenderId).then(() =>
-            this.prisma.tenderDocument.findMany({
-                where: { tender_id: tenderId },
-                orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
-                include: { vendor: { select: { id: true, name: true, phone_e164: true } } },
-            }),
+    private async renderAndPersistArtifacts(doc: {
+        id: number
+        tender_id: number
+        template_id: string
+        version: number
+        vendor_id: number | null
+        field_overrides: unknown
+    }): Promise<string> {
+        const ctx = await this.buildContext(
+            doc.tender_id,
+            doc.template_id as DocumentTemplateId,
+            doc.version,
+            doc.vendor_id,
+            (doc.field_overrides as Record<string, unknown> | null) ?? null,
         )
+        const html = renderTemplate(doc.template_id, ctx)
+
+        const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
+        const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
+        const root = path.join(this.getUploadsRoot(), subdir)
+        await fs.mkdir(root, { recursive: true })
+
+        // Always write the HTML artifact (browser-printable).
+        const htmlAbs = path.join(root, `${baseName}.html`)
+        await fs.writeFile(htmlAbs, html, 'utf8')
+        const htmlRel = `/uploads/${subdir}/${baseName}.html`.replace(/\\/g, '/')
+
+        // Best-effort PDF render via puppeteer if available.
+        let storagePath = htmlRel
+        const pdfBuf = await renderHtmlToPdfBuffer(html)
+        if (pdfBuf) {
+            const pdfAbs = path.join(root, `${baseName}.pdf`)
+            await fs.writeFile(pdfAbs, pdfBuf)
+            storagePath = `/uploads/${subdir}/${baseName}.pdf`.replace(/\\/g, '/')
+        }
+        return storagePath
     }
 
-    async getDownloadAbsolutePath(panchayatId: number, tenderId: number, docId: number): Promise<string> {
-        await this.ensureTenderOwned(panchayatId, tenderId)
-        return this.resolveDocAbsolutePath(tenderId, docId)
+    private async ensureArtifactExists(doc: {
+        id: number
+        tender_id: number
+        template_id: string
+        version: number
+        vendor_id: number | null
+        field_overrides: unknown
+        storage_path: string | null
+    }): Promise<string> {
+        if (!doc.storage_path) throw new BadRequestException('Document not ready')
+        const abs = this.storagePathToAbsolute(doc.storage_path)
+        if (fssync.existsSync(abs)) return abs
+
+        // Serverless tmp storage is ephemeral; regenerate deterministically on demand.
+        const storagePath = await this.renderAndPersistArtifacts(doc)
+        await this.prisma.tenderDocument.update({
+            where: { id: doc.id },
+            data: {
+                status: 'ready',
+                storage_path: storagePath,
+                generated_at: new Date(),
+                error_message: storagePath.endsWith('.pdf')
+                    ? null
+                    : 'puppeteer unavailable; HTML version produced',
+            },
+        })
+        return this.storagePathToAbsolute(storagePath)
     }
 
     /**
@@ -233,9 +275,7 @@ export class TenderPdfService {
         const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
         if (!doc || doc.tender_id !== tenderId) throw new NotFoundException('Document not on tender')
         if (doc.status !== 'ready' || !doc.storage_path) throw new BadRequestException('Document not ready')
-        const rel = doc.storage_path.replace(/^\/+/, '')
-        if (!rel.startsWith('uploads/tenders/')) throw new ForbiddenException('Invalid storage path')
-        return path.join(process.cwd(), rel)
+        return this.ensureArtifactExists(doc)
     }
 
     /** Stream a zip bundle of the latest version of every template. */
@@ -258,10 +298,8 @@ export class TenderPdfService {
             const key = `${d.template_id}:${d.vendor_id ?? 'null'}`
             if (seen.has(key)) continue
             seen.add(key)
-            if (!d.storage_path) continue
-            const rel = d.storage_path.replace(/^\/+/, '')
-            const abs = path.join(process.cwd(), rel)
-            if (!fssync.existsSync(abs)) continue
+            const abs = await this.ensureArtifactExists(d as any).catch(() => null)
+            if (!abs || !fssync.existsSync(abs)) continue
             const ext = path.extname(abs) || '.html'
             const name = d.vendor_id != null
                 ? `${d.template_id}-vendor${d.vendor_id}-v${d.version}${ext}`
@@ -269,5 +307,20 @@ export class TenderPdfService {
             archive.file(abs, { name })
         }
         await archive.finalize()
+    }
+
+    // Legacy flow retained for compatibility with existing call sites.
+    async getDownloadAbsolutePath(panchayatId: number, tenderId: number, docId: number): Promise<string> {
+        await this.ensureTenderOwned(panchayatId, tenderId)
+        return this.resolveDocAbsolutePath(tenderId, docId)
+    }
+    list(panchayatId: number, tenderId: number) {
+        return this.ensureTenderOwned(panchayatId, tenderId).then(() =>
+            this.prisma.tenderDocument.findMany({
+                where: { tender_id: tenderId },
+                orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
+                include: { vendor: { select: { id: true, name: true, phone_e164: true } } },
+            }),
+        )
     }
 }

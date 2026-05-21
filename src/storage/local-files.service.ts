@@ -7,7 +7,9 @@ const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp'])
 
 @Injectable()
 export class LocalFilesService {
-    private readonly root = path.join(process.cwd(), 'uploads')
+    private readonly root = process.env.VERCEL
+        ? path.join('/tmp', 'uploads')
+        : path.join(process.cwd(), 'uploads')
 
     async ensureUploadRoot(): Promise<void> {
         await fs.mkdir(this.root, { recursive: true })
