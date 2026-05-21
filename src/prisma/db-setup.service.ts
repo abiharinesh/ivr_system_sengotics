@@ -5,6 +5,22 @@ import { PrismaService } from './prisma.service'
 export class DbSetupService {
     constructor(private prisma: PrismaService) { }
 
+    /**
+     * Lightweight check for serverless (Vercel). Skips heavy ensureSchema() which can
+     * exceed function timeouts on cold starts. Run full bootstrap locally or via CI/migrate.
+     */
+    async bootstrapDbLite() {
+        console.log('🔍 Checking database status (lite)...')
+        try {
+            await this.prisma.$executeRawUnsafe('CREATE EXTENSION IF NOT EXISTS postgis;')
+            await this.prisma.$queryRaw`SELECT 1`
+            console.log('✅ Database reachable (lite bootstrap).')
+        } catch (error) {
+            console.error('❌ Lite database check failed:', error.message)
+            throw error
+        }
+    }
+
     async bootstrapDb() {
         console.log('🔍 Checking database status...')
 

@@ -53,12 +53,18 @@ async function bootstrap() {
 
         await app.init()
 
-        // Run DB bootstrap in background with a generous timeout to reduce
-        // noisy warnings on slower cold starts.
+        // On Vercel, only run a quick DB reachability check. Full schema bootstrap
+        // (ensureSchema) is slow and was timing out; run that locally or via migrate.
         const dbSetupService = app.get(DbSetupService)
+        const bootstrapTask = process.env.VERCEL
+            ? dbSetupService.bootstrapDbLite()
+            : dbSetupService.bootstrapDb()
+        const bootstrapTimeoutMs = process.env.VERCEL ? 10000 : 120000
         Promise.race([
-            dbSetupService.bootstrapDb(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('DB bootstrap timeout')), 30000))
+            bootstrapTask,
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('DB bootstrap timeout')), bootstrapTimeoutMs),
+            ),
         ]).catch(err => {
             console.warn('DB bootstrap failed (non-fatal):', err?.message ?? err)
         })
