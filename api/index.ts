@@ -12,6 +12,7 @@ import { ExpressAdapter } from '@nestjs/platform-express'
 import { AppModule } from '../src/app.module'
 import { VoiceProcessingService } from '../src/voice-processing/voice-processing.service'
 import { DbSetupService } from '../src/prisma/db-setup.service'
+import { DocumentStorageService } from '../src/storage/document-storage.service'
 import express from 'express'
 import { waitUntil } from '@vercel/functions'
 
@@ -97,6 +98,15 @@ export default async (req: any, res: any) => {
     // Lightweight health endpoint that doesn't require the Nest app to boot.
     // Lets us confirm the function itself is alive even if Nest fails to init.
     if (req.method === 'GET' && (req.url === '/__health' || req.url === '/api/__health')) {
+        let storageTest: any = null
+        if (cachedApp) {
+            try {
+                const storageService = cachedApp.get(DocumentStorageService)
+                storageTest = await storageService.testConnection()
+            } catch (err: any) {
+                storageTest = { ok: false, error: err?.message ?? String(err) }
+            }
+        }
         res.status(200).json({
             ok: true,
             bootstrapped: Boolean(cachedApp),
@@ -104,8 +114,13 @@ export default async (req: any, res: any) => {
             env: {
                 DATABASE_URL: Boolean(process.env.DATABASE_URL),
                 JWT_SECRET: Boolean(process.env.JWT_SECRET),
+                SUPABASE_URL: Boolean(process.env.SUPABASE_URL),
+                SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
+                SUPABASE_STORAGE_BUCKET: process.env.SUPABASE_STORAGE_BUCKET ?? null,
+                GOTENBERG_URL: process.env.GOTENBERG_URL ?? null,
                 NODE_ENV: process.env.NODE_ENV ?? null,
             },
+            storageTest,
         })
         return
     }

@@ -10,6 +10,7 @@ import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/app_status_badge.dart';
 import '../../../core/widgets/pdf_preview_surface.dart';
+import '../../../core/widgets/html_preview_surface.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 import 'invite_links_panel.dart';
@@ -964,7 +965,7 @@ class _DocsTabState extends State<_DocsTab> {
 
   Future<void> _previewDoc(TenderDocumentSummary doc) async {
     try {
-      final bytes = await widget.repo.previewDocument(widget.tenderId, doc.id);
+      final preview = await widget.repo.previewDocument(widget.tenderId, doc.id);
       final canvasState = await widget.repo.getCanvasState(widget.tenderId, doc.id);
       if (!mounted) return;
       final action = await showDialog<String>(
@@ -972,14 +973,15 @@ class _DocsTabState extends State<_DocsTab> {
         barrierDismissible: true,
         builder:
             (_) => _DocumentPreviewDialog(
-              bytes: bytes,
+              bytes: preview.bytes,
+              isHtml: preview.isHtml,
               canvasLayers: canvasState.layers,
               canEdit: canvasState.canEdit,
               lockReason: canvasState.lockedReason,
               onDownload: () async {
                 await _openDoc(doc);
               },
-              onEdit: () => _openCanvasEditor(doc, bytes, canvasState.layers, canvasState.canEdit),
+              onEdit: () => _openCanvasEditor(doc, preview.bytes, canvasState.layers, canvasState.canEdit),
             ),
       );
       if (action == 'edited') {
@@ -1293,6 +1295,7 @@ class _DocsTabState extends State<_DocsTab> {
 
 class _DocumentPreviewDialog extends StatelessWidget {
   final Uint8List bytes;
+  final bool isHtml;
   final List<Map<String, dynamic>> canvasLayers;
   final bool canEdit;
   final String? lockReason;
@@ -1301,6 +1304,7 @@ class _DocumentPreviewDialog extends StatelessWidget {
 
   const _DocumentPreviewDialog({
     required this.bytes,
+    this.isHtml = false,
     required this.canvasLayers,
     required this.canEdit,
     this.lockReason,
@@ -1370,7 +1374,10 @@ class _DocumentPreviewDialog extends StatelessWidget {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  PdfPreviewSurface(bytes: bytes),
+                  if (isHtml)
+                    HtmlPreviewSurface(html: String.fromCharCodes(bytes))
+                  else
+                    PdfPreviewSurface(bytes: bytes),
                   _CanvasLayerOverlay(
                     layers: canvasLayers,
                     editable: false,

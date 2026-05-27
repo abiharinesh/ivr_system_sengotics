@@ -63,8 +63,20 @@ export class DocumentStorageService {
                 await this.writeRemote(storagePath, bytes, contentType)
                 return
             } catch (err: any) {
-                this.logger.warn(`Remote write failed; using local disk fallback: ${err?.message ?? err}`)
+                this.logger.error(`Remote write failed for ${storagePath}: ${err?.message ?? err}`)
+                if (process.env.VERCEL) {
+                    throw new Error(
+                        `Supabase upload failed: ${err?.message ?? err}. ` +
+                        `Check your SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and ensure the bucket "${this.bucket}" exists.`
+                    )
+                }
+                this.logger.warn(`Using local disk fallback: ${err?.message ?? err}`)
             }
+        } else if (process.env.VERCEL) {
+            throw new Error(
+                `Remote storage is not configured on Vercel (${this.localFallbackReason()}). ` +
+                `Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.`
+            )
         }
         await this.ensureLocalParent(storagePath)
         await fs.writeFile(this.localAbsolutePath(storagePath), bytes)
@@ -122,6 +134,25 @@ export class DocumentStorageService {
                 `Document file not found: ${storagePath}. ${reason}. ` +
                 `Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in Vercel environment variables.`
             )
+        }
+    }
+
+    async testConnection(): Promise<{ ok: boolean; message: string; buckets?: string[] }> {
+        if (!this.remoteEnabled || !this.supabase) {
+            return { ok: false, message: `Remote storage disabled: ${this.localFallbackReason()}` }
+        }
+        try {
+            const { data, error } = await this.supabase.storage.listBuckets()
+            if (error) {
+                return { ok: false, message: `Failed to list buckets: ${error.message}` }
+            }
+            const exists = (data ?? []).some(b => b.name === this.bucket)
+            if (!exists) {
+                return { ok: false, message: `Bucket "${this.bucket}" does not exist. Available: ${data.map(b => b.name).join(', ')}` }
+            }
+            return { ok: true, message: `Connected successfully. Bucket "${this.bucket}" exists.`, buckets: data.map(b => b.name) }
+        } catch (err: any) {
+            return { ok: false, message: `Unexpected error: ${err?.message ?? err}` }
         }
     }
 }

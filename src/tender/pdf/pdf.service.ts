@@ -355,8 +355,15 @@ export class TenderPdfService {
             return storagePath
         } catch (err: any) {
             this.logger.error(`Re-generation failed for doc ${doc.id}: ${err?.message ?? err}`)
+            await this.prisma.tenderDocument.update({
+                where: { id: doc.id },
+                data: {
+                    status: 'failed',
+                    error_message: String(err?.message ?? err).slice(0, 2000),
+                },
+            }).catch(() => {})
             throw new BadRequestException(
-                'Document file is temporarily unavailable. Please try regenerating it.'
+                `Document file is temporarily unavailable. Re-generation failed: ${err?.message ?? err}`
             )
         }
     }

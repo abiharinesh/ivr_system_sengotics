@@ -142,8 +142,16 @@ class TenderRepository {
   }
 
   /// Fetch a ready document for in-app preview (no save prompt).
-  Future<Uint8List> previewDocument(int tenderId, int docId) {
-    return _api.getBytes('/api/admin/tenders/$tenderId/documents/$docId/preview');
+  /// Returns both bytes and the content type so the UI can switch between
+  /// PDF and HTML preview surfaces.
+  Future<PreviewResult> previewDocument(int tenderId, int docId) async {
+    final file = await _api.getDownload(
+      '/api/admin/tenders/$tenderId/documents/$docId/preview',
+    );
+    return PreviewResult(
+      bytes: file.bytes,
+      contentType: file.contentType ?? 'application/pdf',
+    );
   }
 
   Future<CanvasState> getCanvasState(int tenderId, int docId) async {
@@ -435,4 +443,14 @@ class CanvasState {
     this.lockedReason,
     required this.layers,
   });
+}
+
+/// Result of a document preview fetch, carrying both bytes and content type
+/// so the UI can choose between PDF and HTML rendering.
+class PreviewResult {
+  final Uint8List bytes;
+  final String contentType;
+  const PreviewResult({required this.bytes, required this.contentType});
+
+  bool get isHtml => contentType.toLowerCase().contains('text/html');
 }
