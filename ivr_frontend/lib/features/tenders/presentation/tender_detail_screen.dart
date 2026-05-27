@@ -11,6 +11,7 @@ import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/app_status_badge.dart';
 import '../../../core/widgets/pdf_preview_surface.dart';
 import '../../../core/widgets/html_preview_surface.dart';
+import '../../../core/widgets/editable_html_surface.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 import 'invite_links_panel.dart';
@@ -966,7 +967,6 @@ class _DocsTabState extends State<_DocsTab> {
   Future<void> _previewDoc(TenderDocumentSummary doc) async {
     try {
       final preview = await widget.repo.previewDocument(widget.tenderId, doc.id);
-      final canvasState = await widget.repo.getCanvasState(widget.tenderId, doc.id);
       if (!mounted) return;
       final action = await showDialog<String>(
         context: context,
@@ -975,30 +975,58 @@ class _DocsTabState extends State<_DocsTab> {
             (_) => _DocumentPreviewDialog(
               bytes: preview.bytes,
               isHtml: preview.isHtml,
-              canvasLayers: canvasState.layers,
-              canEdit: canvasState.canEdit,
-              lockReason: canvasState.lockedReason,
-              onDownload: () async {
-                await _openDoc(doc);
-              },
-              onEdit: () => _openCanvasEditor(doc, preview.bytes, canvasState.layers, canvasState.canEdit),
+              canEdit: true,
+              onDownloadFormat: (format) => _downloadDocInFormat(doc, format),
+              onFetchHtml: () => widget.repo.getDocumentHtmlContent(
+                widget.tenderId, doc.id,
+              ),
+              onSaveHtml: (html) => _saveDocHtml(doc, html),
             ),
       );
       if (action == 'edited') {
         await _reload();
-        final refreshed = _docs.where(
-          (d) => d.templateId == doc.templateId && d.status == 'ready',
-        ).toList()
-          ..sort((a, b) => b.version.compareTo(a.version));
-        if (refreshed.isNotEmpty) {
-          await _previewDoc(refreshed.first);
-        }
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Preview failed: ${userFacingMessage(e)}')),
       );
+    }
+  }
+
+  Future<void> _downloadDocInFormat(
+    TenderDocumentSummary doc,
+    String format,
+  ) async {
+    try {
+      await widget.repo.downloadDocumentInFormat(
+        widget.tenderId, doc.id,
+        format: format,
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<bool> _saveDocHtml(TenderDocumentSummary doc, String html) async {
+    try {
+      await widget.repo.saveDocumentContent(
+        widget.tenderId, doc.id, html,
+      );
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Document saved successfully.')),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: ${userFacingMessage(e)}')),
+      );
+      return false;
     }
   }
 
@@ -1293,24 +1321,101 @@ class _DocsTabState extends State<_DocsTab> {
   }
 }
 
-class _DocumentPreviewDialog extends StatelessWidget {
+class _DocumentPreviewDialog extends StatefulWidget {
   final Uint8List bytes;
   final bool isHtml;
-  final List<Map<String, dynamic>> canvasLayers;
   final bool canEdit;
-  final String? lockReason;
-  final Future<void> Function() onDownload;
-  final Future<bool> Function() onEdit;
+  final Future<void> Function(String format) onDownloadFormat;
+  final Future<String> Function() onFetchHtml;
+  final Future<bool> Function(String html) onSaveHtml;
 
   const _DocumentPreviewDialog({
     required this.bytes,
     this.isHtml = false,
-    required this.canvasLayers,
     required this.canEdit,
-    this.lockReason,
-    required this.onDownload,
-    required this.onEdit,
+    required this.onDownloadFormat,
+    required this.onFetchHtml,
+    required this.onSaveHtml,
   });
+
+  @override
+  State<_DocumentPreviewDialog> createState() => _DocumentPreviewDialogState();
+}
+
+class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
+  bool _editing = false;
+  bool _loadingHtml = false;
+  bool _saving = false;
+  String? _htmlContent;
+  final _editController = EditableHtmlController();
+
+  // ── Edit-mode lifecycle ──────────────────────────────────────────
+
+  Future<void> _enterEditMode() async {
+    if (!widget.canEdit) return;
+
+    // If the preview is already HTML we have the bytes in memory
+    if (widget.isHtml) {
+      setState(() {
+        _htmlContent = String.fromCharCodes(widget.bytes);
+        _editing = true;
+      });
+      return;
+    }
+
+    // Otherwise fetch the HTML source from the server
+    setState(() => _loadingHtml = true);
+    try {
+      final html = await widget.onFetchHtml();
+      if (!mounted) return;
+      setState(() {
+        _htmlContent = html;
+        _editing = true;
+        _loadingHtml = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingHtml = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load content for editing: $e')),
+      );
+    }
+  }
+
+  Future<void> _saveEdit() async {
+    final html = _editController.getEditedHtml();
+    if (html == null || html.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not extract edited content')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final success = await widget.onSaveHtml(html);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (success) {
+        Navigator.of(context).pop('edited');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: $e')),
+      );
+    }
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editing = false;
+      _htmlContent = null;
+    });
+  }
+
+  // ── Build ────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -1319,29 +1424,6 @@ class _DocumentPreviewDialog extends StatelessWidget {
     final maxWidth = (media.width - inset * 2).clamp(280.0, 1100.0);
     final maxHeight = (media.height - inset * 2).clamp(320.0, 760.0);
     final isNarrow = maxWidth < 560;
-    final closeBtn = TextButton(
-      onPressed: () => Navigator.of(context).pop(),
-      child: const Text('Close'),
-    );
-    final downloadBtn = OutlinedButton.icon(
-      onPressed: () async {
-        await onDownload();
-      },
-      icon: const Icon(Icons.download_outlined),
-      label: const Text('Download'),
-    );
-    final editBtn = FilledButton.icon(
-      onPressed: !canEdit
-          ? null
-          : () async {
-              final saved = await onEdit();
-              if (!saved) return;
-              if (!context.mounted) return;
-              Navigator.of(context).pop('edited');
-            },
-      icon: const Icon(Icons.edit_outlined),
-      label: Text(canEdit ? 'Edit' : 'Edit (locked)'),
-    );
 
     return Dialog(
       insetPadding: EdgeInsets.all(inset),
@@ -1350,68 +1432,165 @@ class _DocumentPreviewDialog extends StatelessWidget {
         height: maxHeight,
         child: Column(
           children: [
+            // ── Header ──
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Text(
-                      'Document preview',
-                      style: TextStyle(fontWeight: FontWeight.w600),
+                      _editing ? 'Edit document' : 'Document preview',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (_saving)
+                    const Padding(
+                      padding: EdgeInsets.only(right: 8),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: () => Navigator.of(context).pop(),
+                    onPressed:
+                        _saving ? null : () => Navigator.of(context).pop(),
                     icon: const Icon(Icons.close),
                   ),
                 ],
               ),
             ),
             const Divider(height: 1),
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  if (isHtml)
-                    HtmlPreviewSurface(html: String.fromCharCodes(bytes))
-                  else
-                    PdfPreviewSurface(bytes: bytes),
-                  _CanvasLayerOverlay(
-                    layers: canvasLayers,
-                    editable: false,
-                  ),
-                ],
-              ),
-            ),
+
+            // ── Content ──
+            Expanded(child: _buildContent()),
             const Divider(height: 1),
+
+            // ── Actions ──
             Padding(
               padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (!canEdit && (lockReason ?? '').isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Text(
-                        lockReason!,
-                        style: const TextStyle(
-                          color: Colors.black54,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    alignment:
-                        isNarrow ? WrapAlignment.start : WrapAlignment.end,
-                    children: [closeBtn, downloadBtn, editBtn],
-                  ),
-                ],
-              ),
+              child: _buildActions(isNarrow),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    if (_loadingHtml) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_editing && _htmlContent != null) {
+      return EditableHtmlSurface(
+        html: _htmlContent!,
+        controller: _editController,
+      );
+    }
+
+    // Preview mode
+    if (widget.isHtml) {
+      return HtmlPreviewSurface(html: String.fromCharCodes(widget.bytes));
+    }
+    return PdfPreviewSurface(bytes: widget.bytes);
+  }
+
+  Widget _buildActions(bool isNarrow) {
+    if (_editing) {
+      return Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        alignment: isNarrow ? WrapAlignment.start : WrapAlignment.end,
+        children: [
+          TextButton(
+            onPressed: _saving ? null : _cancelEdit,
+            child: const Text('Cancel'),
+          ),
+          FilledButton.icon(
+            onPressed: _saving ? null : _saveEdit,
+            icon: const Icon(Icons.save_outlined),
+            label: Text(_saving ? 'Saving…' : 'Save'),
+          ),
+        ],
+      );
+    }
+
+    // Preview-mode actions
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: isNarrow ? WrapAlignment.start : WrapAlignment.end,
+      children: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Close'),
+        ),
+        _DownloadFormatButton(onFormat: widget.onDownloadFormat),
+        FilledButton.icon(
+          onPressed:
+              !widget.canEdit || _loadingHtml ? null : _enterEditMode,
+          icon: const Icon(Icons.edit_outlined),
+          label: Text(widget.canEdit ? 'Edit' : 'Edit (locked)'),
+        ),
+      ],
+    );
+  }
+}
+
+/// Drop-down button that lets the user pick a download format.
+class _DownloadFormatButton extends StatelessWidget {
+  final Future<void> Function(String format) onFormat;
+  const _DownloadFormatButton({required this.onFormat});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return PopupMenuButton<String>(
+      onSelected: (format) => onFormat(format),
+      itemBuilder: (_) => const [
+        PopupMenuItem(
+          value: 'pdf',
+          child: Row(children: [
+            Icon(Icons.picture_as_pdf_outlined, size: 20),
+            SizedBox(width: 12),
+            Text('PDF'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'docx',
+          child: Row(children: [
+            Icon(Icons.description_outlined, size: 20),
+            SizedBox(width: 12),
+            Text('Word (.doc)'),
+          ]),
+        ),
+        PopupMenuItem(
+          value: 'html',
+          child: Row(children: [
+            Icon(Icons.code_outlined, size: 20),
+            SizedBox(width: 12),
+            Text('HTML'),
+          ]),
+        ),
+      ],
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border.all(color: scheme.outline),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.download_outlined, size: 18, color: scheme.primary),
+            const SizedBox(width: 8),
+            Text('Download',
+                style: TextStyle(color: scheme.primary, fontSize: 14)),
+            const SizedBox(width: 4),
+            Icon(Icons.arrow_drop_down, size: 18, color: scheme.primary),
           ],
         ),
       ),

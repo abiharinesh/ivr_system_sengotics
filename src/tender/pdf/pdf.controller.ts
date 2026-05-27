@@ -8,6 +8,7 @@ import {
     Param,
     ParseIntPipe,
     Post,
+    Query,
     Req,
     Res,
     UseGuards,
@@ -131,20 +132,34 @@ export class TenderPdfController {
         @Req() req: AuthenticatedRequest,
         @Res() res: Response,
         @Param('id', ParseIntPipe) id: number,
-        @Param('docId', ParseIntPipe) docId: number
+        @Param('docId', ParseIntPipe) docId: number,
+        @Query('format') format?: string,
     ) {
         try {
-            const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
+            const panchayatId = this.getPanchayatId(req)
             const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
             const tender = await this.prisma.tender.findUnique({
                 where: { id },
                 include: { panchayat: { select: { name: true } } },
             })
-            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
             const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat')
             const template = slugify(doc?.template_id ?? 'document')
             const version = doc?.version ?? 1
             const stamp = formatStamp((doc?.generated_at ?? new Date()))
+
+            // Format-specific download (pdf | html | docx)
+            if (format === 'pdf' || format === 'html' || format === 'docx') {
+                const result = await this.service.getDocumentInFormat(panchayatId, id, docId, format)
+                const filename = `${panchayat}-${id}-${template}-v${version}-${stamp}.${result.ext}`
+                res.setHeader('Content-Type', result.contentType)
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+                res.send(result.bytes)
+                return
+            }
+
+            // Default: auto-detect from storage path
+            const storagePath = await this.service.getDownloadStoragePath(panchayatId, id, docId)
+            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
             const filename = `${panchayat}-${id}-${template}-v${version}-${stamp}.${ext}`
             const bytes = await this.service.readDocumentBytes(storagePath)
             res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
@@ -155,10 +170,41 @@ export class TenderPdfController {
                 res.status(err?.status ?? 500).json({
                     error: 'Document download failed',
                     message: err?.message ?? 'Unknown error',
-                    hint: 'Try regenerating the document. If this persists, check that SUPABASE_SERVICE_ROLE_KEY and GOTENBERG_URL are set in environment variables.',
+                    hint: 'Try regenerating the document.',
                 })
             }
         }
+    }
+
+    /** Return the HTML source of a document for inline editing. */
+    @Get(':id/documents/:docId/html-content')
+    async getHtmlContent(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+    ) {
+        const html = await this.service.getHtmlContent(this.getPanchayatId(req), id, docId)
+        return { html }
+    }
+
+    /** Save user-edited HTML content back to storage. */
+    @Post(':id/documents/:docId/content')
+    async saveContent(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { html: string },
+    ) {
+        if (!body?.html || typeof body.html !== 'string') {
+            throw new BadRequestException('html field is required')
+        }
+        return this.service.saveEditedHtml({
+            panchayatId: this.getPanchayatId(req),
+            tenderId: id,
+            docId,
+            html: body.html,
+            actorUserId: req.user.id,
+        })
     }
 
     @Get(':id/documents/:docId/canvas')

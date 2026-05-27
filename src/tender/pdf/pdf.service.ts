@@ -423,6 +423,162 @@ export class TenderPdfService {
         return this.documentStorage.readBuffer(storagePath)
     }
 
+    // ── Inline editing & multi-format download ───────────────────────
+
+    /** Fetch the HTML source of a document for inline editing. */
+    async getHtmlContent(panchayatId: number, tenderId: number, docId: number): Promise<string> {
+        await this.ensureTenderOwned(panchayatId, tenderId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
+        if (!doc || doc.tender_id !== tenderId) throw new NotFoundException('Document not on tender')
+        if (doc.status !== 'ready' || !doc.storage_path) throw new BadRequestException('Document not ready')
+
+        // Always attempt to read the .html sibling of the stored artifact
+        let htmlPath = doc.storage_path
+        if (htmlPath.toLowerCase().endsWith('.pdf')) {
+            htmlPath = htmlPath.replace(/\.pdf$/i, '.html')
+        }
+
+        try {
+            const bytes = await this.documentStorage.readBuffer(htmlPath)
+            return bytes.toString('utf8')
+        } catch {
+            // HTML file missing — regenerate artefacts and retry
+            const storagePath = await this.renderAndPersistArtifacts(doc)
+            const regeneratedHtmlPath = storagePath.toLowerCase().endsWith('.pdf')
+                ? storagePath.replace(/\.pdf$/i, '.html')
+                : storagePath
+            const bytes = await this.documentStorage.readBuffer(regeneratedHtmlPath)
+            return bytes.toString('utf8')
+        }
+    }
+
+    /** Persist user-edited HTML and regenerate the PDF artefact. */
+    async saveEditedHtml(args: {
+        panchayatId: number
+        tenderId: number
+        docId: number
+        html: string
+        actorUserId: number
+    }) {
+        await this.ensureTenderOwned(args.panchayatId, args.tenderId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: args.docId } })
+        if (!doc || doc.tender_id !== args.tenderId) throw new NotFoundException('Document not on tender')
+
+        const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
+        const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
+
+        // Write the edited HTML
+        const htmlStoragePath = this.buildStoragePath(subdir, `${baseName}.html`)
+        await this.documentStorage.writeUtf8(htmlStoragePath, args.html)
+
+        // Try to regenerate the PDF from the edited HTML
+        let storagePath = htmlStoragePath
+        const pdfBuf = await renderHtmlToPdfBuffer(args.html)
+        if (pdfBuf) {
+            const pdfStoragePath = this.buildStoragePath(subdir, `${baseName}.pdf`)
+            await this.documentStorage.writeBuffer(pdfStoragePath, pdfBuf, 'application/pdf')
+            storagePath = pdfStoragePath
+        }
+
+        await this.prisma.tenderDocument.update({
+            where: { id: doc.id },
+            data: {
+                status: 'ready',
+                storage_path: storagePath,
+                generated_at: new Date(),
+                error_message: null,
+            },
+        })
+
+        await this.audit.record({
+            tenderId: args.tenderId,
+            actorUserId: args.actorUserId,
+            event: 'document:content_edited',
+            payload: { document_id: doc.id, template_id: doc.template_id },
+        })
+
+        return this.prisma.tenderDocument.findUnique({ where: { id: doc.id } })
+    }
+
+    /** Return document bytes in the requested format (pdf | html | docx). */
+    async getDocumentInFormat(
+        panchayatId: number,
+        tenderId: number,
+        docId: number,
+        format: 'pdf' | 'html' | 'docx',
+    ): Promise<{ bytes: Buffer; contentType: string; ext: string }> {
+        const storagePath = await this.getDownloadStoragePath(panchayatId, tenderId, docId)
+
+        // Derive the .html sibling path
+        let htmlPath = storagePath
+        if (htmlPath.toLowerCase().endsWith('.pdf')) {
+            htmlPath = htmlPath.replace(/\.pdf$/i, '.html')
+        }
+
+        if (format === 'html') {
+            const bytes = await this.documentStorage.readBuffer(htmlPath)
+            return { bytes, contentType: 'text/html; charset=utf-8', ext: 'html' }
+        }
+
+        if (format === 'pdf') {
+            // Prefer the pre-rendered PDF when available
+            if (storagePath.toLowerCase().endsWith('.pdf')) {
+                try {
+                    const bytes = await this.documentStorage.readBuffer(storagePath)
+                    return { bytes, contentType: 'application/pdf', ext: 'pdf' }
+                } catch { /* fall through to on-the-fly conversion */ }
+            }
+            const htmlBytes = await this.documentStorage.readBuffer(htmlPath)
+            const html = htmlBytes.toString('utf8')
+            const pdfBuf = await renderHtmlToPdfBuffer(html)
+            if (!pdfBuf) {
+                throw new BadRequestException(
+                    'PDF generation is not available. Configure GOTENBERG_URL for PDF output.',
+                )
+            }
+            return { bytes: pdfBuf, contentType: 'application/pdf', ext: 'pdf' }
+        }
+
+        if (format === 'docx') {
+            const htmlBytes = await this.documentStorage.readBuffer(htmlPath)
+            const htmlContent = htmlBytes.toString('utf8')
+            const wordHtml = this.wrapHtmlForWord(htmlContent)
+            return {
+                bytes: Buffer.from(wordHtml, 'utf8'),
+                contentType: 'application/msword',
+                ext: 'doc',
+            }
+        }
+
+        throw new BadRequestException(`Unsupported format: ${format}`)
+    }
+
+    /** Wrap raw HTML in Microsoft-Word-compatible XML so it opens natively in Word. */
+    private wrapHtmlForWord(htmlContent: string): string {
+        const bodyMatch = htmlContent.match(/<body[^>]*>([\s\S]*?)<\/body>/i)
+        const bodyContent = bodyMatch ? bodyMatch[1] : htmlContent
+        const styleMatches = htmlContent.match(/<style[^>]*>[\s\S]*?<\/style>/gi)
+        const styles = styleMatches ? styleMatches.join('\n') : ''
+
+        return `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<meta name="ProgId" content="Word.Document">
+<meta name="Generator" content="Microsoft Word 15">
+<!--[if gte mso 9]><xml>
+<w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DoNotOptimizeForBrowser/></w:WordDocument>
+</xml><![endif]-->
+${styles}
+</head>
+<body>
+${bodyContent}
+</body>
+</html>`
+    }
+
     async getCanvasState(panchayatId: number, tenderId: number, docId: number) {
         await this.ensureTenderOwned(panchayatId, tenderId)
         const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })

@@ -432,6 +432,47 @@ class TenderRepository {
     final res = await _api.get('/public/field-sessions/$token');
     return res as Map<String, dynamic>;
   }
+
+  // ── Document editing & format download ──────────────────────────────
+
+  /// Fetch the HTML source of a document for inline editing.
+  Future<String> getDocumentHtmlContent(int tenderId, int docId) async {
+    final res = await _api.get(
+      '/api/admin/tenders/$tenderId/documents/$docId/html-content',
+    );
+    return (res as Map<String, dynamic>)['html'] as String;
+  }
+
+  /// Save edited HTML content back to the server.
+  Future<void> saveDocumentContent(
+    int tenderId,
+    int docId,
+    String html,
+  ) async {
+    await _api.post(
+      '/api/admin/tenders/$tenderId/documents/$docId/content',
+      data: {'html': html},
+    );
+  }
+
+  /// Download a document in a specific format (pdf, html, docx).
+  Future<void> downloadDocumentInFormat(
+    int tenderId,
+    int docId, {
+    required String format,
+    String? fallbackName,
+  }) async {
+    final file = await _api.getDownload(
+      '/api/admin/tenders/$tenderId/documents/$docId/download?format=$format',
+    );
+    final ext = format == 'docx' ? 'doc' : format;
+    await saveBytes(
+      bytes: file.bytes,
+      filename:
+          file.filename ?? fallbackName ?? 'tender-$tenderId-doc-$docId.$ext',
+      contentType: file.contentType ?? 'application/octet-stream',
+    );
+  }
 }
 
 class CanvasState {
