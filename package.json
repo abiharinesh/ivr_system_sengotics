@@ -47,10 +47,14 @@
     "passport-jwt": "^4.0.1",
     "pg": "^8.18.0",
     "reflect-metadata": "^0.2.2",
-    "rxjs": "^7.8.1"
+    "rxjs": "^7.8.1",
+    "sharp": "^0.34.5",
+    "tesseract.js": "^6.0.1"
   },
   "optionalDependencies": {
-    "puppeteer": "^24.43.0"
+    "@sparticuz/chromium": "^131.0.1",
+    "puppeteer": "^24.43.0",
+    "puppeteer-core": "^24.43.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

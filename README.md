@@ -40,8 +40,8 @@ A production-grade backend system for handling Exotel IVR callbacks and AI-power
 # 1. Copy environment template
 cp .env.example .env
 
-# 2. Edit .env and add your OpenAI API key
-# OPENAI_API_KEY=sk-your-key-here
+# 2. Edit .env — see .env.example for every variable (GROQ, JWT, DB, etc.)
+# For production PDFs on Vercel also set GOTENBERG_URL and SUPABASE_SERVICE_ROLE_KEY
 
 # 3. Start all services (PostgreSQL + Backend)
 docker-compose up -d
@@ -68,7 +68,8 @@ See [DOCKER.md](DOCKER.md) for detailed Docker documentation.
 1. **Environment Configuration**
    ```bash
    cp .env.example .env
-   # Edit .env with your database URL and OpenAI key
+   # Edit .env — full list in .env.example
+   # Flutter: node ivr_frontend/scripts/sync_env_from_root.js (uses FLUTTER_API_BASE_URL + GOOGLE_MAPS_API_KEY)
    ```
 
 2. **Install Dependencies**
@@ -92,6 +93,28 @@ See [DOCKER.md](DOCKER.md) for detailed Docker documentation.
    ```
 
 ## API Documentation
+
+## Vercel Configuration Checklist
+
+Set these environment variables in your Vercel project before deploy (see `.env.example` for the full list):
+
+- `DATABASE_URL`, `JWT_SECRET`, `DB_POOL_MAX` (e.g. `3`)
+- `GROQ_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_SPEECH_API_KEY`, `RAPIDAPI_KEY` (as needed)
+- `EXOTEL_API_KEY`, `EXOTEL_API_TOKEN` (if using Exotel recordings)
+- `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (default: `tender-documents`)
+- `GOTENBERG_URL`, `GOTENBERG_TIMEOUT_MS` (recommended: `45000`)
+- `CANVAS_LOCKED_TEMPLATES` (optional CSV; empty = all six templates editable via canvas)
+
+Deployment notes:
+- Keep Gotenberg as a separate service and point `GOTENBERG_URL` to it.
+- `SUPABASE_SERVICE_ROLE_KEY` must be set on Vercel (server-side only), never in frontend env.
+- Leave `CANVAS_LOCKED_TEMPLATES` empty to allow canvas edit for all templates.
+
+### Document template designer (Flutter web)
+
+- Sidebar → **Document templates** — Fabric.js canvas (text, shapes, images, draw) plus **Advanced** panel for page margins and alignment.
+- Super admin edits platform defaults; panchayat admin overrides per panchayat. Designs save as `fabric_scene` + `overlay_svg` and merge into generated PDFs.
+- Full canvas editor requires **Flutter web**; mobile/desktop shows layout settings only.
 
 ### IVR Endpoints
 All endpoints accept `application/x-www-form-urlencoded` and return HTTP 200.

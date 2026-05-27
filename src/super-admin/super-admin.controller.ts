@@ -20,6 +20,8 @@ import { ElectricianOpsService } from '../field-ops/field-ops.service'
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard'
 import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
+import { DocumentTemplateSettingsService } from '../tender/pdf/document-template-settings.service'
+import { validateTemplateId } from '../tender/tender-status'
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('super_admin')
@@ -27,7 +29,8 @@ import { Roles } from '../auth/decorators/roles.decorator'
 export class SuperAdminController {
     constructor(
         private readonly superAdminService: SuperAdminService,
-        private readonly electricianOps: ElectricianOpsService
+        private readonly electricianOps: ElectricianOpsService,
+        private readonly documentTemplateSettings: DocumentTemplateSettingsService,
     ) { }
 
     // ── Panchayat Management ────────────────────────────────────────────────
@@ -197,6 +200,46 @@ export class SuperAdminController {
     @Put('settings/api-keys')
     setApiKeys(@Body() body: { rapidapi_key?: string }) {
         return this.superAdminService.setApiKeys(body)
+    }
+
+    // ── Document template defaults (platform-wide) ─────────────────────────
+    @Get('settings/document-templates')
+    getDocumentTemplateDefaults() {
+        return this.documentTemplateSettings.getGlobalSettings()
+    }
+
+    @Put('settings/document-templates')
+    updateDocumentTemplateDefaults(@Body() body: { templates?: unknown }) {
+        return this.documentTemplateSettings.updateGlobalSettings(body)
+    }
+
+    @Post('settings/document-templates/:templateId/design')
+    saveDocumentTemplateDesign(
+        @Param('templateId') templateId: string,
+        @Body() body: { fabric_scene?: unknown; overlay_svg?: unknown },
+    ) {
+        validateTemplateId(templateId)
+        return this.documentTemplateSettings.saveGlobalDesign(templateId, body)
+    }
+
+    @Post('settings/document-templates/:templateId/preview')
+    async previewDocumentTemplate(
+        @Param('templateId') templateId: string,
+        @Body() body: { panchayat_id?: number; tender_id?: number; vendor_id?: number } = {},
+        @Res() res: Response,
+    ) {
+        validateTemplateId(templateId)
+        const panchayatId = body.panchayat_id ?? 1
+        if (!Number.isFinite(panchayatId) || panchayatId <= 0) {
+            throw new BadRequestException('panchayat_id is required for preview')
+        }
+        const html = await this.documentTemplateSettings.buildPreviewHtml(
+            Math.floor(panchayatId),
+            templateId,
+            { tender_id: body.tender_id, vendor_id: body.vendor_id },
+        )
+        res.setHeader('Content-Type', 'text/html; charset=utf-8')
+        res.send(html)
     }
 
     // ── Stats ──────────────────────────────────────────────────────────────

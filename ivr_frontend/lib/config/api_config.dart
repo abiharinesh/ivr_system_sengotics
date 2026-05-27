@@ -29,6 +29,37 @@ class ApiConfig {
     return _prodBaseUrl;
   }
 
+  /// Frontend origin used when generating shareable web links.
+  /// Override order: `--dart-define=WEB_APP_BASE_URL=...` -> `.env` -> current browser origin (web) -> API_BASE_URL.
+  static String get webAppBaseUrl {
+    const fromDefine = String.fromEnvironment('WEB_APP_BASE_URL', defaultValue: '');
+    if (fromDefine.isNotEmpty) {
+      return fromDefine;
+    }
+    String? fromEnv;
+    try {
+      fromEnv = dotenv.env['WEB_APP_BASE_URL']?.trim();
+    } catch (_) {
+      fromEnv = null;
+    }
+    if (fromEnv != null && fromEnv.isNotEmpty) {
+      return fromEnv;
+    }
+    if (kIsWeb) {
+      final origin = Uri.base.origin;
+      if (origin.isNotEmpty) return origin;
+    }
+    return baseUrl;
+  }
+
+  static String webUrl(String path) {
+    final cleanBase = webAppBaseUrl.endsWith('/')
+        ? webAppBaseUrl.substring(0, webAppBaseUrl.length - 1)
+        : webAppBaseUrl;
+    final cleanPath = path.startsWith('/') ? path : '/$path';
+    return '$cleanBase$cleanPath';
+  }
+
   /// Public URLs for files served at `/uploads/...` on the API host.
   static String fileUrl(String? relativeOrAbsolute) {
     if (relativeOrAbsolute == null || relativeOrAbsolute.isEmpty) {
@@ -51,6 +82,10 @@ class ApiConfig {
   static const String saPoles = '/api/superadmin/poles';
   static const String saSttProvider = '/api/superadmin/settings/stt-provider';
   static const String saLlmProvider = '/api/superadmin/settings/llm-provider';
+  static const String saDocumentTemplates =
+      '/api/superadmin/settings/document-templates';
+  static const String paDocumentTemplates =
+      '/api/admin/settings/document-templates';
   static const String saElectricians = '/api/superadmin/electricians';
   static const String saExportElectricianResolved =
       '/api/superadmin/exports/electrician-resolved';

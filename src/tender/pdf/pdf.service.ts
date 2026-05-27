@@ -5,39 +5,37 @@ import {
     Logger,
     NotFoundException,
 } from '@nestjs/common'
-import * as fs from 'fs/promises'
-import * as fssync from 'fs'
 import * as path from 'path'
 import archiver from 'archiver'
 import { PrismaService } from '../../prisma/prisma.service'
+import { DocumentStorageService } from '../../storage/document-storage.service'
 import { TenderAuditService } from '../audit.service'
 import { MilestoneService } from '../milestone.service'
 import { DocumentTemplateId, validateTemplateId } from '../tender-status'
 import { renderTemplate, TemplateContext } from './templates'
 import { renderHtmlToPdfBuffer } from './renderer'
+import { DocumentTemplateSettingsService } from './document-template-settings.service'
 
 @Injectable()
 export class TenderPdfService {
     private readonly logger = new Logger(TenderPdfService.name)
+    /** Opt-in: comma-separated template ids (rfq, quotation, …). Empty = all templates editable. */
+    private readonly canvasLockedTemplates = new Set<string>(
+        (process.env.CANVAS_LOCKED_TEMPLATES ?? '')
+            .split(',')
+            .map((x) => x.trim())
+            .filter((x) => x.length > 0)
+    )
     constructor(
         private readonly prisma: PrismaService,
+        private readonly documentStorage: DocumentStorageService,
         private readonly audit: TenderAuditService,
         private readonly milestones: MilestoneService,
+        private readonly templateSettings: DocumentTemplateSettingsService,
     ) {}
 
-    private getUploadsRoot(): string {
-        // Vercel serverless has a writable temp filesystem only under /tmp.
-        if (process.env.VERCEL) return path.join('/tmp', 'uploads')
-        return path.join(process.cwd(), 'uploads')
-    }
-
-    private storagePathToAbsolute(storagePath: string): string {
-        const rel = storagePath.replace(/^\/+/, '')
-        if (!rel.startsWith('uploads/')) {
-            throw new ForbiddenException('Invalid storage path')
-        }
-        const withinUploads = rel.slice('uploads/'.length)
-        return path.join(this.getUploadsRoot(), withinUploads)
+    private buildStoragePath(subdir: string, filename: string): string {
+        return path.posix.join('/uploads', subdir.replace(/\\/g, '/'), filename).replace(/\\/g, '/')
     }
 
     private async ensureTenderOwned(panchayatId: number, tenderId: number) {
@@ -45,6 +43,63 @@ export class TenderPdfService {
         if (!t) throw new NotFoundException(`Tender #${tenderId} not found`)
         if (t.panchayat_id !== panchayatId) throw new ForbiddenException('Tender belongs to another panchayat')
         return t
+    }
+
+    /** When only one bidder exists, infer vendor for per-vendor quotation PDFs. */
+    private async resolveQuotationVendorId(tenderId: number): Promise<number | null> {
+        const activeQuotes = await this.prisma.tenderQuotation.findMany({
+            where: { tender_id: tenderId, superseded_by_id: null },
+            select: { vendor_id: true },
+        })
+        const fromQuotes = [
+            ...new Set(
+                activeQuotes
+                    .map((q) => q.vendor_id)
+                    .filter((id): id is number => id != null),
+            ),
+        ]
+        if (fromQuotes.length === 1) return fromQuotes[0]
+
+        const invites = await this.prisma.tenderVendorInvite.findMany({
+            where: { tender_id: tenderId },
+            select: { vendor_id: true },
+        })
+        const fromInvites = [...new Set(invites.map((i) => i.vendor_id))]
+        if (fromInvites.length === 1) return fromInvites[0]
+
+        return null
+    }
+
+    private normalizedCanvasLayers(input: unknown): Array<Record<string, unknown>> {
+        if (!Array.isArray(input)) return []
+        return input
+            .filter((item) => item && typeof item === 'object')
+            .map((item: any, idx) => ({
+                id: String(item.id ?? `layer-${idx}`),
+                text: String(item.text ?? ''),
+                x: Number.isFinite(Number(item.x)) ? Number(item.x) : 0.5,
+                y: Number.isFinite(Number(item.y)) ? Number(item.y) : 0.5,
+                page: Number.isFinite(Number(item.page)) ? Math.max(1, Math.floor(Number(item.page))) : 1,
+                fontSize: Number.isFinite(Number(item.fontSize)) ? Number(item.fontSize) : 16,
+                color: item.color != null ? String(item.color) : '#111111',
+            }))
+    }
+
+    private isCanvasLocked(templateId: string): boolean {
+        return this.canvasLockedTemplates.has(templateId)
+    }
+
+    private withCanvasLayers(
+        fieldOverrides: unknown,
+        layers: Array<Record<string, unknown>>,
+    ): Record<string, unknown> {
+        const current = (
+            fieldOverrides && typeof fieldOverrides === 'object' && !Array.isArray(fieldOverrides)
+                ? { ...(fieldOverrides as Record<string, unknown>) }
+                : {}
+        )
+        current.__canvas_layers = layers
+        return current
     }
 
     /** Build the immutable rendering context for a given tender + template version. */
@@ -73,6 +128,15 @@ export class TenderPdfService {
             }),
         ])
         const timeline = await this.milestones.resolveForTender(tenderId)
+        const layout = await this.templateSettings.resolveMergedLayout(
+            tender.panchayat.id,
+            templateId,
+        )
+        const mergedOverrides = await this.templateSettings.resolveMergedFieldOverrides(
+            tender.panchayat.id,
+            templateId,
+            fieldOverrides,
+        )
 
         return {
             panchayat: { id: tender.panchayat.id, name: tender.panchayat.name },
@@ -115,8 +179,14 @@ export class TenderPdfService {
             })),
             awarded_quotation_id: tender.awarded_quotation_id,
             payment_meta: (tender.payment_meta as Record<string, unknown> | null) ?? null,
-            document: { template_id: templateId, version, vendor_id: vendorId, field_overrides: fieldOverrides },
+            document: {
+                template_id: templateId,
+                version,
+                vendor_id: vendorId,
+                field_overrides: mergedOverrides,
+            },
             generated_at: new Date(),
+            layout,
         }
     }
 
@@ -131,15 +201,21 @@ export class TenderPdfService {
     }) {
         const tpl = validateTemplateId(args.templateId)
         await this.ensureTenderOwned(args.panchayatId, args.tenderId)
-        if (tpl === 'quotation' && args.vendorId == null) {
-            throw new BadRequestException('vendor_id is required for quotation template')
+        let vendorId = args.vendorId ?? null
+        if (tpl === 'quotation' && vendorId == null) {
+            vendorId = await this.resolveQuotationVendorId(args.tenderId)
+        }
+        if (tpl === 'quotation' && vendorId == null) {
+            throw new BadRequestException(
+                'vendor_id is required for quotation template. Select a vendor or add an invite / quotation first.',
+            )
         }
 
         const lastVersion = await this.prisma.tenderDocument.findFirst({
             where: {
                 tender_id: args.tenderId,
                 template_id: tpl,
-                ...(tpl === 'quotation' ? { vendor_id: args.vendorId ?? null } : {}),
+                ...(tpl === 'quotation' ? { vendor_id: vendorId } : {}),
             },
             orderBy: { version: 'desc' },
             select: { version: true },
@@ -150,7 +226,7 @@ export class TenderPdfService {
             data: {
                 tender_id: args.tenderId,
                 template_id: tpl,
-                vendor_id: tpl === 'quotation' ? args.vendorId ?? null : null,
+                vendor_id: tpl === 'quotation' ? vendorId : null,
                 version,
                 field_overrides: (args.fieldOverrides ?? null) as any,
                 generated_by_user_id: args.actorUserId,
@@ -184,9 +260,7 @@ export class TenderPdfService {
                     status: 'ready',
                     storage_path: storagePath,
                     generated_at: new Date(),
-                    error_message: storagePath.endsWith('.pdf')
-                        ? null
-                        : 'puppeteer unavailable; HTML version produced',
+                    error_message: null,
                 },
             })
         } catch (err: any) {
@@ -219,23 +293,21 @@ export class TenderPdfService {
 
         const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
         const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
-        const root = path.join(this.getUploadsRoot(), subdir)
-        await fs.mkdir(root, { recursive: true })
 
-        // Always write the HTML artifact (browser-printable).
-        const htmlAbs = path.join(root, `${baseName}.html`)
-        await fs.writeFile(htmlAbs, html, 'utf8')
-        const htmlRel = `/uploads/${subdir}/${baseName}.html`.replace(/\\/g, '/')
+        // Keep an HTML artifact for debugging / inspection only.
+        const htmlStoragePath = this.buildStoragePath(subdir, `${baseName}.html`)
+        await this.documentStorage.writeUtf8(htmlStoragePath, html)
 
-        // Best-effort PDF render via puppeteer if available.
-        let storagePath = htmlRel
+        // PDF is mandatory for document readiness.
         const pdfBuf = await renderHtmlToPdfBuffer(html)
-        if (pdfBuf) {
-            const pdfAbs = path.join(root, `${baseName}.pdf`)
-            await fs.writeFile(pdfAbs, pdfBuf)
-            storagePath = `/uploads/${subdir}/${baseName}.pdf`.replace(/\\/g, '/')
+        if (!pdfBuf) {
+            throw new Error(
+                'PDF generation engine unavailable. Configure GOTENBERG_URL (recommended) or install a compatible local renderer.'
+            )
         }
-        return storagePath
+        const pdfStoragePath = this.buildStoragePath(subdir, `${baseName}.pdf`)
+        await this.documentStorage.writeBuffer(pdfStoragePath, pdfBuf, 'application/pdf')
+        return pdfStoragePath
     }
 
     private async ensureArtifactExists(doc: {
@@ -248,10 +320,9 @@ export class TenderPdfService {
         storage_path: string | null
     }): Promise<string> {
         if (!doc.storage_path) throw new BadRequestException('Document not ready')
-        const abs = this.storagePathToAbsolute(doc.storage_path)
-        if (fssync.existsSync(abs)) return abs
+        if (await this.documentStorage.exists(doc.storage_path)) return doc.storage_path
 
-        // Serverless tmp storage is ephemeral; regenerate deterministically on demand.
+        // If the artifact is missing (e.g. manual cleanup), regenerate deterministically on demand.
         const storagePath = await this.renderAndPersistArtifacts(doc)
         await this.prisma.tenderDocument.update({
             where: { id: doc.id },
@@ -259,20 +330,18 @@ export class TenderPdfService {
                 status: 'ready',
                 storage_path: storagePath,
                 generated_at: new Date(),
-                error_message: storagePath.endsWith('.pdf')
-                    ? null
-                    : 'puppeteer unavailable; HTML version produced',
+                error_message: null,
             },
         })
-        return this.storagePathToAbsolute(storagePath)
+        return storagePath
     }
 
     /**
-     * Resolve the absolute path for a ready document without any panchayat
+     * Resolve the storage path for a ready document without any panchayat
      * ownership check — used by the signed-URL public route where the token
      * itself proves authorization.
      */
-    async resolveDocAbsolutePath(tenderId: number, docId: number): Promise<string> {
+    async resolveDocStoragePath(tenderId: number, docId: number): Promise<string> {
         const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
         if (!doc || doc.tender_id !== tenderId) throw new NotFoundException('Document not on tender')
         if (doc.status !== 'ready' || !doc.storage_path) throw new BadRequestException('Document not ready')
@@ -299,21 +368,143 @@ export class TenderPdfService {
             const key = `${d.template_id}:${d.vendor_id ?? 'null'}`
             if (seen.has(key)) continue
             seen.add(key)
-            const abs = await this.ensureArtifactExists(d as any).catch(() => null)
-            if (!abs || !fssync.existsSync(abs)) continue
-            const ext = path.extname(abs) || '.html'
+            const storagePath = await this.ensureArtifactExists(d as any).catch(() => null)
+            if (!storagePath) continue
+            const ext = path.extname(storagePath) || '.html'
             const name = d.vendor_id != null
                 ? `${d.template_id}-vendor${d.vendor_id}-v${d.version}${ext}`
                 : `${d.template_id}-v${d.version}${ext}`
-            archive.file(abs, { name })
+            const bytes = await this.documentStorage.readBuffer(storagePath).catch(() => null)
+            if (!bytes) continue
+            archive.append(bytes, { name })
         }
         await archive.finalize()
     }
 
     // Legacy flow retained for compatibility with existing call sites.
-    async getDownloadAbsolutePath(panchayatId: number, tenderId: number, docId: number): Promise<string> {
+    async getDownloadStoragePath(panchayatId: number, tenderId: number, docId: number): Promise<string> {
         await this.ensureTenderOwned(panchayatId, tenderId)
-        return this.resolveDocAbsolutePath(tenderId, docId)
+        return this.resolveDocStoragePath(tenderId, docId)
+    }
+
+    async readDocumentBytes(storagePath: string): Promise<Buffer> {
+        return this.documentStorage.readBuffer(storagePath)
+    }
+
+    async getCanvasState(panchayatId: number, tenderId: number, docId: number) {
+        await this.ensureTenderOwned(panchayatId, tenderId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
+        if (!doc || doc.tender_id !== tenderId) throw new NotFoundException('Document not on tender')
+        const layers = this.normalizedCanvasLayers(
+            (doc.field_overrides as Record<string, unknown> | null)?.__canvas_layers
+        )
+        const canEdit = !this.isCanvasLocked(doc.template_id)
+        return {
+            doc_id: doc.id,
+            tender_id: doc.tender_id,
+            template_id: doc.template_id,
+            version: doc.version,
+            can_edit: canEdit,
+            locked_reason: canEdit ? null : 'Canvas editing is locked for this document template',
+            layers,
+        }
+    }
+
+    async saveCanvasState(args: {
+        panchayatId: number
+        tenderId: number
+        docId: number
+        layers: Array<Record<string, unknown>>
+        actorUserId?: number
+    }) {
+        await this.ensureTenderOwned(args.panchayatId, args.tenderId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: args.docId } })
+        if (!doc || doc.tender_id !== args.tenderId) throw new NotFoundException('Document not on tender')
+        if (this.isCanvasLocked(doc.template_id)) {
+            throw new BadRequestException('Canvas editing is locked for this document template')
+        }
+        const layers = this.normalizedCanvasLayers(args.layers)
+        const overrides = this.withCanvasLayers(doc.field_overrides, layers)
+        await this.prisma.tenderDocument.update({
+            where: { id: args.docId },
+            data: { field_overrides: overrides as any },
+        })
+        await this.audit.record({
+            tenderId: args.tenderId,
+            actorUserId: args.actorUserId ?? null,
+            event: 'document:canvas_autosave',
+            payload: { document_id: doc.id, template_id: doc.template_id, layers_count: layers.length },
+        })
+        return {
+            doc_id: doc.id,
+            tender_id: doc.tender_id,
+            template_id: doc.template_id,
+            version: doc.version,
+            layers,
+        }
+    }
+
+    async mergeCanvasState(args: {
+        panchayatId: number
+        tenderId: number
+        docId: number
+        layers: Array<Record<string, unknown>>
+        actorUserId?: number
+    }) {
+        await this.ensureTenderOwned(args.panchayatId, args.tenderId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: args.docId } })
+        if (!doc || doc.tender_id !== args.tenderId) throw new NotFoundException('Document not on tender')
+        if (this.isCanvasLocked(doc.template_id)) {
+            throw new BadRequestException('Canvas editing is locked for this document template')
+        }
+        if (doc.status !== 'ready') throw new BadRequestException('Document not ready')
+        if (!doc.storage_path || !doc.storage_path.toLowerCase().endsWith('.pdf')) {
+            throw new BadRequestException('Only PDF documents support canvas merge')
+        }
+
+        const layers = this.normalizedCanvasLayers(args.layers)
+        const mergedOverrides = this.withCanvasLayers(doc.field_overrides, layers)
+        const storagePath = await this.renderAndPersistArtifacts({
+            id: doc.id,
+            tender_id: doc.tender_id,
+            template_id: doc.template_id,
+            version: doc.version,
+            vendor_id: doc.vendor_id,
+            field_overrides: mergedOverrides,
+        })
+
+        const finalOverrides = this.withCanvasLayers(doc.field_overrides, [])
+        await this.prisma.tenderDocument.update({
+            where: { id: doc.id },
+            data: {
+                status: 'ready',
+                storage_path: storagePath,
+                generated_at: new Date(),
+                error_message: null,
+                field_overrides: finalOverrides as any,
+            },
+        })
+        await this.audit.record({
+            tenderId: args.tenderId,
+            actorUserId: args.actorUserId ?? null,
+            event: 'document:canvas_merged',
+            payload: {
+                document_id: doc.id,
+                template_id: doc.template_id,
+                version: doc.version,
+                layers_count: layers.length,
+                merged_at: new Date().toISOString(),
+                storage_path: storagePath,
+            },
+        })
+        return {
+            doc_id: doc.id,
+            tender_id: doc.tender_id,
+            template_id: doc.template_id,
+            version: doc.version,
+            merge_status: 'merged',
+            layers_count: layers.length,
+        }
     }
     list(panchayatId: number, tenderId: number) {
         return this.ensureTenderOwned(panchayatId, tenderId).then(() =>

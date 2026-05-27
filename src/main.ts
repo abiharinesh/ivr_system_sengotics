@@ -12,11 +12,16 @@ async function bootstrap() {
     rawBody: true,
   })
 
-  const uploadDir = join(process.cwd(), 'uploads')
-  app.useStaticAssets(uploadDir, { prefix: '/uploads/' })
-
-  // Enable CORS for frontend access
+  // CORS before static assets so Flutter web Image.network (crossOrigin=anonymous) can load uploads.
   app.enableCors()
+
+  const uploadDir = join(process.cwd(), 'uploads')
+  app.useStaticAssets(uploadDir, {
+    prefix: '/uploads/',
+    setHeaders: (res) => {
+      res.setHeader('Access-Control-Allow-Origin', '*')
+    },
+  })
 
   // Use validation pipe globally — NestJS handles JSON + URL-encoded parsing internally
   app.useGlobalPipes(new ValidationPipe({

@@ -1,6 +1,9 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/api/api_exceptions.dart';
 import '../../../core/download/browser_download.dart';
 import 'tender_models.dart';
 
@@ -138,6 +141,48 @@ class TenderRepository {
     );
   }
 
+  /// Fetch a ready document for in-app preview (no save prompt).
+  Future<Uint8List> previewDocument(int tenderId, int docId) {
+    return _api.getBytes('/api/admin/tenders/$tenderId/documents/$docId/preview');
+  }
+
+  Future<CanvasState> getCanvasState(int tenderId, int docId) async {
+    final res = await _api.get('/api/admin/tenders/$tenderId/documents/$docId/canvas');
+    final json = res as Map<String, dynamic>;
+    final layers = (json['layers'] as List?) ?? const [];
+    final parsedLayers = layers
+        .whereType<Map>()
+        .map((e) => Map<String, dynamic>.from(e))
+        .toList();
+    return CanvasState(
+      canEdit: (json['can_edit'] ?? true) == true,
+      lockedReason: json['locked_reason']?.toString(),
+      layers: parsedLayers,
+    );
+  }
+
+  Future<void> saveCanvasLayers(
+    int tenderId,
+    int docId,
+    List<Map<String, dynamic>> layers,
+  ) async {
+    await _api.post(
+      '/api/admin/tenders/$tenderId/documents/$docId/canvas',
+      data: {'layers': layers},
+    );
+  }
+
+  Future<void> mergeCanvasLayers(
+    int tenderId,
+    int docId,
+    List<Map<String, dynamic>> layers,
+  ) async {
+    await _api.post(
+      '/api/admin/tenders/$tenderId/documents/$docId/canvas/merge',
+      data: {'layers': layers},
+    );
+  }
+
   /// Download the latest-of-each-template zip bundle for a tender.
   Future<void> downloadDocumentsZip(int tenderId) async {
     final file = await _api.getDownload(
@@ -184,9 +229,14 @@ class TenderRepository {
   }
 
   // ── Field verification ─────────────────────────────────────────────
-  Future<FieldVerificationSession> createSession(int tenderId,
-      {List<int>? poleSubsetIds, int? expiresInDays}) async {
+  Future<FieldVerificationSession> createSession(
+    int tenderId, {
+    String? label,
+    List<int>? poleSubsetIds,
+    int? expiresInDays,
+  }) async {
     final res = await _api.post('/api/admin/tenders/$tenderId/verification-sessions', data: {
+      if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
       if (poleSubsetIds != null) 'pole_subset_ids': poleSubsetIds,
       if (expiresInDays != null) 'expires_in_days': expiresInDays,
     });
@@ -205,15 +255,34 @@ class TenderRepository {
     int itemId, {
     bool? isDone,
     int? verifiedUploadId,
+    bool clearVerifiedUpload = false,
     String? notes,
   }) async {
+    final data = <String, dynamic>{
+      if (isDone != null) 'is_done': isDone,
+      if (notes != null) 'notes': notes,
+    };
+    if (clearVerifiedUpload) {
+      data['verified_upload_id'] = null;
+    } else if (verifiedUploadId != null) {
+      data['verified_upload_id'] = verifiedUploadId;
+    }
     final res = await _api.patch(
       '/api/admin/tenders/$tenderId/checklist/$itemId',
-      data: {
-        if (isDone != null) 'is_done': isDone,
-        if (verifiedUploadId != null) 'verified_upload_id': verifiedUploadId,
-        if (notes != null) 'notes': notes,
-      },
+      data: data,
+    );
+    return ChecklistItem.fromJson(res as Map<String, dynamic>);
+  }
+
+  Future<ChecklistItem> assignUpload(
+    int tenderId,
+    int uploadId,
+    int poleId, {
+    bool approve = false,
+  }) async {
+    final res = await _api.post(
+      '/api/admin/tenders/$tenderId/verification-uploads/$uploadId/assign',
+      data: {'pole_id': poleId, if (approve) 'approve': true},
     );
     return ChecklistItem.fromJson(res as Map<String, dynamic>);
   }
@@ -222,6 +291,105 @@ class TenderRepository {
       _api.post('/api/admin/tenders/$tenderId/confirm-verification');
 
   // ── Public flows (no auth, used by web build) ───────────────────────
+
+  /// True when the API host has not been deployed with the new public routes yet.
+  bool _isMissingPublicRoute(NotFoundException e) {
+    final msg = e.message.toLowerCase();
+    return msg.contains('cannot get') || msg.contains('cannot post');
+  }
+
+  Future<Map<String, dynamic>> readPublicOpenTender(String token) async {
+    try {
+      final res = await _api.get('/public/open/$token');
+      return res as Map<String, dynamic>;
+    } on NotFoundException catch (e) {
+      if (!_isMissingPublicRoute(e)) rethrow;
+      // Older API builds only expose /public/tenders/:token.
+      final res = await _api.get('/public/tenders/$token');
+      return res as Map<String, dynamic>;
+    }
+  }
+
+  Future<Map<String, dynamic>> submitPublicOpenQuotation(
+    String token, {
+    required String name,
+    required String phone,
+    required String amount,
+    String? remarks,
+    XFile? attachment,
+  }) async {
+    MultipartFile? attachmentPart;
+    if (attachment != null) {
+      final bytes = await attachment.readAsBytes();
+      attachmentPart = MultipartFile.fromBytes(bytes, filename: attachment.name);
+    }
+    final form = FormData.fromMap({
+      'name': name,
+      'phone': phone,
+      'amount': amount,
+      if (remarks != null) 'remarks': remarks,
+      if (attachmentPart != null) 'attachment': attachmentPart,
+    });
+    try {
+      final res = await _api.postMultipart('/public/open/$token/quotations', form);
+      return res as Map<String, dynamic>;
+    } on NotFoundException catch (e) {
+      if (!_isMissingPublicRoute(e)) rethrow;
+      final res = await _api.postMultipart('/public/tenders/$token/quotations', form);
+      return res as Map<String, dynamic>;
+    }
+  }
+
+  Future<Map<String, dynamic>> readInviteTender(String inviteToken) async {
+    try {
+      final res = await _api.get('/public/invite/$inviteToken');
+      return res as Map<String, dynamic>;
+    } on NotFoundException catch (e) {
+      if (!_isMissingPublicRoute(e)) rethrow;
+      throw ApiException(
+        'This API host does not support invite links yet. '
+        'Deploy the latest backend (with /public/invite routes) and try again.',
+        statusCode: 404,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> submitInviteQuotation(
+    String inviteToken, {
+    required String name,
+    required String amount,
+    String? phone,
+    String? remarks,
+    XFile? attachment,
+  }) async {
+    MultipartFile? attachmentPart;
+    if (attachment != null) {
+      final bytes = await attachment.readAsBytes();
+      attachmentPart = MultipartFile.fromBytes(bytes, filename: attachment.name);
+    }
+    final form = FormData.fromMap({
+      'name': name,
+      if (phone != null && phone.isNotEmpty) 'phone': phone,
+      'amount': amount,
+      if (remarks != null) 'remarks': remarks,
+      if (attachmentPart != null) 'attachment': attachmentPart,
+    });
+    try {
+      final res = await _api.postMultipart(
+        '/public/invite/$inviteToken/quotation',
+        form,
+      );
+      return res as Map<String, dynamic>;
+    } on NotFoundException catch (e) {
+      if (!_isMissingPublicRoute(e)) rethrow;
+      throw ApiException(
+        'This API host does not support invite links yet. '
+        'Deploy the latest backend and retry.',
+        statusCode: 404,
+      );
+    }
+  }
+
   Future<Map<String, dynamic>> readPublicTender(String token) async {
     final res = await _api.get('/public/tenders/$token');
     return res as Map<String, dynamic>;
@@ -256,4 +424,15 @@ class TenderRepository {
     final res = await _api.get('/public/field-sessions/$token');
     return res as Map<String, dynamic>;
   }
+}
+
+class CanvasState {
+  final bool canEdit;
+  final String? lockedReason;
+  final List<Map<String, dynamic>> layers;
+  const CanvasState({
+    required this.canEdit,
+    this.lockedReason,
+    required this.layers,
+  });
 }

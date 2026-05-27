@@ -2,6 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
+  static const double spaceXs = 8;
+  static const double spaceSm = 12;
+  static const double spaceMd = 16;
+  static const double spaceLg = 20;
+  static const double spaceXl = 24;
+
+  static const double radiusSm = 8;
+  static const double radiusMd = 12;
+  static const double radiusLg = 16;
+  static const double radiusXl = 20;
+  static const Duration durationFast = Duration(milliseconds: 140);
+  static const Duration durationNormal = Duration(milliseconds: 220);
+
   static List<String> _fontFallback() {
     final tamil = GoogleFonts.notoSansTamil().fontFamily;
     return [
@@ -69,6 +82,26 @@ class AppTheme {
   static const Color textMuted = Color(0xFF64748B);
 
   static const Color dividerColor = stroke;
+
+  static Color statusColor(String status) {
+    switch (status) {
+      case 'ready':
+      case 'resolved':
+      case 'closed':
+      case 'approved':
+        return accent;
+      case 'pending':
+      case 'published':
+      case 'field_verification':
+        return warning;
+      case 'failed':
+      case 'rejected':
+        return error;
+      case 'draft':
+      default:
+        return textMuted;
+    }
+  }
 
   // ── Gradients ──────────────────────────────────────────────────────────
   static const LinearGradient primaryGradient = LinearGradient(
@@ -154,32 +187,114 @@ class AppTheme {
         margin: EdgeInsets.zero,
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: primary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled))
+              return primary.withValues(alpha: 0.45);
+            if (states.contains(WidgetState.pressed)) return primaryDark;
+            if (states.contains(WidgetState.hovered)) return primaryLight;
+            return primary;
+          }),
+          foregroundColor: WidgetStateProperty.all(Colors.white),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed))
+              return Colors.black.withValues(alpha: 0.10);
+            if (states.contains(WidgetState.hovered))
+              return Colors.white.withValues(alpha: 0.08);
+            return null;
+          }),
+          elevation: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return 0;
+            if (states.contains(WidgetState.hovered)) return 1;
+            return 0;
+          }),
+          animationDuration: durationFast,
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           ),
-          textStyle: _inter(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          textStyle: WidgetStateProperty.all(
+            _inter(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: ButtonStyle(
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled))
+              return primary.withValues(alpha: 0.45);
+            if (states.contains(WidgetState.pressed)) return primaryDark;
+            if (states.contains(WidgetState.hovered)) return primaryLight;
+            return primary;
+          }),
+          foregroundColor: WidgetStateProperty.all(Colors.white),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed))
+              return Colors.black.withValues(alpha: 0.10);
+            if (states.contains(WidgetState.hovered))
+              return Colors.white.withValues(alpha: 0.08);
+            return null;
+          }),
+          animationDuration: durationFast,
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(radiusMd),
+            ),
+          ),
+          textStyle: WidgetStateProperty.all(
+            _inter(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
-        style: OutlinedButton.styleFrom(
-          foregroundColor: textPrimary,
-          side: const BorderSide(color: strokeStrong),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.disabled)) return textMuted;
+            if (states.contains(WidgetState.pressed)) return primaryDark;
+            if (states.contains(WidgetState.hovered)) return primary;
+            return textPrimary;
+          }),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed))
+              return primary.withValues(alpha: 0.14);
+            if (states.contains(WidgetState.hovered))
+              return primary.withValues(alpha: 0.08);
+            return null;
+          }),
+          side: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed) ||
+                states.contains(WidgetState.hovered)) {
+              return const BorderSide(color: primary, width: 1.2);
+            }
+            return const BorderSide(color: strokeStrong);
+          }),
+          animationDuration: durationFast,
+          padding: WidgetStateProperty.all(
+            const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          ),
+          shape: WidgetStateProperty.all(
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(foregroundColor: primaryLight),
+        style: ButtonStyle(
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed)) return primaryDark;
+            if (states.contains(WidgetState.hovered)) return primary;
+            return primaryLight;
+          }),
+          overlayColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.pressed))
+              return primary.withValues(alpha: 0.14);
+            if (states.contains(WidgetState.hovered))
+              return primary.withValues(alpha: 0.08);
+            return null;
+          }),
+          animationDuration: durationFast,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -228,6 +343,13 @@ class AppTheme {
         selectedColor: primary.withValues(alpha: 0.12),
         labelStyle: _inter(color: textSecondary, fontSize: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+      listTileTheme: ListTileThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusMd),
+        ),
+        tileColor: Colors.transparent,
+        iconColor: textSecondary,
       ),
       floatingActionButtonTheme: const FloatingActionButtonThemeData(
         backgroundColor: primary,

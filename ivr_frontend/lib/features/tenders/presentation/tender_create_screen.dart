@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/nav_guard.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 
@@ -11,7 +12,8 @@ class TenderCreateScreen extends StatefulWidget {
   State<TenderCreateScreen> createState() => _TenderCreateScreenState();
 }
 
-class _TenderCreateScreenState extends State<TenderCreateScreen> {
+class _TenderCreateScreenState extends State<TenderCreateScreen>
+    with NavGuardMixin {
   final _repo = TenderRepository();
   final _formKey = GlobalKey<FormState>();
   final _titleEn = TextEditingController();
@@ -23,9 +25,22 @@ class _TenderCreateScreenState extends State<TenderCreateScreen> {
   DateTime? _anchorDate;
 
   bool _saving = false;
+  bool _justSaved = false;
   List<Vendor> _vendors = [];
   final Set<int> _selectedVendorIds = {};
   final List<_LineItemDraft> _lineItems = [_LineItemDraft()];
+
+  @override
+  bool get hasUnsavedChanges {
+    if (_justSaved) return false;
+    if (_titleEn.text.trim().isNotEmpty) return true;
+    if (_titleTa.text.trim().isNotEmpty) return true;
+    if (_narrativeEn.text.trim().isNotEmpty) return true;
+    if (_anchorDate != null) return true;
+    if (_selectedVendorIds.isNotEmpty) return true;
+    if (_lineItems.any((e) => e.hasContent)) return true;
+    return false;
+  }
 
   @override
   void initState() {
@@ -62,6 +77,7 @@ class _TenderCreateScreenState extends State<TenderCreateScreen> {
         'line_items': _lineItems.where((e) => e.hasContent).map((e) => e.toJson()).toList(),
       });
       if (!mounted) return;
+      _justSaved = true;
       context.go('/tenders/$id');
     } catch (e) {
       if (!mounted) return;
@@ -73,65 +89,96 @@ class _TenderCreateScreenState extends State<TenderCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Form(
-        key: _formKey,
-        child: ListView(
-          children: [
-            Text('New tender', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _titleEn,
-              decoration: const InputDecoration(labelText: 'Title (English)', border: OutlineInputBorder()),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 560;
+        final hPad = constraints.maxWidth < 480 ? 12.0 : 16.0;
+        final accessField = DropdownButtonFormField<String>(
+          initialValue: _accessMode,
+          decoration: const InputDecoration(
+            labelText: 'Access mode',
+            border: OutlineInputBorder(),
+          ),
+          items: const [
+            DropdownMenuItem(value: 'invited_only', child: Text('Invited only')),
+            DropdownMenuItem(
+              value: 'open_with_phone',
+              child: Text('Open with phone'),
             ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _titleTa,
-              decoration: const InputDecoration(labelText: 'Title (Tamil)', border: OutlineInputBorder()),
+          ],
+          onChanged: (v) => setState(() => _accessMode = v!),
+        );
+        final dateField = InkWell(
+          onTap: () async {
+            final d = await showDatePicker(
+              context: context,
+              initialDate: _anchorDate ?? DateTime.now(),
+              firstDate: DateTime(2024),
+              lastDate: DateTime(2030),
+            );
+            if (d != null) setState(() => _anchorDate = d);
+          },
+          child: InputDecorator(
+            decoration: const InputDecoration(
+              labelText: 'Anchor date',
+              border: OutlineInputBorder(),
             ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _narrativeEn,
-              maxLines: 4,
-              decoration: const InputDecoration(labelText: 'Work narrative', border: OutlineInputBorder()),
+            child: Text(
+              _anchorDate?.toIso8601String().substring(0, 10) ?? 'Select date',
             ),
-            const SizedBox(height: 12),
-            Row(
+          ),
+        );
+        return Padding(
+          padding: EdgeInsets.all(hPad),
+          child: Form(
+            key: _formKey,
+            child: ListView(
               children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _accessMode,
-                    decoration: const InputDecoration(labelText: 'Access mode', border: OutlineInputBorder()),
-                    items: const [
-                      DropdownMenuItem(value: 'invited_only', child: Text('Invited only')),
-                      DropdownMenuItem(value: 'open_with_phone', child: Text('Open with phone')),
+                Text(
+                  'New tender',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _titleEn,
+                  decoration: const InputDecoration(
+                    labelText: 'Title (English)',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (v) =>
+                      (v == null || v.trim().isEmpty) ? 'Required' : null,
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _titleTa,
+                  decoration: const InputDecoration(
+                    labelText: 'Title (Tamil)',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _narrativeEn,
+                  maxLines: 4,
+                  decoration: const InputDecoration(
+                    labelText: 'Work narrative',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (isNarrow) ...[
+                  accessField,
+                  const SizedBox(height: 12),
+                  dateField,
+                ] else
+                  Row(
+                    children: [
+                      Expanded(child: accessField),
+                      const SizedBox(width: 12),
+                      Expanded(child: dateField),
                     ],
-                    onChanged: (v) => setState(() => _accessMode = v!),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: InkWell(
-                    onTap: () async {
-                      final d = await showDatePicker(
-                        context: context,
-                        initialDate: _anchorDate ?? DateTime.now(),
-                        firstDate: DateTime(2024),
-                        lastDate: DateTime(2030),
-                      );
-                      if (d != null) setState(() => _anchorDate = d);
-                    },
-                    child: InputDecorator(
-                      decoration: const InputDecoration(labelText: 'Anchor date', border: OutlineInputBorder()),
-                      child: Text(_anchorDate?.toIso8601String().substring(0, 10) ?? 'Select date'),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                const SizedBox(height: 12),
             CheckboxListTile(
               dense: true,
               title: const Text('Auto-resolve linked complaints on field-verification confirm'),
@@ -193,6 +240,8 @@ class _TenderCreateScreenState extends State<TenderCreateScreen> {
         ),
       ),
     );
+      },
+    );
   }
 }
 
@@ -215,8 +264,10 @@ class _LineItemDraft {
         if (descEn.text.isNotEmpty) 'description_en': descEn.text,
         if (qty.text.isNotEmpty) 'quantity': qty.text,
         if (unit.text.isNotEmpty) 'unit': unit.text,
-        if (poleId.text.isNotEmpty) 'pole_id': int.tryParse(poleId.text),
-        if (complaintId.text.isNotEmpty) 'complaint_id': int.tryParse(complaintId.text),
+        if (poleId.text.isNotEmpty) 'pole_ref': poleId.text.trim(),
+        if (complaintId.text.isNotEmpty)
+          if (int.tryParse(complaintId.text) != null)
+            'complaint_id': int.parse(complaintId.text),
       };
 }
 
@@ -228,66 +279,86 @@ class _LineItemEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final qty = TextField(
+      controller: draft.qty,
+      decoration: const InputDecoration(labelText: 'Quantity'),
+      keyboardType: TextInputType.number,
+    );
+    final unit = TextField(
+      controller: draft.unit,
+      decoration: const InputDecoration(labelText: 'Unit'),
+    );
+    final pole = TextField(
+      controller: draft.poleId,
+      decoration: const InputDecoration(
+        labelText: 'Pole number or ID (optional)',
+        helperText: 'Matches pole number (e.g. 007) or database ID',
+      ),
+      keyboardType: TextInputType.number,
+    );
+    final complaint = TextField(
+      controller: draft.complaintId,
+      decoration: const InputDecoration(labelText: 'Complaint ID (optional)'),
+      keyboardType: TextInputType.number,
+    );
     return Card(
       margin: const EdgeInsets.only(top: 8),
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 400;
+            Widget pair(Widget a, Widget b) => isNarrow
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      a,
+                      const SizedBox(height: 8),
+                      b,
+                    ],
+                  )
+                : Row(
+                    children: [
+                      Expanded(child: a),
+                      const SizedBox(width: 8),
+                      Expanded(child: b),
+                    ],
+                  );
+            return Column(
               children: [
-                Text('Item ${index + 1}', style: const TextStyle(fontWeight: FontWeight.w600)),
-                const Spacer(),
-                if (onRemove != null)
-                  IconButton(onPressed: onRemove, icon: const Icon(Icons.delete_outline)),
+                Row(
+                  children: [
+                    Text(
+                      'Item ${index + 1}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const Spacer(),
+                    if (onRemove != null)
+                      IconButton(
+                        onPressed: onRemove,
+                        icon: const Icon(Icons.delete_outline),
+                      ),
+                  ],
+                ),
+                TextField(
+                  controller: draft.descEn,
+                  decoration: const InputDecoration(
+                    labelText: 'Description (English)',
+                  ),
+                ),
+                TextField(
+                  controller: draft.descTa,
+                  decoration: const InputDecoration(
+                    labelText: 'விவரம் (Tamil)',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                pair(qty, unit),
+                const SizedBox(height: 8),
+                pair(pole, complaint),
               ],
-            ),
-            TextField(
-              controller: draft.descEn,
-              decoration: const InputDecoration(labelText: 'Description (English)'),
-            ),
-            TextField(
-              controller: draft.descTa,
-              decoration: const InputDecoration(labelText: 'விவரம் (Tamil)'),
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: draft.qty,
-                    decoration: const InputDecoration(labelText: 'Quantity'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: draft.unit,
-                    decoration: const InputDecoration(labelText: 'Unit'),
-                  ),
-                ),
-              ],
-            ),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: draft.poleId,
-                    decoration: const InputDecoration(labelText: 'Pole ID (optional)'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: draft.complaintId,
-                    decoration: const InputDecoration(labelText: 'Complaint ID (optional)'),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import '../../../config/api_config.dart';
+import '../../../core/api/api_exceptions.dart';
 import '../data/tender_repository.dart';
 
 /// Public-facing tender view. No authentication. Used by sellers via
-/// `/public/tenders/:token` to read details and submit a quotation.
+/// `/public/open/:token` to read details and submit a quotation.
 class PublicTenderScreen extends StatefulWidget {
   final String token;
-  const PublicTenderScreen({super.key, required this.token});
+  final bool useLegacyEndpoint;
+  const PublicTenderScreen({
+    super.key,
+    required this.token,
+    this.useLegacyEndpoint = false,
+  });
 
   @override
   State<PublicTenderScreen> createState() => _PublicTenderScreenState();
@@ -28,7 +35,9 @@ class _PublicTenderScreenState extends State<PublicTenderScreen> {
   @override
   void initState() {
     super.initState();
-    _future = _repo.readPublicTender(widget.token);
+    _future = widget.useLegacyEndpoint
+        ? _repo.readPublicTender(widget.token)
+        : _repo.readPublicOpenTender(widget.token);
   }
 
   Future<void> _submit() async {
@@ -39,14 +48,25 @@ class _PublicTenderScreenState extends State<PublicTenderScreen> {
     }
     setState(() => _submitting = true);
     try {
-      final res = await _repo.submitPublicQuotation(
-        widget.token,
-        name: _name.text.trim(),
-        phone: _phone.text.trim(),
-        amount: _amount.text.trim(),
-        remarks: _remarks.text.trim().isEmpty ? null : _remarks.text.trim(),
-        attachment: _attachment,
-      );
+      final res = widget.useLegacyEndpoint
+          ? await _repo.submitPublicQuotation(
+              widget.token,
+              name: _name.text.trim(),
+              phone: _phone.text.trim(),
+              amount: _amount.text.trim(),
+              remarks:
+                  _remarks.text.trim().isEmpty ? null : _remarks.text.trim(),
+              attachment: _attachment,
+            )
+          : await _repo.submitPublicOpenQuotation(
+              widget.token,
+              name: _name.text.trim(),
+              phone: _phone.text.trim(),
+              amount: _amount.text.trim(),
+              remarks:
+                  _remarks.text.trim().isEmpty ? null : _remarks.text.trim(),
+              attachment: _attachment,
+            );
       if (!mounted) return;
       final priorId = res['superseded_prior_id'];
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -75,7 +95,20 @@ class _PublicTenderScreenState extends State<PublicTenderScreen> {
           if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
+          if (snap.hasError) {
+            final msg = userFacingMessage(snap.error!);
+            final hint = snap.error is NotFoundException &&
+                    msg.toLowerCase().contains('cannot get')
+                ? '\n\nTip: run the backend locally (npm run start:dev) and launch Flutter with '
+                    '"Flutter Web (Chrome, local API)". API host: ${ApiConfig.baseUrl}'
+                : '';
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text('Error: $msg$hint', textAlign: TextAlign.center),
+              ),
+            );
+          }
           final data = snap.data!;
           final tender = (data['tender'] ?? {}) as Map<String, dynamic>;
           final panchayat = (data['panchayat'] ?? {}) as Map<String, dynamic>;

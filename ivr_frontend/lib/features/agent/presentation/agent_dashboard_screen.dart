@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/api/api_exceptions.dart';
+import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/app_error_state.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../data/agent_repository.dart';
 
 class AgentDashboardScreen extends StatefulWidget {
@@ -48,32 +52,13 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
     final padding = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(message: 'Loading dashboard...');
     }
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.all(padding),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.error_outline, size: 48, color: Colors.red.shade700),
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.red.shade800),
-              ),
-              const SizedBox(height: 16),
-              FilledButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
+      return AppErrorState(
+        message: userFacingMessage(_error!),
+        onRetry: _load,
       );
     }
 
@@ -102,79 +87,72 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
               ),
             ),
             const SizedBox(height: 24),
-            Card(
-              elevation: 0,
-              shape: const RoundedRectangleBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                side: BorderSide(color: AppTheme.stroke),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.primaryGradient,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Icon(
-                            Icons.alt_route_rounded,
-                            color: Colors.white,
-                            size: 22,
-                          ),
+            AppCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Poles in scope',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppTheme.textMuted,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        child: const Icon(
+                          Icons.alt_route_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Poles in scope',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textMuted,
+                                fontWeight: FontWeight.w600,
                               ),
-                              Text(
-                                '$_poleCount',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.textPrimary,
-                                ),
+                            ),
+                            Text(
+                              '$_poleCount',
+                              style: const TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimary,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => context.go('/agent/poles'),
-                            icon: const Icon(Icons.list_alt_rounded, size: 18),
-                            label: const Text('Browse poles'),
-                          ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.go('/agent/poles'),
+                          icon: const Icon(Icons.list_alt_rounded, size: 18),
+                          label: const Text('Browse poles'),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => context.go('/agent/poles/add'),
-                            icon: const Icon(Icons.add_location_alt_rounded, size: 18),
-                            label: const Text('Add pole'),
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () => context.go('/agent/poles/add'),
+                          icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                          label: const Text('Add pole'),
                         ),
-                      ],
-                    ),
-                  ],
-                ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ],

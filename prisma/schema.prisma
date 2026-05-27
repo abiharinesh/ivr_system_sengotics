@@ -80,7 +80,8 @@ model Panchayat {
   boundary       Unsupported("geometry(Polygon, 4326)")?
   center_lat     Float?
   center_lng     Float?
-  ivr_number     String?                 @unique
+  ivr_number                 String?                 @unique
+  document_template_settings Json?
 
   electric_poles ElectricPole[]
   complaints     Complaint[]
@@ -303,15 +304,21 @@ model Tender {
 
 /** Vendor invitation join table for invited_only access mode. */
 model TenderVendorInvite {
-  id         Int      @id @default(autoincrement())
-  tender_id  Int
-  vendor_id  Int
-  created_at DateTime @default(now())
+  id                   Int       @id @default(autoincrement())
+  tender_id            Int
+  vendor_id            Int
+  invite_token         String?   @unique
+  invite_expires_at    DateTime?
+  invite_revoked_at    DateTime?
+  invite_opened_at     DateTime?
+  invite_submitted_at  DateTime?
+  created_at           DateTime  @default(now())
 
   tender Tender @relation(fields: [tender_id], references: [id], onDelete: Cascade)
   vendor Vendor @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
 
   @@unique([tender_id, vendor_id])
+  @@index([invite_token, invite_revoked_at])
   @@map("tender_vendor_invites")
 }
 
@@ -390,6 +397,7 @@ model FieldVerificationSession {
   id                 Int       @id @default(autoincrement())
   tender_id          Int
   token              String    @unique
+  label              String?
   expires_at         DateTime?
   pole_subset_ids    Int[]     @default([])
   created_by_user_id Int
@@ -412,6 +420,18 @@ model FieldVerificationUpload {
   exif_lat         Float?
   exif_lng         Float?
   captured_at      DateTime?
+  ocr_lat          Float?
+  ocr_lng          Float?
+  ocr_address      String?
+  ocr_raw_text     String?
+  ocr_captured_at  DateTime?
+  ocr_pole_number  String?
+  ocr_keypad_id    String?
+  ocr_matched_pole_id Int?
+  ocr_match_confidence String @default("skipped")
+  coord_source     String?
+  matched_lat      Float?
+  matched_lng      Float?
   matched_pole_id  Int?
   manual_pole_id   Int?
   distance_meters  Float?

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
+import 'dart:typed_data';
+import 'dart:async';
 
 import '../../../config/api_config.dart';
+import '../../../core/api/api_exceptions.dart';
+import '../../../core/widgets/app_error_state.dart';
+import '../../../core/widgets/app_loading_state.dart';
+import '../../../core/widgets/app_status_badge.dart';
+import '../../../core/widgets/pdf_preview_surface.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
+import 'invite_links_panel.dart';
+import 'field_verification_tab.dart';
 
 class TenderDetailScreen extends StatefulWidget {
   final int tenderId;
@@ -38,9 +47,14 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(message: 'Loading tender details...');
         }
-        if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
+        if (snap.hasError) {
+          return AppErrorState(
+            message: userFacingMessage(snap.error!),
+            onRetry: _reload,
+          );
+        }
         final d = snap.data!;
         return DefaultTabController(
           length: 5,
@@ -61,8 +75,21 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                   children: [
                     _OverviewTab(detail: d),
                     _VendorsTab(detail: d, repo: _repo, onChanged: _reload),
-                    _DocsTab(tenderId: d.summary.id, repo: _repo, initial: d.documents),
-                    _FieldVerificationTab(tenderId: d.summary.id, repo: _repo, detail: d, onChanged: _reload),
+                    _DocsTab(
+                      detail: d,
+                      repo: _repo,
+                      panchayatName:
+                          ((d.raw['tender']
+                                      as Map<String, dynamic>?)?['panchayat']
+                                  as Map<String, dynamic>?)?['name']
+                              ?.toString(),
+                    ),
+                    FieldVerificationTab(
+                      tenderId: d.summary.id,
+                      repo: _repo,
+                      detail: d,
+                      onChanged: _reload,
+                    ),
                     _PaymentTab(detail: d, repo: _repo, onChanged: _reload),
                   ],
                 ),
@@ -79,7 +106,11 @@ class _TenderHeader extends StatefulWidget {
   final TenderDetail detail;
   final TenderRepository repo;
   final VoidCallback onAction;
-  const _TenderHeader({required this.detail, required this.repo, required this.onAction});
+  const _TenderHeader({
+    required this.detail,
+    required this.repo,
+    required this.onAction,
+  });
 
   @override
   State<_TenderHeader> createState() => _TenderHeaderState();
@@ -94,7 +125,9 @@ class _TenderHeaderState extends State<_TenderHeader> {
       widget.onAction();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -104,12 +137,15 @@ class _TenderHeaderState extends State<_TenderHeader> {
       widget.onAction();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _onAccessModeChanged(BuildContext context, String? value) async {
-    if (value == null || value == widget.detail.summary.quotationAccessMode) return;
+    if (value == null || value == widget.detail.summary.quotationAccessMode)
+      return;
     setState(() => _accessBusy = true);
     try {
       await widget.repo.setQuotationAccessMode(widget.detail.summary.id, value);
@@ -117,7 +153,9 @@ class _TenderHeaderState extends State<_TenderHeader> {
       widget.onAction();
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not update access: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not update access: $e')));
     } finally {
       if (mounted) setState(() => _accessBusy = false);
     }
@@ -129,93 +167,150 @@ class _TenderHeaderState extends State<_TenderHeader> {
     final s = d.summary;
     final df = DateFormat.yMMMd();
     final closed = s.status == 'closed';
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+
+    Widget? primaryAction;
+    if (s.status == 'draft') {
+      primaryAction = FilledButton.icon(
+        onPressed: () => _publish(context),
+        icon: const Icon(Icons.publish),
+        label: const Text('Publish'),
+      );
+    } else if (s.status == 'published') {
+      primaryAction = FilledButton.icon(
+        onPressed: () => _close(context),
+        icon: const Icon(Icons.lock_clock),
+        label: const Text('Close quotations'),
+      );
+    }
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 720;
+        final hPad = constraints.maxWidth < 480 ? 12.0 : 16.0;
+        final headerInfo = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              s.titleEn ?? s.titleTa ?? 'Tender #${s.id}',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            if (s.titleTa != null && (s.titleEn ?? '').isNotEmpty)
+              Text(
+                s.titleTa!,
+                style: const TextStyle(color: Colors.black54),
+              ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  s.titleEn ?? s.titleTa ?? 'Tender #${s.id}',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                if (s.titleTa != null && (s.titleEn ?? '').isNotEmpty)
-                  Text(s.titleTa!, style: const TextStyle(color: Colors.black54)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Chip(label: Text(s.status)),
-                    if (s.anchorDate != null) Chip(label: Text('Anchor ${df.format(s.anchorDate!)}')),
-                    InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Quotation link',
-                        border: OutlineInputBorder(),
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: s.quotationAccessMode,
-                          isExpanded: true,
-                          isDense: true,
-                          items: const [
-                            DropdownMenuItem(
-                              value: 'invited_only',
-                              child: Text('Invited vendors only'),
-                            ),
-                            DropdownMenuItem(
-                              value: 'open_with_phone',
-                              child: Text('Public — anyone with link + phone'),
-                            ),
-                          ],
-                          onChanged: closed || _accessBusy ? null : (v) => _onAccessModeChanged(context, v),
-                        ),
+                Chip(label: Text(s.status)),
+                if (s.anchorDate != null)
+                  Chip(label: Text('Anchor ${df.format(s.anchorDate!)}')),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: isNarrow ? constraints.maxWidth - 32 : 320,
+                  ),
+                  child: InputDecorator(
+                    decoration: const InputDecoration(
+                      labelText: 'Quotation link',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
                       ),
                     ),
-                    if (d.publicToken != null)
-                      ActionChip(
-                        avatar: const Icon(Icons.copy, size: 16),
-                        label: const Text('Copy public link'),
-                        onPressed: () {
-                          final url = '${ApiConfig.baseUrl}/public/tenders/${d.publicToken}';
-                          Clipboard.setData(ClipboardData(text: url));
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Public tender link copied to clipboard.')),
-                          );
-                        },
+                    child: DropdownButtonHideUnderline(
+                      child: DropdownButton<String>(
+                        value: s.quotationAccessMode,
+                        isExpanded: true,
+                        isDense: true,
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'invited_only',
+                            child: Text('Invited vendors only'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'open_with_phone',
+                            child: Text(
+                              'Public — anyone with link + phone',
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                        onChanged: closed || _accessBusy
+                            ? null
+                            : (v) => _onAccessModeChanged(context, v),
                       ),
-                  ],
+                    ),
+                  ),
                 ),
+                if (s.quotationAccessMode == 'open_with_phone' &&
+                    d.publicToken != null)
+                  ActionChip(
+                    avatar: const Icon(Icons.copy, size: 16),
+                    label: const Text('Copy public link'),
+                    onPressed: () {
+                      final url =
+                          ApiConfig.webUrl('/public/open/${d.publicToken}');
+                      Clipboard.setData(ClipboardData(text: url));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Public tender link copied to clipboard.',
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                if (s.quotationAccessMode == 'invited_only')
+                  const Chip(
+                    avatar: Icon(Icons.info_outline, size: 16),
+                    label: Text(
+                      'Per-vendor invite links — see Vendors tab',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
               ],
             ),
-          ),
-          const SizedBox(width: 16),
-          if (s.status == 'draft')
-            FilledButton.icon(
-              onPressed: () => _publish(context),
-              icon: const Icon(Icons.publish),
-              label: const Text('Publish'),
-            ),
-          if (s.status == 'published') ...[
-            FilledButton.icon(
-              onPressed: () => _close(context),
-              icon: const Icon(Icons.lock_clock),
-              label: const Text('Close quotations'),
-            ),
           ],
-        ],
-      ),
+        );
+
+        return Padding(
+          padding: EdgeInsets.all(hPad),
+          child: isNarrow
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    headerInfo,
+                    if (primaryAction != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: primaryAction,
+                      ),
+                    ],
+                  ],
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: headerInfo),
+                    if (primaryAction != null) ...[
+                      const SizedBox(width: 16),
+                      primaryAction,
+                    ],
+                  ],
+                ),
+        );
+      },
     );
   }
 }
 
-// ── Tabs ────────────────────────────────────────────────────────────────
+// â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _OverviewTab extends StatelessWidget {
   final TenderDetail detail;
@@ -231,26 +326,33 @@ class _OverviewTab extends StatelessWidget {
         if (detail.lineItems.isEmpty)
           const Text('No line items.')
         else
-          ...detail.lineItems.map((li) => Card(
-                child: ListTile(
-                  leading: CircleAvatar(child: Text('${li.seq}')),
-                  title: Text(li.descriptionEn ?? li.descriptionTa ?? '—'),
-                  subtitle: Text([
-                    if (li.quantity != null) '${li.quantity} ${li.unit ?? ''}'.trim(),
+          ...detail.lineItems.map(
+            (li) => Card(
+              child: ListTile(
+                leading: CircleAvatar(child: Text('${li.seq}')),
+                title: Text(li.descriptionEn ?? li.descriptionTa ?? '—'),
+                subtitle: Text(
+                  [
+                    if (li.quantity != null)
+                      '${li.quantity} ${li.unit ?? ''}'.trim(),
                     if (li.poleId != null) 'Pole #${li.poleId}',
                     if (li.complaintId != null) 'Complaint #${li.complaintId}',
-                  ].join(' • ')),
+                  ].join(' • '),
                 ),
-              )),
+              ),
+            ),
+          ),
         const SizedBox(height: 24),
         Text('Timeline', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...detail.timeline.entries.map((e) => ListTile(
-              dense: true,
-              leading: const Icon(Icons.event_outlined),
-              title: Text(e.key.replaceAll('_', ' ')),
-              trailing: Text(e.value ?? '—'),
-            )),
+        ...detail.timeline.entries.map(
+          (e) => ListTile(
+            dense: true,
+            leading: const Icon(Icons.event_outlined),
+            title: Text(e.key.replaceAll('_', ' ')),
+            trailing: Text(e.value ?? '—'),
+          ),
+        ),
       ],
     );
   }
@@ -260,7 +362,11 @@ class _VendorsTab extends StatefulWidget {
   final TenderDetail detail;
   final TenderRepository repo;
   final VoidCallback onChanged;
-  const _VendorsTab({required this.detail, required this.repo, required this.onChanged});
+  const _VendorsTab({
+    required this.detail,
+    required this.repo,
+    required this.onChanged,
+  });
 
   @override
   State<_VendorsTab> createState() => _VendorsTabState();
@@ -278,7 +384,9 @@ class _VendorsTabState extends State<_VendorsTab> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -288,24 +396,28 @@ class _VendorsTabState extends State<_VendorsTab> {
       all = await widget.repo.listVendors(active: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Could not load vendors: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not load vendors: $e')));
       return;
     }
     if (!mounted) return;
     if (all.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add vendors in the Vendor directory before inviting.')),
+        const SnackBar(
+          content: Text('Add vendors in the Vendor directory before inviting.'),
+        ),
       );
       return;
     }
     final preselected = widget.detail.invitedVendors.map((v) => v.id).toSet();
     final result = await showDialog<Set<int>>(
       context: context,
-      builder: (_) => _InviteVendorsDialog(
-        allVendors: all,
-        initiallySelected: preselected,
-      ),
+      builder:
+          (_) => _InviteVendorsDialog(
+            allVendors: all,
+            initiallySelected: preselected,
+          ),
     );
     if (result == null) return;
     try {
@@ -313,21 +425,32 @@ class _VendorsTabState extends State<_VendorsTab> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _award(int quotationId) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Award contract?'),
-        content: Text('Award quotation #$quotationId. This locks the awardee.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
-          FilledButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Award')),
-        ],
-      ),
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Award contract?'),
+            content: Text(
+              'Award quotation #$quotationId. This locks the awardee.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('Award'),
+              ),
+            ],
+          ),
     );
     if (ok != true) return;
     try {
@@ -335,14 +458,17 @@ class _VendorsTabState extends State<_VendorsTab> {
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final active = widget.detail.quotations.where((q) => q.supersededById == null).toList()
-      ..sort((a, b) => a.amountNum.compareTo(b.amountNum));
+    final active =
+        widget.detail.quotations.where((q) => q.supersededById == null).toList()
+          ..sort((a, b) => a.amountNum.compareTo(b.amountNum));
     final l1Id = active.isNotEmpty ? active.first.id : null;
     final isClosed = widget.detail.summary.status == 'closed';
     return Column(
@@ -354,7 +480,10 @@ class _VendorsTabState extends State<_VendorsTab> {
             runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text('Quotations (${active.length})', style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                'Quotations (${active.length})',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(width: 12),
               OutlinedButton.icon(
                 onPressed: isClosed ? null : _manageInvites,
@@ -374,57 +503,100 @@ class _VendorsTabState extends State<_VendorsTab> {
           ),
         ),
         Expanded(
-          child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            children: [
-              for (final q in active)
-                Card(
-                  color: q.id == l1Id ? Colors.amber.shade50 : null,
-                  child: ListTile(
-                    leading: CircleAvatar(
-                      backgroundColor: q.id == l1Id ? Colors.amber : Colors.grey.shade300,
-                      child: Text(q.id == l1Id ? 'L1' : '#${q.id}'),
-                    ),
-                    title: Text(q.submitterName),
-                    subtitle: Text('${q.submitterPhoneE164} • ${q.source} • ${q.screeningOutcome}'),
-                    trailing: Wrap(
-                      spacing: 8,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        Text('₹ ${q.amount}', style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                        if (widget.detail.summary.status == 'quotations_closed' ||
-                            widget.detail.summary.status == 'vendor_selected')
-                          OutlinedButton(onPressed: () => _award(q.id), child: const Text('Award')),
-                      ],
-                    ),
-                  ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 560;
+              return ListView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isNarrow ? 8 : 12,
                 ),
+                children: [
+                  InviteLinksPanel(
+                    detail: widget.detail,
+                    onRefresh: widget.onChanged,
+                  ),
+                  for (final q in active)
+                    Card(
+                      color: q.id == l1Id ? Colors.amber.shade50 : null,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isNarrow ? 12 : 16,
+                          vertical: 12,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                CircleAvatar(
+                                  backgroundColor: q.id == l1Id
+                                      ? Colors.amber
+                                      : Colors.grey.shade300,
+                                  child: Text(
+                                    q.id == l1Id ? 'L1' : '#${q.id}',
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        q.submitterName,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '${q.submitterPhoneE164} • ${q.source} • ${q.screeningOutcome}',
+                                        style: const TextStyle(
+                                          color: Colors.black54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            Wrap(
+                              spacing: 12,
+                              runSpacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              alignment: WrapAlignment.end,
+                              children: [
+                                Text(
+                                  '₹ ${q.amount}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                if (widget.detail.summary.status ==
+                                        'quotations_closed' ||
+                                    widget.detail.summary.status ==
+                                        'vendor_selected')
+                                  OutlinedButton(
+                                    onPressed: () => _award(q.id),
+                                    child: const Text('Award'),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
               if (active.isEmpty)
                 const Padding(
                   padding: EdgeInsets.all(16),
                   child: Text('No quotations yet.'),
                 ),
-              const Divider(),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Text('Invited vendors', style: Theme.of(context).textTheme.titleMedium),
-              ),
-              if (widget.detail.invitedVendors.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text(
-                    "No vendors invited yet. Tap 'Invite vendors' to add some.",
-                    style: TextStyle(color: Colors.black54),
-                  ),
-                )
-              else
-                for (final v in widget.detail.invitedVendors)
-                  ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: Text(v.name),
-                    subtitle: Text('${v.phoneE164}${v.place != null ? ' • ${v.place}' : ''}'),
-                  ),
-            ],
+                ],
+              );
+            },
           ),
         ),
       ],
@@ -455,18 +627,31 @@ class _OfflineQuoteDialogState extends State<_OfflineQuoteDialog> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextField(controller: _name, decoration: const InputDecoration(labelText: 'Vendor name')),
-              TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone (10 digits)')),
+              TextField(
+                controller: _name,
+                decoration: const InputDecoration(labelText: 'Vendor name'),
+              ),
+              TextField(
+                controller: _phone,
+                decoration: const InputDecoration(
+                  labelText: 'Phone (10 digits)',
+                ),
+              ),
               TextField(
                 controller: _amount,
                 decoration: const InputDecoration(labelText: 'Amount (₹)'),
                 keyboardType: TextInputType.number,
               ),
-              TextField(controller: _remarks, decoration: const InputDecoration(labelText: 'Remarks')),
+              TextField(
+                controller: _remarks,
+                decoration: const InputDecoration(labelText: 'Remarks'),
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: _outcome,
-                decoration: const InputDecoration(labelText: 'Screening outcome'),
+                decoration: const InputDecoration(
+                  labelText: 'Screening outcome',
+                ),
                 items: const [
                   DropdownMenuItem(value: 'pending', child: Text('Pending')),
                   DropdownMenuItem(value: 'approved', child: Text('Approved')),
@@ -479,15 +664,19 @@ class _OfflineQuoteDialogState extends State<_OfflineQuoteDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          onPressed: () => Navigator.of(context).pop({
-            'submitter_name': _name.text.trim(),
-            'phone': _phone.text.trim(),
-            'amount': _amount.text.trim(),
-            'remarks': _remarks.text.trim(),
-            'screening_outcome': _outcome,
-          }),
+          onPressed:
+              () => Navigator.of(context).pop({
+                'submitter_name': _name.text.trim(),
+                'phone': _phone.text.trim(),
+                'amount': _amount.text.trim(),
+                'remarks': _remarks.text.trim(),
+                'screening_outcome': _outcome,
+              }),
           child: const Text('Add'),
         ),
       ],
@@ -542,15 +731,18 @@ class _InviteVendorsDialogState extends State<_InviteVendorsDialog> {
                   final checked = _selected.contains(v.id);
                   return CheckboxListTile(
                     value: checked,
-                    onChanged: (val) => setState(() {
-                      if (val == true) {
-                        _selected.add(v.id);
-                      } else {
-                        _selected.remove(v.id);
-                      }
-                    }),
+                    onChanged:
+                        (val) => setState(() {
+                          if (val == true) {
+                            _selected.add(v.id);
+                          } else {
+                            _selected.remove(v.id);
+                          }
+                        }),
                     title: Text(v.name),
-                    subtitle: Text('${v.phoneE164}${v.place != null ? ' • ${v.place}' : ''}'),
+                    subtitle: Text(
+                      '${v.phoneE164}${v.place != null ? ' • ${v.place}' : ''}',
+                    ),
                     dense: true,
                   );
                 },
@@ -574,10 +766,16 @@ class _InviteVendorsDialogState extends State<_InviteVendorsDialog> {
 }
 
 class _DocsTab extends StatefulWidget {
-  final int tenderId;
+  final TenderDetail detail;
   final TenderRepository repo;
-  final List<TenderDocumentSummary> initial;
-  const _DocsTab({required this.tenderId, required this.repo, required this.initial});
+  final String? panchayatName;
+  const _DocsTab({
+    required this.detail,
+    required this.repo,
+    this.panchayatName,
+  });
+
+  int get tenderId => detail.summary.id;
 
   @override
   State<_DocsTab> createState() => _DocsTabState();
@@ -585,29 +783,168 @@ class _DocsTab extends StatefulWidget {
 
 class _DocsTabState extends State<_DocsTab> {
   late List<TenderDocumentSummary> _docs;
+  final Set<String> _generating = <String>{};
+  bool _refreshing = false;
 
   @override
   void initState() {
     super.initState();
-    _docs = widget.initial;
+    _docs = widget.detail.documents;
   }
 
   Future<void> _reload() async {
-    final docs = await widget.repo.listDocuments(widget.tenderId);
-    if (!mounted) return;
-    setState(() => _docs = docs);
+    if (_refreshing) return;
+    _refreshing = true;
+    try {
+      final docs = await widget.repo.listDocuments(widget.tenderId);
+      if (!mounted) return;
+      setState(() => _docs = docs);
+    } finally {
+      _refreshing = false;
+    }
   }
 
-  Future<void> _generate(String tpl, {int? vendorId}) async {
+  /// Vendors that can receive a per-bidder quotation PDF (quotations first, then invites).
+  Map<int, String> _quotationVendorOptions() {
+    final options = <int, String>{};
+    for (final q in widget.detail.quotations) {
+      if (q.supersededById != null) continue;
+      final vid = q.vendorId;
+      if (vid != null) {
+        options.putIfAbsent(vid, () => q.submitterName);
+      }
+    }
+    for (final v in widget.detail.invitedVendors) {
+      options.putIfAbsent(v.id, () => v.name);
+    }
+    return options;
+  }
+
+  Future<int?> _pickQuotationVendor() async {
+    final options = _quotationVendorOptions();
+    if (options.isEmpty) {
+      if (!mounted) return null;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invite at least one vendor or record a quotation before generating this document.',
+          ),
+        ),
+      );
+      return null;
+    }
+    if (options.length == 1) return options.keys.first;
+
+    return showDialog<int>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Quotation for which vendor?'),
+        children: [
+          for (final entry in options.entries)
+            SimpleDialogOption(
+              onPressed: () => Navigator.of(ctx).pop(entry.key),
+              child: Text(entry.value),
+            ),
+        ],
+      ),
+    );
+  }
+
+  String _generatingKey(String tpl, {int? vendorId}) =>
+      tpl == 'quotation' && vendorId != null ? '$tpl:$vendorId' : tpl;
+
+  bool _isGeneratingTemplate(String tpl) {
+    if (tpl == 'quotation') {
+      return _generating.any((k) => k == tpl || k.startsWith('$tpl:'));
+    }
+    return _generating.contains(tpl);
+  }
+
+  Future<void> _generate(
+    String tpl, {
+    int? vendorId,
+    Map<String, dynamic>? fieldOverrides,
+  }) async {
+    var resolvedVendorId = vendorId;
+    if (tpl == 'quotation') {
+      resolvedVendorId ??= await _pickQuotationVendor();
+      if (resolvedVendorId == null) return;
+    }
+
+    final key = _generatingKey(tpl, vendorId: resolvedVendorId);
+    setState(() => _generating.add(key));
     try {
-      await widget.repo.generateDocument(widget.tenderId, tpl, vendorId: vendorId);
-      // Allow background processing.
-      await Future.delayed(const Duration(seconds: 1));
+      await widget.repo.generateDocument(
+        widget.tenderId,
+        tpl,
+        vendorId: resolvedVendorId,
+        fieldOverrides: fieldOverrides,
+      );
       await _reload();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userFacingMessage(e))));
+    } finally {
+      if (!mounted) return;
+      setState(() => _generating.remove(key));
     }
+  }
+
+  TenderDocumentSummary? _latestForTemplate(String templateId, {int? vendorId}) {
+    var matches = _docs.where((d) => d.templateId == templateId);
+    if (templateId == 'quotation' && vendorId != null) {
+      matches = matches.where((d) => d.vendorId == vendorId);
+    }
+    final list = matches.toList();
+    if (list.isEmpty) return null;
+    list.sort((a, b) => b.version.compareTo(a.version));
+    return list.first;
+  }
+
+  String? _vendorName(int vendorId) {
+    for (final v in widget.detail.invitedVendors) {
+      if (v.id == vendorId) return v.name;
+    }
+    for (final q in widget.detail.quotations) {
+      if (q.vendorId == vendorId) return q.submitterName;
+    }
+    return null;
+  }
+
+  Future<void> _editAndGenerate(String templateId, {int? vendorId}) async {
+    int? resolvedVendorId = vendorId;
+    if (templateId == 'quotation') {
+      resolvedVendorId ??= await _pickQuotationVendor();
+      if (resolvedVendorId == null) return;
+    }
+    final latest = _latestForTemplate(templateId, vendorId: resolvedVendorId);
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _DocumentEditorDialog(initial: latest?.fieldOverrides),
+    );
+    if (result == null) return;
+    await _generate(
+      templateId,
+      vendorId: resolvedVendorId,
+      fieldOverrides: result,
+    );
+  }
+
+  String _structuredDocName(TenderDocumentSummary doc) {
+    final safePanchayat = (widget.panchayatName ?? 'panchayat')
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+    final when = (doc.generatedAt ?? DateTime.now()).toLocal();
+    final ts = DateFormat('yyyyMMdd_HHmm').format(when);
+    final ext =
+        (doc.storagePath ?? '').toLowerCase().endsWith('.html')
+            ? 'html'
+            : 'pdf';
+    return '$safePanchayat-${widget.tenderId}-${doc.templateId}-v${doc.version}-$ts.$ext';
   }
 
   Future<void> _openDoc(TenderDocumentSummary doc) async {
@@ -615,11 +952,97 @@ class _DocsTabState extends State<_DocsTab> {
       await widget.repo.downloadDocument(
         widget.tenderId,
         doc.id,
-        fallbackName: 'tender-${widget.tenderId}-${doc.templateId}-v${doc.version}.pdf',
+        fallbackName: _structuredDocName(doc),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<void> _previewDoc(TenderDocumentSummary doc) async {
+    try {
+      final bytes = await widget.repo.previewDocument(widget.tenderId, doc.id);
+      final canvasState = await widget.repo.getCanvasState(widget.tenderId, doc.id);
+      if (!mounted) return;
+      final action = await showDialog<String>(
+        context: context,
+        barrierDismissible: true,
+        builder:
+            (_) => _DocumentPreviewDialog(
+              bytes: bytes,
+              canvasLayers: canvasState.layers,
+              canEdit: canvasState.canEdit,
+              lockReason: canvasState.lockedReason,
+              onDownload: () async {
+                await _openDoc(doc);
+              },
+              onEdit: () => _openCanvasEditor(doc, bytes, canvasState.layers, canvasState.canEdit),
+            ),
+      );
+      if (action == 'edited') {
+        await _reload();
+        final refreshed = _docs.where(
+          (d) => d.templateId == doc.templateId && d.status == 'ready',
+        ).toList()
+          ..sort((a, b) => b.version.compareTo(a.version));
+        if (refreshed.isNotEmpty) {
+          await _previewDoc(refreshed.first);
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Preview failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<bool> _openCanvasEditor(
+    TenderDocumentSummary doc,
+    Uint8List previewBytes,
+    List<Map<String, dynamic>> initialLayers,
+    bool canEdit,
+  ) async {
+    if (!canEdit) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Canvas editing is locked for this document template.'),
+          ),
+        );
+      }
+      return false;
+    }
+    final result = await showDialog<List<Map<String, dynamic>>>(
+      context: context,
+      barrierDismissible: false,
+      builder:
+          (_) => _DocumentCanvasDialog(
+            bytes: previewBytes,
+            initialLayers: initialLayers,
+            onDraftChanged: (layers) {
+              return widget.repo.saveCanvasLayers(widget.tenderId, doc.id, layers);
+            },
+          ),
+    );
+    if (result == null) return false;
+    try {
+      await widget.repo.saveCanvasLayers(widget.tenderId, doc.id, result);
+      await widget.repo.mergeCanvasLayers(widget.tenderId, doc.id, result);
+      if (!mounted) return true;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Canvas changes saved.')),
+      );
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Canvas save failed: ${userFacingMessage(e)}')),
+      );
+      return false;
     }
   }
 
@@ -628,7 +1051,9 @@ class _DocsTabState extends State<_DocsTab> {
       await widget.repo.downloadDocumentsZip(widget.tenderId);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Download failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
+      );
     }
   }
 
@@ -643,7 +1068,9 @@ class _DocsTabState extends State<_DocsTab> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Share link failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Share link failed: ${userFacingMessage(e)}')),
+      );
     }
   }
 
@@ -658,7 +1085,9 @@ class _DocsTabState extends State<_DocsTab> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Share link failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Share link failed: ${userFacingMessage(e)}')),
+      );
     }
   }
 
@@ -666,69 +1095,668 @@ class _DocsTabState extends State<_DocsTab> {
   Widget build(BuildContext context) {
     const templates = <_TemplateInfo>[
       _TemplateInfo('rfq', 'RFQ — விலைப்புள்ளி கோருதல்'),
+      _TemplateInfo('quotation', 'Quotation — கொட்டேஷன்'),
       _TemplateInfo('comparative', 'Comparative — ஒப்பு நோக்கு பட்டியல்'),
       _TemplateInfo('work_order', 'Work order — வேலை உத்தரவு'),
       _TemplateInfo('so_proceedings', 'SO proceedings — நடவடிக்கைகள்'),
       _TemplateInfo('form19', 'Form 19 — செலவினச் சீட்டு'),
     ];
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrow = constraints.maxWidth < 720;
+        final hPad = constraints.maxWidth < 480 ? 12.0 : 16.0;
+        return ListView(
+          padding: EdgeInsets.all(hPad),
           children: [
-            Text('Documents', style: Theme.of(context).textTheme.titleMedium),
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: _copyZipShareLink,
-              icon: const Icon(Icons.link_outlined),
-              label: const Text('Share zip link'),
+            _buildDocsHeader(context, isNarrow),
+            const SizedBox(height: 8),
+            for (final tpl in templates)
+              _buildTemplateCard(context, tpl, isNarrow),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildDocsHeader(BuildContext context, bool isNarrow) {
+    final title = Text(
+      'Documents',
+      style: Theme.of(context).textTheme.titleMedium,
+    );
+    final actions = <Widget>[
+      IconButton(
+        tooltip: 'Refresh',
+        onPressed: _reload,
+        icon: const Icon(Icons.refresh),
+      ),
+      OutlinedButton.icon(
+        onPressed: _copyZipShareLink,
+        icon: const Icon(Icons.link_outlined),
+        label: const Text('Share zip link'),
+      ),
+      OutlinedButton.icon(
+        onPressed: _downloadZip,
+        icon: const Icon(Icons.archive_outlined),
+        label: const Text('Download zip'),
+      ),
+    ];
+    if (isNarrow) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          title,
+          const SizedBox(height: 8),
+          Wrap(spacing: 8, runSpacing: 8, children: actions),
+        ],
+      );
+    }
+    return Row(
+      children: [
+        title,
+        const Spacer(),
+        for (var i = 0; i < actions.length; i++) ...[
+          if (i > 0) const SizedBox(width: 8),
+          actions[i],
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTemplateCard(
+    BuildContext context,
+    _TemplateInfo tpl,
+    bool isNarrow,
+  ) {
+    final isQuotation = tpl.id == 'quotation';
+    final templateDocs =
+        _docs.where((d) => d.templateId == tpl.id).toList()
+          ..sort((a, b) => b.version.compareTo(a.version));
+    final hasReady = _docs.any(
+      (d) => d.templateId == tpl.id && d.status == 'ready',
+    );
+    final readyMatches =
+        templateDocs.where((d) => d.status == 'ready').toList();
+    final readyDoc = readyMatches.isEmpty ? null : readyMatches.first;
+    Widget statusBody;
+    if (templateDocs.isEmpty) {
+      statusBody = Text(
+        isQuotation
+            ? 'Not generated yet — choose vendor when generating'
+            : 'Not generated yet',
+      );
+    } else {
+      final latest = templateDocs.first;
+      final statusLabel = latest.status.replaceAll('_', ' ');
+      final errorText = latest.errorMessage;
+      final vendorNote = isQuotation && latest.vendorId != null
+          ? _vendorName(latest.vendorId!) ?? 'Vendor #${latest.vendorId}'
+          : null;
+      statusBody = Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            vendorNote != null
+                ? 'Latest v${latest.version} — $vendorNote'
+                : 'Latest v${latest.version}',
+          ),
+          const SizedBox(height: 4),
+          AppStatusBadge(status: latest.status),
+          if (errorText != null && errorText.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              errorText,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(color: Colors.red),
             ),
-            const SizedBox(width: 8),
-            OutlinedButton.icon(
-              onPressed: _downloadZip,
-              icon: const Icon(Icons.archive_outlined),
-              label: const Text('Download zip'),
+          ],
+          if (statusLabel == 'pending') ...[
+            const SizedBox(height: 4),
+            const Text('Pending. You can regenerate now.'),
+          ],
+        ],
+      );
+    }
+
+    final busy = _isGeneratingTemplate(tpl.id);
+    final actions = <Widget>[
+      OutlinedButton.icon(
+        onPressed: busy ? null : () => _editAndGenerate(tpl.id, vendorId: readyDoc?.vendorId),
+        icon: const Icon(Icons.edit_outlined, size: 16),
+        label: const Text('Edit'),
+      ),
+      if (hasReady && readyDoc != null) ...[
+        OutlinedButton(
+          onPressed: () => _previewDoc(readyDoc),
+          child: const Text('Preview'),
+        ),
+        OutlinedButton(
+          onPressed: () => _openDoc(readyDoc),
+          child: const Text('Download'),
+        ),
+        IconButton(
+          tooltip: 'Copy share link',
+          icon: const Icon(Icons.link_outlined, size: 18),
+          onPressed: () => _copyDocShareLink(readyDoc),
+        ),
+      ],
+      FilledButton(
+        onPressed: busy ? null : () => _generate(tpl.id),
+        child: Text(busy ? 'Generating...' : 'Generate'),
+      ),
+    ];
+
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: isNarrow ? 12 : 16,
+          vertical: 12,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 2, right: 12),
+                  child: Icon(Icons.description_outlined),
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tpl.label,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 4),
+                      statusBody,
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
+              children: actions,
             ),
           ],
         ),
-        const SizedBox(height: 8),
-        for (final tpl in templates)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.description_outlined),
-              title: Text(tpl.label),
-              subtitle: Text(_docs.where((d) => d.templateId == tpl.id).isEmpty
-                  ? 'Not generated yet'
-                  : 'Latest v${_docs.where((d) => d.templateId == tpl.id).first.version} — ${_docs.where((d) => d.templateId == tpl.id).first.status}'),
-              trailing: Wrap(
-                spacing: 6,
+      ),
+    );
+  }
+}
+
+class _DocumentPreviewDialog extends StatelessWidget {
+  final Uint8List bytes;
+  final List<Map<String, dynamic>> canvasLayers;
+  final bool canEdit;
+  final String? lockReason;
+  final Future<void> Function() onDownload;
+  final Future<bool> Function() onEdit;
+
+  const _DocumentPreviewDialog({
+    required this.bytes,
+    required this.canvasLayers,
+    required this.canEdit,
+    this.lockReason,
+    required this.onDownload,
+    required this.onEdit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context).size;
+    final inset = media.width < 480 ? 8.0 : 24.0;
+    final maxWidth = (media.width - inset * 2).clamp(280.0, 1100.0);
+    final maxHeight = (media.height - inset * 2).clamp(320.0, 760.0);
+    final isNarrow = maxWidth < 560;
+    final closeBtn = TextButton(
+      onPressed: () => Navigator.of(context).pop(),
+      child: const Text('Close'),
+    );
+    final downloadBtn = OutlinedButton.icon(
+      onPressed: () async {
+        await onDownload();
+      },
+      icon: const Icon(Icons.download_outlined),
+      label: const Text('Download'),
+    );
+    final editBtn = FilledButton.icon(
+      onPressed: !canEdit
+          ? null
+          : () async {
+              final saved = await onEdit();
+              if (!saved) return;
+              if (!context.mounted) return;
+              Navigator.of(context).pop('edited');
+            },
+      icon: const Icon(Icons.edit_outlined),
+      label: Text(canEdit ? 'Edit' : 'Edit (locked)'),
+    );
+
+    return Dialog(
+      insetPadding: EdgeInsets.all(inset),
+      child: SizedBox(
+        width: maxWidth,
+        height: maxHeight,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
+              child: Row(
                 children: [
-                  if (_docs.where((d) => d.templateId == tpl.id && d.status == 'ready').isNotEmpty) ...[
-                    OutlinedButton(
-                      onPressed: () {
-                        final doc = _docs.firstWhere((d) => d.templateId == tpl.id && d.status == 'ready');
-                        _openDoc(doc);
-                      },
-                      child: const Text('Open'),
+                  const Expanded(
+                    child: Text(
+                      'Document preview',
+                      style: TextStyle(fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    IconButton(
-                      tooltip: 'Copy share link',
-                      icon: const Icon(Icons.link_outlined, size: 18),
-                      onPressed: () {
-                        final doc = _docs.firstWhere((d) => d.templateId == tpl.id && d.status == 'ready');
-                        _copyDocShareLink(doc);
-                      },
-                    ),
-                  ],
-                  FilledButton(
-                    onPressed: () => _generate(tpl.id),
-                    child: const Text('Generate'),
+                  ),
+                  IconButton(
+                    tooltip: 'Close',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PdfPreviewSurface(bytes: bytes),
+                  _CanvasLayerOverlay(
+                    layers: canvasLayers,
+                    editable: false,
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (!canEdit && (lockReason ?? '').isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        lockReason!,
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    alignment:
+                        isNarrow ? WrapAlignment.start : WrapAlignment.end,
+                    children: [closeBtn, downloadBtn, editBtn],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CanvasLayerOverlay extends StatelessWidget {
+  final List<Map<String, dynamic>> layers;
+  final bool editable;
+  final void Function(int index, double x, double y)? onMove;
+  final void Function(int index)? onEdit;
+
+  const _CanvasLayerOverlay({
+    required this.layers,
+    required this.editable,
+    this.onMove,
+    this.onEdit,
+  });
+
+  double _asDouble(dynamic value, double fallback) {
+    if (value is num) return value.toDouble();
+    return double.tryParse(value?.toString() ?? '') ?? fallback;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (layers.isEmpty) return const SizedBox.shrink();
+    return IgnorePointer(
+      ignoring: !editable,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final width = constraints.maxWidth <= 0 ? 1.0 : constraints.maxWidth;
+          final height = constraints.maxHeight <= 0 ? 1.0 : constraints.maxHeight;
+          return Stack(
+            children: [
+              for (var i = 0; i < layers.length; i++)
+                Builder(
+                  builder: (context) {
+                    final layer = layers[i];
+                    final x = _asDouble(layer['x'], 0.5).clamp(0.0, 1.0);
+                    final y = _asDouble(layer['y'], 0.5).clamp(0.0, 1.0);
+                    final fontSize = _asDouble(layer['fontSize'], 16).clamp(10.0, 40.0);
+                    final text = (layer['text'] ?? '').toString();
+                    return Positioned(
+                      left: x * width,
+                      top: y * height,
+                      child: GestureDetector(
+                        onTap: editable ? () => onEdit?.call(i) : null,
+                        onPanUpdate:
+                            editable
+                                ? (details) {
+                                  final nx = ((x * width) + details.delta.dx) / width;
+                                  final ny = ((y * height) + details.delta.dy) / height;
+                                  onMove?.call(
+                                    i,
+                                    nx.clamp(0.0, 0.98),
+                                    ny.clamp(0.0, 0.98),
+                                  );
+                                }
+                                : null,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color:
+                                editable
+                                    ? Colors.black.withValues(alpha: 0.06)
+                                    : Colors.black.withValues(alpha: 0.03),
+                            border: Border.all(
+                              color:
+                                  editable
+                                      ? Colors.deepOrange.withValues(alpha: 0.75)
+                                      : Colors.blueGrey.withValues(alpha: 0.35),
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          child: Text(
+                            text,
+                            style: TextStyle(
+                              fontSize: fontSize,
+                              color: Color(
+                                int.tryParse(
+                                      (layer['color'] ?? '#111111')
+                                          .toString()
+                                          .replaceFirst('#', '0xff'),
+                                    ) ??
+                                    0xff111111,
+                              ),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _DocumentCanvasDialog extends StatefulWidget {
+  final Uint8List bytes;
+  final List<Map<String, dynamic>> initialLayers;
+  final Future<void> Function(List<Map<String, dynamic>> layers)? onDraftChanged;
+  const _DocumentCanvasDialog({
+    required this.bytes,
+    required this.initialLayers,
+    this.onDraftChanged,
+  });
+
+  @override
+  State<_DocumentCanvasDialog> createState() => _DocumentCanvasDialogState();
+}
+
+class _DocumentCanvasDialogState extends State<_DocumentCanvasDialog> {
+  late List<Map<String, dynamic>> _layers;
+  Timer? _autosaveTimer;
+  bool _autosaveBusy = false;
+  bool _autosavePending = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _layers = widget.initialLayers
+        .map((e) => {
+              'id': (e['id'] ?? DateTime.now().microsecondsSinceEpoch).toString(),
+              'text': (e['text'] ?? '').toString(),
+              'x': (e['x'] is num) ? (e['x'] as num).toDouble() : 0.5,
+              'y': (e['y'] is num) ? (e['y'] as num).toDouble() : 0.5,
+              'fontSize': (e['fontSize'] is num) ? (e['fontSize'] as num).toDouble() : 16.0,
+              'color': (e['color'] ?? '#111111').toString(),
+            })
+        .toList();
+  }
+
+  void _scheduleAutosave() {
+    if (widget.onDraftChanged == null) return;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = Timer(const Duration(milliseconds: 700), _runAutosave);
+  }
+
+  Future<void> _runAutosave() async {
+    if (widget.onDraftChanged == null) return;
+    if (_autosaveBusy) {
+      _autosavePending = true;
+      return;
+    }
+    _autosaveBusy = true;
+    try {
+      await widget.onDraftChanged!.call(List<Map<String, dynamic>>.from(_layers));
+    } catch (_) {
+      // Keep autosave best-effort; explicit Save remains source of truth.
+    } finally {
+      _autosaveBusy = false;
+      if (_autosavePending) {
+        _autosavePending = false;
+        _scheduleAutosave();
+      }
+    }
+  }
+
+  Future<String?> _askText({String initial = ''}) async {
+    final ctrl = TextEditingController(text: initial);
+    final out = await showDialog<String>(
+      context: context,
+      builder:
+          (_) => AlertDialog(
+            title: const Text('Canvas text'),
+            content: TextField(
+              controller: ctrl,
+              autofocus: true,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                labelText: 'Text',
+                hintText: 'Enter overlay text',
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(ctrl.text.trim()),
+                child: const Text('OK'),
+              ),
+            ],
           ),
+    );
+    ctrl.dispose();
+    return out;
+  }
+
+  Future<void> _addLayer() async {
+    final text = await _askText();
+    if (text == null || text.isEmpty) return;
+    setState(() {
+      _layers.add({
+        'id': DateTime.now().microsecondsSinceEpoch.toString(),
+        'text': text,
+        'x': 0.45,
+        'y': 0.45,
+        'fontSize': 16.0,
+        'color': '#111111',
+      });
+    });
+    _scheduleAutosave();
+  }
+
+  Future<void> _editLayer(int index) async {
+    if (index < 0 || index >= _layers.length) return;
+    final existing = _layers[index];
+    final text = await _askText(initial: (existing['text'] ?? '').toString());
+    if (text == null) return;
+    setState(() {
+      _layers[index] = {...existing, 'text': text};
+    });
+    _scheduleAutosave();
+  }
+
+  @override
+  void dispose() {
+    _autosaveTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context).size;
+    final inset = media.width < 480 ? 8.0 : 16.0;
+    final maxWidth = (media.width - inset * 2).clamp(280.0, 1200.0);
+    final maxHeight = (media.height - inset * 2).clamp(320.0, 820.0);
+    final isNarrow = maxWidth < 600;
+    final titleAndMeta = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Canvas editor',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '${_layers.length} layer(s)',
+          style: const TextStyle(color: Colors.black54),
+        ),
       ],
+    );
+    final actions = <Widget>[
+      OutlinedButton.icon(
+        onPressed: _addLayer,
+        icon: const Icon(Icons.add),
+        label: const Text('Add text'),
+      ),
+      TextButton(
+        onPressed: () => Navigator.of(context).pop(),
+        child: const Text('Close'),
+      ),
+      FilledButton.icon(
+        onPressed: () => Navigator.of(context).pop(_layers),
+        icon: const Icon(Icons.save_outlined),
+        label: const Text('Save'),
+      ),
+    ];
+
+    return Dialog(
+      insetPadding: EdgeInsets.all(inset),
+      child: SizedBox(
+        width: maxWidth,
+        height: maxHeight,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: isNarrow
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        titleAndMeta,
+                        if (widget.onDraftChanged != null)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              _autosaveBusy
+                                  ? 'Autosaving...'
+                                  : 'Draft autosave on',
+                              style: const TextStyle(
+                                color: Colors.black54,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Wrap(spacing: 8, runSpacing: 8, children: actions),
+                      ],
+                    )
+                  : Row(
+                      children: [
+                        titleAndMeta,
+                        if (widget.onDraftChanged != null) ...[
+                          const SizedBox(width: 12),
+                          Text(
+                            _autosaveBusy
+                                ? 'Autosaving...'
+                                : 'Draft autosave on',
+                            style: const TextStyle(
+                              color: Colors.black54,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                        const Spacer(),
+                        for (var i = 0; i < actions.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 8),
+                          actions[i],
+                        ],
+                      ],
+                    ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  PdfPreviewSurface(bytes: widget.bytes),
+                  _CanvasLayerOverlay(
+                    layers: _layers,
+                    editable: true,
+                    onMove: (index, x, y) {
+                      if (index < 0 || index >= _layers.length) return;
+                      setState(() {
+                        _layers[index] = {..._layers[index], 'x': x, 'y': y};
+                      });
+                      _scheduleAutosave();
+                    },
+                    onEdit: (index) {
+                      _editLayer(index);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -739,132 +1767,110 @@ class _TemplateInfo {
   const _TemplateInfo(this.id, this.label);
 }
 
-class _FieldVerificationTab extends StatefulWidget {
-  final int tenderId;
-  final TenderRepository repo;
-  final TenderDetail detail;
-  final VoidCallback onChanged;
-  const _FieldVerificationTab({
-    required this.tenderId,
-    required this.repo,
-    required this.detail,
-    required this.onChanged,
-  });
+class _DocumentEditorDialog extends StatefulWidget {
+  final Map<String, dynamic>? initial;
+  const _DocumentEditorDialog({this.initial});
 
   @override
-  State<_FieldVerificationTab> createState() => _FieldVerificationTabState();
+  State<_DocumentEditorDialog> createState() => _DocumentEditorDialogState();
 }
 
-class _FieldVerificationTabState extends State<_FieldVerificationTab> {
-  Future<List<ChecklistItem>>? _checklistFuture;
+class _DocumentEditorDialogState extends State<_DocumentEditorDialog> {
+  late final TextEditingController _noteTa;
+  late final TextEditingController _noteEn;
+  late final TextEditingController _conditions;
 
   @override
   void initState() {
     super.initState();
-    _checklistFuture = widget.repo.getChecklist(widget.tenderId);
-  }
-
-  void _refresh() {
-    if (!mounted) return;
-    setState(() {
-      _checklistFuture = widget.repo.getChecklist(widget.tenderId);
-    });
-  }
-
-  Future<void> _newSession() async {
-    try {
-      final s = await widget.repo.createSession(widget.tenderId);
-      if (!mounted) return;
-      final url = '${ApiConfig.baseUrl}/public/field-sessions/${s.token ?? ''}';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Session created. Field link: $url')));
-      widget.onChanged();
-      _refresh();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-    }
-  }
-
-  Future<void> _confirm() async {
-    try {
-      await widget.repo.confirmVerification(widget.tenderId);
-      widget.onChanged();
-      _refresh();
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    final initial = widget.initial ?? const <String, dynamic>{};
+    _noteTa = TextEditingController(
+      text: (initial['editor_text_ta'] ?? '').toString(),
+    );
+    _noteEn = TextEditingController(
+      text: (initial['editor_text_en'] ?? '').toString(),
+    );
+    final existingConditions = initial['conditions'];
+    if (existingConditions is List) {
+      _conditions = TextEditingController(
+        text: existingConditions.map((e) => e.toString()).join('\n'),
+      );
+    } else {
+      _conditions = TextEditingController();
     }
   }
 
   @override
+  void dispose() {
+    _noteTa.dispose();
+    _noteEn.dispose();
+    _conditions.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        Row(
-          children: [
-            Text('Sessions (${widget.detail.sessions.length})',
-                style: Theme.of(context).textTheme.titleMedium),
-            const Spacer(),
-            OutlinedButton.icon(
-              onPressed: _newSession,
-              icon: const Icon(Icons.qr_code_outlined),
-              label: const Text('New session'),
-            ),
-            const SizedBox(width: 8),
-            FilledButton.icon(
-              onPressed: _confirm,
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Confirm verification'),
-            ),
-          ],
-        ),
-        for (final s in widget.detail.sessions)
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.location_on_outlined),
-              title: Text('Session #${s.id} — ${s.uploadCount} upload(s)'),
-              subtitle: Text(
-                  'Expires ${s.expiresAt?.toIso8601String().substring(0, 10) ?? '—'} • Poles: ${s.poleSubsetIds.length}'),
-            ),
+    return AlertDialog(
+      title: const Text('PDF editor'),
+      content: SizedBox(
+        width: 560,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Text('Edit text and regenerate a PDF.'),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _noteTa,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'Tamil note',
+                  hintText: 'Visible note to include in the PDF',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _noteEn,
+                maxLines: 4,
+                decoration: const InputDecoration(
+                  labelText: 'English note',
+                  hintText: 'Visible note to include in the PDF',
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _conditions,
+                maxLines: 5,
+                decoration: const InputDecoration(
+                  labelText: 'Work order conditions (one line each, optional)',
+                ),
+              ),
+            ],
           ),
-        const Divider(height: 32),
-        Text('Checklist', style: Theme.of(context).textTheme.titleMedium),
-        FutureBuilder<List<ChecklistItem>>(
-          future: _checklistFuture,
-          builder: (context, snap) {
-            if (snap.connectionState == ConnectionState.waiting) {
-              return const Padding(padding: EdgeInsets.all(16), child: LinearProgressIndicator());
-            }
-            if (snap.hasError) return Text('Error: ${snap.error}');
-            final items = snap.data ?? [];
-            if (items.isEmpty) {
-              return const Padding(
-                padding: EdgeInsets.all(16),
-                child: Text('No checklist items. Create a verification session to seed them.'),
-              );
-            }
-            return Column(
-              children: [
-                for (final it in items)
-                  CheckboxListTile(
-                    value: it.isDone,
-                    onChanged: (v) async {
-                      try {
-                        await widget.repo.patchChecklistItem(widget.tenderId, it.id, isDone: v ?? false);
-                        _refresh();
-                      } catch (e) {
-                        if (!mounted) return;
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(SnackBar(content: Text('Error: $e')));
-                      }
-                    },
-                    title: Text('Item #${it.id}${it.poleId != null ? ' • Pole #${it.poleId}' : ''}'),
-                    subtitle: Text(it.notes ?? (it.upload != null ? 'Upload attached' : 'No proof yet')),
-                  ),
-              ],
-            );
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () {
+            final conditions =
+                _conditions.text
+                    .split('\n')
+                    .map((e) => e.trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+            Navigator.of(context).pop({
+              if (_noteTa.text.trim().isNotEmpty)
+                'editor_text_ta': _noteTa.text.trim(),
+              if (_noteEn.text.trim().isNotEmpty)
+                'editor_text_en': _noteEn.text.trim(),
+              if (conditions.isNotEmpty) 'conditions': conditions,
+            });
           },
+          child: const Text('Generate PDF'),
         ),
       ],
     );
@@ -875,7 +1881,11 @@ class _PaymentTab extends StatefulWidget {
   final TenderDetail detail;
   final TenderRepository repo;
   final VoidCallback onChanged;
-  const _PaymentTab({required this.detail, required this.repo, required this.onChanged});
+  const _PaymentTab({
+    required this.detail,
+    required this.repo,
+    required this.onChanged,
+  });
 
   @override
   State<_PaymentTab> createState() => _PaymentTabState();
@@ -894,7 +1904,8 @@ class _PaymentTabState extends State<_PaymentTab> {
   @override
   void initState() {
     super.initState();
-    final pm = widget.detail.raw['tender']?['payment_meta'] as Map<String, dynamic>?;
+    final pm =
+        widget.detail.raw['tender']?['payment_meta'] as Map<String, dynamic>?;
     if (pm != null) {
       _amount.text = pm['payment_amount']?.toString() ?? '';
       _voucherSerial.text = pm['voucher_serial']?.toString() ?? '';
@@ -907,24 +1918,26 @@ class _PaymentTabState extends State<_PaymentTab> {
 
   Future<void> _save({required bool close}) async {
     try {
-      await widget.repo.recordPayment(
-        widget.detail.summary.id,
-        {
-          'payment_method': _method,
-          if (_amount.text.isNotEmpty) 'payment_amount': double.tryParse(_amount.text),
-          if (_voucherSerial.text.isNotEmpty) 'voucher_serial': _voucherSerial.text,
-          if (_nkNumber.text.isNotEmpty) 'nk_number': _nkNumber.text,
-          if (_expenseHead.text.isNotEmpty) 'expense_head': _expenseHead.text,
-          if (_tnpassRef.text.isNotEmpty) 'tnpass_ref': _tnpassRef.text,
-          if (_soDate != null) 'so_proceedings_date': _soDate!.toIso8601String().substring(0, 10),
-          if (_voucherDate != null) 'voucher_date': _voucherDate!.toIso8601String().substring(0, 10),
-        },
-        close: close,
-      );
+      await widget.repo.recordPayment(widget.detail.summary.id, {
+        'payment_method': _method,
+        if (_amount.text.isNotEmpty)
+          'payment_amount': double.tryParse(_amount.text),
+        if (_voucherSerial.text.isNotEmpty)
+          'voucher_serial': _voucherSerial.text,
+        if (_nkNumber.text.isNotEmpty) 'nk_number': _nkNumber.text,
+        if (_expenseHead.text.isNotEmpty) 'expense_head': _expenseHead.text,
+        if (_tnpassRef.text.isNotEmpty) 'tnpass_ref': _tnpassRef.text,
+        if (_soDate != null)
+          'so_proceedings_date': _soDate!.toIso8601String().substring(0, 10),
+        if (_voucherDate != null)
+          'voucher_date': _voucherDate!.toIso8601String().substring(0, 10),
+      }, close: close);
       widget.onChanged();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -956,10 +1969,18 @@ class _PaymentTabState extends State<_PaymentTab> {
           ),
         TextField(
           controller: _voucherSerial,
-          decoration: const InputDecoration(labelText: 'Voucher serial (auto if blank)'),
+          decoration: const InputDecoration(
+            labelText: 'Voucher serial (auto if blank)',
+          ),
         ),
-        TextField(controller: _nkNumber, decoration: const InputDecoration(labelText: 'NK number')),
-        TextField(controller: _expenseHead, decoration: const InputDecoration(labelText: 'Expense head')),
+        TextField(
+          controller: _nkNumber,
+          decoration: const InputDecoration(labelText: 'NK number'),
+        ),
+        TextField(
+          controller: _expenseHead,
+          decoration: const InputDecoration(labelText: 'Expense head'),
+        ),
         ListTile(
           leading: const Icon(Icons.event),
           title: const Text('SO proceedings date'),
@@ -977,7 +1998,9 @@ class _PaymentTabState extends State<_PaymentTab> {
         ListTile(
           leading: const Icon(Icons.event_available),
           title: const Text('Voucher date'),
-          trailing: Text(_voucherDate?.toIso8601String().substring(0, 10) ?? '—'),
+          trailing: Text(
+            _voucherDate?.toIso8601String().substring(0, 10) ?? '—',
+          ),
           onTap: () async {
             final d = await showDatePicker(
               context: context,
@@ -989,10 +2012,14 @@ class _PaymentTabState extends State<_PaymentTab> {
           },
         ),
         const SizedBox(height: 16),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            FilledButton(onPressed: () => _save(close: false), child: const Text('Save')),
-            const SizedBox(width: 8),
+            FilledButton(
+              onPressed: () => _save(close: false),
+              child: const Text('Save'),
+            ),
             FilledButton.tonal(
               onPressed: () => _save(close: true),
               child: const Text('Save & close tender'),

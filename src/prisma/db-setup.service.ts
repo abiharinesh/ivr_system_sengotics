@@ -304,10 +304,28 @@ export class DbSetupService {
                 id SERIAL PRIMARY KEY,
                 tender_id INTEGER NOT NULL,
                 vendor_id INTEGER NOT NULL,
+                invite_token TEXT,
+                invite_expires_at TIMESTAMP(3),
+                invite_revoked_at TIMESTAMP(3),
+                invite_opened_at TIMESTAMP(3),
+                invite_submitted_at TIMESTAMP(3),
                 created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
         `)
         await execSafe(`CREATE UNIQUE INDEX IF NOT EXISTS tender_vendor_invites_tender_id_vendor_id_key ON tender_vendor_invites(tender_id, vendor_id);`)
+        await execSafe(`ALTER TABLE tender_vendor_invites ADD COLUMN IF NOT EXISTS invite_token TEXT;`)
+        await execSafe(`ALTER TABLE tender_vendor_invites ADD COLUMN IF NOT EXISTS invite_expires_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE tender_vendor_invites ADD COLUMN IF NOT EXISTS invite_revoked_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE tender_vendor_invites ADD COLUMN IF NOT EXISTS invite_opened_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE tender_vendor_invites ADD COLUMN IF NOT EXISTS invite_submitted_at TIMESTAMP(3);`)
+        await execSafe(`CREATE UNIQUE INDEX IF NOT EXISTS tender_vendor_invites_invite_token_key ON tender_vendor_invites(invite_token);`)
+        await execSafe(`CREATE INDEX IF NOT EXISTS tender_vendor_invites_invite_token_invite_revoked_at_idx ON tender_vendor_invites(invite_token, invite_revoked_at);`)
+        await execSafe(`CREATE EXTENSION IF NOT EXISTS pgcrypto;`)
+        await execSafe(`
+            UPDATE tender_vendor_invites
+            SET invite_token = encode(gen_random_bytes(24), 'hex')
+            WHERE invite_token IS NULL;
+        `)
 
         await execSafe(`
             CREATE TABLE IF NOT EXISTS tender_quotations (
@@ -379,6 +397,20 @@ export class DbSetupService {
         `)
         await execSafe(`CREATE INDEX IF NOT EXISTS field_verification_uploads_session_id_idx ON field_verification_uploads(session_id);`)
 
+        await execSafe(`ALTER TABLE field_verification_sessions ADD COLUMN IF NOT EXISTS label TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_lat DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_lng DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_address TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_raw_text TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_captured_at TIMESTAMP(3);`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_pole_number TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_keypad_id TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_matched_pole_id INTEGER;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS ocr_match_confidence TEXT NOT NULL DEFAULT 'skipped';`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS coord_source TEXT;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS matched_lat DOUBLE PRECISION;`)
+        await execSafe(`ALTER TABLE field_verification_uploads ADD COLUMN IF NOT EXISTS matched_lng DOUBLE PRECISION;`)
+
         await execSafe(`
             CREATE TABLE IF NOT EXISTS tender_field_checklist_items (
                 id SERIAL PRIMARY KEY,
@@ -405,6 +437,10 @@ export class DbSetupService {
             );
         `)
         await execSafe(`CREATE INDEX IF NOT EXISTS tender_audit_logs_tender_id_idx ON tender_audit_logs(tender_id);`)
+
+        await execSafe(
+            `ALTER TABLE panchayats ADD COLUMN IF NOT EXISTS document_template_settings JSONB;`,
+        )
 
         // Foreign keys
         await execSafe(`

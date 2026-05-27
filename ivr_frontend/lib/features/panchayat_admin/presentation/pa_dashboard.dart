@@ -486,24 +486,36 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                           ),
                         ),
                       Positioned(
-                        left: veryCompact ? 6 : null,
-                        right: veryCompact ? 6 : 16,
-                        bottom: veryCompact ? 6 : 14,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
+                        // On mobile the legend occupies the bottom-left, so
+                        // move the "assets tracked" pill to the top-right and
+                        // only anchor the right edge so it keeps its natural
+                        // width instead of stretching across the map.
+                        right: veryCompact ? 8 : 16,
+                        top: veryCompact ? 8 : null,
+                        bottom: veryCompact ? null : 14,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: (w - (veryCompact ? 16 : 32))
+                                .clamp(80.0, 220.0),
                           ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            '${widget.totalPoles} assets tracked',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.textSecondary,
-                              fontWeight: FontWeight.w600,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '${widget.totalPoles} assets tracked',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),

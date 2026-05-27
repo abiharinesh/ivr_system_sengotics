@@ -38,6 +38,8 @@ export interface TenderLineItemBody {
     description_en?: string
     quantity?: number | string
     unit?: string
+    /** Raw pole number or database id from the client (preferred). */
+    pole_ref?: string | number
     pole_id?: number
     complaint_id?: number
 }
@@ -51,6 +53,87 @@ export class TenderService {
     ) {}
 
     // ── helpers ──────────────────────────────────────────────────────────
+    private mintInviteToken() {
+        return randomBytes(24).toString('hex')
+    }
+
+    /** Mint missing per-vendor invite tokens (does not clear revocation). */
+    private async ensureInviteTokens(tx: PrismaTx, tenderId: number) {
+        const invites = await tx.tenderVendorInvite.findMany({
+            where: { tender_id: tenderId },
+            select: { id: true, invite_token: true },
+        })
+        for (const invite of invites) {
+            if (invite.invite_token) continue
+            await tx.tenderVendorInvite.update({
+                where: { id: invite.id },
+                data: { invite_token: this.mintInviteToken() },
+            })
+        }
+    }
+
+    /** Backfill tokens for tenders published before invite links were added. */
+    private async backfillInviteTokensIfNeeded(tenderId: number, status: string) {
+        if (status === 'draft') return
+        await this.prisma.$transaction(async (rawTx) => {
+            await this.ensureInviteTokens(rawTx as PrismaTx, tenderId)
+        })
+    }
+
+    private async resolvePoleId(
+        db: PrismaTx,
+        panchayatId: number,
+        ref?: string | number | null,
+    ): Promise<number | null> {
+        if (ref == null) return null
+        const refStr = String(ref).trim()
+        if (!refStr) return null
+
+        const byNumber = await db.electricPole.findFirst({
+            where: { panchayat_id: panchayatId, pole_number: refStr },
+        })
+        if (byNumber) return byNumber.id
+
+        const asInt = Number(refStr)
+        if (Number.isInteger(asInt) && asInt > 0 && String(asInt) === refStr) {
+            const byId = await db.electricPole.findFirst({
+                where: { id: asInt, panchayat_id: panchayatId },
+            })
+            if (byId) return byId.id
+        }
+
+        throw new BadRequestException(
+            `Pole "${refStr}" was not found in this panchayat. Use an existing pole number or database ID.`,
+        )
+    }
+
+    private async resolveComplaintId(
+        db: PrismaTx,
+        panchayatId: number,
+        complaintId?: number | null,
+    ): Promise<number | null> {
+        if (complaintId == null) return null
+        const complaint = await db.complaint.findFirst({
+            where: { id: complaintId, panchayat_id: panchayatId },
+        })
+        if (!complaint) {
+            throw new BadRequestException(
+                `Complaint #${complaintId} was not found in this panchayat.`,
+            )
+        }
+        return complaint.id
+    }
+
+    private async resolveLineItemRefs(
+        db: PrismaTx,
+        panchayatId: number,
+        body: TenderLineItemBody,
+    ): Promise<{ pole_id: number | null; complaint_id: number | null }> {
+        const poleRef = body.pole_ref ?? body.pole_id
+        const pole_id = await this.resolvePoleId(db, panchayatId, poleRef)
+        const complaint_id = await this.resolveComplaintId(db, panchayatId, body.complaint_id)
+        return { pole_id, complaint_id }
+    }
 
     private async loadOwned(panchayatId: number, tenderId: number) {
         const tender = await this.prisma.tender.findUnique({ where: { id: tenderId } })
@@ -82,8 +165,8 @@ export class TenderService {
 
     // ── tender CRUD ──────────────────────────────────────────────────────
 
-    list(panchayatId: number, opts: { status?: string } = {}) {
-        return this.prisma.tender.findMany({
+    async list(panchayatId: number, opts: { status?: string } = {}) {
+        const tenders = await this.prisma.tender.findMany({
             where: {
                 panchayat_id: panchayatId,
                 ...(opts.status && TENDER_STATUSES.includes(opts.status as TenderStatus)
@@ -96,10 +179,39 @@ export class TenderService {
                 awarded_quotation: { select: { id: true, vendor_id: true, submitter_name: true, amount: true } },
             },
         })
+
+        const fvIds = tenders.filter((t) => t.status === 'field_verification').map((t) => t.id)
+        const progressByTender = new Map<number, { done: number; total: number }>()
+        if (fvIds.length > 0) {
+            const rows = await this.prisma.tenderFieldChecklistItem.groupBy({
+                by: ['tender_id'],
+                where: { tender_id: { in: fvIds } },
+                _count: { _all: true },
+            })
+            const doneRows = await this.prisma.tenderFieldChecklistItem.groupBy({
+                by: ['tender_id'],
+                where: { tender_id: { in: fvIds }, is_done: true },
+                _count: { _all: true },
+            })
+            const doneMap = new Map(doneRows.map((r) => [r.tender_id, r._count._all]))
+            for (const row of rows) {
+                progressByTender.set(row.tender_id, {
+                    total: row._count._all,
+                    done: doneMap.get(row.tender_id) ?? 0,
+                })
+            }
+        }
+
+        return tenders.map((t) => ({
+            ...t,
+            verification_progress:
+                t.status === 'field_verification' ? progressByTender.get(t.id) ?? { done: 0, total: 0 } : null,
+        }))
     }
 
     async getDetail(panchayatId: number, tenderId: number) {
         const tender = await this.loadOwned(panchayatId, tenderId)
+        await this.backfillInviteTokensIfNeeded(tenderId, tender.status)
         const [lineItems, quotations, invites, documents, sessions] = await Promise.all([
             this.prisma.tenderLineItem.findMany({
                 where: { tender_id: tenderId },
@@ -122,6 +234,7 @@ export class TenderService {
             this.prisma.fieldVerificationSession.findMany({
                 where: { tender_id: tenderId },
                 orderBy: { id: 'desc' },
+                include: { _count: { select: { uploads: true } } },
             }),
         ])
         const timeline = await this.milestones.resolveForTender(tenderId)
@@ -160,6 +273,7 @@ export class TenderService {
             if (body.line_items?.length) {
                 let seq = 1
                 for (const li of body.line_items) {
+                    const refs = await this.resolveLineItemRefs(tx, panchayatId, li)
                     await tx.tenderLineItem.create({
                         data: {
                             tender_id: tender.id,
@@ -168,8 +282,8 @@ export class TenderService {
                             description_en: li.description_en?.trim() || null,
                             quantity: li.quantity != null ? String(li.quantity) : null,
                             unit: li.unit?.trim() || null,
-                            pole_id: li.pole_id ?? null,
-                            complaint_id: li.complaint_id ?? null,
+                            pole_id: refs.pole_id,
+                            complaint_id: refs.complaint_id,
                         },
                     })
                 }
@@ -183,11 +297,17 @@ export class TenderService {
                     }
                     await tx.tenderVendorInvite.upsert({
                         where: { tender_id_vendor_id: { tender_id: tender.id, vendor_id: vid } },
-                        create: { tender_id: tender.id, vendor_id: vid },
+                        create: {
+                            tender_id: tender.id,
+                            vendor_id: vid,
+                            invite_token: this.mintInviteToken(),
+                            invite_revoked_at: null,
+                        },
                         update: {},
                     })
                 }
             }
+            await this.ensureInviteTokens(tx, tender.id)
             return tender
         })
 
@@ -261,6 +381,7 @@ export class TenderService {
             where: { tender_id: tenderId },
             orderBy: { seq: 'desc' },
         })
+        const refs = await this.resolveLineItemRefs(this.prisma as unknown as PrismaTx, panchayatId, body)
         const created = await this.prisma.tenderLineItem.create({
             data: {
                 tender_id: tenderId,
@@ -269,8 +390,8 @@ export class TenderService {
                 description_en: body.description_en?.trim() || null,
                 quantity: body.quantity != null ? String(body.quantity) : null,
                 unit: body.unit?.trim() || null,
-                pole_id: body.pole_id ?? null,
-                complaint_id: body.complaint_id ?? null,
+                pole_id: refs.pole_id,
+                complaint_id: refs.complaint_id,
             },
         })
         await this.audit.record({ tenderId, actorUserId, event: 'line_item:add', payload: { line_item_id: created.id } })
@@ -287,8 +408,13 @@ export class TenderService {
         if (body.description_en !== undefined) data.description_en = body.description_en?.trim() || null
         if (body.quantity !== undefined) data.quantity = body.quantity != null ? String(body.quantity) : null
         if (body.unit !== undefined) data.unit = body.unit?.trim() || null
-        if (body.pole_id !== undefined) data.pole_id = body.pole_id ?? null
-        if (body.complaint_id !== undefined) data.complaint_id = body.complaint_id ?? null
+        const db = this.prisma as unknown as PrismaTx
+        if (body.pole_ref !== undefined || body.pole_id !== undefined) {
+            data.pole_id = await this.resolvePoleId(db, panchayatId, body.pole_ref ?? body.pole_id)
+        }
+        if (body.complaint_id !== undefined) {
+            data.complaint_id = await this.resolveComplaintId(db, panchayatId, body.complaint_id)
+        }
         const updated = await this.prisma.tenderLineItem.update({ where: { id: lineItemId }, data })
         await this.audit.record({ tenderId, actorUserId, event: 'line_item:update', payload: { line_item_id: lineItemId } })
         return updated
@@ -318,9 +444,21 @@ export class TenderService {
         await this.prisma.$transaction([
             this.prisma.tenderVendorInvite.deleteMany({ where: { tender_id: tenderId } }),
             ...ids.map((vid) =>
-                this.prisma.tenderVendorInvite.create({ data: { tender_id: tenderId, vendor_id: vid } }),
+                this.prisma.tenderVendorInvite.create({
+                    data: {
+                        tender_id: tenderId,
+                        vendor_id: vid,
+                        invite_token: this.mintInviteToken(),
+                        invite_revoked_at: null,
+                        invite_opened_at: null,
+                        invite_submitted_at: null,
+                    },
+                }),
             ),
         ])
+        if (t.status !== 'draft') {
+            await this.backfillInviteTokensIfNeeded(tenderId, t.status)
+        }
         await this.audit.record({ tenderId, actorUserId, event: 'invites:set', payload: { vendor_ids: ids } })
         return this.prisma.tenderVendorInvite.findMany({
             where: { tender_id: tenderId },
@@ -344,22 +482,35 @@ export class TenderService {
             }
         }
         const token = randomBytes(24).toString('hex')
-        const updated = await this.prisma.tender.update({
-            where: { id: tenderId },
-            data: {
-                status: 'published',
-                public_token: token,
-                anchor_date: t.anchor_date ?? new Date(),
-            },
+        const updated = await this.prisma.$transaction(async (rawTx) => {
+            const tx = rawTx as PrismaTx
+            const out = await tx.tender.update({
+                where: { id: tenderId },
+                data: {
+                    status: 'published',
+                    public_token: token,
+                    anchor_date: t.anchor_date ?? new Date(),
+                },
+            })
+            await this.ensureInviteTokens(tx, tenderId)
+            await tx.tenderVendorInvite.updateMany({
+                where: { tender_id: tenderId, invite_revoked_at: { not: null } },
+                data: { invite_revoked_at: null },
+            })
+            return out
         })
         await this.audit.record({ tenderId, actorUserId, event: 'published', payload: { token_set: true } })
         return updated
     }
 
-    closeQuotations(panchayatId: number, tenderId: number, actorUserId: number) {
-        return this.loadOwned(panchayatId, tenderId).then(() =>
-            this.setStatus(tenderId, 'quotations_closed', actorUserId),
-        )
+    async closeQuotations(panchayatId: number, tenderId: number, actorUserId: number) {
+        await this.loadOwned(panchayatId, tenderId)
+        await this.setStatus(tenderId, 'quotations_closed', actorUserId)
+        await this.prisma.tenderVendorInvite.updateMany({
+            where: { tender_id: tenderId, invite_revoked_at: null },
+            data: { invite_revoked_at: new Date() },
+        })
+        return this.prisma.tender.findUniqueOrThrow({ where: { id: tenderId } })
     }
 
     async award(panchayatId: number, tenderId: number, actorUserId: number, quotationId: number) {
@@ -443,6 +594,12 @@ export class TenderService {
             data.public_token = null
         }
         const updated = await this.prisma.tender.update({ where: { id: tenderId }, data })
+        if (body.close) {
+            await this.prisma.tenderVendorInvite.updateMany({
+                where: { tender_id: tenderId, invite_revoked_at: null },
+                data: { invite_revoked_at: new Date() },
+            })
+        }
         await this.audit.record({
             tenderId,
             actorUserId,

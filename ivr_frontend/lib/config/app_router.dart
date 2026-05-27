@@ -16,6 +16,7 @@ import '../features/super_admin/presentation/panchayat_management.dart';
 import '../features/super_admin/presentation/user_management.dart';
 import '../features/super_admin/presentation/complaint_management.dart';
 import '../features/super_admin/presentation/ai_settings_screen.dart';
+import '../features/document_templates/presentation/document_templates_settings_screen.dart';
 import '../features/super_admin/presentation/voice_calls_screen.dart';
 import '../features/super_admin/presentation/ivr_logs_screen.dart';
 import '../features/super_admin/presentation/analytics_screen.dart';
@@ -44,6 +45,7 @@ import '../features/tenders/presentation/tender_create_screen.dart';
 import '../features/tenders/presentation/tender_detail_screen.dart';
 import '../features/tenders/presentation/vendor_directory_screen.dart';
 import '../features/tenders/presentation/public_tender_screen.dart';
+import '../features/tenders/presentation/invite_tender_screen.dart';
 import '../features/tenders/presentation/public_field_upload_screen.dart';
 
 import '../core/widgets/app_scaffold.dart';
@@ -91,9 +93,22 @@ GoRouter createRouter(AuthBloc authBloc) {
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       // Public seller and field-staff routes (no auth shell).
       GoRoute(
-        path: '/public/tenders/:token',
+        path: '/public/open/:token',
         builder: (context, state) =>
             PublicTenderScreen(token: state.pathParameters['token']!),
+      ),
+      GoRoute(
+        path: '/public/invite/:token',
+        builder: (context, state) =>
+            InviteTenderScreen(token: state.pathParameters['token']!),
+      ),
+      // Backward-compatible legacy route.
+      GoRoute(
+        path: '/public/tenders/:token',
+        builder: (context, state) => PublicTenderScreen(
+          token: state.pathParameters['token']!,
+          useLegacyEndpoint: true,
+        ),
       ),
       GoRoute(
         path: '/public/field/:token',
@@ -250,6 +265,15 @@ GoRouter createRouter(AuthBloc authBloc) {
                   child: const AiSettingsScreen(),
                 ),
           ),
+          GoRoute(
+            path: '/settings/document-templates',
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin =
+                  authState is Authenticated && authState.user.isSuperAdmin;
+              return DocumentTemplatesSettingsScreen(isSuperAdmin: isSuperAdmin);
+            },
+          ),
 
           // Voice & IVR
           GoRoute(
@@ -350,6 +374,8 @@ String _getTitle(String location) {
       return 'Field agents';
     case '/ai-settings':
       return 'AI Settings';
+    case '/settings/document-templates':
+      return 'Document templates';
     case '/poles':
       return 'Pole Management';
 	case '/pole-management':

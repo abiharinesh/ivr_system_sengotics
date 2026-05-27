@@ -20,10 +20,10 @@ function getKeyFromRoot() {
   return match ? match[1].trim() : null;
 }
 
-function getFlutterApiBaseFromRoot() {
+function getRootVar(name) {
   if (!fs.existsSync(rootEnv)) return null;
   const content = fs.readFileSync(rootEnv, 'utf8');
-  const match = content.match(/^\s*FLUTTER_API_BASE_URL\s*=\s*(.+)\s*$/m);
+  const match = content.match(new RegExp(`^\\s*${name}\\s*=\\s*(.+)\\s*$`, 'm'));
   return match ? match[1].trim() : null;
 }
 
@@ -37,18 +37,25 @@ function getApiBaseFromFrontend() {
 const key = process.env.GOOGLE_MAPS_API_KEY || getKeyFromRoot();
 const apiBase =
   process.env.FLUTTER_API_BASE_URL ||
-  getFlutterApiBaseFromRoot() ||
+  getRootVar('FLUTTER_API_BASE_URL') ||
   getApiBaseFromFrontend();
+const webAppBase = process.env.FLUTTER_WEB_APP_BASE_URL || getRootVar('FLUTTER_WEB_APP_BASE_URL');
 
 if (key) {
   let out = `# Auto-synced from root .env – edit ivr_system_sengotics/.env only\nGOOGLE_MAPS_API_KEY=${key}\n`;
   if (apiBase) {
     out += `API_BASE_URL=${apiBase}\n`;
   }
+  if (webAppBase) {
+    out += `WEB_APP_BASE_URL=${webAppBase}\n`;
+  }
   fs.writeFileSync(frontendEnv, out);
   console.log('Synced GOOGLE_MAPS_API_KEY to ivr_frontend/.env');
   if (apiBase) {
     console.log('Kept or set API_BASE_URL in ivr_frontend/.env (from FLUTTER_API_BASE_URL / existing file)');
+  }
+  if (webAppBase) {
+    console.log('Set WEB_APP_BASE_URL in ivr_frontend/.env (from FLUTTER_WEB_APP_BASE_URL)');
   }
 } else {
   console.warn('GOOGLE_MAPS_API_KEY not found in root .env or env; ivr_frontend/.env unchanged.');

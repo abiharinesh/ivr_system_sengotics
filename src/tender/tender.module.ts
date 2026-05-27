@@ -11,10 +11,14 @@ import { TenderPdfService } from './pdf/pdf.service'
 import { TenderPdfController } from './pdf/pdf.controller'
 import { TenderPdfPublicController } from './pdf/pdf.public.controller'
 import { TenderShareTokenService } from './pdf/share-token.service'
+import { DocumentTemplateSettingsService } from './pdf/document-template-settings.service'
+import { PanchayatDocumentTemplateSettingsController } from './pdf/document-template-settings.controller'
 import { TenderPublicController } from './public.controller'
+import { TenderPublicLinksController } from './public-links.controller'
 import { TenderPublicService } from './public.service'
 import { FieldVerificationController } from './field-verification.controller'
 import { FieldVerificationService } from './field-verification.service'
+import { FieldOverlayOcrService } from './field-overlay-ocr.service'
 import { FieldVerificationPublicController } from './field-verification.public.controller'
 
 @Module({
@@ -24,8 +28,10 @@ import { FieldVerificationPublicController } from './field-verification.public.c
         TenderPdfController,
         TenderPdfPublicController,
         TenderPublicController,
+        TenderPublicLinksController,
         FieldVerificationController,
         FieldVerificationPublicController,
+        PanchayatDocumentTemplateSettingsController,
     ],
     providers: [
         TenderService,
@@ -34,9 +40,17 @@ import { FieldVerificationPublicController } from './field-verification.public.c
         TenderAuditService,
         TenderPdfService,
         TenderShareTokenService,
+        DocumentTemplateSettingsService,
         TenderPublicService,
         FieldVerificationService,
+        FieldOverlayOcrService,
     ],
-    exports: [TenderService, VendorService, MilestoneService, TenderAuditService],
+    exports: [
+        TenderService,
+        VendorService,
+        MilestoneService,
+        TenderAuditService,
+        DocumentTemplateSettingsService,
+    ],
 })
 export class TenderModule {}

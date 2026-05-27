@@ -32,3 +32,10 @@ class ServerException extends ApiException {
   ServerException([String? message])
     : super(message ?? 'Server error', statusCode: 500);
 }
+
+String userFacingMessage(Object error) {
+  if (error is ApiException) {
+    return error.message;
+  }
+  return error.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+}

@@ -29,6 +29,23 @@ interface AuthenticatedRequest {
     user: { id: number; email: string; role: string; panchayat_id: number | null }
 }
 
+function slugify(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+}
+
+function formatStamp(d: Date): string {
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    return `${yyyy}${mm}${dd}_${hh}${mi}`
+}
+
 function resolveOrigin(req: Request): string {
     const xfProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim()
     const xfHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim()
@@ -84,6 +101,21 @@ export class TenderPdfController {
         return this.service.list(this.getPanchayatId(req), id)
     }
 
+    @Get(':id/documents/:docId/preview')
+    async preview(
+        @Req() req: AuthenticatedRequest,
+        @Res() res: Response,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number
+    ) {
+        const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
+        const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+        const bytes = await this.service.readDocumentBytes(storagePath)
+        res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+        res.setHeader('Content-Disposition', ext === 'html' ? 'inline' : 'inline; filename="preview.pdf"')
+        res.send(bytes)
+    }
+
     @Get(':id/documents/:docId/download')
     async download(
         @Req() req: AuthenticatedRequest,
@@ -91,9 +123,63 @@ export class TenderPdfController {
         @Param('id', ParseIntPipe) id: number,
         @Param('docId', ParseIntPipe) docId: number
     ) {
-        const abs = await this.service.getDownloadAbsolutePath(this.getPanchayatId(req), id, docId)
-        const filename = abs.split(/[\\/]/).pop() ?? 'tender-doc'
-        res.download(abs, filename)
+        const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
+        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
+        const tender = await this.prisma.tender.findUnique({
+            where: { id },
+            include: { panchayat: { select: { name: true } } },
+        })
+        const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+        const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat')
+        const template = slugify(doc?.template_id ?? 'document')
+        const version = doc?.version ?? 1
+        const stamp = formatStamp((doc?.generated_at ?? new Date()))
+        const filename = `${panchayat}-${id}-${template}-v${version}-${stamp}.${ext}`
+        const bytes = await this.service.readDocumentBytes(storagePath)
+        res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+        res.send(bytes)
+    }
+
+    @Get(':id/documents/:docId/canvas')
+    getCanvasState(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number
+    ) {
+        return this.service.getCanvasState(this.getPanchayatId(req), id, docId)
+    }
+
+    @Post(':id/documents/:docId/canvas')
+    saveCanvasState(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { layers?: Array<Record<string, unknown>> } = {}
+    ) {
+        return this.service.saveCanvasState({
+            panchayatId: this.getPanchayatId(req),
+            tenderId: id,
+            docId,
+            layers: body.layers ?? [],
+            actorUserId: req.user.id,
+        })
+    }
+
+    @Post(':id/documents/:docId/canvas/merge')
+    async mergeCanvasState(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { layers?: Array<Record<string, unknown>> } = {}
+    ) {
+        return this.service.mergeCanvasState({
+            panchayatId: this.getPanchayatId(req),
+            tenderId: id,
+            docId,
+            layers: body.layers ?? [],
+            actorUserId: req.user.id,
+        })
     }
 
     @Get(':id/documents.zip')
@@ -103,8 +189,15 @@ export class TenderPdfController {
         @Param('id', ParseIntPipe) id: number
     ) {
         const pid = this.getPanchayatId(req)
+        const tender = await this.prisma.tender.findUnique({
+            where: { id },
+            include: { panchayat: { select: { name: true } } },
+        })
+        const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat')
+        const stamp = formatStamp(new Date())
+        const zipName = `${panchayat}-${id}-documents-${stamp}.zip`
         res.setHeader('Content-Type', 'application/zip')
-        res.setHeader('Content-Disposition', `attachment; filename="tender-${id}-bundle.zip"`)
+        res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`)
         await this.service.streamLatestZip(pid, id, res)
     }
 
@@ -119,7 +212,7 @@ export class TenderPdfController {
 
         // Verify ownership + readiness via the existing checked path resolver
         // (it throws Not Found / Forbidden / BadRequest in the right places).
-        await this.service.getDownloadAbsolutePath(panchayatId, id, docId)
+        await this.service.getDownloadStoragePath(panchayatId, id, docId)
 
         const ttl = this.clampTtl(body?.ttl_minutes)
         const { token, expiresAt } = this.shareTokens.sign(

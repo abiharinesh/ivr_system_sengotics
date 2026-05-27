@@ -34,7 +34,7 @@ export class FieldVerificationController {
     createSession(
         @Req() req: AuthenticatedRequest,
         @Param('id', ParseIntPipe) id: number,
-        @Body() body: { pole_subset_ids?: number[]; expires_in_days?: number }
+        @Body() body: { label?: string | null; pole_subset_ids?: number[]; expires_in_days?: number }
     ) {
         return this.service.createSession(this.getPanchayatId(req), id, req.user.id, body ?? {})
     }
@@ -62,6 +62,22 @@ export class FieldVerificationController {
             itemId,
             req.user.id,
             body ?? {},
+        )
+    }
+
+    @Post(':id/verification-uploads/:uploadId/assign')
+    assignUpload(
+        @Req() req: AuthenticatedRequest,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('uploadId', ParseIntPipe) uploadId: number,
+        @Body() body: { pole_id: number; approve?: boolean },
+    ) {
+        return this.service.assignUpload(
+            this.getPanchayatId(req),
+            id,
+            uploadId,
+            req.user.id,
+            body ?? { pole_id: 0 },
         )
     }
 

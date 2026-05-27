@@ -70,6 +70,23 @@ class ApiClient {
     }
   }
 
+  /// POST expecting HTML body (template preview).
+  Future<String> postHtml(String path, {dynamic data}) async {
+    try {
+      final response = await _dio.post<String>(
+        path,
+        data: data,
+        options: Options(
+          responseType: ResponseType.plain,
+          receiveTimeout: const Duration(seconds: 60),
+        ),
+      );
+      return response.data ?? '';
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
   // PUT
   Future<dynamic> put(String path, {dynamic data}) async {
     try {

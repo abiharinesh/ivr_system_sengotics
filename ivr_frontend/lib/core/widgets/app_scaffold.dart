@@ -5,6 +5,7 @@ import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
 import '../../features/super_admin/data/super_admin_repository.dart';
 import '../../models/dashboard_insights_model.dart';
 import '../../models/pole_model.dart';
+import 'nav_guard.dart';
 import 'pole_picker_dialog.dart';
 
 class AppScaffold extends StatefulWidget {
@@ -414,7 +415,12 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
     return const [
       _NavSpec(icon: Icons.insights_rounded, label: 'Analytics', route: '/analytics'),
-      _NavSpec(icon: Icons.settings_rounded, label: 'Settings', route: '/ai-settings'),
+      _NavSpec(
+        icon: Icons.description_outlined,
+        label: 'Document templates',
+        route: '/settings/document-templates',
+      ),
+      _NavSpec(icon: Icons.settings_rounded, label: 'AI Settings', route: '/ai-settings'),
     ];
   }
 
@@ -426,6 +432,7 @@ class _AppScaffoldState extends State<AppScaffold> {
               label: s.label,
               route: s.route,
               isActive: s.route != null && s.route == active,
+              currentRoute: widget.currentRoute,
             ))
         .toList();
   }
@@ -438,6 +445,7 @@ class _AppScaffoldState extends State<AppScaffold> {
               label: s.label,
               route: s.route,
               isActive: s.route != null && s.route == active,
+              currentRoute: widget.currentRoute,
             ))
         .toList();
   }
@@ -921,12 +929,14 @@ class _NavItem extends StatelessWidget {
   final String label;
   final String? route;
   final bool isActive;
+  final String currentRoute;
 
   const _NavItem({
     required this.icon,
     required this.label,
     required this.route,
     required this.isActive,
+    required this.currentRoute,
   });
 
   bool get isEnabled => route != null;
@@ -940,16 +950,26 @@ class _NavItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
-          onTap: () {
+          onTap: () async {
             if (!isEnabled) {
               return;
             }
-            if (!isActive) {
+            // Tapping the sidebar always returns to that section's root.
+            // No-op only when already on the exact root route.
+            if (currentRoute == route) {
               if (Scaffold.of(context).isDrawerOpen) {
                 Navigator.of(context).pop();
               }
-              context.go(route!);
+              return;
             }
+            // Prompt the user to confirm leaving if any screen has unsaved work.
+            final canLeave = await NavGuard.instance.confirmLeave(context);
+            if (!canLeave) return;
+            if (!context.mounted) return;
+            if (Scaffold.of(context).isDrawerOpen) {
+              Navigator.of(context).pop();
+            }
+            context.go(route!);
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),

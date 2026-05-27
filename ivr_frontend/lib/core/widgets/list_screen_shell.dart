@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
+import 'app_card.dart';
 
 class ListScreenShell extends StatelessWidget {
   final String title;
@@ -29,15 +30,9 @@ class ListScreenShell extends StatelessWidget {
         final innerPad = isMobile ? 12.0 : 18.0;
         return Column(
           children: [
-            Container(
+            AppCard(
               margin: EdgeInsets.fromLTRB(hMargin, 20, hMargin, 12),
               padding: EdgeInsets.all(innerPad),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.stroke),
-                boxShadow: AppTheme.softShadow,
-              ),
               child: Column(
                 crossAxisAlignment:
                     isNarrow ? CrossAxisAlignment.start : CrossAxisAlignment.stretch,
@@ -81,11 +76,7 @@ class ListScreenShell extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
         ),
         const SizedBox(height: 4),
         Text(
