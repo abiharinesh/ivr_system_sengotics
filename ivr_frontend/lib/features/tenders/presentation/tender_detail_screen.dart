@@ -3,6 +3,7 @@ import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:intl/intl.dart';
 import 'dart:typed_data';
 import 'dart:async';
+import 'dart:convert';
 
 import '../../../config/api_config.dart';
 import '../../../core/api/api_exceptions.dart';
@@ -1311,7 +1312,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     // If the preview is already HTML we have the bytes in memory
     if (widget.isHtml) {
       setState(() {
-        _htmlContent = String.fromCharCodes(widget.bytes);
+        _htmlContent = utf8.decode(widget.bytes);
         _editing = true;
       });
       return;
@@ -1447,7 +1448,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
     // Preview mode
     if (widget.isHtml) {
-      return HtmlPreviewSurface(html: String.fromCharCodes(widget.bytes));
+      return HtmlPreviewSurface(html: utf8.decode(widget.bytes));
     }
     return PdfPreviewSurface(bytes: widget.bytes);
   }
