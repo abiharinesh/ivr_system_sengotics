@@ -9,7 +9,11 @@ import { Logger } from '@nestjs/common'
  */
 const logger = new Logger('TenderPdfRenderer')
 let cachedBrowserPromise: Promise<any> | null = null
-const gotenbergBaseUrl = (process.env.GOTENBERG_URL ?? '').trim().replace(/\/+$/, '')
+
+// Read lazily so that the env var set on Vercel is always picked up at call time.
+function getGotenbergBaseUrl(): string {
+    return (process.env.GOTENBERG_URL ?? '').trim().replace(/\/+$/, '')
+}
 
 function isVercelRuntime(): boolean {
     return Boolean(process.env.VERCEL) || process.env.AWS_LAMBDA_FUNCTION_NAME != null
@@ -34,7 +38,11 @@ async function loadPuppeteer(): Promise<any | null> {
 }
 
 async function renderWithGotenberg(html: string): Promise<Buffer | null> {
-    if (!gotenbergBaseUrl) return null
+    const gotenbergBaseUrl = getGotenbergBaseUrl()
+    if (!gotenbergBaseUrl) {
+        logger.warn('GOTENBERG_URL is not set — skipping Gotenberg PDF render')
+        return null
+    }
     const FormCtor: any = (globalThis as any).FormData
     const BlobCtor: any = (globalThis as any).Blob
     if (!FormCtor || !BlobCtor || typeof fetch !== 'function') {
@@ -44,6 +52,7 @@ async function renderWithGotenberg(html: string): Promise<Buffer | null> {
     const controller = new AbortController()
     const timeoutMs = Number(process.env.GOTENBERG_TIMEOUT_MS ?? 45_000)
     const timeout = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 45_000)
+    logger.log(`Sending PDF render request to Gotenberg: ${gotenbergBaseUrl}`)
     try {
         const form = new FormCtor()
         form.append('files', new BlobCtor([html], { type: 'text/html' }), 'index.html')
@@ -58,9 +67,11 @@ async function renderWithGotenberg(html: string): Promise<Buffer | null> {
             signal: controller.signal,
         })
         if (!res.ok) {
-            logger.warn(`Gotenberg render failed: HTTP ${res.status}`)
+            const body = await res.text().catch(() => '')
+            logger.warn(`Gotenberg render failed: HTTP ${res.status} — ${body.slice(0, 300)}`)
             return null
         }
+        logger.log('Gotenberg PDF render succeeded')
         const bytes = await res.arrayBuffer()
         return Buffer.from(bytes)
     } catch (err: any) {
