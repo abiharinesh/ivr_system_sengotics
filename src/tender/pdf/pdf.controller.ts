@@ -108,12 +108,22 @@ export class TenderPdfController {
         @Param('id', ParseIntPipe) id: number,
         @Param('docId', ParseIntPipe) docId: number
     ) {
-        const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
-        const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
-        const bytes = await this.service.readDocumentBytes(storagePath)
-        res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
-        res.setHeader('Content-Disposition', ext === 'html' ? 'inline' : 'inline; filename="preview.pdf"')
-        res.send(bytes)
+        try {
+            const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
+            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+            const bytes = await this.service.readDocumentBytes(storagePath)
+            res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+            res.setHeader('Content-Disposition', ext === 'html' ? 'inline' : 'inline; filename="preview.pdf"')
+            res.send(bytes)
+        } catch (err: any) {
+            if (!res.headersSent) {
+                res.status(err?.status ?? 500).json({
+                    error: 'Document preview failed',
+                    message: err?.message ?? 'Unknown error',
+                    hint: 'Try regenerating the document. If this persists, check that SUPABASE_SERVICE_ROLE_KEY and GOTENBERG_URL are set in environment variables.',
+                })
+            }
+        }
     }
 
     @Get(':id/documents/:docId/download')
@@ -123,22 +133,32 @@ export class TenderPdfController {
         @Param('id', ParseIntPipe) id: number,
         @Param('docId', ParseIntPipe) docId: number
     ) {
-        const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
-        const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
-        const tender = await this.prisma.tender.findUnique({
-            where: { id },
-            include: { panchayat: { select: { name: true } } },
-        })
-        const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
-        const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat')
-        const template = slugify(doc?.template_id ?? 'document')
-        const version = doc?.version ?? 1
-        const stamp = formatStamp((doc?.generated_at ?? new Date()))
-        const filename = `${panchayat}-${id}-${template}-v${version}-${stamp}.${ext}`
-        const bytes = await this.service.readDocumentBytes(storagePath)
-        res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
-        res.send(bytes)
+        try {
+            const storagePath = await this.service.getDownloadStoragePath(this.getPanchayatId(req), id, docId)
+            const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
+            const tender = await this.prisma.tender.findUnique({
+                where: { id },
+                include: { panchayat: { select: { name: true } } },
+            })
+            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+            const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat')
+            const template = slugify(doc?.template_id ?? 'document')
+            const version = doc?.version ?? 1
+            const stamp = formatStamp((doc?.generated_at ?? new Date()))
+            const filename = `${panchayat}-${id}-${template}-v${version}-${stamp}.${ext}`
+            const bytes = await this.service.readDocumentBytes(storagePath)
+            res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+            res.send(bytes)
+        } catch (err: any) {
+            if (!res.headersSent) {
+                res.status(err?.status ?? 500).json({
+                    error: 'Document download failed',
+                    message: err?.message ?? 'Unknown error',
+                    hint: 'Try regenerating the document. If this persists, check that SUPABASE_SERVICE_ROLE_KEY and GOTENBERG_URL are set in environment variables.',
+                })
+            }
+        }
     }
 
     @Get(':id/documents/:docId/canvas')

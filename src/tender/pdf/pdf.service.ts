@@ -294,16 +294,18 @@ export class TenderPdfService {
         const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
         const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
 
-        // Keep an HTML artifact for debugging / inspection only.
+        // Always persist the HTML artifact (serves as fallback if PDF fails).
         const htmlStoragePath = this.buildStoragePath(subdir, `${baseName}.html`)
         await this.documentStorage.writeUtf8(htmlStoragePath, html)
 
-        // PDF is mandatory for document readiness.
+        // Attempt PDF generation — fall back to HTML if unavailable.
         const pdfBuf = await renderHtmlToPdfBuffer(html)
         if (!pdfBuf) {
-            throw new Error(
-                'PDF generation engine unavailable. Configure GOTENBERG_URL (recommended) or install a compatible local renderer.'
+            this.logger.warn(
+                `PDF generation engine unavailable for doc ${doc.id}. Falling back to HTML. ` +
+                `Configure GOTENBERG_URL or install a compatible local renderer for PDF output.`
             )
+            return htmlStoragePath
         }
         const pdfStoragePath = this.buildStoragePath(subdir, `${baseName}.pdf`)
         await this.documentStorage.writeBuffer(pdfStoragePath, pdfBuf, 'application/pdf')
@@ -322,18 +324,41 @@ export class TenderPdfService {
         if (!doc.storage_path) throw new BadRequestException('Document not ready')
         if (await this.documentStorage.exists(doc.storage_path)) return doc.storage_path
 
-        // If the artifact is missing (e.g. manual cleanup), regenerate deterministically on demand.
-        const storagePath = await this.renderAndPersistArtifacts(doc)
-        await this.prisma.tenderDocument.update({
-            where: { id: doc.id },
-            data: {
-                status: 'ready',
-                storage_path: storagePath,
-                generated_at: new Date(),
-                error_message: null,
-            },
-        })
-        return storagePath
+        // Check if an HTML fallback exists when the PDF is missing (common on
+        // Vercel where /tmp is ephemeral and Supabase storage might not be set up).
+        if (doc.storage_path.toLowerCase().endsWith('.pdf')) {
+            const htmlFallback = doc.storage_path.replace(/\.pdf$/i, '.html')
+            if (await this.documentStorage.exists(htmlFallback)) {
+                this.logger.warn(`PDF missing for doc ${doc.id}, serving HTML fallback`)
+                await this.prisma.tenderDocument.update({
+                    where: { id: doc.id },
+                    data: { storage_path: htmlFallback },
+                })
+                return htmlFallback
+            }
+        }
+
+        // If the artifact is missing (e.g. manual cleanup or ephemeral /tmp),
+        // regenerate deterministically on demand.
+        this.logger.log(`Re-generating artifact for doc ${doc.id} (storage_path missing from disk/bucket)`)
+        try {
+            const storagePath = await this.renderAndPersistArtifacts(doc)
+            await this.prisma.tenderDocument.update({
+                where: { id: doc.id },
+                data: {
+                    status: 'ready',
+                    storage_path: storagePath,
+                    generated_at: new Date(),
+                    error_message: null,
+                },
+            })
+            return storagePath
+        } catch (err: any) {
+            this.logger.error(`Re-generation failed for doc ${doc.id}: ${err?.message ?? err}`)
+            throw new BadRequestException(
+                'Document file is temporarily unavailable. Please try regenerating it.'
+            )
+        }
     }
 
     /**

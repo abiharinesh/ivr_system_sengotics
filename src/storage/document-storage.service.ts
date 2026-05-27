@@ -108,6 +108,20 @@ export class DocumentStorageService {
                 `Remote read failed for ${key}, trying local disk: ${error?.message ?? 'unknown error'}`
             )
         }
-        return fs.readFile(this.localAbsolutePath(storagePath))
+        try {
+            return await fs.readFile(this.localAbsolutePath(storagePath))
+        } catch (localErr: any) {
+            const reason = this.remoteEnabled
+                ? `Remote storage returned an error and local file also missing`
+                : `Remote storage not configured (${this.localFallbackReason()}) and local file missing`
+            this.logger.error(
+                `${reason} for ${storagePath}: ${localErr?.message ?? localErr}. ` +
+                `On Vercel, /tmp is ephemeral; configure SUPABASE_SERVICE_ROLE_KEY for persistent storage.`
+            )
+            throw new Error(
+                `Document file not found: ${storagePath}. ${reason}. ` +
+                `Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are set in Vercel environment variables.`
+            )
+        }
     }
 }
