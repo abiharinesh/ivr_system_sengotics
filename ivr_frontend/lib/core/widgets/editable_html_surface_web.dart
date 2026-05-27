@@ -1,6 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
 import 'dart:html' as html;
+import 'dart:js' as js;
 import 'dart:ui_web' as ui_web;
 
 import 'package:flutter/widgets.dart';
@@ -13,7 +14,10 @@ class EditableHtmlController {
   /// Returns the current edited HTML string, or null if the iframe is not ready.
   String? getEditedHtml() {
     try {
-      final doc = _iframe?.contentDocument;
+      final iframe = _iframe;
+      if (iframe == null) return null;
+      final jsIframe = js.JsObject.fromBrowserObject(iframe);
+      final doc = jsIframe['contentDocument'] as html.HtmlDocument?;
       if (doc == null) return null;
       // Turn off designMode before reading so the output is clean
       doc.execCommand('styleWithCSS', false, 'false');
