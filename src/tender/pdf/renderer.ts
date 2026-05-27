@@ -1,11 +1,14 @@
 import { Logger } from '@nestjs/common'
+import * as https from 'https'
+import * as http from 'http'
+import FormData from 'form-data'
 
 /**
  * Pluggable HTML -> PDF renderer.
  *
  * - Local / Docker: full `puppeteer` + downloaded Chrome (see scripts or
  *   `npx puppeteer browsers install chrome` if .npmrc skips download).
- * - Vercel serverless: `puppeteer-core` + `@sparticuz/chromium`.
+ * - Vercel serverless: Gotenberg (external service) via `form-data` npm pkg.
  */
 const logger = new Logger('TenderPdfRenderer')
 let cachedBrowserPromise: Promise<any> | null = null
@@ -37,48 +40,75 @@ async function loadPuppeteer(): Promise<any | null> {
     return dynamicImport('puppeteer-core')
 }
 
+/**
+ * Send an HTML string to Gotenberg using Node's native http/https + form-data npm package.
+ * This avoids relying on browser globals (FormData, Blob, fetch) that may not
+ * be available in all Node.js versions on Vercel serverless.
+ */
+function postToGotenberg(url: string, form: FormData, timeoutMs: number): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const parsed = new URL(url)
+        const transport = parsed.protocol === 'https:' ? https : http
+        const headers = form.getHeaders()
+
+        const req = transport.request(
+            {
+                hostname: parsed.hostname,
+                port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+                path: parsed.pathname + parsed.search,
+                method: 'POST',
+                headers,
+            },
+            (res) => {
+                const chunks: Buffer[] = []
+                res.on('data', (chunk: Buffer) => chunks.push(chunk))
+                res.on('end', () => {
+                    const body = Buffer.concat(chunks)
+                    if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+                        resolve(body)
+                    } else {
+                        reject(new Error(`Gotenberg HTTP ${res.statusCode}: ${body.toString('utf8').slice(0, 300)}`))
+                    }
+                })
+                res.on('error', reject)
+            }
+        )
+
+        req.setTimeout(timeoutMs, () => {
+            req.destroy(new Error(`Gotenberg request timed out after ${timeoutMs}ms`))
+        })
+
+        req.on('error', reject)
+        form.pipe(req)
+    })
+}
+
 async function renderWithGotenberg(html: string): Promise<Buffer | null> {
     const gotenbergBaseUrl = getGotenbergBaseUrl()
     if (!gotenbergBaseUrl) {
         logger.warn('GOTENBERG_URL is not set — skipping Gotenberg PDF render')
         return null
     }
-    const FormCtor: any = (globalThis as any).FormData
-    const BlobCtor: any = (globalThis as any).Blob
-    if (!FormCtor || !BlobCtor || typeof fetch !== 'function') {
-        logger.warn('Gotenberg configured, but FormData/Blob/fetch are unavailable in this runtime')
-        return null
-    }
-    const controller = new AbortController()
     const timeoutMs = Number(process.env.GOTENBERG_TIMEOUT_MS ?? 45_000)
-    const timeout = setTimeout(() => controller.abort(), Number.isFinite(timeoutMs) ? timeoutMs : 45_000)
-    logger.log(`Sending PDF render request to Gotenberg: ${gotenbergBaseUrl}`)
+    const endpoint = `${gotenbergBaseUrl}/forms/chromium/convert/html`
+    logger.log(`Sending PDF render request to Gotenberg: ${endpoint}`)
     try {
-        const form = new FormCtor()
-        form.append('files', new BlobCtor([html], { type: 'text/html' }), 'index.html')
+        const form = new FormData()
+        form.append('files', Buffer.from(html, 'utf8'), {
+            filename: 'index.html',
+            contentType: 'text/html',
+        })
         form.append('printBackground', 'true')
         form.append('marginTop', '0.79')
         form.append('marginBottom', '0.79')
         form.append('marginLeft', '0.59')
         form.append('marginRight', '0.59')
-        const res = await fetch(`${gotenbergBaseUrl}/forms/chromium/convert/html`, {
-            method: 'POST',
-            body: form,
-            signal: controller.signal,
-        })
-        if (!res.ok) {
-            const body = await res.text().catch(() => '')
-            logger.warn(`Gotenberg render failed: HTTP ${res.status} — ${body.slice(0, 300)}`)
-            return null
-        }
+        const pdfBuf = await postToGotenberg(endpoint, form, Number.isFinite(timeoutMs) ? timeoutMs : 45_000)
         logger.log('Gotenberg PDF render succeeded')
-        const bytes = await res.arrayBuffer()
-        return Buffer.from(bytes)
+        return pdfBuf
     } catch (err: any) {
         logger.warn(`Gotenberg render failed: ${err?.message ?? err}`)
         return null
-    } finally {
-        clearTimeout(timeout)
     }
 }
 
