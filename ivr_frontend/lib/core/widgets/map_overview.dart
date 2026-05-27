@@ -99,7 +99,7 @@ class _MapOverviewState extends State<MapOverview> {
     if (!widget.usePngMarkers || widget.markerIconBuilder != null) return;
 
     try {
-      final imageConfig = const ImageConfiguration(size: Size(36, 36));
+      const imageConfig = ImageConfiguration(size: Size(36, 36));
       final fault = await gmap.BitmapDescriptor.fromAssetImage(
         imageConfig,
         widget.faultMarkerAsset,
