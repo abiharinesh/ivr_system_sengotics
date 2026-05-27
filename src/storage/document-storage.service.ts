@@ -20,16 +20,12 @@ export class DocumentStorageService {
         : null
 
     private toObjectKey(storagePath: string): string {
-        const key = storagePath.replace(/^\/+/, '')
-        if (!key.startsWith('uploads/')) {
-            throw new Error(`Invalid document storage path: ${storagePath}`)
-        }
-        return key
+        return storagePath.replace(/^\/+/, '')
     }
 
     private localAbsolutePath(storagePath: string): string {
         const key = this.toObjectKey(storagePath)
-        const withinUploads = key.slice('uploads/'.length)
+        const withinUploads = key.startsWith('uploads/') ? key.slice('uploads/'.length) : key
         return path.join(this.localRoot, withinUploads)
     }
 

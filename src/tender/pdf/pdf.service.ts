@@ -35,7 +35,7 @@ export class TenderPdfService {
     ) {}
 
     private buildStoragePath(subdir: string, filename: string): string {
-        return path.posix.join('/uploads', subdir.replace(/\\/g, '/'), filename).replace(/\\/g, '/')
+        return path.posix.join(subdir.replace(/\\/g, '/'), filename).replace(/\\/g, '/')
     }
 
     private async ensureTenderOwned(panchayatId: number, tenderId: number) {
@@ -291,7 +291,7 @@ export class TenderPdfService {
         )
         const html = renderTemplate(doc.template_id, ctx)
 
-        const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
+        const subdir = path.posix.join(String(doc.tender_id), doc.template_id)
         const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
 
         // Always persist the HTML artifact (serves as fallback if PDF fails).
@@ -464,7 +464,7 @@ export class TenderPdfService {
         const doc = await this.prisma.tenderDocument.findUnique({ where: { id: args.docId } })
         if (!doc || doc.tender_id !== args.tenderId) throw new NotFoundException('Document not on tender')
 
-        const subdir = path.posix.join('tenders', String(doc.tender_id), doc.template_id)
+        const subdir = path.posix.join(String(doc.tender_id), doc.template_id)
         const baseName = doc.vendor_id != null ? `v${doc.version}-vendor${doc.vendor_id}` : `v${doc.version}`
 
         // Write the edited HTML
