@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -204,8 +205,19 @@ class ApiClient {
 
   ApiException _handleError(DioException e) {
     final statusCode = e.response?.statusCode;
-    final data = e.response?.data;
+    dynamic data = e.response?.data;
     String message = 'Something went wrong';
+
+    if (data is List<int>) {
+      try {
+        final decodedString = utf8.decode(data);
+        try {
+          data = jsonDecode(decodedString);
+        } catch (_) {
+          data = decodedString;
+        }
+      } catch (_) {}
+    }
 
     if (data is Map<String, dynamic>) {
       message = data['message']?.toString() ?? message;

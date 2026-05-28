@@ -15,13 +15,35 @@ class EditableHtmlController {
   String? getEditedHtml() {
     try {
       final iframe = _iframe;
-      if (iframe == null) return null;
+      if (iframe == null) {
+        print('[EditableHtmlController] iframe is null');
+        return null;
+      }
+
+      // Use contentWindow.eval() to run JavaScript inside the iframe directly.
+      // This avoids all Dart type-bridging/casting issues with contentDocument.
       final jsIframe = js.JsObject.fromBrowserObject(iframe);
-      final doc = jsIframe['contentDocument'] as html.HtmlDocument?;
-      if (doc == null) return null;
+      final contentWindow = jsIframe['contentWindow'];
+      if (contentWindow == null || contentWindow is! js.JsObject) {
+        print('[EditableHtmlController] contentWindow is null or not a JsObject');
+        return null;
+      }
+
       // Turn off designMode before reading so the output is clean
-      doc.execCommand('styleWithCSS', false, 'false');
-      final raw = doc.documentElement?.outerHtml ?? '';
+      contentWindow.callMethod('eval', [
+        "document.execCommand('styleWithCSS', false, 'false');"
+      ]);
+
+      // Read outerHTML by evaluating JS inside the iframe's own window context
+      final raw = contentWindow.callMethod('eval', [
+        'document.documentElement.outerHTML'
+      ]);
+
+      if (raw == null || raw is! String || raw.trim().isEmpty) {
+        print('[EditableHtmlController] outerHTML returned: ${raw?.runtimeType}');
+        return null;
+      }
+
       // Strip the injected designMode bootstrap script
       final cleaned = raw.replaceAll(
         RegExp(r'<script[^>]*>[\s\S]*?document\.designMode[\s\S]*?</script>',
@@ -29,7 +51,8 @@ class EditableHtmlController {
         '',
       );
       return '<!DOCTYPE html>\n$cleaned';
-    } catch (_) {
+    } catch (e, st) {
+      print('[EditableHtmlController] Error extracting edited HTML: $e\n$st');
       return null;
     }
   }

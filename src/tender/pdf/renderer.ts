@@ -58,6 +58,9 @@ function postToGotenberg(url: string, form: FormData, timeoutMs: number): Promis
                 path: parsed.pathname + parsed.search,
                 method: 'POST',
                 headers,
+                auth: (parsed.username || parsed.password)
+                    ? `${decodeURIComponent(parsed.username)}:${decodeURIComponent(parsed.password)}`
+                    : undefined,
             },
             (res) => {
                 const chunks: Buffer[] = []

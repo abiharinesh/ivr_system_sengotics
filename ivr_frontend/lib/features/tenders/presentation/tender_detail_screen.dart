@@ -999,12 +999,15 @@ class _DocsTabState extends State<_DocsTab> {
     TenderDocumentSummary doc,
     String format,
   ) async {
+    print('[_downloadDocInFormat] Downloading doc ${doc.id} in format: $format');
     try {
       await widget.repo.downloadDocumentInFormat(
         widget.tenderId, doc.id,
         format: format,
       );
+      print('[_downloadDocInFormat] Download succeeded');
     } catch (e) {
+      print('[_downloadDocInFormat] Download failed: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
@@ -1477,13 +1480,31 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
+      crossAxisAlignment: WrapCrossAlignment.center,
       alignment: isNarrow ? WrapAlignment.start : WrapAlignment.end,
       children: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),
         ),
-        _DownloadFormatButton(onFormat: widget.onDownloadFormat),
+        
+        // Direct format buttons instead of popup overlay to avoid Flutter Web iframe event hijacking
+        OutlinedButton.icon(
+          onPressed: () => widget.onDownloadFormat('pdf'),
+          icon: const Icon(Icons.picture_as_pdf_outlined, size: 16),
+          label: const Text('PDF'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => widget.onDownloadFormat('docx'),
+          icon: const Icon(Icons.description_outlined, size: 16),
+          label: const Text('Word'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => widget.onDownloadFormat('html'),
+          icon: const Icon(Icons.code_outlined, size: 16),
+          label: const Text('HTML'),
+        ),
+
         FilledButton.icon(
           onPressed:
               !widget.canEdit || _loadingHtml ? null : _enterEditMode,
@@ -1491,64 +1512,6 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
           label: Text(widget.canEdit ? 'Edit' : 'Edit (locked)'),
         ),
       ],
-    );
-  }
-}
-
-/// Drop-down button that lets the user pick a download format.
-class _DownloadFormatButton extends StatelessWidget {
-  final Future<void> Function(String format) onFormat;
-  const _DownloadFormatButton({required this.onFormat});
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme = Theme.of(context).colorScheme;
-    return PopupMenuButton<String>(
-      onSelected: (format) => onFormat(format),
-      itemBuilder: (_) => const [
-        PopupMenuItem(
-          value: 'pdf',
-          child: Row(children: [
-            Icon(Icons.picture_as_pdf_outlined, size: 20),
-            SizedBox(width: 12),
-            Text('PDF'),
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'docx',
-          child: Row(children: [
-            Icon(Icons.description_outlined, size: 20),
-            SizedBox(width: 12),
-            Text('Word (.doc)'),
-          ]),
-        ),
-        PopupMenuItem(
-          value: 'html',
-          child: Row(children: [
-            Icon(Icons.code_outlined, size: 20),
-            SizedBox(width: 12),
-            Text('HTML'),
-          ]),
-        ),
-      ],
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          border: Border.all(color: scheme.outline),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.download_outlined, size: 18, color: scheme.primary),
-            const SizedBox(width: 8),
-            Text('Download',
-                style: TextStyle(color: scheme.primary, fontSize: 14)),
-            const SizedBox(width: 4),
-            Icon(Icons.arrow_drop_down, size: 18, color: scheme.primary),
-          ],
-        ),
-      ),
     );
   }
 }
