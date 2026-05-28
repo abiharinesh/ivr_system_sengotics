@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common'
 import { createHash } from 'crypto'
 import { PrismaService } from '../prisma/prisma.service'
-import { LocalFilesService } from '../storage/local-files.service'
+import { DocumentStorageService } from '../storage/document-storage.service'
 import { normalizePhoneE164, phoneHash } from '../common/phone.util'
 import { MilestoneService } from './milestone.service'
 import { TenderAuditService } from './audit.service'
@@ -21,7 +21,7 @@ const OPEN_PHONE_LIMIT = 4
 export class TenderPublicService {
     constructor(
         private readonly prisma: PrismaService,
-        private readonly storage: LocalFilesService,
+        private readonly storage: DocumentStorageService,
         private readonly milestones: MilestoneService,
         private readonly audit: TenderAuditService,
         private readonly vendors: VendorService,
@@ -143,7 +143,7 @@ export class TenderPublicService {
 
         let attachmentUrl: string | null = null
         if (args.attachment) {
-            attachmentUrl = await this.storage.saveBuffer(
+            attachmentUrl = await this.storage.saveImageBuffer(
                 `${args.tenderId}/${args.folderName}`,
                 args.attachment.buffer,
                 args.attachment.originalname,
