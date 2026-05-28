@@ -82,6 +82,16 @@ export class FieldOverlayOcrService implements OnModuleDestroy {
         }
         if (!this.isEnabled() || !imageBuffer?.length) return empty
 
+        // On Vercel, skip the heavy Tesseract.js + sharp pipeline — it takes 30-60s
+        // and causes 504 timeouts. The fast ASCII buffer scan extracts GPS coords
+        // from GPS Map Camera overlay text embedded in the JPEG.
+        if (process.env.VERCEL) {
+            const rawText = this.scanBufferAscii(imageBuffer)
+            const { lat, lng } = parseLatLongFromText(rawText)
+            const address = lat != null ? this.extractAddressLine(rawText) : null
+            return { lat, lng, rawText, address, skipped: false }
+        }
+
         const sharp = this.loadSharp()
         const worker = await this.getWorker()
 

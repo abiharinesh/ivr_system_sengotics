@@ -506,20 +506,54 @@ export class FieldVerificationService {
             }
         }
 
-        let exifLat: number | null = null
-        let exifLng: number | null = null
-        let capturedAt: Date | null = null
-        try {
-            const exif = await exifr.parse(args.image.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] })
-            if (exif?.latitude != null && exif?.longitude != null) {
-                exifLat = Number(exif.latitude)
-                exifLng = Number(exif.longitude)
-            }
-            const dt = exif?.DateTimeOriginal ?? exif?.CreateDate
-            if (dt) capturedAt = new Date(dt)
-        } catch (_err) { /* ignore */ }
+        // Run EXIF, OCR, image upload, and pole fetch in parallel to stay within Vercel's 60s limit.
+        const exifPromise = (async () => {
+            let exifLat: number | null = null
+            let exifLng: number | null = null
+            let capturedAt: Date | null = null
+            try {
+                const exif = await exifr.parse(args.image.buffer, { gps: true, pick: ['DateTimeOriginal', 'CreateDate'] })
+                if (exif?.latitude != null && exif?.longitude != null) {
+                    exifLat = Number(exif.latitude)
+                    exifLng = Number(exif.longitude)
+                }
+                const dt = exif?.DateTimeOriginal ?? exif?.CreateDate
+                if (dt) capturedAt = new Date(dt)
+            } catch (_err) { /* ignore */ }
+            return { exifLat, exifLng, capturedAt }
+        })()
 
-        const ocrResult = await this.overlayOcr.extractOverlayCoords(args.image.buffer)
+        // OCR with a timeout on Vercel to prevent blocking the whole upload
+        const ocrTimeoutMs = process.env.VERCEL ? 10_000 : 30_000
+        const ocrPromise = Promise.race([
+            this.overlayOcr.extractOverlayCoords(args.image.buffer),
+            new Promise<Awaited<ReturnType<typeof this.overlayOcr.extractOverlayCoords>>>((resolve) =>
+                setTimeout(() => {
+                    this.logger.warn('OCR timed out, using empty result')
+                    resolve({ lat: null, lng: null, rawText: '', address: null, skipped: true })
+                }, ocrTimeoutMs),
+            ),
+        ])
+
+        const imageUrlPromise = this.storage.saveImageBuffer(
+            `tenders/${session.tender_id}/field`,
+            args.image.buffer,
+            args.image.originalname,
+        )
+
+        const polesPromise: Promise<PoleCandidate[]> = session.pole_subset_ids.length
+            ? this.prisma.electricPole.findMany({
+                where: { id: { in: session.pole_subset_ids } },
+                select: { id: true, latitude: true, longitude: true, pole_number: true, keypad_id: true },
+            })
+            : this.prisma.electricPole.findMany({
+                where: { panchayat_id: session.tender.panchayat_id },
+                select: { id: true, latitude: true, longitude: true, pole_number: true, keypad_id: true },
+            })
+
+        const [{ exifLat, exifLng, capturedAt }, ocrResult, imageUrl, candidatePoles] =
+            await Promise.all([exifPromise, ocrPromise, imageUrlPromise, polesPromise])
+
         const fused = fuseCoordinates({
             exifLat,
             exifLng,
@@ -527,22 +561,6 @@ export class FieldVerificationService {
             ocrLng: ocrResult.lng,
             manualPoleId: args.manualPoleId,
         })
-
-        const imageUrl = await this.storage.saveImageBuffer(
-            `tenders/${session.tender_id}/field`,
-            args.image.buffer,
-            args.image.originalname,
-        )
-
-        const candidatePoles: PoleCandidate[] = session.pole_subset_ids.length
-            ? await this.prisma.electricPole.findMany({
-                where: { id: { in: session.pole_subset_ids } },
-                select: { id: true, latitude: true, longitude: true, pole_number: true, keypad_id: true },
-            })
-            : await this.prisma.electricPole.findMany({
-                where: { panchayat_id: session.tender.panchayat_id },
-                select: { id: true, latitude: true, longitude: true, pole_number: true, keypad_id: true },
-            })
 
         const radiusM = this.matchRadiusM()
         let matchedPoleId: number | null = null
