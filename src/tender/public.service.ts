@@ -132,6 +132,7 @@ export class TenderPublicService {
         remarks?: string
         ipAddress: string
         attachment?: UploadedImageFile | null
+        folderName: string
         auditEvent: string
     }) {
         // Latest-wins on duplicate phone within tender.
@@ -143,7 +144,7 @@ export class TenderPublicService {
         let attachmentUrl: string | null = null
         if (args.attachment) {
             attachmentUrl = await this.storage.saveBuffer(
-                `${args.tenderId}/attachments`,
+                `${args.tenderId}/${args.folderName}`,
                 args.attachment.buffer,
                 args.attachment.originalname,
             )
@@ -299,6 +300,7 @@ export class TenderPublicService {
             remarks: args.body.remarks,
             ipAddress: args.ipAddress,
             attachment: args.attachment,
+            folderName: 'public_quotation',
             auditEvent: 'quotation:public_open_post',
         })
     }
@@ -342,6 +344,7 @@ export class TenderPublicService {
             remarks: args.body.remarks,
             ipAddress: args.ipAddress,
             attachment: args.attachment,
+            folderName: 'vendors_quotation',
             auditEvent: 'quotation:invite_post',
         })
         await this.prisma.tenderVendorInvite.update({
@@ -418,6 +421,7 @@ export class TenderPublicService {
             remarks: args.body.remarks,
             ipAddress: args.ipAddress,
             attachment: args.attachment,
+            folderName: 'vendors_quotation',
             auditEvent: 'quotation:legacy_invite_post',
         })
     }
