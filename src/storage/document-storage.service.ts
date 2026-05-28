@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, BadRequestException } from '@nestjs/common'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { randomUUID } from 'crypto'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp'])
 
 @Injectable()
 export class DocumentStorageService {
@@ -80,6 +83,57 @@ export class DocumentStorageService {
 
     async writeUtf8(storagePath: string, content: string, contentType = 'text/html; charset=utf-8'): Promise<void> {
         await this.writeBuffer(storagePath, Buffer.from(content, 'utf8'), contentType)
+    }
+
+    /**
+     * Save an image buffer and return a URL.
+     * On Supabase: uploads to the bucket and returns a full public URL.
+     * Locally: writes to disk and returns a `/uploads/...` relative path.
+     */
+    async saveImageBuffer(subdir: string, buffer: Buffer, originalName: string): Promise<string> {
+        if (!buffer?.length) {
+            throw new BadRequestException('Empty file')
+        }
+        const ext = path.extname(originalName || '').toLowerCase() || '.jpg'
+        const safeExt = ALLOWED_IMAGE_EXT.has(ext) ? ext : '.jpg'
+        const filename = `${randomUUID()}${safeExt}`
+        const objectKey = `uploads/${subdir.replace(/\\/g, '/')}/${filename}`
+
+        const mimeMap: Record<string, string> = {
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.webp': 'image/webp',
+        }
+        const contentType = mimeMap[safeExt] || 'image/jpeg'
+
+        if (this.remoteEnabled && this.supabase) {
+            try {
+                await this.writeRemote(objectKey, buffer, contentType)
+                const { data } = this.supabase.storage.from(this.bucket).getPublicUrl(objectKey)
+                return data.publicUrl
+            } catch (err: any) {
+                this.logger.error(`Remote image upload failed: ${err?.message ?? err}`)
+                if (process.env.VERCEL) {
+                    throw new Error(
+                        `Supabase image upload failed: ${err?.message ?? err}. ` +
+                        `Check SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and bucket "${this.bucket}".`
+                    )
+                }
+                this.logger.warn('Falling back to local disk for image upload')
+            }
+        } else if (process.env.VERCEL) {
+            throw new Error(
+                `Cannot save images on Vercel without Supabase (${this.localFallbackReason()}). ` +
+                `Set SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel environment variables.`
+            )
+        }
+
+        // Local disk fallback
+        const dir = path.join(this.localRoot, subdir)
+        await fs.mkdir(dir, { recursive: true })
+        await fs.writeFile(path.join(dir, filename), buffer)
+        return path.posix.join('/uploads', subdir.replace(/\\/g, '/'), filename)
     }
 
     async exists(storagePath: string): Promise<boolean> {

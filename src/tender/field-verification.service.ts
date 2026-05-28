@@ -8,7 +8,7 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { randomBytes } from 'crypto'
 import { PrismaService } from '../prisma/prisma.service'
-import { LocalFilesService } from '../storage/local-files.service'
+import { DocumentStorageService } from '../storage/document-storage.service'
 import { distanceMeters, DEFAULT_RESOLUTION_RADIUS_M } from '../common/geo.util'
 import { TenderAuditService } from './audit.service'
 import type { UploadedImageFile } from '../common/upload.types'
@@ -43,7 +43,7 @@ export class FieldVerificationService {
     private readonly logger = new Logger(FieldVerificationService.name)
     constructor(
         private readonly prisma: PrismaService,
-        private readonly storage: LocalFilesService,
+        private readonly storage: DocumentStorageService,
         private readonly audit: TenderAuditService,
         private readonly overlayOcr: FieldOverlayOcrService,
         private readonly config: ConfigService,
@@ -528,7 +528,7 @@ export class FieldVerificationService {
             manualPoleId: args.manualPoleId,
         })
 
-        const imageUrl = await this.storage.saveBuffer(
+        const imageUrl = await this.storage.saveImageBuffer(
             `tenders/${session.tender_id}/field`,
             args.image.buffer,
             args.image.originalname,
