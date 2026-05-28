@@ -52,7 +52,10 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
     final padding = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
 
     if (_loading) {
-      return const AppLoadingState(message: 'Loading dashboard...');
+      return const AppLoadingState(
+        message: 'Loading dashboard...',
+        style: AppLoadingStyle.dashboard,
+      );
     }
 
     if (_error != null) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../models/complaint_model.dart';
 import '../data/electrician_repository.dart';
@@ -74,7 +75,10 @@ class _ElectricianDashboardScreenState extends State<ElectricianDashboardScreen>
     final padding = MediaQuery.sizeOf(context).width < 600 ? 16.0 : 24.0;
 
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading dashboard...',
+        style: AppLoadingStyle.dashboard,
+      );
     }
 
     if (_error != null) {

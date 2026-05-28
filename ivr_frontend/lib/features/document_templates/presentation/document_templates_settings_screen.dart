@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/widgets/dashboard_panels.dart';
 import '../../../core/widgets/nav_guard.dart';
@@ -385,7 +386,10 @@ class _DocumentTemplatesSettingsScreenState
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading templates...',
+        style: AppLoadingStyle.list,
+      );
     }
     if (_error != null) {
       return Center(

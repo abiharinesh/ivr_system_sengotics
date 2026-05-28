@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../data/agent_repository.dart';
+import '../../../core/widgets/app_loading_state.dart';
 
 class AgentPoleListScreen extends StatefulWidget {
   final String initialSearch;
@@ -102,7 +103,12 @@ class _AgentPoleListScreenState extends State<AgentPoleListScreen> {
               ),
             ),
           if (_loading)
-            const Expanded(child: Center(child: CircularProgressIndicator()))
+            const Expanded(
+              child: AppLoadingState(
+                message: 'Loading poles...',
+                style: AppLoadingStyle.list,
+              ),
+            )
           else
             Expanded(
               child: ListView.separated(

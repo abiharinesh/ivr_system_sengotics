@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/dashboard_panels.dart';
 import '../bloc/settings_bloc.dart';
 
@@ -30,7 +31,10 @@ class AiSettingsScreen extends StatelessWidget {
       },
       builder: (context, state) {
         if (state is SettingsLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(
+            message: 'Loading settings...',
+            style: AppLoadingStyle.detail,
+          );
         }
         if (state is SettingsLoaded) {
           return _buildSettings(context, state);

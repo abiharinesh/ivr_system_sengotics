@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../../panchayat_admin/data/panchayat_admin_repository.dart';
@@ -341,7 +342,10 @@ class _ElectricianAdminManagementScreenState
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading electricians...',
+        style: AppLoadingStyle.list,
+      );
     }
     if (_error != null) {
       return Center(
@@ -407,7 +411,10 @@ class _ElectricianAdminManagementScreenState
                         if (snap.connectionState != ConnectionState.done) {
                           return const Padding(
                             padding: EdgeInsets.all(12),
-                            child: Center(child: CircularProgressIndicator()),
+                            child: AppLoadingState(
+                              message: 'Loading stats...',
+                              compact: true,
+                            ),
                           );
                         }
                         if (snap.hasError) {

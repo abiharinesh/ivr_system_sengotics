@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/api/api_exceptions.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../../../models/pole_model.dart';
 import '../data/super_admin_repository.dart';
@@ -53,7 +54,10 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading poles...',
+        style: AppLoadingStyle.list,
+      );
     }
 
     if (_error != null) {

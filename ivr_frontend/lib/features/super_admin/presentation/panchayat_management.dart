@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../bloc/panchayat_bloc.dart';
@@ -36,7 +37,10 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
       },
       builder: (context, state) {
         if (state is PanchayatLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(
+            message: 'Loading panchayats...',
+            style: AppLoadingStyle.list,
+          );
         }
         if (state is PanchayatLoaded) {
           if (state.panchayats.isEmpty) {

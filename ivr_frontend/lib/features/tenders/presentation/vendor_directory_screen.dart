@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/tender_models.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../data/tender_repository.dart';
 
 class VendorDirectoryScreen extends StatefulWidget {
@@ -88,7 +89,10 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
                   future: _future,
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const AppLoadingState(
+                        message: 'Loading vendors...',
+                        style: AppLoadingStyle.list,
+                      );
                     }
                     if (snap.hasError) {
                       return Center(child: Text('Error: ${snap.error}'));

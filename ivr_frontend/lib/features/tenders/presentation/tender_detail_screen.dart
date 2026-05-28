@@ -51,7 +51,10 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
       future: _future,
       builder: (context, snap) {
         if (snap.connectionState == ConnectionState.waiting) {
-          return const AppLoadingState(message: 'Loading tender details...');
+          return const AppLoadingState(
+            message: 'Loading tender details...',
+            style: AppLoadingStyle.detail,
+          );
         }
         if (snap.hasError) {
           return AppErrorState(
@@ -1488,7 +1491,10 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
 
   Widget _buildContent() {
     if (_loadingHtml) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading content...',
+        style: AppLoadingStyle.card,
+      );
     }
 
     if (_editing && _htmlContent != null) {

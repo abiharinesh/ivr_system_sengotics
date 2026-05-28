@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/assign_electrician_dialog.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_badge.dart';
@@ -178,7 +179,10 @@ class _ComplaintManagementState extends State<ComplaintManagement> {
 
   Widget _buildContent(BuildContext context, SAComplaintState state) {
     if (state is SAComplaintLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading complaints...',
+        style: AppLoadingStyle.list,
+      );
     }
     if (state is SAComplaintLoaded) {
       final filtered = _filterByQuery(state.complaints);

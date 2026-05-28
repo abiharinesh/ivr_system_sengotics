@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../config/api_config.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/offline/field_outbox.dart';
 import '../../../core/offline/network_status.dart';
@@ -119,7 +120,10 @@ class _AgentPoleDetailScreenState extends State<AgentPoleDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingState(
+        message: 'Loading details...',
+        style: AppLoadingStyle.detail,
+      );
     }
     if (_pole == null) {
       return Center(child: Text(_error ?? 'Not found'));

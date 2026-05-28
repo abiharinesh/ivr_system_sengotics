@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/env_maps_loader.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
@@ -35,7 +36,10 @@ class PoleManagement extends StatelessWidget {
       },
       builder: (context, state) {
         if (state is PoleLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(
+            message: 'Loading poles...',
+            style: AppLoadingStyle.list,
+          );
         }
         if (state is PoleLoaded) {
           if (state.poles.isEmpty) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/dashboard_category_breakdown_card.dart';
 import '../../../core/widgets/dashboard_recent_activity_card.dart';
 import '../../../core/widgets/dashboard_resolution_trend_card.dart';
@@ -18,7 +19,10 @@ class PADashboard extends StatelessWidget {
     return BlocBuilder<PADashBloc, PADashState>(
       builder: (context, state) {
         if (state is PADashLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(
+            message: 'Loading dashboard...',
+            style: AppLoadingStyle.dashboard,
+          );
         }
         if (state is PADashError) {
           return Center(

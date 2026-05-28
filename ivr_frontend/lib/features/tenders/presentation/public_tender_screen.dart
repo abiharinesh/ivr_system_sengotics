@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import '../../../config/api_config.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../data/tender_repository.dart';
 
@@ -93,7 +94,10 @@ class _PublicTenderScreenState extends State<PublicTenderScreen> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingState(
+              message: 'Loading tender...',
+              style: AppLoadingStyle.detail,
+            );
           }
           if (snap.hasError) {
             final msg = userFacingMessage(snap.error!);

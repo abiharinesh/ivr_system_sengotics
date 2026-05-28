@@ -25,7 +25,7 @@ export class TenderPublicService {
         private readonly milestones: MilestoneService,
         private readonly audit: TenderAuditService,
         private readonly vendors: VendorService,
-    ) {}
+    ) { }
 
     private async loadByPublicToken(token: string) {
         if (!token?.trim()) throw new NotFoundException('Tender not found')

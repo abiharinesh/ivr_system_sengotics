@@ -125,7 +125,10 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
         future: _sessionFuture,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState(message: 'Loading field session...');
+            return const AppLoadingState(
+              message: 'Loading field session...',
+              style: AppLoadingStyle.detail,
+            );
           }
           if (snap.hasError) {
             return AppErrorState(

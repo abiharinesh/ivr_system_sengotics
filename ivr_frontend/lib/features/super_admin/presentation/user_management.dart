@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../config/app_theme.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/list_screen_shell.dart';
 import '../../../models/user_model.dart';
@@ -69,7 +70,10 @@ class _UserManagementState extends State<UserManagement> {
       },
       builder: (context, state) {
         if (state is UserMgmtLoading) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingState(
+            message: 'Loading users...',
+            style: AppLoadingStyle.list,
+          );
         }
         if (state is UserMgmtLoaded) {
           final filtered = _filteredUsers(state.users);

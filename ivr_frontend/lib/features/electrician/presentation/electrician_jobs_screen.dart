@@ -91,6 +91,7 @@ class _ElectricianJobsScreenState extends State<ElectricianJobsScreen> {
             return const AppLoadingState(
               message: 'Loading complaints...',
               skeletonLines: 6,
+              style: AppLoadingStyle.list,
             );
           }
           if (_error != null) {

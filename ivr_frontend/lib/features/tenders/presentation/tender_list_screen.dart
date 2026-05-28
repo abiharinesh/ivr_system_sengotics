@@ -83,6 +83,7 @@ class _TenderListScreenState extends State<TenderListScreen> {
             return const AppLoadingState(
               message: 'Loading tenders...',
               skeletonLines: 5,
+              style: AppLoadingStyle.list,
             );
           }
           if (snap.hasError) {

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/widgets/app_error_state.dart';
+import '../../../core/widgets/app_loading_state.dart';
 import '../data/tender_repository.dart';
 
 /// Invite-only tender landing. Accessed via `/public/invite/:token`.
@@ -107,7 +108,10 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const AppLoadingState(
+              message: 'Loading invite...',
+              style: AppLoadingStyle.detail,
+            );
           }
           if (snap.hasError) {
             return AppErrorState(
