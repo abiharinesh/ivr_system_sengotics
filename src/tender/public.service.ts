@@ -143,7 +143,7 @@ export class TenderPublicService {
         let attachmentUrl: string | null = null
         if (args.attachment) {
             attachmentUrl = await this.storage.saveBuffer(
-                `tenders/${args.tenderId}/attachments`,
+                `${args.tenderId}/attachments`,
                 args.attachment.buffer,
                 args.attachment.originalname,
             )

@@ -98,9 +98,7 @@ export class DocumentStorageService {
         const safeExt = ALLOWED_IMAGE_EXT.has(ext) ? ext : '.jpg'
         const filename = `${randomUUID()}${safeExt}`
         const safeSubdir = subdir.replace(/\\/g, '/')
-        const objectKey = safeSubdir.startsWith('tenders/') || safeSubdir === 'tenders'
-            ? `${safeSubdir}/${filename}`
-            : `uploads/${safeSubdir}/${filename}`
+        const objectKey = `${safeSubdir}/${filename}`
 
         const mimeMap: Record<string, string> = {
             '.jpg': 'image/jpeg',

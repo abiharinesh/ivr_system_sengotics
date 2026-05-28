@@ -536,7 +536,7 @@ export class FieldVerificationService {
         ])
 
         const imageUrlPromise = this.storage.saveImageBuffer(
-            `tenders/${session.tender_id}/field`,
+            `${session.tender_id}/field`,
             args.image.buffer,
             args.image.originalname,
         )
