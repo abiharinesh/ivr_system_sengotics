@@ -13,6 +13,7 @@ import {
     ParseIntPipe,
     UseGuards,
     BadRequestException,
+    NotFoundException,
 } from '@nestjs/common'
 import type { Response } from 'express'
 import { SuperAdminService } from './super-admin.service'
@@ -22,6 +23,42 @@ import { RolesGuard } from '../auth/guards/roles.guard'
 import { Roles } from '../auth/decorators/roles.decorator'
 import { DocumentTemplateSettingsService } from '../tender/pdf/document-template-settings.service'
 import { validateTemplateId } from '../tender/tender-status'
+import { TenderService } from '../tender/tender.service'
+import { VendorService } from '../tender/vendor.service'
+import { MilestoneService } from '../tender/milestone.service'
+import { TenderAuditService } from '../tender/audit.service'
+import { TenderPdfService } from '../tender/pdf/pdf.service'
+import { FieldVerificationService } from '../tender/field-verification.service'
+import { TenderShareTokenService } from '../tender/pdf/share-token.service'
+import { PrismaService } from '../prisma/prisma.service'
+
+function slugify(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '')
+}
+
+function formatStamp(d: Date): string {
+    const yyyy = d.getFullYear()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    const hh = String(d.getHours()).padStart(2, '0')
+    const mi = String(d.getMinutes()).padStart(2, '0')
+    return `${yyyy}${mm}${dd}_${hh}${mi}`
+}
+
+function resolveOrigin(req: any): string {
+    const xfProto = req.headers['x-forwarded-proto']?.split(',')[0]?.trim()
+    const xfHost = req.headers['x-forwarded-host']?.split(',')[0]?.trim()
+    const host = xfHost ?? req.get('host') ?? 'localhost:3000'
+    const proto = xfProto ?? (req.protocol || 'http')
+    return `${proto}://${host}`
+}
+
+const SHARE_TOKEN_DEFAULT_MINUTES = 15
+const SHARE_TOKEN_MAX_MINUTES = 1440
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('super_admin')
@@ -31,6 +68,14 @@ export class SuperAdminController {
         private readonly superAdminService: SuperAdminService,
         private readonly electricianOps: ElectricianOpsService,
         private readonly documentTemplateSettings: DocumentTemplateSettingsService,
+        private readonly tenders: TenderService,
+        private readonly vendors: VendorService,
+        private readonly milestones: MilestoneService,
+        private readonly audit: TenderAuditService,
+        private readonly pdfService: TenderPdfService,
+        private readonly fieldVerification: FieldVerificationService,
+        private readonly shareTokens: TenderShareTokenService,
+        private readonly prisma: PrismaService,
     ) { }
 
     // ── Panchayat Management ────────────────────────────────────────────────
@@ -326,5 +371,481 @@ export class SuperAdminController {
         }
         const abs = this.electricianOps.resolveExportAbsolutePath(meta.download_url)
         res.download(abs, `electrician-export-job-${jobId}.zip`)
+    }
+
+    // ── Global Scoping & Support Resolvers ───────────────────────────────────
+    private async getTenderPanchayatId(tenderId: number): Promise<number> {
+        const t = await this.prisma.tender.findUnique({ where: { id: tenderId } })
+        if (!t) throw new NotFoundException(`Tender #${tenderId} not found`)
+        return t.panchayat_id
+    }
+
+    private async getVendorPanchayatId(vendorId: number): Promise<number> {
+        const v = await this.prisma.vendor.findUnique({ where: { id: vendorId } })
+        if (!v) throw new NotFoundException(`Vendor #${vendorId} not found`)
+        return v.panchayat_id
+    }
+
+    private clampTtl(raw: unknown): number {
+        if (raw == null) return SHARE_TOKEN_DEFAULT_MINUTES
+        const n = typeof raw === 'number' ? raw : Number(raw)
+        if (!Number.isFinite(n) || n <= 0) {
+            throw new BadRequestException('ttl_minutes must be a positive number')
+        }
+        return Math.min(SHARE_TOKEN_MAX_MINUTES, Math.max(1, Math.floor(n)))
+    }
+
+    // ── Vendor Management (Global) ───────────────────────────────────────────
+    @Get('vendors')
+    listVendors(@Query('panchayat_id') pid?: string, @Query('active') active?: string) {
+        const panchayatId = pid ? parseInt(pid, 10) : undefined
+        return this.vendors.list(
+            isNaN(panchayatId as number) ? undefined : panchayatId,
+            { active: active == null ? undefined : active === 'true' }
+        )
+    }
+
+    @Post('vendors')
+    createVendor(@Body() body: any) {
+        if (!body.panchayat_id) throw new BadRequestException('panchayat_id is required')
+        return this.vendors.create(body.panchayat_id, body)
+    }
+
+    @Get('vendors/:id')
+    async getVendor(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getVendorPanchayatId(id)
+        return this.vendors.get(pid, id)
+    }
+
+    @Patch('vendors/:id')
+    async updateVendor(@Param('id', ParseIntPipe) id: number, @Body() body: any) {
+        const pid = await this.getVendorPanchayatId(id)
+        return this.vendors.update(pid, id, body)
+    }
+
+    @Delete('vendors/:id')
+    async deactivateVendor(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getVendorPanchayatId(id)
+        return this.vendors.deactivate(pid, id)
+    }
+
+    // ── Tender Management (Global) ───────────────────────────────────────────
+    @Get('tenders')
+    listTenders(@Query('panchayat_id') pid?: string, @Query('status') status?: string) {
+        const panchayatId = pid ? parseInt(pid, 10) : undefined
+        return this.tenders.list(
+            isNaN(panchayatId as number) ? undefined : panchayatId,
+            { status }
+        )
+    }
+
+    @Post('tenders')
+    createTender(@Req() req: any, @Body() body: any) {
+        if (!body.panchayat_id) throw new BadRequestException('panchayat_id is required')
+        return this.tenders.create(body.panchayat_id, req.user.id, body)
+    }
+
+    @Get('tenders/:id')
+    async getTender(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.getDetail(pid, id)
+    }
+
+    @Patch('tenders/:id/quotation-access-mode')
+    async setQuotationAccessMode(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { quotation_access_mode?: string },
+    ) {
+        if (!body?.quotation_access_mode) throw new BadRequestException('quotation_access_mode required')
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.setQuotationAccessMode(pid, id, req.user.id, body.quotation_access_mode)
+    }
+
+    @Patch('tenders/:id')
+    async patchTender(@Req() req: any, @Param('id', ParseIntPipe) id: number, @Body() body: any) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.patch(pid, id, req.user.id, body)
+    }
+
+    @Get('tenders/:id/timeline')
+    async timeline(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.getDetail(pid, id).then(() => this.milestones.resolveForTender(id))
+    }
+
+    @Get('tenders/:id/audit')
+    async listAudit(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.getDetail(pid, id).then(() => this.audit.list(id))
+    }
+
+    @Post('tenders/:id/line-items')
+    async addLine(@Req() req: any, @Param('id', ParseIntPipe) id: number, @Body() body: any) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.addLineItem(pid, id, req.user.id, body)
+    }
+
+    @Patch('tenders/:id/line-items/:itemId')
+    async updateLine(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('itemId', ParseIntPipe) itemId: number,
+        @Body() body: any
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.updateLineItem(pid, id, itemId, req.user.id, body)
+    }
+
+    @Delete('tenders/:id/line-items/:itemId')
+    async deleteLine(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('itemId', ParseIntPipe) itemId: number
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.deleteLineItem(pid, id, itemId, req.user.id)
+    }
+
+    @Post('tenders/:id/invites')
+    async setInvites(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { vendor_ids: number[] }
+    ) {
+        if (!Array.isArray(body?.vendor_ids)) throw new BadRequestException('vendor_ids array required')
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.setInvites(pid, id, req.user.id, body.vendor_ids)
+    }
+
+    @Post('tenders/:id/publish')
+    async publish(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.publish(pid, id, req.user.id)
+    }
+
+    @Post('tenders/:id/close-quotations')
+    async closeQuotations(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.closeQuotations(pid, id, req.user.id)
+    }
+
+    @Post('tenders/:id/award')
+    async award(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { quotation_id: number }
+    ) {
+        if (!body?.quotation_id) throw new BadRequestException('quotation_id required')
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.award(pid, id, req.user.id, body.quotation_id)
+    }
+
+    @Post('tenders/:id/work-completion')
+    async workCompletion(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { work_completed_at?: string; inspection_notes?: string }
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.recordWorkCompletion(pid, id, req.user.id, body ?? {})
+    }
+
+    @Post('tenders/:id/payment')
+    async payment(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { payment_meta: Record<string, unknown>; close?: boolean }
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.recordPayment(pid, id, req.user.id, body)
+    }
+
+    @Post('tenders/:id/quotations')
+    async addOfficerQuotation(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: any
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.tenders.addOfficerQuotation(pid, id, req.user.id, body)
+    }
+
+    // ── Tender Documents & PDF ───────────────────────────────────────────────
+    @Post('tenders/:id/documents/:templateId/generate')
+    async generateDocument(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('templateId') templateId: string,
+        @Body() body: { vendor_id?: number; field_overrides?: Record<string, unknown> } = {}
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.generate({
+            panchayatId: pid,
+            tenderId: id,
+            actorUserId: req.user.id,
+            templateId,
+            vendorId: body.vendor_id ?? null,
+            fieldOverrides: body.field_overrides ?? null,
+        })
+    }
+
+    @Get('tenders/:id/documents')
+    async listDocuments(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.list(pid, id)
+    }
+
+    @Get('tenders/:id/documents/:docId/preview')
+    async previewDocument(
+        @Res() res: Response,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number
+    ) {
+        try {
+            const pid = await this.getTenderPanchayatId(id)
+            const storagePath = await this.pdfService.getDownloadStoragePath(pid, id, docId)
+            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+            const bytes = await this.pdfService.readDocumentBytes(storagePath)
+            res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+            res.setHeader('Content-Disposition', ext === 'html' ? 'inline' : 'inline; filename="preview.pdf"')
+            res.send(bytes)
+        } catch (err: any) {
+            if (!res.headersSent) {
+                res.status(err?.status ?? 500).json({
+                    error: 'Document preview failed',
+                    message: err?.message ?? 'Unknown error',
+                })
+            }
+        }
+    }
+
+    @Get('tenders/:id/documents/:docId/download')
+    async downloadDocument(
+        @Res() res: Response,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Query('format') format?: string,
+    ) {
+        try {
+            const pid = await this.getTenderPanchayatId(id)
+            const doc = await this.prisma.tenderDocument.findUnique({ where: { id: docId } })
+            const tender = await this.prisma.tender.findUnique({
+                where: { id },
+                include: { panchayat: { select: { name: true } } },
+            })
+            const panchayatName = slugify(tender?.panchayat?.name ?? 'panchayat')
+            const templateName = slugify(doc?.template_id ?? 'document')
+            const version = doc?.version ?? 1
+            const stamp = formatStamp((doc?.generated_at ?? new Date()))
+
+            if (format === 'pdf' || format === 'html' || format === 'docx') {
+                const result = await this.pdfService.getDocumentInFormat(pid, id, docId, format)
+                const filename = `${panchayatName}-${id}-${templateName}-v${version}-${stamp}.${result.ext}`
+                res.setHeader('Content-Type', result.contentType)
+                res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+                res.send(result.bytes)
+                return
+            }
+
+            const storagePath = await this.pdfService.getDownloadStoragePath(pid, id, docId)
+            const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf'
+            const filename = `${panchayatName}-${id}-${templateName}-v${version}-${stamp}.${ext}`
+            const bytes = await this.pdfService.readDocumentBytes(storagePath)
+            res.setHeader('Content-Type', ext === 'html' ? 'text/html; charset=utf-8' : 'application/pdf')
+            res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+            res.send(bytes)
+        } catch (err: any) {
+            if (!res.headersSent) {
+                res.status(err?.status ?? 500).json({
+                    error: 'Document download failed',
+                    message: err?.message ?? 'Unknown error',
+                })
+            }
+        }
+    }
+
+    @Get('tenders/:id/documents/:docId/html-content')
+    async getDocumentHtmlContent(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        const html = await this.pdfService.getHtmlContent(pid, id, docId)
+        return { html }
+    }
+
+    @Post('tenders/:id/documents/:docId/content')
+    async saveDocumentContent(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { html: string },
+    ) {
+        if (!body?.html || typeof body.html !== 'string') {
+            throw new BadRequestException('html field is required')
+        }
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.saveEditedHtml({
+            panchayatId: pid,
+            tenderId: id,
+            docId,
+            html: body.html,
+            actorUserId: req.user.id,
+        })
+    }
+
+    @Get('tenders/:id/documents/:docId/canvas')
+    async getCanvasState(
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.getCanvasState(pid, id, docId)
+    }
+
+    @Post('tenders/:id/documents/:docId/canvas')
+    async saveCanvasState(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { layers?: Array<Record<string, unknown>> } = {}
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.saveCanvasState({
+            panchayatId: pid,
+            tenderId: id,
+            docId,
+            layers: body.layers ?? [],
+            actorUserId: req.user.id,
+        })
+    }
+
+    @Post('tenders/:id/documents/:docId/canvas/merge')
+    async mergeCanvasState(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { layers?: Array<Record<string, unknown>> } = {}
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.pdfService.mergeCanvasState({
+            panchayatId: pid,
+            tenderId: id,
+            docId,
+            layers: body.layers ?? [],
+            actorUserId: req.user.id,
+        })
+    }
+
+    @Get('tenders/:id/documents.zip')
+    async zipBundle(
+        @Res() res: Response,
+        @Param('id', ParseIntPipe) id: number
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        const tender = await this.prisma.tender.findUnique({
+            where: { id },
+            include: { panchayat: { select: { name: true } } },
+        })
+        const panchayatName = slugify(tender?.panchayat?.name ?? 'panchayat')
+        const stamp = formatStamp(new Date())
+        const zipName = `${panchayatName}-${id}-documents-${stamp}.zip`
+        res.setHeader('Content-Type', 'application/zip')
+        res.setHeader('Content-Disposition', `attachment; filename="${zipName}"`)
+        await this.pdfService.streamLatestZip(pid, id, res)
+    }
+
+    @Post('tenders/:id/documents/:docId/share-link')
+    async mintDocShareLink(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('docId', ParseIntPipe) docId: number,
+        @Body() body: { ttl_minutes?: number } = {},
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        await this.pdfService.getDownloadStoragePath(pid, id, docId)
+        const ttl = this.clampTtl(body?.ttl_minutes)
+        const { token, expiresAt } = this.shareTokens.sign(
+            { kind: 'doc', tenderId: id, docId },
+            ttl,
+        )
+        const origin = resolveOrigin(req)
+        const url = `${origin}/public/tenders/${id}/documents/${docId}/download?sig=${encodeURIComponent(token)}`
+        await this.audit.record({
+            tenderId: id,
+            actorUserId: req.user.id,
+            event: 'doc:share_link_minted',
+            payload: { kind: 'doc', doc_id: docId, ttl_minutes: ttl, expires_at: expiresAt.toISOString() },
+        })
+        return { url, expires_at: expiresAt.toISOString(), ttl_minutes: ttl }
+    }
+
+    @Post('tenders/:id/documents.zip/share-link')
+    async mintZipShareLink(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: { ttl_minutes?: number } = {},
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        const ttl = this.clampTtl(body?.ttl_minutes)
+        const { token, expiresAt } = this.shareTokens.sign(
+            { kind: 'zip', tenderId: id },
+            ttl,
+        )
+        const origin = resolveOrigin(req)
+        const url = `${origin}/public/tenders/${id}/documents.zip?sig=${encodeURIComponent(token)}`
+        await this.audit.record({
+            tenderId: id,
+            actorUserId: req.user.id,
+            event: 'doc:share_link_minted',
+            payload: { kind: 'zip', ttl_minutes: ttl, expires_at: expiresAt.toISOString() },
+        })
+        return { url, expires_at: expiresAt.toISOString(), ttl_minutes: ttl }
+    }
+
+    // ── Field Verification (Global) ──────────────────────────────────────────
+    @Get('tenders/:id/checklist')
+    async getChecklist(@Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.fieldVerification.getChecklist(pid, id)
+    }
+
+    @Patch('tenders/:id/checklist/:itemId')
+    async patchChecklist(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('itemId', ParseIntPipe) itemId: number,
+        @Body() body: any
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.fieldVerification.patchChecklistItem(pid, id, itemId, req.user.id, body)
+    }
+
+    @Post('tenders/:id/verification-sessions')
+    async createSession(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Body() body: any
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.fieldVerification.createSession(pid, id, req.user.id, body)
+    }
+
+    @Post('tenders/:id/verification-uploads/:uploadId/assign')
+    async assignUpload(
+        @Req() req: any,
+        @Param('id', ParseIntPipe) id: number,
+        @Param('uploadId', ParseIntPipe) uploadId: number,
+        @Body() body: any,
+    ) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.fieldVerification.assignUpload(pid, id, uploadId, req.user.id, body)
+    }
+
+    @Post('tenders/:id/confirm-verification')
+    async confirm(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
+        const pid = await this.getTenderPanchayatId(id)
+        return this.fieldVerification.confirmVerification(pid, id, req.user.id)
     }
 }

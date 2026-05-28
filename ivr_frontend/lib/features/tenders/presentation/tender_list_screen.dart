@@ -9,30 +9,34 @@ import '../../../core/widgets/app_error_state.dart';
 import '../../../core/widgets/app_loading_state.dart';
 import '../../../core/widgets/app_status_badge.dart';
 import '../../../core/widgets/list_screen_shell.dart';
+import '../../super_admin/data/super_admin_repository.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 
 class TenderListScreen extends StatefulWidget {
-  const TenderListScreen({super.key});
+  final bool isSuperAdmin;
+  const TenderListScreen({super.key, this.isSuperAdmin = false});
 
   @override
   State<TenderListScreen> createState() => _TenderListScreenState();
 }
 
 class _TenderListScreenState extends State<TenderListScreen> {
-  final _repo = TenderRepository();
+  late final TenderRepository _repo;
   String? _statusFilter;
+  int? _panchayatFilter;
   late Future<List<TenderSummary>> _future;
 
   @override
   void initState() {
     super.initState();
+    _repo = TenderRepository(isSuperAdmin: widget.isSuperAdmin);
     _future = _repo.listTenders();
   }
 
   void _reload() {
     setState(() {
-      _future = _repo.listTenders(status: _statusFilter);
+      _future = _repo.listTenders(status: _statusFilter, panchayatId: _panchayatFilter);
     });
   }
 
@@ -46,35 +50,64 @@ class _TenderListScreenState extends State<TenderListScreen> {
               ? 'All tenders'
               : 'Filtered by ${_statusFilter!.replaceAll('_', ' ')}',
       action: FilledButton.icon(
-        onPressed: () => context.go('/tenders/new'),
+        onPressed: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/new' : '/tenders/new'),
         icon: const Icon(Icons.add),
         label: const Text('New tender'),
       ),
-      filters: DropdownButton<String?>(
-        value: _statusFilter,
-        hint: const Text('All statuses'),
-        items: const [
-          DropdownMenuItem(value: null, child: Text('All statuses')),
-          DropdownMenuItem(value: 'draft', child: Text('Draft')),
-          DropdownMenuItem(value: 'published', child: Text('Published')),
-          DropdownMenuItem(
-            value: 'quotations_closed',
-            child: Text('Quotations closed'),
+      filters: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DropdownButton<String?>(
+            value: _statusFilter,
+            hint: const Text('All statuses'),
+            items: const [
+              DropdownMenuItem(value: null, child: Text('All statuses')),
+              DropdownMenuItem(value: 'draft', child: Text('Draft')),
+              DropdownMenuItem(value: 'published', child: Text('Published')),
+              DropdownMenuItem(
+                value: 'quotations_closed',
+                child: Text('Quotations closed'),
+              ),
+              DropdownMenuItem(
+                value: 'vendor_selected',
+                child: Text('Vendor selected'),
+              ),
+              DropdownMenuItem(
+                value: 'field_verification',
+                child: Text('Field verification'),
+              ),
+              DropdownMenuItem(value: 'closed', child: Text('Closed')),
+            ],
+            onChanged: (v) {
+              setState(() => _statusFilter = v);
+              _reload();
+            },
           ),
-          DropdownMenuItem(
-            value: 'vendor_selected',
-            child: Text('Vendor selected'),
-          ),
-          DropdownMenuItem(
-            value: 'field_verification',
-            child: Text('Field verification'),
-          ),
-          DropdownMenuItem(value: 'closed', child: Text('Closed')),
+          if (widget.isSuperAdmin) ...[
+            const SizedBox(width: 12),
+            FutureBuilder<List<dynamic>>(
+              future: SuperAdminRepository().listPanchayats(),
+              builder: (context, snap) {
+                final list = snap.data ?? [];
+                return DropdownButton<int?>(
+                  value: _panchayatFilter,
+                  hint: const Text('All Panchayats'),
+                  items: [
+                    const DropdownMenuItem(value: null, child: Text('All Panchayats')),
+                    ...list.map((p) => DropdownMenuItem(
+                      value: p.id as int,
+                      child: Text(p.name as String),
+                    )),
+                  ],
+                  onChanged: (v) {
+                    setState(() => _panchayatFilter = v);
+                    _reload();
+                  },
+                );
+              },
+            ),
+          ],
         ],
-        onChanged: (v) {
-          setState(() => _statusFilter = v);
-          _reload();
-        },
       ),
       child: FutureBuilder<List<TenderSummary>>(
         future: _future,
@@ -99,7 +132,7 @@ class _TenderListScreenState extends State<TenderListScreen> {
               title: 'No tenders yet',
               subtitle: 'Create your first tender to get started.',
               action: FilledButton.icon(
-                onPressed: () => context.go('/tenders/new'),
+                onPressed: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/new' : '/tenders/new'),
                 icon: const Icon(Icons.add),
                 label: const Text('Create tender'),
               ),
@@ -108,7 +141,7 @@ class _TenderListScreenState extends State<TenderListScreen> {
           return ListView.separated(
             itemCount: tenders.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) => _TenderRow(t: tenders[i]),
+            itemBuilder: (context, i) => _TenderRow(t: tenders[i], isSuperAdmin: widget.isSuperAdmin),
           );
         },
       ),
@@ -118,7 +151,8 @@ class _TenderListScreenState extends State<TenderListScreen> {
 
 class _TenderRow extends StatefulWidget {
   final TenderSummary t;
-  const _TenderRow({required this.t});
+  final bool isSuperAdmin;
+  const _TenderRow({required this.t, required this.isSuperAdmin});
 
   @override
   State<_TenderRow> createState() => _TenderRowState();
@@ -183,6 +217,13 @@ class _TenderRowState extends State<_TenderRow> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     AppStatusBadge(status: t.status),
+                    if (widget.isSuperAdmin && t.panchayatName != null)
+                      Chip(
+                        label: Text(t.panchayatName!),
+                        backgroundColor: Colors.purple.shade50,
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
                     if (t.status == 'field_verification' &&
                         t.verificationProgress != null &&
                         t.verificationProgress!.total > 0)
@@ -205,7 +246,7 @@ class _TenderRowState extends State<_TenderRow> {
               ),
               trailing: isNarrow ? null : accessChip,
               isThreeLine: isNarrow,
-              onTap: () => context.go('/tenders/${t.id}'),
+              onTap: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/${t.id}' : '/tenders/${t.id}'),
             ),
           ),
         );

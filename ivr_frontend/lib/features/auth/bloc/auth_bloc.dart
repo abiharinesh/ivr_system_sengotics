@@ -38,7 +38,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ApiException catch (e) {
       emit(AuthError(e.message));
     } catch (e) {
-      emit(AuthError('Login failed. Please try again.'));
+      emit(const AuthError('Login failed. Please try again.'));
     }
   }
 

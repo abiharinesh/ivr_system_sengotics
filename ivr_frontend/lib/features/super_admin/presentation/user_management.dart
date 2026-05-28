@@ -173,12 +173,16 @@ class _UserManagementState extends State<UserManagement> {
                         return Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: FilterChip(
-                            label: Text(role == 'all' ? 'All' : _labelForRole(role)),
+                            label: Text(
+                              role == 'all' ? 'All' : _labelForRole(role),
+                            ),
                             selected: selected,
                             onSelected: (_) {
                               setState(() => _activeRole = role);
                             },
-                            selectedColor: AppTheme.primary.withValues(alpha: 0.12),
+                            selectedColor: AppTheme.primary.withValues(
+                              alpha: 0.12,
+                            ),
                             checkmarkColor: AppTheme.primary,
                           ),
                         );
@@ -289,7 +293,10 @@ class _UserManagementState extends State<UserManagement> {
     );
   }
 
-  Future<void> _showCreateDialog(BuildContext context, String activeRole) async {
+  Future<void> _showCreateDialog(
+    BuildContext context,
+    String activeRole,
+  ) async {
     final emailC = TextEditingController();
     final passC = TextEditingController();
     int? selectedPanchayatId;
@@ -309,9 +316,9 @@ class _UserManagementState extends State<UserManagement> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not load panchayats: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not load panchayats: $e')));
       return;
     }
 
@@ -330,7 +337,7 @@ class _UserManagementState extends State<UserManagement> {
                         children: [
                           if (!lockRole)
                             DropdownButtonFormField<String>(
-                              value: selectedRole,
+                              initialValue: selectedRole,
                               decoration: const InputDecoration(
                                 labelText: 'Role *',
                               ),
@@ -382,7 +389,7 @@ class _UserManagementState extends State<UserManagement> {
                           ),
                           const SizedBox(height: 12),
                           DropdownButtonFormField<int>(
-                            value: selectedPanchayatId,
+                            initialValue: selectedPanchayatId,
                             decoration: const InputDecoration(
                               labelText: 'Panchayat *',
                             ),
@@ -424,9 +431,7 @@ class _UserManagementState extends State<UserManagement> {
                               selectedRole == 'electrician') {
                             payload['role'] = selectedRole;
                           }
-                          context.read<UserMgmtBloc>().add(
-                            CreateUser(payload),
-                          );
+                          context.read<UserMgmtBloc>().add(CreateUser(payload));
                           Navigator.pop(ctx);
                         }
                       },

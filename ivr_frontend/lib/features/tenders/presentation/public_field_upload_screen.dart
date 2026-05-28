@@ -17,7 +17,8 @@ class PublicFieldUploadScreen extends StatefulWidget {
   const PublicFieldUploadScreen({super.key, required this.token});
 
   @override
-  State<PublicFieldUploadScreen> createState() => _PublicFieldUploadScreenState();
+  State<PublicFieldUploadScreen> createState() =>
+      _PublicFieldUploadScreenState();
 }
 
 class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
@@ -44,7 +45,9 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
   }
 
   Future<Map<String, dynamic>> _fetchSession() async {
-    final res = await ApiClient.instance.get('/public/field-sessions/${widget.token}');
+    final res = await ApiClient.instance.get(
+      '/public/field-sessions/${widget.token}',
+    );
     return res as Map<String, dynamic>;
   }
 
@@ -85,10 +88,13 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
         if (_notesCtrl.text.trim().isNotEmpty) 'notes': _notesCtrl.text.trim(),
         if (_manualPoleId != null) 'manual_pole_id': _manualPoleId,
       });
-      final res = await ApiClient.instance
-          .postMultipart('/public/field-sessions/${widget.token}/uploads', form);
+      final res = await ApiClient.instance.postMultipart(
+        '/public/field-sessions/${widget.token}/uploads',
+        form,
+      );
       if (!mounted) return;
-      final message = res['message']?.toString() ??
+      final message =
+          res['message']?.toString() ??
           'Image uploaded. Match: ${res['match_confidence'] ?? '—'}';
       setState(() {
         _result = message;
@@ -140,8 +146,10 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
           }
           final data = snap.data!;
           final session = (data['session'] ?? {}) as Map<String, dynamic>;
-          final poles = ((data['poles'] ?? []) as List).cast<Map<String, dynamic>>();
-          final workItems = ((data['work_items'] ?? []) as List).cast<Map<String, dynamic>>();
+          final poles =
+              ((data['poles'] ?? []) as List).cast<Map<String, dynamic>>();
+          final workItems =
+              ((data['work_items'] ?? []) as List).cast<Map<String, dynamic>>();
           final sectionLabel = session['label']?.toString();
 
           return Center(
@@ -151,7 +159,9 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                 padding: const EdgeInsets.all(20),
                 children: [
                   Text(
-                    sectionLabel?.isNotEmpty == true ? sectionLabel! : 'Field verification',
+                    sectionLabel?.isNotEmpty == true
+                        ? sectionLabel!
+                        : 'Field verification',
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   Text(
@@ -163,7 +173,10 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
                         'Link expires: ${session['expires_at']}',
-                        style: const TextStyle(color: Colors.black54, fontSize: 13),
+                        style: const TextStyle(
+                          color: Colors.black54,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   const SizedBox(height: 16),
@@ -199,7 +212,9 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                       leading: const Icon(Icons.build_outlined),
                       title: Text(_workLabel(wi)),
                       subtitle: Text(
-                        wi['pole_id'] != null ? 'Pole #${wi['pole_id']}' : 'No pole linked',
+                        wi['pole_id'] != null
+                            ? 'Pole #${wi['pole_id']}'
+                            : 'No pole linked',
                       ),
                     ),
                   const Divider(height: 32),
@@ -226,7 +241,7 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                   const SizedBox(height: 12),
                   if (poles.isNotEmpty)
                     DropdownButtonFormField<int>(
-                      value: _manualPoleId,
+                      initialValue: _manualPoleId,
                       decoration: const InputDecoration(
                         labelText: 'Manual pole (if GPS not read)',
                         border: OutlineInputBorder(),
@@ -240,7 +255,8 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                           DropdownMenuItem<int>(
                             value: p['id'] as int,
                             child: Text(
-                              p['pole_number']?.toString() ?? 'Pole #${p['id']}',
+                              p['pole_number']?.toString() ??
+                                  'Pole #${p['id']}',
                             ),
                           ),
                       ],
@@ -262,14 +278,18 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                         label: const Text('Pick geotag JPG'),
                       ),
                       FilledButton.icon(
-                        onPressed: _picked == null || _uploading ? null : _upload,
-                        icon: _uploading
-                            ? const SizedBox(
-                                width: 18,
-                                height: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.cloud_upload_outlined),
+                        onPressed:
+                            _picked == null || _uploading ? null : _upload,
+                        icon:
+                            _uploading
+                                ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                                : const Icon(Icons.cloud_upload_outlined),
                         label: Text(_uploading ? 'Uploading…' : 'Upload'),
                       ),
                     ],
@@ -277,7 +297,10 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                   if (_result != null) ...[
                     const SizedBox(height: 16),
                     AppCard(
-                      color: _resultIsError ? Colors.red.shade50 : Colors.green.shade50,
+                      color:
+                          _resultIsError
+                              ? Colors.red.shade50
+                              : Colors.green.shade50,
                       child: Text(_result!),
                     ),
                   ],

@@ -341,6 +341,27 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/vendors',
             builder: (context, state) => const VendorDirectoryScreen(),
           ),
+
+          // Super Admin Tender workflow
+          GoRoute(
+            path: '/superadmin/tenders',
+            builder: (context, state) => const TenderListScreen(isSuperAdmin: true),
+          ),
+          GoRoute(
+            path: '/superadmin/tenders/new',
+            builder: (context, state) => const TenderCreateScreen(isSuperAdmin: true),
+          ),
+          GoRoute(
+            path: '/superadmin/tenders/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return TenderDetailScreen(tenderId: id, isSuperAdmin: true);
+            },
+          ),
+          GoRoute(
+            path: '/superadmin/vendors',
+            builder: (context, state) => const VendorDirectoryScreen(isSuperAdmin: true),
+          ),
         ],
       ),
     ],
@@ -387,13 +408,16 @@ String _getTitle(String location) {
 	case '/analytics':
 	  return 'Analytics';
     case '/tenders':
+    case '/superadmin/tenders':
       return 'Tenders';
     case '/tenders/new':
+    case '/superadmin/tenders/new':
       return 'New tender';
     case '/vendors':
+    case '/superadmin/vendors':
       return 'Vendor directory';
     default:
-      if (location.startsWith('/tenders/')) return 'Tender detail';
+      if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
       if (location.startsWith('/electrician/jobs/')) return 'Complaint';
       return 'IVR System';

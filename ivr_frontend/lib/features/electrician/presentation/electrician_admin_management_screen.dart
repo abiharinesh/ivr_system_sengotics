@@ -141,8 +141,10 @@ class _ElectricianAdminManagementScreenState
                   children: [
                     if (pItems != null && pItems.isNotEmpty) ...[
                       DropdownButtonFormField<int>(
-                        value: panchayatId,
-                        decoration: const InputDecoration(labelText: 'Panchayat'),
+                        initialValue: panchayatId,
+                        decoration: const InputDecoration(
+                          labelText: 'Panchayat',
+                        ),
                         items: pItems,
                         onChanged: (v) => setSt(() => panchayatId = v),
                       ),
@@ -190,9 +192,9 @@ class _ElectricianAdminManagementScreenState
     );
     if (ok != true || !mounted) return;
     if (widget.forSuperAdmin && (panchayatId == null)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a panchayat')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select a panchayat')));
       return;
     }
     final phone = phoneC.text.trim();
@@ -212,25 +214,25 @@ class _ElectricianAdminManagementScreenState
         );
       }
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Electrician created')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Electrician created')));
       }
       await _reload();
     } on ApiException catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message)),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.message)));
       }
     }
   }
 
   Future<void> _runExport(int electricianUserId) async {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Starting export...')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Starting export...')));
     try {
       final started =
           widget.forSuperAdmin

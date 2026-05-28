@@ -29,7 +29,11 @@ class SuperAdminDashboard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.error_outline, size: 48, color: AppTheme.error),
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppTheme.error,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   state.message,
@@ -71,24 +75,38 @@ class SuperAdminDashboard extends StatelessWidget {
             if (state.warningMessage != null) ...[
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: AppTheme.warning.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.35)),
+                  border: Border.all(
+                    color: AppTheme.warning.withValues(alpha: 0.35),
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.info_outline, size: 18, color: AppTheme.warning),
+                    const Icon(
+                      Icons.info_outline,
+                      size: 18,
+                      color: AppTheme.warning,
+                    ),
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
                         'Some dashboard data is temporarily unavailable. Pull to refresh.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
+                        ),
                       ),
                     ),
                     TextButton(
-                      onPressed: () => context.read<SADashBloc>().add(LoadSADashboard()),
+                      onPressed:
+                          () =>
+                              context.read<SADashBloc>().add(LoadSADashboard()),
                       child: const Text('Retry'),
                     ),
                   ],
@@ -162,11 +180,7 @@ class SuperAdminDashboard extends StatelessWidget {
                 );
                 if (!twoColumn) {
                   return Column(
-                    children: [
-                      trend,
-                      const SizedBox(height: 16),
-                      category,
-                    ],
+                    children: [trend, const SizedBox(height: 16), category],
                   );
                 }
                 return Row(
@@ -234,8 +248,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
         final veryCompact = w < 540;
         final ultraCompact = w < 380;
         final mapHeight = veryCompact ? 280.0 : 300.0;
-        final infoCardWidth =
-            (w - 44).clamp(140.0, 230.0).toDouble();
+        final infoCardWidth = (w - 44).clamp(140.0, 230.0).toDouble();
 
         return Container(
           decoration: BoxDecoration(
@@ -251,7 +264,9 @@ class _MapDesignCardState extends State<_MapDesignCard> {
               children: [
                 if (compact) ...[
                   Text(
-                    ultraCompact ? 'Asset Map (GIS)' : 'Panchayat Asset Map (GIS View)',
+                    ultraCompact
+                        ? 'Asset Map (GIS)'
+                        : 'Panchayat Asset Map (GIS View)',
                     style: TextStyle(
                       fontSize: ultraCompact ? 16 : 20,
                       fontWeight: FontWeight.w700,
@@ -407,8 +422,9 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                       const Spacer(),
                                       InkWell(
                                         onTap:
-                                            () =>
-                                                setState(() => _selectedPole = null),
+                                            () => setState(
+                                              () => _selectedPole = null,
+                                            ),
                                         borderRadius: BorderRadius.circular(8),
                                         child: Icon(
                                           Icons.close_rounded,
@@ -463,7 +479,9 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                       style: ElevatedButton.styleFrom(
                                         padding: EdgeInsets.zero,
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
                                         ),
                                       ),
                                       child: const Text(
@@ -486,8 +504,10 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                         bottom: veryCompact ? null : 14,
                         child: ConstrainedBox(
                           constraints: BoxConstraints(
-                            maxWidth: (w - (veryCompact ? 16 : 32))
-                                .clamp(80.0, 220.0),
+                            maxWidth: (w - (veryCompact ? 16 : 32)).clamp(
+                              80.0,
+                              220.0,
+                            ),
                           ),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
@@ -561,7 +581,10 @@ class _LegendRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: AppTheme.textSecondary,
+            ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),

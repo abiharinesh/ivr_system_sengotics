@@ -266,7 +266,7 @@ class _BarChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final maxValue = values.reduce(math.max);
-    final barSpacing = 6.0;
+    const barSpacing = 6.0;
     final barCount = values.length;
     final barWidth = (size.width - ((barCount - 1) * barSpacing)) / barCount;
     for (var i = 0; i < barCount; i++) {

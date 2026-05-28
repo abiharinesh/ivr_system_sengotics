@@ -17,7 +17,9 @@ Future<int?> showAssignElectricianDialog({
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('This complaint has no panchayat; cannot list electricians.'),
+            content: Text(
+              'This complaint has no panchayat; cannot list electricians.',
+            ),
           ),
         );
       }
@@ -41,7 +43,8 @@ class _AssignElectricianDialog extends StatefulWidget {
   final Future<List<dynamic>> future;
 
   @override
-  State<_AssignElectricianDialog> createState() => _AssignElectricianDialogState();
+  State<_AssignElectricianDialog> createState() =>
+      _AssignElectricianDialogState();
 }
 
 class _AssignElectricianDialogState extends State<_AssignElectricianDialog> {
@@ -62,7 +65,8 @@ class _AssignElectricianDialogState extends State<_AssignElectricianDialog> {
       setState(() {
         _rows = rows;
         if (rows.isNotEmpty) {
-          _selectedId = Map<String, dynamic>.from(rows.first as Map)['id'] as int;
+          _selectedId =
+              Map<String, dynamic>.from(rows.first as Map)['id'] as int;
         }
       });
     } catch (e) {
@@ -86,7 +90,7 @@ class _AssignElectricianDialogState extends State<_AssignElectricianDialog> {
       body = const Text('No electricians found for this panchayat.');
     } else {
       body = DropdownButtonFormField<int>(
-        value: _selectedId,
+        initialValue: _selectedId,
         decoration: const InputDecoration(labelText: 'Electrician'),
         items:
             _rows!.map((e) {
@@ -100,15 +104,22 @@ class _AssignElectricianDialogState extends State<_AssignElectricianDialog> {
     }
 
     final canAssign =
-        _rows != null && _rows!.isNotEmpty && _selectedId != null && _error == null;
+        _rows != null &&
+        _rows!.isNotEmpty &&
+        _selectedId != null &&
+        _error == null;
 
     return AlertDialog(
       title: const Text('Assign electrician'),
       content: SizedBox(width: 320, child: body),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
-          onPressed: canAssign ? () => Navigator.pop(context, _selectedId) : null,
+          onPressed:
+              canAssign ? () => Navigator.pop(context, _selectedId) : null,
           child: const Text('Assign'),
         ),
       ],

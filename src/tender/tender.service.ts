@@ -165,10 +165,10 @@ export class TenderService {
 
     // ── tender CRUD ──────────────────────────────────────────────────────
 
-    async list(panchayatId: number, opts: { status?: string } = {}) {
+    async list(panchayatId?: number, opts: { status?: string } = {}) {
         const tenders = await this.prisma.tender.findMany({
             where: {
-                panchayat_id: panchayatId,
+                ...(panchayatId ? { panchayat_id: panchayatId } : {}),
                 ...(opts.status && TENDER_STATUSES.includes(opts.status as TenderStatus)
                     ? { status: opts.status }
                     : {}),
@@ -177,6 +177,7 @@ export class TenderService {
             include: {
                 _count: { select: { line_items: true, quotations: true, documents: true, invites: true } },
                 awarded_quotation: { select: { id: true, vendor_id: true, submitter_name: true, amount: true } },
+                panchayat: { select: { id: true, name: true } },
             },
         })
 

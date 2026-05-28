@@ -1,44 +1,51 @@
 import 'package:flutter/material.dart';
+import '../../super_admin/data/super_admin_repository.dart';
 import '../data/tender_models.dart';
 import '../../../core/widgets/app_loading_state.dart';
 import '../data/tender_repository.dart';
 
 class VendorDirectoryScreen extends StatefulWidget {
-  const VendorDirectoryScreen({super.key});
+  final bool isSuperAdmin;
+  const VendorDirectoryScreen({super.key, this.isSuperAdmin = false});
 
   @override
   State<VendorDirectoryScreen> createState() => _VendorDirectoryScreenState();
 }
 
 class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
-  final _repo = TenderRepository();
+  late final TenderRepository _repo;
+  int? _panchayatFilter;
   Future<List<Vendor>>? _future;
 
   @override
   void initState() {
     super.initState();
-    _future = _repo.listVendors();
+    _repo = TenderRepository(isSuperAdmin: widget.isSuperAdmin);
+    _reload();
   }
 
   void _reload() {
     if (!mounted) return;
     setState(() {
-      _future = _repo.listVendors();
+      _future = _repo.listVendors(panchayatId: _panchayatFilter);
     });
   }
 
   Future<void> _addVendor() async {
     final result = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => const _VendorDialog(),
+      builder: (_) => _VendorDialog(isSuperAdmin: widget.isSuperAdmin),
     );
     if (result == null) return;
     try {
+      final pidStr = result['panchayat_id'];
+      final pid = pidStr != null && pidStr.isNotEmpty ? int.tryParse(pidStr) : null;
       await _repo.createVendor(
         name: result['name']!,
         phoneE164: result['phone']!,
         place: result['place'],
         notes: result['notes'],
+        panchayatId: pid,
       );
       _reload();
     } catch (e) {
@@ -84,6 +91,36 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
                   ],
                 ),
               const SizedBox(height: 12),
+              if (widget.isSuperAdmin) ...[
+                Row(
+                  children: [
+                    const Text('Filter by Panchayat: '),
+                    const SizedBox(width: 8),
+                    FutureBuilder<List<dynamic>>(
+                      future: SuperAdminRepository().listPanchayats(),
+                      builder: (context, snap) {
+                        final list = snap.data ?? [];
+                        return DropdownButton<int?>(
+                          value: _panchayatFilter,
+                          hint: const Text('All Panchayats'),
+                          items: [
+                            const DropdownMenuItem(value: null, child: Text('All Panchayats')),
+                            ...list.map((p) => DropdownMenuItem(
+                              value: p.id as int,
+                              child: Text(p.name as String),
+                            )),
+                          ],
+                          onChanged: (v) {
+                            setState(() => _panchayatFilter = v);
+                            _reload();
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+              ],
               Expanded(
                 child: FutureBuilder<List<Vendor>>(
                   future: _future,
@@ -113,7 +150,29 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
                           leading: CircleAvatar(
                             child: Text(v.name.isNotEmpty ? v.name[0] : '?'),
                           ),
-                          title: Text(v.name),
+                          title: Row(
+                            children: [
+                              Text(v.name),
+                              if (widget.isSuperAdmin && v.panchayatName != null) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.purple.shade50,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    v.panchayatName!,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      color: Colors.purple.shade700,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                           subtitle: Text(
                             '${v.phoneE164}${v.place != null ? ' • ${v.place}' : ''}',
                           ),
@@ -149,7 +208,9 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
 }
 
 class _VendorDialog extends StatefulWidget {
-  const _VendorDialog();
+  final bool isSuperAdmin;
+  const _VendorDialog({required this.isSuperAdmin});
+
   @override
   State<_VendorDialog> createState() => _VendorDialogState();
 }
@@ -159,6 +220,7 @@ class _VendorDialogState extends State<_VendorDialog> {
   final _phone = TextEditingController();
   final _place = TextEditingController();
   final _notes = TextEditingController();
+  int? _panchayatId;
 
   @override
   Widget build(BuildContext context) {
@@ -173,6 +235,27 @@ class _VendorDialogState extends State<_VendorDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              if (widget.isSuperAdmin) ...[
+                FutureBuilder<List<dynamic>>(
+                  future: SuperAdminRepository().listPanchayats(),
+                  builder: (context, snap) {
+                    final list = snap.data ?? [];
+                    return DropdownButtonFormField<int?>(
+                      value: _panchayatId,
+                      hint: const Text('Select Panchayat'),
+                      decoration: const InputDecoration(labelText: 'Panchayat'),
+                      items: list.map((p) => DropdownMenuItem(
+                        value: p.id as int,
+                        child: Text(p.name as String),
+                      )).toList(),
+                      onChanged: (v) {
+                        setState(() => _panchayatId = v);
+                      },
+                    );
+                  },
+                ),
+                const SizedBox(height: 8),
+              ],
               TextField(
                 controller: _name,
                 decoration: const InputDecoration(labelText: 'Name'),
@@ -208,6 +291,7 @@ class _VendorDialogState extends State<_VendorDialog> {
             'phone': _phone.text.trim(),
             'place': _place.text.trim(),
             'notes': _notes.text.trim(),
+            'panchayat_id': _panchayatId?.toString() ?? '',
           }),
           child: const Text('Add'),
         ),

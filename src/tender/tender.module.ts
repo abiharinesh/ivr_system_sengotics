@@ -51,6 +51,9 @@ import { FieldVerificationPublicController } from './field-verification.public.c
         MilestoneService,
         TenderAuditService,
         DocumentTemplateSettingsService,
+        TenderPdfService,
+        FieldVerificationService,
+        TenderShareTokenService,
     ],
 })
 export class TenderModule {}

@@ -52,7 +52,8 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       final poleId = li.poleId;
       if (poleId == null || seen.contains(poleId)) continue;
       seen.add(poleId);
-      final desc = li.descriptionEn ?? li.descriptionTa ?? 'Work item #${li.id}';
+      final desc =
+          li.descriptionEn ?? li.descriptionTa ?? 'Work item #${li.id}';
       options.add((poleId: poleId, label: 'Pole #$poleId — $desc'));
     }
     options.sort((a, b) => a.poleId.compareTo(b.poleId));
@@ -64,7 +65,11 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
     if (options.isEmpty) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Add line items with poles before creating a section link.')),
+        const SnackBar(
+          content: Text(
+            'Add line items with poles before creating a section link.',
+          ),
+        ),
       );
       return;
     }
@@ -75,69 +80,89 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
 
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialog) => AlertDialog(
-          title: const Text('Create section link'),
-          content: SizedBox(
-            width: 420,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  TextField(
-                    controller: labelCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Section name',
-                      hintText: 'e.g. North ward',
+      builder:
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setDialog) => AlertDialog(
+                  title: const Text('Create section link'),
+                  content: SizedBox(
+                    width: 420,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextField(
+                            controller: labelCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Section name',
+                              hintText: 'e.g. North ward',
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Poles in this section (${selected.length}/${options.length})',
+                            style: Theme.of(ctx).textTheme.labelLarge,
+                          ),
+                          const SizedBox(height: 8),
+                          for (final o in options)
+                            CheckboxListTile(
+                              dense: true,
+                              contentPadding: EdgeInsets.zero,
+                              value: selected.contains(o.poleId),
+                              onChanged: (v) {
+                                setDialog(() {
+                                  if (v == true) {
+                                    selected.add(o.poleId);
+                                  } else {
+                                    selected.remove(o.poleId);
+                                  }
+                                });
+                              },
+                              title: Text(
+                                o.label,
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          DropdownButtonFormField<int>(
+                            initialValue: expiryDays,
+                            decoration: const InputDecoration(
+                              labelText: 'Link expires in',
+                            ),
+                            items: const [
+                              DropdownMenuItem(value: 7, child: Text('7 days')),
+                              DropdownMenuItem(
+                                value: 14,
+                                child: Text('14 days'),
+                              ),
+                              DropdownMenuItem(
+                                value: 30,
+                                child: Text('30 days'),
+                              ),
+                            ],
+                            onChanged:
+                                (v) => setDialog(() => expiryDays = v ?? 14),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Poles in this section (${selected.length}/${options.length})',
-                    style: Theme.of(ctx).textTheme.labelLarge,
-                  ),
-                  const SizedBox(height: 8),
-                  for (final o in options)
-                    CheckboxListTile(
-                      dense: true,
-                      contentPadding: EdgeInsets.zero,
-                      value: selected.contains(o.poleId),
-                      onChanged: (v) {
-                        setDialog(() {
-                          if (v == true) {
-                            selected.add(o.poleId);
-                          } else {
-                            selected.remove(o.poleId);
-                          }
-                        });
-                      },
-                      title: Text(o.label, style: const TextStyle(fontSize: 13)),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
                     ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<int>(
-                    value: expiryDays,
-                    decoration: const InputDecoration(labelText: 'Link expires in'),
-                    items: const [
-                      DropdownMenuItem(value: 7, child: Text('7 days')),
-                      DropdownMenuItem(value: 14, child: Text('14 days')),
-                      DropdownMenuItem(value: 30, child: Text('30 days')),
-                    ],
-                    onChanged: (v) => setDialog(() => expiryDays = v ?? 14),
-                  ),
-                ],
-              ),
-            ),
+                    FilledButton(
+                      onPressed:
+                          selected.isEmpty
+                              ? null
+                              : () => Navigator.pop(ctx, true),
+                      child: const Text('Create link'),
+                    ),
+                  ],
+                ),
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-            FilledButton(
-              onPressed: selected.isEmpty ? null : () => Navigator.pop(ctx, true),
-              child: const Text('Create link'),
-            ),
-          ],
-        ),
-      ),
     );
 
     if (ok != true || !mounted) return;
@@ -152,13 +177,19 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       final url = ApiConfig.webUrl('/public/field/${s.token ?? ''}');
       await Clipboard.setData(ClipboardData(text: url));
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Section link copied${s.label != null ? ' (${s.label})' : ''}.')),
+        SnackBar(
+          content: Text(
+            'Section link copied${s.label != null ? ' (${s.label})' : ''}.',
+          ),
+        ),
       );
       widget.onChanged();
       _refresh(reloadSessions: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -166,14 +197,20 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
     final token = s.token;
     if (token == null || token.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Link token missing — refresh tender detail.')),
+        const SnackBar(
+          content: Text('Link token missing — refresh tender detail.'),
+        ),
       );
       return;
     }
     final url = ApiConfig.webUrl('/public/field/$token');
     Clipboard.setData(ClipboardData(text: url));
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Link copied${s.label != null ? ' for ${s.label}' : ''}.')),
+      SnackBar(
+        content: Text(
+          'Link copied${s.label != null ? ' for ${s.label}' : ''}.',
+        ),
+      ),
     );
   }
 
@@ -182,7 +219,10 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
     for (final s in widget.detail.sessions) {
       final token = s.token;
       if (token == null || token.isEmpty) continue;
-      final name = s.label?.trim().isNotEmpty == true ? s.label!.trim() : 'Session #${s.id}';
+      final name =
+          s.label?.trim().isNotEmpty == true
+              ? s.label!.trim()
+              : 'Session #${s.id}';
       lines.add('$name: ${ApiConfig.webUrl('/public/field/$token')}');
     }
     if (lines.isEmpty) {
@@ -208,18 +248,26 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   Future<void> _approveItem(ChecklistItem item) async {
     setState(() => _busyItemId = item.id);
     try {
-      await widget.repo.patchChecklistItem(widget.tenderId, item.id, isDone: true);
+      await widget.repo.patchChecklistItem(
+        widget.tenderId,
+        item.id,
+        isDone: true,
+      );
       _refresh(reloadSessions: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _busyItemId = null);
     }
@@ -237,7 +285,9 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       _refresh(reloadSessions: true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _busyItemId = null);
     }
@@ -256,7 +306,9 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _busyItemId = null);
     }
@@ -265,31 +317,35 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
   void _showImageDialog(FieldVerificationUpload upload) {
     showDialog<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppBar(
-                title: const Text('Field photo'),
-                automaticallyImplyLeading: false,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
+      builder:
+          (ctx) => Dialog(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppBar(
+                    title: const Text('Field photo'),
+                    automaticallyImplyLeading: false,
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: InteractiveViewer(
+                      child: ApiFileImage(
+                        path: upload.imageUrl,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
                   ),
                 ],
               ),
-              Expanded(
-                child: InteractiveViewer(
-                  child: ApiFileImage(path: upload.imageUrl, fit: BoxFit.contain),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -319,7 +375,9 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
 
   @override
   Widget build(BuildContext context) {
-    final canCopyAny = widget.detail.sessions.any((s) => s.token != null && s.token!.isNotEmpty);
+    final canCopyAny = widget.detail.sessions.any(
+      (s) => s.token != null && s.token!.isNotEmpty,
+    );
     final poleOptions = _poleOptions();
 
     return ListView(
@@ -364,13 +422,19 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
             if (widget.detail.sessions.isEmpty)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text('No section links yet. Create one and share with field staff.'),
+                child: Text(
+                  'No section links yet. Create one and share with field staff.',
+                ),
               ),
             for (final s in widget.detail.sessions)
               Card(
                 child: ListTile(
                   leading: const Icon(Icons.link),
-                  title: Text(s.label?.trim().isNotEmpty == true ? s.label! : 'Session #${s.id}'),
+                  title: Text(
+                    s.label?.trim().isNotEmpty == true
+                        ? s.label!
+                        : 'Session #${s.id}',
+                  ),
                   subtitle: Text(
                     '${s.uploadCount} upload(s) • ${s.poleSubsetIds.length} pole(s) • '
                     'Expires ${s.expiresAt?.toIso8601String().substring(0, 10) ?? '—'}',
@@ -398,26 +462,28 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
               );
             }
             if (snap.hasError) return Text('Error: ${snap.error}');
-            final items = [...(snap.data ?? [])]
-              ..sort((a, b) {
-                final cmp = a.reviewSortKey.compareTo(b.reviewSortKey);
-                if (cmp != 0) return cmp;
-                return (a.poleId ?? a.id).compareTo(b.poleId ?? b.id);
-              });
+            final items = [...(snap.data ?? [])]..sort((a, b) {
+              final cmp = a.reviewSortKey.compareTo(b.reviewSortKey);
+              if (cmp != 0) return cmp;
+              return (a.poleId ?? a.id).compareTo(b.poleId ?? b.id);
+            });
 
             if (items.isEmpty) {
               return const Padding(
                 padding: EdgeInsets.all(16),
-                child: Text('No checklist items. Create a section link to seed them.'),
+                child: Text(
+                  'No checklist items. Create a section link to seed them.',
+                ),
               );
             }
 
             final approved = items.where((i) => i.isDone).length;
-            final needsReview = items.where((i) {
-              if (i.isDone) return false;
-              final u = i.verifiedUpload;
-              return u != null && u.needsReview;
-            }).length;
+            final needsReview =
+                items.where((i) {
+                  if (i.isDone) return false;
+                  final u = i.verifiedUpload;
+                  return u != null && u.needsReview;
+                }).length;
             final pending = items.length - approved - needsReview;
 
             return Column(
@@ -449,18 +515,22 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
                     poleOptions: poleOptions,
                     busy: _busyItemId == item.id,
                     matchColor: _matchColor,
-                    onImageTap: item.verifiedUpload != null
-                        ? () => _showImageDialog(item.verifiedUpload!)
-                        : null,
-                    onApprove: item.verifiedUpload != null && !item.isDone
-                        ? () => _approveItem(item)
-                        : null,
-                    onReject: item.verifiedUpload != null
-                        ? () => _rejectItem(item)
-                        : null,
-                    onPoleChanged: item.verifiedUpload != null
-                        ? (poleId) => _reassignPole(item, poleId)
-                        : null,
+                    onImageTap:
+                        item.verifiedUpload != null
+                            ? () => _showImageDialog(item.verifiedUpload!)
+                            : null,
+                    onApprove:
+                        item.verifiedUpload != null && !item.isDone
+                            ? () => _approveItem(item)
+                            : null,
+                    onReject:
+                        item.verifiedUpload != null
+                            ? () => _rejectItem(item)
+                            : null,
+                    onPoleChanged:
+                        item.verifiedUpload != null
+                            ? (poleId) => _reassignPole(item, poleId)
+                            : null,
                   ),
               ],
             );
@@ -497,9 +567,12 @@ class _FieldVerificationReviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final upload = item.verifiedUpload;
-    final borderColor = item.isDone
-        ? Colors.green.shade400
-        : (upload?.needsReview == true ? Colors.orange.shade400 : Colors.grey.shade300);
+    final borderColor =
+        item.isDone
+            ? Colors.green.shade400
+            : (upload?.needsReview == true
+                ? Colors.orange.shade400
+                : Colors.grey.shade300);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -525,7 +598,11 @@ class _FieldVerificationReviewCard extends StatelessWidget {
                     children: [
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [thumb, const SizedBox(width: 12), Expanded(child: meta)],
+                        children: [
+                          thumb,
+                          const SizedBox(width: 12),
+                          Expanded(child: meta),
+                        ],
                       ),
                       const SizedBox(height: 12),
                       actions,
@@ -559,7 +636,10 @@ class _FieldVerificationReviewCard extends StatelessWidget {
           color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: const Icon(Icons.image_not_supported_outlined, color: Colors.grey),
+        child: const Icon(
+          Icons.image_not_supported_outlined,
+          color: Colors.grey,
+        ),
       );
     }
     return InkWell(
@@ -584,7 +664,13 @@ class _FieldVerificationReviewCard extends StatelessWidget {
         Text(title, style: Theme.of(context).textTheme.titleSmall),
         const SizedBox(height: 6),
         if (item.isDone)
-          Text('Approved', style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600))
+          Text(
+            'Approved',
+            style: TextStyle(
+              color: Colors.green.shade700,
+              fontWeight: FontWeight.w600,
+            ),
+          )
         else if (upload == null)
           Text('No proof yet', style: TextStyle(color: Colors.grey.shade600))
         else ...[
@@ -611,13 +697,26 @@ class _FieldVerificationReviewCard extends StatelessWidget {
               'GPS: ${upload.matchedLat!.toStringAsFixed(5)}, ${upload.matchedLng!.toStringAsFixed(5)}',
               style: const TextStyle(fontSize: 12),
             ),
-          if (upload.coordSource != null) Text('Source: ${upload.coordSource}', style: const TextStyle(fontSize: 12)),
+          if (upload.coordSource != null)
+            Text(
+              'Source: ${upload.coordSource}',
+              style: const TextStyle(fontSize: 12),
+            ),
           if (upload.ocrPoleNumber != null && upload.ocrPoleNumber!.isNotEmpty)
-            Text('Tag: ${upload.ocrPoleNumber}', style: const TextStyle(fontSize: 12)),
+            Text(
+              'Tag: ${upload.ocrPoleNumber}',
+              style: const TextStyle(fontSize: 12),
+            ),
           if (upload.notes != null && upload.notes!.isNotEmpty)
-            Text('Field notes: ${upload.notes}', style: const TextStyle(fontSize: 12)),
+            Text(
+              'Field notes: ${upload.notes}',
+              style: const TextStyle(fontSize: 12),
+            ),
           if (upload.sessionLabel != null && upload.sessionLabel!.isNotEmpty)
-            Text('Section: ${upload.sessionLabel}', style: const TextStyle(fontSize: 12, color: Colors.black54)),
+            Text(
+              'Section: ${upload.sessionLabel}',
+              style: const TextStyle(fontSize: 12, color: Colors.black54),
+            ),
         ],
       ],
     );
@@ -630,7 +729,7 @@ class _FieldVerificationReviewCard extends StatelessWidget {
       children: [
         if (upload != null && onPoleChanged != null && poleOptions.isNotEmpty)
           DropdownButtonFormField<int>(
-            value: item.poleId,
+            initialValue: item.poleId,
             decoration: const InputDecoration(
               labelText: 'Match pole',
               isDense: true,
@@ -638,22 +737,34 @@ class _FieldVerificationReviewCard extends StatelessWidget {
             ),
             items: [
               for (final o in poleOptions)
-                DropdownMenuItem(value: o.poleId, child: Text('Pole #${o.poleId}', overflow: TextOverflow.ellipsis)),
+                DropdownMenuItem(
+                  value: o.poleId,
+                  child: Text(
+                    'Pole #${o.poleId}',
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
             ],
-            onChanged: busy
-                ? null
-                : (v) {
-                    if (v != null) onPoleChanged!(v);
-                  },
+            onChanged:
+                busy
+                    ? null
+                    : (v) {
+                      if (v != null) onPoleChanged!(v);
+                    },
           ),
         if (upload != null) ...[
           const SizedBox(height: 8),
           if (onApprove != null)
             FilledButton.icon(
               onPressed: busy ? null : onApprove,
-              icon: busy
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.check, size: 18),
+              icon:
+                  busy
+                      ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                      : const Icon(Icons.check, size: 18),
               label: const Text('Approve'),
             ),
           if (onReject != null) ...[

@@ -83,34 +83,38 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
     }
 
     final allPoles = _allPoles;
-        final searchLower = _search.trim().toLowerCase();
-        final poles = allPoles.where((p) {
-          final matchesSearch = searchLower.isEmpty
-              ? true
-              : ((p.poleNumber ?? '').toLowerCase().contains(searchLower) ||
-                  (p.keypadId ?? '').toLowerCase().contains(searchLower));
+    final searchLower = _search.trim().toLowerCase();
+    final poles =
+        allPoles.where((p) {
+          final matchesSearch =
+              searchLower.isEmpty
+                  ? true
+                  : ((p.poleNumber ?? '').toLowerCase().contains(searchLower) ||
+                      (p.keypadId ?? '').toLowerCase().contains(searchLower));
           final matchesPanchayat =
               _panchayatFilter == null || p.panchayatId == _panchayatFilter;
           return matchesSearch && matchesPanchayat;
         }).toList();
 
-        final totalPoles = allPoles.length;
-        final withLocation = allPoles
-            .where((p) => p.latitude != null && p.longitude != null)
-            .length;
-        final totalComplaints =
-            allPoles.fold<int>(0, (sum, p) => sum + p.complaintsCount);
-        final panchayatIds = <int>{};
-        for (final p in allPoles) {
-          if (p.panchayatId != null) panchayatIds.add(p.panchayatId!);
-        }
+    final totalPoles = allPoles.length;
+    final withLocation =
+        allPoles.where((p) => p.latitude != null && p.longitude != null).length;
+    final totalComplaints = allPoles.fold<int>(
+      0,
+      (sum, p) => sum + p.complaintsCount,
+    );
+    final panchayatIds = <int>{};
+    for (final p in allPoles) {
+      if (p.panchayatId != null) panchayatIds.add(p.panchayatId!);
+    }
 
-        final visibleCount = poles.length;
+    final visibleCount = poles.length;
 
     return ListScreenShell(
       title: 'Pole Management (All Panchayats)',
       subtitle: 'Search and audit electric poles across every panchayat',
-      countLabel: '$visibleCount of $totalPoles pole(s) shown • '
+      countLabel:
+          '$visibleCount of $totalPoles pole(s) shown • '
           '$withLocation with coordinates • '
           '${panchayatIds.length} panchayat(s) • '
           '$totalComplaints complaint(s)',
@@ -136,189 +140,194 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
           return ListView.builder(
             padding: EdgeInsets.fromLTRB(hPad, 0, hPad, hPad),
-        itemCount: poles.length,
-        itemBuilder: (context, index) {
-          final pole = poles[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+            itemCount: poles.length,
+            itemBuilder: (context, index) {
+              final pole = poles[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.primaryGradient,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.electrical_services_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              pole.poleNumber ?? 'Pole #${pole.id}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.primaryGradient,
+                              borderRadius: BorderRadius.circular(10),
                             ),
-                            const SizedBox(height: 2),
-                            Row(
+                            child: const Icon(
+                              Icons.electrical_services_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                if (pole.keypadId != null) ...[
-                                  const Icon(
-                                    Icons.dialpad_rounded,
-                                    size: 14,
-                                    color: AppTheme.textMuted,
+                                Text(
+                                  pole.poleNumber ?? 'Pole #${pole.id}',
+                                  style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
                                   ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Keypad: ${pole.keypadId}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                                const Spacer(),
-                                if (pole.panchayatId != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.bgSurface,
-                                      borderRadius: BorderRadius.circular(999),
-                                    ),
-                                    child: Text(
-                                      'Panchayat #${pole.panchayatId}',
-                                      style: const TextStyle(
-                                        fontSize: 11,
-                                        color: AppTheme.textSecondary,
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  children: [
+                                    if (pole.keypadId != null) ...[
+                                      const Icon(
+                                        Icons.dialpad_rounded,
+                                        size: 14,
+                                        color: AppTheme.textMuted,
                                       ),
-                                    ),
-                                  ),
-                                const SizedBox(width: 8),
-                                PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    if (value == 'edit') {
-                                      _showPoleDialog(pole: pole);
-                                    } else if (value == 'delete') {
-                                      _showDeleteConfirm(pole);
-                                    }
-                                  },
-                                  itemBuilder:
-                                      (_) => const [
-                                        PopupMenuItem(
-                                          value: 'edit',
-                                          child: Text('Edit'),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Keypad: ${pole.keypadId}',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppTheme.textSecondary,
                                         ),
-                                        PopupMenuItem(
-                                          value: 'delete',
-                                          child: Text(
-                                            'Delete',
-                                            style: TextStyle(
-                                              color: AppTheme.error,
-                                            ),
+                                      ),
+                                    ],
+                                    const Spacer(),
+                                    if (pole.panchayatId != null)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppTheme.bgSurface,
+                                          borderRadius: BorderRadius.circular(
+                                            999,
                                           ),
                                         ),
-                                      ],
+                                        child: Text(
+                                          'Panchayat #${pole.panchayatId}',
+                                          style: const TextStyle(
+                                            fontSize: 11,
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                        ),
+                                      ),
+                                    const SizedBox(width: 8),
+                                    PopupMenuButton<String>(
+                                      onSelected: (value) {
+                                        if (value == 'edit') {
+                                          _showPoleDialog(pole: pole);
+                                        } else if (value == 'delete') {
+                                          _showDeleteConfirm(pole);
+                                        }
+                                      },
+                                      itemBuilder:
+                                          (_) => const [
+                                            PopupMenuItem(
+                                              value: 'edit',
+                                              child: Text('Edit'),
+                                            ),
+                                            PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                  color: AppTheme.error,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                    ),
+                                  ],
                                 ),
                               ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      if (pole.latitude != null && pole.longitude != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.location_on_outlined,
-                              size: 14,
-                              color: AppTheme.textMuted,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${pole.latitude!.toStringAsFixed(4)}, '
-                              '${pole.longitude!.toStringAsFixed(4)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      const Spacer(),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.report_problem_rounded,
-                            size: 14,
-                            color: AppTheme.textMuted,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${pole.complaintsCount} complaint(s)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                  if (pole.landmarks.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: pole.landmarks
-                          .map(
-                            (l) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          if (pole.latitude != null && pole.longitude != null)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 14,
+                                  color: AppTheme.textMuted,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${pole.latitude!.toStringAsFixed(4)}, '
+                                  '${pole.longitude!.toStringAsFixed(4)}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          const Spacer(),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.report_problem_rounded,
+                                size: 14,
+                                color: AppTheme.textMuted,
                               ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.primary.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                l,
+                              const SizedBox(width: 4),
+                              Text(
+                                '${pole.complaintsCount} complaint(s)',
                                 style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppTheme.primary,
+                                  fontSize: 12,
+                                  color: AppTheme.textSecondary,
                                 ),
                               ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          );
-        },
+                            ],
+                          ),
+                        ],
+                      ),
+                      if (pole.landmarks.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children:
+                              pole.landmarks
+                                  .map(
+                                    (l) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withValues(
+                                          alpha: 0.08,
+                                        ),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        l,
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  )
+                                  .toList(),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              );
+            },
           );
         },
       ),
@@ -327,15 +336,10 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
 
   Widget _buildFilters(Set<int> panchayatIds) {
     final items = [
-      const DropdownMenuItem<int?>(
-        value: null,
-        child: Text('All panchayats'),
-      ),
+      const DropdownMenuItem<int?>(value: null, child: Text('All panchayats')),
       ...panchayatIds.map(
-        (id) => DropdownMenuItem<int?>(
-          value: id,
-          child: Text('Panchayat #$id'),
-        ),
+        (id) =>
+            DropdownMenuItem<int?>(value: id, child: Text('Panchayat #$id')),
       ),
     ];
 
@@ -358,7 +362,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
         SizedBox(
           width: 190,
           child: DropdownButtonFormField<int?>(
-            value: _panchayatFilter,
+            initialValue: _panchayatFilter,
             items: items,
             onChanged: (value) {
               setState(() => _panchayatFilter = value);
@@ -385,7 +389,9 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
     final lngC = TextEditingController(
       text: pole?.longitude != null ? pole!.longitude.toString() : '',
     );
-    final landmarksC = TextEditingController(text: pole?.landmarks.join(', ') ?? '');
+    final landmarksC = TextEditingController(
+      text: pole?.landmarks.join(', ') ?? '',
+    );
 
     final availablePanchayats =
         _allPoles
@@ -416,7 +422,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           DropdownButtonFormField<int>(
-                            value: selectedPanchayat,
+                            initialValue: selectedPanchayat,
                             items:
                                 availablePanchayats
                                     .map(
@@ -519,11 +525,15 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                       ? null
                                       : double.tryParse(lngC.text.trim());
 
-                              if ((latC.text.trim().isNotEmpty && lat == null) ||
-                                  (lngC.text.trim().isNotEmpty && lng == null)) {
+                              if ((latC.text.trim().isNotEmpty &&
+                                      lat == null) ||
+                                  (lngC.text.trim().isNotEmpty &&
+                                      lng == null)) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
-                                    content: Text('Latitude/Longitude must be valid numbers'),
+                                    content: Text(
+                                      'Latitude/Longitude must be valid numbers',
+                                    ),
                                     backgroundColor: AppTheme.error,
                                   ),
                                 );
@@ -590,7 +600,9 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              isEdit ? 'Pole updated successfully' : 'Pole created successfully',
+              isEdit
+                  ? 'Pole updated successfully'
+                  : 'Pole created successfully',
             ),
             backgroundColor: AppTheme.accent,
           ),
@@ -614,7 +626,9 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                 child: const Text('Cancel'),
               ),
               ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: AppTheme.error),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.error,
+                ),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Delete'),
               ),
@@ -649,4 +663,3 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
     }
   }
 }
-

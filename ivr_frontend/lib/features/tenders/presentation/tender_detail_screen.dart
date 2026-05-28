@@ -21,20 +21,21 @@ import '../../../core/widgets/api_file_image.dart';
 
 class TenderDetailScreen extends StatefulWidget {
   final int tenderId;
-  const TenderDetailScreen({super.key, required this.tenderId});
+  final bool isSuperAdmin;
+  const TenderDetailScreen({super.key, required this.tenderId, this.isSuperAdmin = false});
 
   @override
   State<TenderDetailScreen> createState() => _TenderDetailScreenState();
 }
 
 class _TenderDetailScreenState extends State<TenderDetailScreen> {
-  final _repo = TenderRepository();
+  late final TenderRepository _repo;
   Future<TenderDetail>? _future;
 
   @override
   void initState() {
     super.initState();
-    // Assign directly; setState is illegal before the element is mounted.
+    _repo = TenderRepository(isSuperAdmin: widget.isSuperAdmin);
     _future = _repo.getTender(widget.tenderId);
   }
 

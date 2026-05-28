@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/widgets/nav_guard.dart';
+import '../../super_admin/data/super_admin_repository.dart';
 import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 
 class TenderCreateScreen extends StatefulWidget {
-  const TenderCreateScreen({super.key});
+  final bool isSuperAdmin;
+  const TenderCreateScreen({super.key, this.isSuperAdmin = false});
 
   @override
   State<TenderCreateScreen> createState() => _TenderCreateScreenState();
@@ -14,7 +16,7 @@ class TenderCreateScreen extends StatefulWidget {
 
 class _TenderCreateScreenState extends State<TenderCreateScreen>
     with NavGuardMixin {
-  final _repo = TenderRepository();
+  late final TenderRepository _repo;
   final _formKey = GlobalKey<FormState>();
   final _titleEn = TextEditingController();
   final _titleTa = TextEditingController();
@@ -23,6 +25,7 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
   bool _autoResolve = false;
   bool _officerSelfInspection = false;
   DateTime? _anchorDate;
+  int? _selectedPanchayatId;
 
   bool _saving = false;
   bool _justSaved = false;
@@ -45,7 +48,10 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
   @override
   void initState() {
     super.initState();
-    _loadVendors();
+    _repo = TenderRepository(isSuperAdmin: widget.isSuperAdmin);
+    if (!widget.isSuperAdmin) {
+      _loadVendors();
+    }
   }
 
   Future<void> _loadVendors() async {
@@ -53,6 +59,22 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
       final vs = await _repo.listVendors(active: true);
       if (!mounted) return;
       setState(() => _vendors = vs);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not load vendors: $e')),
+      );
+    }
+  }
+
+  Future<void> _loadVendorsForPanchayat(int panchayatId) async {
+    try {
+      final vs = await _repo.listVendors(active: true, panchayatId: panchayatId);
+      if (!mounted) return;
+      setState(() {
+        _vendors = vs;
+        _selectedVendorIds.clear();
+      });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -75,10 +97,11 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
         if (_anchorDate != null) 'anchor_date': _anchorDate!.toIso8601String(),
         'invited_vendor_ids': _selectedVendorIds.toList(),
         'line_items': _lineItems.where((e) => e.hasContent).map((e) => e.toJson()).toList(),
+        if (widget.isSuperAdmin && _selectedPanchayatId != null) 'panchayat_id': _selectedPanchayatId,
       });
       if (!mounted) return;
       _justSaved = true;
-      context.go('/tenders/$id');
+      context.go(widget.isSuperAdmin ? '/superadmin/tenders/$id' : '/tenders/$id');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -139,6 +162,36 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
                   style: Theme.of(context).textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
+                if (widget.isSuperAdmin) ...[
+                  FutureBuilder<List<dynamic>>(
+                    future: SuperAdminRepository().listPanchayats(),
+                    builder: (context, snap) {
+                      final list = snap.data ?? [];
+                      return DropdownButtonFormField<int?>(
+                        value: _selectedPanchayatId,
+                        hint: const Text('Select Panchayat'),
+                        decoration: const InputDecoration(
+                          labelText: 'Panchayat',
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (v) => v == null ? 'Panchayat is required' : null,
+                        items: list.map((p) => DropdownMenuItem(
+                          value: p.id as int,
+                          child: Text(p.name as String),
+                        )).toList(),
+                        onChanged: (v) {
+                          setState(() {
+                            _selectedPanchayatId = v;
+                          });
+                          if (v != null) {
+                            _loadVendorsForPanchayat(v);
+                          }
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 TextFormField(
                   controller: _titleEn,
                   decoration: const InputDecoration(
@@ -179,67 +232,69 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
                     ],
                   ),
                 const SizedBox(height: 12),
-            CheckboxListTile(
-              dense: true,
-              title: const Text('Auto-resolve linked complaints on field-verification confirm'),
-              value: _autoResolve,
-              onChanged: (v) => setState(() => _autoResolve = v ?? false),
-            ),
-            CheckboxListTile(
-              dense: true,
-              title: const Text('Allow officer self-inspection (no field photo required)'),
-              value: _officerSelfInspection,
-              onChanged: (v) => setState(() => _officerSelfInspection = v ?? false),
-            ),
-            const Divider(height: 32),
-            Text('Invited vendors', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            if (_vendors.isEmpty)
-              const Text('No vendors yet. Add some via Vendor directory.')
-            else
-              Wrap(
-                spacing: 8,
-                runSpacing: 4,
-                children: _vendors
-                    .map((v) => FilterChip(
-                          selected: _selectedVendorIds.contains(v.id),
-                          label: Text('${v.name} (${v.phoneE164})'),
-                          onSelected: (sel) => setState(() {
-                            sel ? _selectedVendorIds.add(v.id) : _selectedVendorIds.remove(v.id);
-                          }),
-                        ))
-                    .toList(),
-              ),
-            const Divider(height: 32),
-            Row(
-              children: [
-                Text('Line items', style: Theme.of(context).textTheme.titleMedium),
-                const Spacer(),
-                TextButton.icon(
-                  onPressed: () => setState(() => _lineItems.add(_LineItemDraft())),
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add line item'),
+                CheckboxListTile(
+                  dense: true,
+                  title: const Text('Auto-resolve linked complaints on field-verification confirm'),
+                  value: _autoResolve,
+                  onChanged: (v) => setState(() => _autoResolve = v ?? false),
+                ),
+                CheckboxListTile(
+                  dense: true,
+                  title: const Text('Allow officer self-inspection (no field photo required)'),
+                  value: _officerSelfInspection,
+                  onChanged: (v) => setState(() => _officerSelfInspection = v ?? false),
+                ),
+                const Divider(height: 32),
+                Text('Invited vendors', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                if (widget.isSuperAdmin && _selectedPanchayatId == null)
+                  const Text('Select a Panchayat to load vendors.')
+                else if (_vendors.isEmpty)
+                  const Text('No vendors yet. Add some via Vendor directory.')
+                else
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: _vendors
+                        .map((v) => FilterChip(
+                              selected: _selectedVendorIds.contains(v.id),
+                              label: Text('${v.name} (${v.phoneE164})'),
+                              onSelected: (sel) => setState(() {
+                                sel ? _selectedVendorIds.add(v.id) : _selectedVendorIds.remove(v.id);
+                              }),
+                            ))
+                        .toList(),
+                  ),
+                const Divider(height: 32),
+                Row(
+                  children: [
+                    Text('Line items', style: Theme.of(context).textTheme.titleMedium),
+                    const Spacer(),
+                    TextButton.icon(
+                      onPressed: () => setState(() => _lineItems.add(_LineItemDraft())),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Add line item'),
+                    ),
+                  ],
+                ),
+                ..._lineItems.asMap().entries.map((e) => _LineItemEditor(
+                      index: e.key,
+                      draft: e.value,
+                      onRemove: _lineItems.length > 1
+                          ? () => setState(() => _lineItems.removeAt(e.key))
+                          : null,
+                    )),
+                const SizedBox(height: 24),
+                FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: _saving
+                      ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Create tender'),
                 ),
               ],
             ),
-            ..._lineItems.asMap().entries.map((e) => _LineItemEditor(
-                  index: e.key,
-                  draft: e.value,
-                  onRemove: _lineItems.length > 1
-                      ? () => setState(() => _lineItems.removeAt(e.key))
-                      : null,
-                )),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: _saving
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Text('Create tender'),
-            ),
-          ],
-        ),
-      ),
-    );
+          ),
+        );
       },
     );
   }

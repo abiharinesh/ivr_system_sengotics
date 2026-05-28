@@ -9,12 +9,19 @@ import 'tender_models.dart';
 
 class TenderRepository {
   final ApiClient _api;
-  TenderRepository({ApiClient? api}) : _api = api ?? ApiClient.instance;
+  final bool isSuperAdmin;
+  TenderRepository({ApiClient? api, this.isSuperAdmin = false}) : _api = api ?? ApiClient.instance;
+
+  String get _base => isSuperAdmin ? '/api/superadmin' : '/api/admin';
 
   // ── Vendors ─────────────────────────────────────────────────────────
-  Future<List<Vendor>> listVendors({bool? active}) async {
-    final res = await _api.get('/api/admin/vendors',
-        queryParams: active == null ? null : {'active': active.toString()});
+  Future<List<Vendor>> listVendors({bool? active, int? panchayatId}) async {
+    final params = <String, dynamic>{
+      if (active != null) 'active': active.toString(),
+      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+    };
+    final res = await _api.get('$_base/vendors',
+        queryParams: params.isEmpty ? null : params);
     return ((res ?? []) as List)
         .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -25,84 +32,90 @@ class TenderRepository {
     required String phoneE164,
     String? place,
     String? notes,
+    int? panchayatId,
   }) async {
-    final res = await _api.post('/api/admin/vendors', data: {
+    final res = await _api.post('$_base/vendors', data: {
       'name': name,
       'phone_e164': phoneE164,
       if (place != null) 'place': place,
       if (notes != null) 'notes': notes,
+      if (panchayatId != null) 'panchayat_id': panchayatId,
     });
     return Vendor.fromJson(res as Map<String, dynamic>);
   }
 
   Future<Vendor> updateVendor(int id, Map<String, dynamic> patch) async {
-    final res = await _api.patch('/api/admin/vendors/$id', data: patch);
+    final res = await _api.patch('$_base/vendors/$id', data: patch);
     return Vendor.fromJson(res as Map<String, dynamic>);
   }
 
   Future<void> deactivateVendor(int id) async {
-    await _api.delete('/api/admin/vendors/$id');
+    await _api.delete('$_base/vendors/$id');
   }
 
   // ── Tenders ─────────────────────────────────────────────────────────
-  Future<List<TenderSummary>> listTenders({String? status}) async {
-    final res = await _api.get('/api/admin/tenders',
-        queryParams: status == null ? null : {'status': status});
+  Future<List<TenderSummary>> listTenders({String? status, int? panchayatId}) async {
+    final params = <String, dynamic>{
+      if (status != null) 'status': status,
+      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+    };
+    final res = await _api.get('$_base/tenders',
+        queryParams: params.isEmpty ? null : params);
     return ((res ?? []) as List)
         .map((e) => TenderSummary.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<TenderDetail> getTender(int id) async {
-    final res = await _api.get('/api/admin/tenders/$id');
+    final res = await _api.get('$_base/tenders/$id');
     return TenderDetail.fromJson(res as Map<String, dynamic>);
   }
 
   Future<int> createTender(Map<String, dynamic> body) async {
-    final res = await _api.post('/api/admin/tenders', data: body);
+    final res = await _api.post('$_base/tenders', data: body);
     return (res as Map<String, dynamic>)['id'] as int;
   }
 
   Future<void> patchTender(int id, Map<String, dynamic> patch) async {
-    await _api.patch('/api/admin/tenders/$id', data: patch);
+    await _api.patch('$_base/tenders/$id', data: patch);
   }
 
   /// Switch public quotation link between invited-only and open-with-phone.
   /// Allowed for any tender status except `closed`.
   Future<void> setQuotationAccessMode(int tenderId, String mode) async {
     await _api.patch(
-      '/api/admin/tenders/$tenderId/quotation-access-mode',
+      '$_base/tenders/$tenderId/quotation-access-mode',
       data: {'quotation_access_mode': mode},
     );
   }
 
-  Future<void> publish(int id) => _api.post('/api/admin/tenders/$id/publish');
-  Future<void> closeQuotations(int id) => _api.post('/api/admin/tenders/$id/close-quotations');
+  Future<void> publish(int id) => _api.post('$_base/tenders/$id/publish');
+  Future<void> closeQuotations(int id) => _api.post('$_base/tenders/$id/close-quotations');
   Future<void> award(int id, int quotationId) =>
-      _api.post('/api/admin/tenders/$id/award', data: {'quotation_id': quotationId});
+      _api.post('$_base/tenders/$id/award', data: {'quotation_id': quotationId});
   Future<void> recordWorkCompletion(int id, {DateTime? at, String? notes}) =>
-      _api.post('/api/admin/tenders/$id/work-completion', data: {
+      _api.post('$_base/tenders/$id/work-completion', data: {
         if (at != null) 'work_completed_at': at.toIso8601String(),
         if (notes != null) 'inspection_notes': notes,
       });
   Future<void> recordPayment(int id, Map<String, dynamic> paymentMeta, {bool close = false}) =>
-      _api.post('/api/admin/tenders/$id/payment',
+      _api.post('$_base/tenders/$id/payment',
           data: {'payment_meta': paymentMeta, 'close': close});
 
   Future<void> addOfficerQuotation(int tenderId, Map<String, dynamic> body) =>
-      _api.post('/api/admin/tenders/$tenderId/quotations', data: body);
+      _api.post('$_base/tenders/$tenderId/quotations', data: body);
   Future<void> setInvites(int tenderId, List<int> vendorIds) =>
-      _api.post('/api/admin/tenders/$tenderId/invites', data: {'vendor_ids': vendorIds});
+      _api.post('$_base/tenders/$tenderId/invites', data: {'vendor_ids': vendorIds});
   Future<void> addLineItem(int tenderId, Map<String, dynamic> body) =>
-      _api.post('/api/admin/tenders/$tenderId/line-items', data: body);
+      _api.post('$_base/tenders/$tenderId/line-items', data: body);
   Future<void> updateLineItem(int tenderId, int itemId, Map<String, dynamic> body) =>
-      _api.patch('/api/admin/tenders/$tenderId/line-items/$itemId', data: body);
+      _api.patch('$_base/tenders/$tenderId/line-items/$itemId', data: body);
   Future<void> deleteLineItem(int tenderId, int itemId) =>
-      _api.delete('/api/admin/tenders/$tenderId/line-items/$itemId');
+      _api.delete('$_base/tenders/$tenderId/line-items/$itemId');
 
   // ── Documents ───────────────────────────────────────────────────────
   Future<List<TenderDocumentSummary>> listDocuments(int tenderId) async {
-    final res = await _api.get('/api/admin/tenders/$tenderId/documents');
+    final res = await _api.get('$_base/tenders/$tenderId/documents');
     return ((res ?? []) as List)
         .map((e) => TenderDocumentSummary.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -115,7 +128,7 @@ class TenderRepository {
     Map<String, dynamic>? fieldOverrides,
   }) async {
     final res = await _api.post(
-      '/api/admin/tenders/$tenderId/documents/$templateId/generate',
+      '$_base/tenders/$tenderId/documents/$templateId/generate',
       data: {
         if (vendorId != null) 'vendor_id': vendorId,
         if (fieldOverrides != null) 'field_overrides': fieldOverrides,
@@ -132,7 +145,7 @@ class TenderRepository {
     String? fallbackName,
   }) async {
     final file = await _api.getDownload(
-      '/api/admin/tenders/$tenderId/documents/$docId/download',
+      '$_base/tenders/$tenderId/documents/$docId/download',
     );
     await saveBytes(
       bytes: file.bytes,
@@ -146,7 +159,7 @@ class TenderRepository {
   /// PDF and HTML preview surfaces.
   Future<PreviewResult> previewDocument(int tenderId, int docId) async {
     final file = await _api.getDownload(
-      '/api/admin/tenders/$tenderId/documents/$docId/preview',
+      '$_base/tenders/$tenderId/documents/$docId/preview',
     );
     return PreviewResult(
       bytes: file.bytes,
@@ -155,7 +168,7 @@ class TenderRepository {
   }
 
   Future<CanvasState> getCanvasState(int tenderId, int docId) async {
-    final res = await _api.get('/api/admin/tenders/$tenderId/documents/$docId/canvas');
+    final res = await _api.get('$_base/tenders/$tenderId/documents/$docId/canvas');
     final json = res as Map<String, dynamic>;
     final layers = (json['layers'] as List?) ?? const [];
     final parsedLayers = layers
@@ -175,7 +188,7 @@ class TenderRepository {
     List<Map<String, dynamic>> layers,
   ) async {
     await _api.post(
-      '/api/admin/tenders/$tenderId/documents/$docId/canvas',
+      '$_base/tenders/$tenderId/documents/$docId/canvas',
       data: {'layers': layers},
     );
   }
@@ -186,7 +199,7 @@ class TenderRepository {
     List<Map<String, dynamic>> layers,
   ) async {
     await _api.post(
-      '/api/admin/tenders/$tenderId/documents/$docId/canvas/merge',
+      '$_base/tenders/$tenderId/documents/$docId/canvas/merge',
       data: {'layers': layers},
     );
   }
@@ -194,7 +207,7 @@ class TenderRepository {
   /// Download the latest-of-each-template zip bundle for a tender.
   Future<void> downloadDocumentsZip(int tenderId) async {
     final file = await _api.getDownload(
-      '/api/admin/tenders/$tenderId/documents.zip',
+      '$_base/tenders/$tenderId/documents.zip',
     );
     await saveBytes(
       bytes: file.bytes,
@@ -210,7 +223,7 @@ class TenderRepository {
     int ttlMinutes = 15,
   }) async {
     final res = await _api.post(
-      '/api/admin/tenders/$tenderId/documents/$docId/share-link',
+      '$_base/tenders/$tenderId/documents/$docId/share-link',
       data: {'ttl_minutes': ttlMinutes},
     );
     final json = res as Map<String, dynamic>;
@@ -226,7 +239,7 @@ class TenderRepository {
     int ttlMinutes = 15,
   }) async {
     final res = await _api.post(
-      '/api/admin/tenders/$tenderId/documents.zip/share-link',
+      '$_base/tenders/$tenderId/documents.zip/share-link',
       data: {'ttl_minutes': ttlMinutes},
     );
     final json = res as Map<String, dynamic>;
@@ -243,7 +256,7 @@ class TenderRepository {
     List<int>? poleSubsetIds,
     int? expiresInDays,
   }) async {
-    final res = await _api.post('/api/admin/tenders/$tenderId/verification-sessions', data: {
+    final res = await _api.post('$_base/tenders/$tenderId/verification-sessions', data: {
       if (label != null && label.trim().isNotEmpty) 'label': label.trim(),
       if (poleSubsetIds != null) 'pole_subset_ids': poleSubsetIds,
       if (expiresInDays != null) 'expires_in_days': expiresInDays,
@@ -252,7 +265,7 @@ class TenderRepository {
   }
 
   Future<List<ChecklistItem>> getChecklist(int tenderId) async {
-    final res = await _api.get('/api/admin/tenders/$tenderId/checklist');
+    final res = await _api.get('$_base/tenders/$tenderId/checklist');
     return ((res ?? []) as List)
         .map((e) => ChecklistItem.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -276,7 +289,7 @@ class TenderRepository {
       data['verified_upload_id'] = verifiedUploadId;
     }
     final res = await _api.patch(
-      '/api/admin/tenders/$tenderId/checklist/$itemId',
+      '$_base/tenders/$tenderId/checklist/$itemId',
       data: data,
     );
     return ChecklistItem.fromJson(res as Map<String, dynamic>);
@@ -289,14 +302,14 @@ class TenderRepository {
     bool approve = false,
   }) async {
     final res = await _api.post(
-      '/api/admin/tenders/$tenderId/verification-uploads/$uploadId/assign',
+      '$_base/tenders/$tenderId/verification-uploads/$uploadId/assign',
       data: {'pole_id': poleId, if (approve) 'approve': true},
     );
     return ChecklistItem.fromJson(res as Map<String, dynamic>);
   }
 
   Future<void> confirmVerification(int tenderId) =>
-      _api.post('/api/admin/tenders/$tenderId/confirm-verification');
+      _api.post('$_base/tenders/$tenderId/confirm-verification');
 
   // ── Public flows (no auth, used by web build) ───────────────────────
 
@@ -438,7 +451,7 @@ class TenderRepository {
   /// Fetch the HTML source of a document for inline editing.
   Future<String> getDocumentHtmlContent(int tenderId, int docId) async {
     final res = await _api.get(
-      '/api/admin/tenders/$tenderId/documents/$docId/html-content',
+      '$_base/tenders/$tenderId/documents/$docId/html-content',
     );
     return (res as Map<String, dynamic>)['html'] as String;
   }
@@ -450,7 +463,7 @@ class TenderRepository {
     String html,
   ) async {
     await _api.post(
-      '/api/admin/tenders/$tenderId/documents/$docId/content',
+      '$_base/tenders/$tenderId/documents/$docId/content',
       data: {'html': html},
     );
   }
@@ -463,7 +476,7 @@ class TenderRepository {
     String? fallbackName,
   }) async {
     final file = await _api.getDownload(
-      '/api/admin/tenders/$tenderId/documents/$docId/download?format=$format',
+      '$_base/tenders/$tenderId/documents/$docId/download?format=$format',
     );
     final ext = format == 'docx' ? 'doc' : format;
     await saveBytes(

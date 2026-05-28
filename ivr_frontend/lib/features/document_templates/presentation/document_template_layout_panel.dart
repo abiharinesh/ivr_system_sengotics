@@ -51,35 +51,38 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
             value: (draft.page?.paddingPx ?? 24).toDouble(),
             min: 0,
             max: 80,
-            onChanged: (v) => onDraftChanged(
-              draft.copyWith(
-                page: PageConfig(
-                  paddingPx: v.round(),
-                  maxWidthPx: draft.page?.maxWidthPx ?? 720,
+            onChanged:
+                (v) => onDraftChanged(
+                  draft.copyWith(
+                    page: PageConfig(
+                      paddingPx: v.round(),
+                      maxWidthPx: draft.page?.maxWidthPx ?? 720,
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ),
           _slider(
             label: 'Max width (px)',
             value: (draft.page?.maxWidthPx ?? 720).toDouble(),
             min: 400,
             max: 1200,
-            onChanged: (v) => onDraftChanged(
-              draft.copyWith(
-                page: PageConfig(
-                  paddingPx: draft.page?.paddingPx ?? 24,
-                  maxWidthPx: v.round(),
+            onChanged:
+                (v) => onDraftChanged(
+                  draft.copyWith(
+                    page: PageConfig(
+                      paddingPx: draft.page?.paddingPx ?? 24,
+                      maxWidthPx: v.round(),
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ),
           _sectionTitle('Alignment'),
           _alignDropdown(
             'Header',
             draft.header?.align ?? 'center',
             kTextAlignOptions,
-            (a) => onDraftChanged(draft.copyWith(header: AlignConfig(align: a))),
+            (a) =>
+                onDraftChanged(draft.copyWith(header: AlignConfig(align: a))),
           ),
           _alignDropdown(
             'Body',
@@ -133,7 +136,9 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
             'Signatures',
             draft.signatures?.align ?? 'center',
             kSignatureAlignOptions,
-            (a) => onDraftChanged(draft.copyWith(signatures: AlignConfig(align: a))),
+            (a) => onDraftChanged(
+              draft.copyWith(signatures: AlignConfig(align: a)),
+            ),
           ),
           _sectionTitle('Typography'),
           _slider(
@@ -141,43 +146,49 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
             value: (draft.typography?.baseFontPt ?? 10).toDouble(),
             min: 8,
             max: 16,
-            onChanged: (v) => onDraftChanged(
-              draft.copyWith(
-                typography: TypographyConfig(
-                  baseFontPt: v.round(),
-                  titleFontPt: draft.typography?.titleFontPt ?? 18,
+            onChanged:
+                (v) => onDraftChanged(
+                  draft.copyWith(
+                    typography: TypographyConfig(
+                      baseFontPt: v.round(),
+                      titleFontPt: draft.typography?.titleFontPt ?? 18,
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ),
           _slider(
             label: 'Title font (pt)',
             value: (draft.typography?.titleFontPt ?? 18).toDouble(),
             min: 12,
             max: 28,
-            onChanged: (v) => onDraftChanged(
-              draft.copyWith(
-                typography: TypographyConfig(
-                  baseFontPt: draft.typography?.baseFontPt ?? 10,
-                  titleFontPt: v.round(),
+            onChanged:
+                (v) => onDraftChanged(
+                  draft.copyWith(
+                    typography: TypographyConfig(
+                      baseFontPt: draft.typography?.baseFontPt ?? 10,
+                      titleFontPt: v.round(),
+                    ),
+                  ),
                 ),
-              ),
-            ),
           ),
           _sectionTitle('Footer'),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
-            title: const Text('Show generated footer', style: TextStyle(fontSize: 13)),
-            value: draft.branding?.showGeneratedFooter ?? true,
-            onChanged: (v) => onDraftChanged(
-              draft.copyWith(
-                branding: BrandingConfig(
-                  showGeneratedFooter: v,
-                  customFooterTextTa: draft.branding?.customFooterTextTa,
-                  customFooterTextEn: draft.branding?.customFooterTextEn,
-                ),
-              ),
+            title: const Text(
+              'Show generated footer',
+              style: TextStyle(fontSize: 13),
             ),
+            value: draft.branding?.showGeneratedFooter ?? true,
+            onChanged:
+                (v) => onDraftChanged(
+                  draft.copyWith(
+                    branding: BrandingConfig(
+                      showGeneratedFooter: v,
+                      customFooterTextTa: draft.branding?.customFooterTextTa,
+                      customFooterTextEn: draft.branding?.customFooterTextEn,
+                    ),
+                  ),
+                ),
           ),
           if (showPreviewPanchayatId) ...[
             const SizedBox(height: 8),
@@ -187,7 +198,8 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
                 isDense: true,
               ),
               keyboardType: TextInputType.number,
-              onChanged: (v) => onPreviewPanchayatIdChanged?.call(int.tryParse(v)),
+              onChanged:
+                  (v) => onPreviewPanchayatIdChanged?.call(int.tryParse(v)),
             ),
           ],
         ],
@@ -230,10 +242,13 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: DropdownButtonFormField<String>(
-        value: options.contains(value) ? value : options.first,
+        initialValue: options.contains(value) ? value : options.first,
         isExpanded: true,
         decoration: InputDecoration(labelText: label, isDense: true),
-        items: options.map((o) => DropdownMenuItem(value: o, child: Text(o))).toList(),
+        items:
+            options
+                .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                .toList(),
         onChanged: (v) {
           if (v != null) onChanged(v);
         },

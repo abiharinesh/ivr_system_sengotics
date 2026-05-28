@@ -10,6 +10,7 @@ class Vendor {
   final String? place;
   final String? notes;
   final bool active;
+  final String? panchayatName;
 
   const Vendor({
     required this.id,
@@ -19,6 +20,7 @@ class Vendor {
     this.place,
     this.notes,
     required this.active,
+    this.panchayatName,
   });
 
   factory Vendor.fromJson(Map<String, dynamic> j) => Vendor(
@@ -29,6 +31,7 @@ class Vendor {
     place: j['place'] as String?,
     notes: j['notes'] as String?,
     active: (j['active'] ?? true) as bool,
+    panchayatName: j['panchayat'] is Map ? (j['panchayat']['name'] as String?) : null,
   );
 }
 
@@ -336,6 +339,7 @@ class TenderSummary {
   final int invitesCount;
   final TenderQuotation? awarded;
   final VerificationProgress? verificationProgress;
+  final String? panchayatName;
 
   const TenderSummary({
     required this.id,
@@ -350,6 +354,7 @@ class TenderSummary {
     required this.invitesCount,
     this.awarded,
     this.verificationProgress,
+    this.panchayatName,
   });
 
   factory TenderSummary.fromJson(Map<String, dynamic> j) {
@@ -385,6 +390,7 @@ class TenderSummary {
               }),
       verificationProgress:
           vpMap == null ? null : VerificationProgress.fromJson(vpMap),
+      panchayatName: j['panchayat'] is Map ? (j['panchayat']['name'] as String?) : null,
     );
   }
 }

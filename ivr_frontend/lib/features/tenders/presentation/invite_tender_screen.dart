@@ -61,9 +61,9 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
   Future<void> _submit({required bool canSubmit}) async {
     if (!canSubmit) return;
     if (_amount.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Amount is required')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Amount is required')));
       return;
     }
     setState(() => _submitting = true);
@@ -92,9 +92,9 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
       _reload();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(userFacingMessage(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userFacingMessage(e))));
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -160,7 +160,10 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                         children: [
                           Icon(
                             Icons.mail_outline,
-                            color: Theme.of(context).colorScheme.onPrimaryContainer,
+                            color:
+                                Theme.of(
+                                  context,
+                                ).colorScheme.onPrimaryContainer,
                           ),
                           const SizedBox(width: 12),
                           Expanded(
@@ -168,9 +171,10 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                               'Invitation for $vendorName',
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onPrimaryContainer,
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onPrimaryContainer,
                               ),
                             ),
                           ),
@@ -208,7 +212,7 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Your details (from invitation)'),
+                          const Text('Your details (from invitation)'),
                           const SizedBox(height: 6),
                           Text('Name: ${vendor['name'] ?? '—'}'),
                           Text('Phone: ${vendor['phone_e164'] ?? '—'}'),
@@ -233,7 +237,10 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                   ],
                   if (lineItems.isNotEmpty) ...[
                     const SizedBox(height: 12),
-                    Text('Items', style: Theme.of(context).textTheme.titleMedium),
+                    Text(
+                      'Items',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                     for (final li in lineItems)
                       ListTile(
                         dense: true,
@@ -285,15 +292,17 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                   Row(
                     children: [
                       OutlinedButton.icon(
-                        onPressed: !canSubmit
-                            ? null
-                            : () async {
-                                final f = await _picker.pickImage(
-                                  source: ImageSource.gallery,
-                                  imageQuality: 85,
-                                );
-                                if (f != null) setState(() => _attachment = f);
-                              },
+                        onPressed:
+                            !canSubmit
+                                ? null
+                                : () async {
+                                  final f = await _picker.pickImage(
+                                    source: ImageSource.gallery,
+                                    imageQuality: 85,
+                                  );
+                                  if (f != null)
+                                    setState(() => _attachment = f);
+                                },
                         icon: const Icon(Icons.attach_file_outlined),
                         label: Text(
                           _attachment == null
@@ -322,13 +331,14 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
                         _submitting || !canSubmit
                             ? null
                             : () => _submit(canSubmit: canSubmit),
-                    child: _submitting
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Submit quotation'),
+                    child:
+                        _submitting
+                            ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                            : const Text('Submit quotation'),
                   ),
                   const SizedBox(height: 8),
                   Text(

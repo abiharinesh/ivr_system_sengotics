@@ -19,10 +19,16 @@ export interface VendorCreateBody {
 export class VendorService {
     constructor(private readonly prisma: PrismaService) {}
 
-    list(panchayatId: number, opts: { active?: boolean } = {}) {
+    list(panchayatId?: number, opts: { active?: boolean } = {}) {
         return this.prisma.vendor.findMany({
-            where: { panchayat_id: panchayatId, ...(opts.active != null ? { active: opts.active } : {}) },
+            where: {
+                ...(panchayatId ? { panchayat_id: panchayatId } : {}),
+                ...(opts.active != null ? { active: opts.active } : {}),
+            },
             orderBy: [{ active: 'desc' }, { name: 'asc' }],
+            include: {
+                panchayat: { select: { id: true, name: true } },
+            },
         })
     }
 

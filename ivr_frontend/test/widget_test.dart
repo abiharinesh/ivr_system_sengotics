@@ -7,10 +7,7 @@ import 'package:ivr_frontend/core/widgets/status_badge.dart';
 
 void main() {
   Widget wrap(Widget child) {
-    return MaterialApp(
-      theme: AppTheme.lightTheme,
-      home: Scaffold(body: child),
-    );
+    return MaterialApp(theme: AppTheme.lightTheme, home: Scaffold(body: child));
   }
 
   testWidgets('StatCard renders value and title', (WidgetTester tester) async {
@@ -41,12 +38,12 @@ void main() {
   testWidgets('ListScreenShell shows structure', (WidgetTester tester) async {
     await tester.pumpWidget(
       wrap(
-        ListScreenShell(
+        const ListScreenShell(
           title: 'Users',
           subtitle: 'Manage access',
           countLabel: '2 user(s)',
-          action: const Text('Action'),
-          child: const Center(child: Text('Body')),
+          action: Text('Action'),
+          child: Center(child: Text('Body')),
         ),
       ),
     );
