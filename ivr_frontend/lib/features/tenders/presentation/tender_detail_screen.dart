@@ -17,6 +17,7 @@ import '../data/tender_models.dart';
 import '../data/tender_repository.dart';
 import 'invite_links_panel.dart';
 import 'field_verification_tab.dart';
+import '../../../core/widgets/api_file_image.dart';
 
 class TenderDetailScreen extends StatefulWidget {
   final int tenderId;
@@ -376,6 +377,37 @@ class _VendorsTab extends StatefulWidget {
 }
 
 class _VendorsTabState extends State<_VendorsTab> {
+  void _showImageDialog(String imageUrl) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => Dialog(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppBar(
+                title: const Text('Quotation attachment'),
+                automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              Expanded(
+                child: InteractiveViewer(
+                  child: ApiFileImage(path: imageUrl, fit: BoxFit.contain),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _addOfflineQuote() async {
     final result = await showDialog<Map<String, dynamic>>(
       context: context,
@@ -562,6 +594,23 @@ class _VendorsTabState extends State<_VendorsTab> {
                                     ],
                                   ),
                                 ),
+                                if (q.attachmentUrl != null &&
+                                    q.attachmentUrl!.isNotEmpty) ...[
+                                  const SizedBox(width: 12),
+                                  InkWell(
+                                    onTap: () => _showImageDialog(q.attachmentUrl!),
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: ApiFileImage(
+                                        path: q.attachmentUrl,
+                                        width: 48,
+                                        height: 48,
+                                        fit: BoxFit.cover,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 10),
