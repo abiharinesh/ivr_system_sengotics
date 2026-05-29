@@ -406,6 +406,17 @@ class TenderDetail {
   final List<FieldVerificationSession> sessions;
   final Map<String, String?> timeline;
   final String? publicToken;
+  
+  int? get awardedQuotationId {
+    final tender = raw['tender'];
+    if (tender is Map) {
+      final val = tender['awarded_quotation_id'];
+      if (val != null) {
+        return int.tryParse(val.toString()) ?? (val is num ? val.toInt() : null);
+      }
+    }
+    return null;
+  }
 
   const TenderDetail({
     required this.raw,

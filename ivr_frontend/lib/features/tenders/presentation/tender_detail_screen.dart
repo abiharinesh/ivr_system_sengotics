@@ -182,6 +182,12 @@ class _TenderHeaderState extends State<_TenderHeader> {
 
     if (!context.mounted) return;
 
+    // Wait a brief moment to let the date picker pop animation settle down
+    // before pushing the time picker. This prevents Flutter Navigator lifecycle collisions.
+    await Future.delayed(const Duration(milliseconds: 150));
+
+    if (!context.mounted) return;
+
     final initialTime = TimeOfDay.fromDateTime(currentAnchor ?? now);
     final pickedTime = await showTimePicker(
       context: context,
@@ -202,7 +208,7 @@ class _TenderHeaderState extends State<_TenderHeader> {
     setState(() => _accessBusy = true);
     try {
       await widget.repo.patchTender(widget.detail.summary.id, {
-        'anchor_date': newDateTime.toIso8601String(),
+        'anchor_date': newDateTime.toUtc().toIso8601String(),
       });
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -534,18 +540,18 @@ class _VendorsTabState extends State<_VendorsTab> {
     final ok = await showDialog<bool>(
       context: context,
       builder:
-          (_) => AlertDialog(
+          (dialogCtx) => AlertDialog(
             title: const Text('Award contract?'),
             content: Text(
               'Award quotation #$quotationId. This locks the awardee.',
             ),
             actions: [
               TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
+                onPressed: () => Navigator.of(dialogCtx).pop(false),
                 child: const Text('Cancel'),
               ),
               FilledButton(
-                onPressed: () => Navigator.of(context).pop(true),
+                onPressed: () => Navigator.of(dialogCtx).pop(true),
                 child: const Text('Award'),
               ),
             ],
@@ -691,13 +697,37 @@ class _VendorsTabState extends State<_VendorsTab> {
                                     fontSize: 16,
                                   ),
                                 ),
-                                if (widget.detail.summary.status ==
+                                if (widget.detail.awardedQuotationId == q.id)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade100,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(color: Colors.green.shade300),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.check_circle, size: 14, color: Colors.green.shade800),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Awarded Contract',
+                                          style: TextStyle(
+                                            color: Colors.green.shade800,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                else if (widget.detail.summary.status ==
                                         'quotations_closed' ||
                                     widget.detail.summary.status ==
                                         'vendor_selected')
                                   OutlinedButton(
                                     onPressed: () => _award(q.id),
-                                    child: const Text('Award'),
+                                    child: Text(widget.detail.awardedQuotationId != null ? 'Re-award' : 'Award'),
                                   ),
                               ],
                             ),
