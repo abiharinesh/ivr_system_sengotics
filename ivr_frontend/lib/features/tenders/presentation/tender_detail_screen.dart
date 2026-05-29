@@ -169,11 +169,64 @@ class _TenderHeaderState extends State<_TenderHeader> {
     }
   }
 
+  Future<void> _updateAnchorDate(BuildContext context, DateTime? currentAnchor) async {
+    final now = DateTime.now();
+    final initialDate = currentAnchor ?? now;
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate.isAfter(DateTime(2030)) || initialDate.isBefore(DateTime(2024)) ? now : initialDate,
+      firstDate: DateTime(2024),
+      lastDate: DateTime(2030),
+    );
+    if (pickedDate == null) return;
+
+    if (!context.mounted) return;
+
+    final initialTime = TimeOfDay.fromDateTime(currentAnchor ?? now);
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+    );
+    if (pickedTime == null) return;
+
+    final newDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    if (!context.mounted) return;
+
+    setState(() => _accessBusy = true);
+    try {
+      await widget.repo.patchTender(widget.detail.summary.id, {
+        'anchor_date': newDateTime.toIso8601String(),
+      });
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Anchor date and time updated to ${DateFormat.yMMMd().add_jm().format(newDateTime)}',
+          ),
+        ),
+      );
+      widget.onAction();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update anchor date: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _accessBusy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final d = widget.detail;
     final s = d.summary;
-    final df = DateFormat.yMMMd();
     final closed = s.status == 'closed';
 
     Widget? primaryAction;
@@ -214,8 +267,15 @@ class _TenderHeaderState extends State<_TenderHeader> {
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Chip(label: Text(s.status)),
-                if (s.anchorDate != null)
-                  Chip(label: Text('Anchor ${df.format(s.anchorDate!)}')),
+                ActionChip(
+                  avatar: const Icon(Icons.edit_calendar, size: 16),
+                  label: Text(s.anchorDate != null
+                      ? 'Anchor: ${DateFormat.yMMMd().add_jm().format(s.anchorDate!.toLocal())}'
+                      : 'Set Anchor Date'),
+                  onPressed: closed || _accessBusy
+                      ? null
+                      : () => _updateAnchorDate(context, s.anchorDate),
+                ),
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: isNarrow ? constraints.maxWidth - 32 : 320,

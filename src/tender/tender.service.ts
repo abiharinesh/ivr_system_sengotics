@@ -323,8 +323,14 @@ export class TenderService {
 
     async patch(panchayatId: number, tenderId: number, actorUserId: number, body: Partial<TenderCreateBody>) {
         const existing = await this.loadOwned(panchayatId, tenderId)
-        if (existing.status !== 'draft' && existing.status !== 'published') {
-            throw new BadRequestException('Tender can only be edited while draft or published')
+        if (existing.status === 'closed') {
+            throw new BadRequestException('Cannot edit a closed tender')
+        }
+        const nonAnchorKeys = Object.keys(body).filter(
+            (k) => k !== 'anchor_date' && body[k as keyof TenderCreateBody] !== undefined,
+        )
+        if (nonAnchorKeys.length > 0 && existing.status !== 'draft' && existing.status !== 'published') {
+            throw new BadRequestException('Tender details can only be edited while draft or published')
         }
         const data: Record<string, unknown> = {}
         if (body.title_ta !== undefined) data.title_ta = body.title_ta?.trim() || null
