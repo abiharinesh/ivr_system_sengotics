@@ -128,7 +128,7 @@ class _ElectricianDashboardScreenState extends State<ElectricianDashboardScreen>
               panchayat != null
                   ? 'Working in $panchayat'
                   : 'Electrician home',
-              style: const TextStyle(
+              style:       TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textPrimary,

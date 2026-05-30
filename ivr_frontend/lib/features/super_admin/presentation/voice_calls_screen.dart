@@ -27,7 +27,7 @@ class VoiceCallsScreen extends StatelessWidget {
       action: ElevatedButton.icon(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+                  SnackBar(
               content: Text('Voice campaign creation will be available soon.'),
               backgroundColor: AppTheme.primary,
             ),
@@ -80,7 +80,7 @@ class VoiceCallsScreen extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               item.createdAt,
-                              style: const TextStyle(
+                              style:       TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,
                               ),
@@ -103,7 +103,7 @@ class VoiceCallsScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                const Icon(
+                                      Icon(
                                   Icons.people_rounded,
                                   size: 16,
                                   color: AppTheme.textMuted,
@@ -111,14 +111,14 @@ class VoiceCallsScreen extends StatelessWidget {
                                 const SizedBox(width: 4),
                                 Text(
                                   '${item.recipients} recipients',
-                                  style: const TextStyle(
+                                  style:       TextStyle(
                                     fontSize: 13,
                                     color: AppTheme.textSecondary,
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(width: 12),
-                                const Icon(
+                                      Icon(
                                   Icons.phone_in_talk_rounded,
                                   size: 16,
                                   color: AppTheme.textMuted,
@@ -127,7 +127,7 @@ class VoiceCallsScreen extends StatelessWidget {
                                 Expanded(
                                   child: Text(
                                     '${item.answered} answered',
-                                    style: const TextStyle(
+                                    style:       TextStyle(
                                       fontSize: 13,
                                       color: AppTheme.textSecondary,
                                     ),
@@ -153,7 +153,7 @@ class VoiceCallsScreen extends StatelessWidget {
                       }
                       return Row(
                         children: [
-                          const Icon(
+                                Icon(
                             Icons.people_rounded,
                             size: 16,
                             color: AppTheme.textMuted,
@@ -161,13 +161,13 @@ class VoiceCallsScreen extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${item.recipients} recipients',
-                            style: const TextStyle(
+                            style:       TextStyle(
                               fontSize: 13,
                               color: AppTheme.textSecondary,
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Icon(
+                                Icon(
                             Icons.phone_in_talk_rounded,
                             size: 16,
                             color: AppTheme.textMuted,
@@ -175,7 +175,7 @@ class VoiceCallsScreen extends StatelessWidget {
                           const SizedBox(width: 4),
                           Text(
                             '${item.answered} answered',
-                            style: const TextStyle(
+                            style:       TextStyle(
                               fontSize: 13,
                               color: AppTheme.textSecondary,
                             ),
@@ -266,4 +266,3 @@ class _StatusChip extends StatelessWidget {
     );
   }
 }
-

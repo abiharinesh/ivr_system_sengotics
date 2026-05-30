@@ -219,9 +219,9 @@ class _ElectricianComplaintDetailScreenState extends State<ElectricianComplaintD
         children: [
           Text(
             'Complaint #${c['id']}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+            style:       TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
           ),
-          Text('Status: $st', style: const TextStyle(color: AppTheme.textMuted)),
+          Text('Status: $st', style:       TextStyle(color: AppTheme.textMuted)),
           if (pole != null) ...[
             const SizedBox(height: 12),
             Text('Pole #${pole['id']} · ${pole['keypad_id'] ?? '—'}'),

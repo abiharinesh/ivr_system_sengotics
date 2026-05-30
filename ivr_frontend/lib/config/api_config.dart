@@ -112,4 +112,11 @@ class ApiConfig {
   // Electrician
   static const String electricianMe = '/api/electrician/me';
   static const String electricianComplaints = '/api/electrician/complaints';
+
+  // Zone Management
+  static const String paZones = '/api/admin/zones';
+  static const String paZoneLookup = '/api/admin/zones/lookup-boundary';
+  static const String saZones = '/api/superadmin/zones';
+  static const String saZoneLookup = '/api/superadmin/zones/lookup-boundary';
+  static String saZonesForPanchayat(int id) => '/api/superadmin/zones/$id';
 }

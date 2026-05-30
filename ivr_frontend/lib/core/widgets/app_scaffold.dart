@@ -113,9 +113,9 @@ class _AppScaffoldState extends State<AppScaffold> {
   Widget _buildSidebar(BuildContext context) {
     return Container(
       width: 270,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(right: BorderSide(color: AppTheme.stroke)),
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        border:       Border(right: BorderSide(color: AppTheme.stroke)),
       ),
       child: Column(
         children: [
@@ -136,7 +136,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Expanded(
+                      Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -201,7 +201,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                     children: [
                       Text(
                         widget.userEmail,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 12,
                           color: AppTheme.textPrimary,
                           fontWeight: FontWeight.w500,
@@ -218,7 +218,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                                     : widget.userRole == 'electrician'
                                         ? 'Electrician'
                                         : widget.userRole,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
                         ),
@@ -227,7 +227,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(
+                  icon:       Icon(
                     Icons.logout_rounded,
                     size: 18,
                     color: AppTheme.textMuted,
@@ -247,9 +247,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     return Container(
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppTheme.stroke)),
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        border:       Border(bottom: BorderSide(color: AppTheme.stroke)),
       ),
       child: Row(
         children: [
@@ -265,7 +265,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                 controller: _topSearchController,
                 textInputAction: TextInputAction.search,
                 onSubmitted: (_) => _handleTopSearch(context),
-                decoration: const InputDecoration(
+                decoration:       InputDecoration(
                   border: InputBorder.none,
                   hintText: 'Search complaints, poles or users...',
                   hintStyle: TextStyle(fontSize: 13, color: AppTheme.textMuted),
@@ -388,6 +388,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       return const [
         _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
         _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+        _NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
         _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/superadmin/electricians'),
         _NavSpec(icon: Icons.group_rounded, label: 'Agents', route: '/fieldops/agents'),
         _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
@@ -401,10 +402,11 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
     return const [
       _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
+      _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+      _NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
       _NavSpec(icon: Icons.electrical_services_rounded, label: 'Poles', route: '/poles'),
       _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
       _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
-      _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
       _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/admin/electricians'),
       _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
       _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/vendors'),
@@ -417,6 +419,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     }
     return const [
       _NavSpec(icon: Icons.insights_rounded, label: 'Analytics', route: '/analytics'),
+      _NavSpec(icon: Icons.palette_rounded, label: 'Customization', route: '/settings/customization'),
       _NavSpec(
         icon: Icons.description_outlined,
         label: 'Document templates',
@@ -459,7 +462,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         alignment: Alignment.centerLeft,
         child: Text(
           label,
-          style: const TextStyle(
+          style:       TextStyle(
             fontSize: 11,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.7,
@@ -641,7 +644,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                 elevation: 8,
                 borderRadius: BorderRadius.circular(14),
                 clipBehavior: Clip.antiAlias,
-                color: Colors.white,
+                color: AppTheme.bgCard,
                 child: FutureBuilder<_TopBarActivityData>(
                   future: dataFuture,
                   builder: (context, snapshot) {
@@ -763,7 +766,7 @@ class _ManualComplaintFormDialogState extends State<_ManualComplaintFormDialog> 
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: _complaintType,
+                initialValue: _complaintType,
                 items: const [
                   DropdownMenuItem(
                     value: 'street_light',
@@ -785,7 +788,7 @@ class _ManualComplaintFormDialogState extends State<_ManualComplaintFormDialog> 
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
-                value: _urgency,
+                initialValue: _urgency,
                 items: const [
                   DropdownMenuItem(value: 'low', child: Text('Low')),
                   DropdownMenuItem(value: 'medium', child: Text('Medium')),

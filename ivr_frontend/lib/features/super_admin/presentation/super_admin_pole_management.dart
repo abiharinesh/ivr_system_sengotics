@@ -69,7 +69,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
             const SizedBox(height: 8),
             Text(
               _error!,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style:       TextStyle(color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
@@ -180,7 +180,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                 Row(
                                   children: [
                                     if (pole.keypadId != null) ...[
-                                      const Icon(
+                                            Icon(
                                         Icons.dialpad_rounded,
                                         size: 14,
                                         color: AppTheme.textMuted,
@@ -188,7 +188,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                       const SizedBox(width: 4),
                                       Text(
                                         'Keypad: ${pole.keypadId}',
-                                        style: const TextStyle(
+                                        style:       TextStyle(
                                           fontSize: 12,
                                           color: AppTheme.textSecondary,
                                         ),
@@ -209,7 +209,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                         ),
                                         child: Text(
                                           'Panchayat #${pole.panchayatId}',
-                                          style: const TextStyle(
+                                          style:       TextStyle(
                                             fontSize: 11,
                                             color: AppTheme.textSecondary,
                                           ),
@@ -255,7 +255,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                      Icon(
                                   Icons.location_on_outlined,
                                   size: 14,
                                   color: AppTheme.textMuted,
@@ -264,7 +264,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                 Text(
                                   '${pole.latitude!.toStringAsFixed(4)}, '
                                   '${pole.longitude!.toStringAsFixed(4)}',
-                                  style: const TextStyle(
+                                  style:       TextStyle(
                                     fontSize: 12,
                                     color: AppTheme.textSecondary,
                                   ),
@@ -275,7 +275,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(
+                                    Icon(
                                 Icons.report_problem_rounded,
                                 size: 14,
                                 color: AppTheme.textMuted,
@@ -283,7 +283,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                               const SizedBox(width: 4),
                               Text(
                                 '${pole.complaintsCount} complaint(s)',
-                                style: const TextStyle(
+                                style:       TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textSecondary,
                                 ),
@@ -313,7 +313,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                       ),
                                       child: Text(
                                         l,
-                                        style: const TextStyle(
+                                        style:       TextStyle(
                                           fontSize: 11,
                                           color: AppTheme.primary,
                                         ),
@@ -644,7 +644,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
       await _loadPoles();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+                SnackBar(
             content: Text('Pole deleted successfully'),
             backgroundColor: AppTheme.accent,
           ),

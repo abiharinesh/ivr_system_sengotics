@@ -23,7 +23,7 @@ class DashboardPanel extends StatelessWidget {
     return Container(
       padding: padding,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
@@ -39,7 +39,7 @@ class DashboardPanel extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
+                      style:       TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textPrimary,
@@ -49,7 +49,7 @@ class DashboardPanel extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         subtitle!,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                         ),
@@ -71,14 +71,14 @@ class DashboardPanel extends StatelessWidget {
 
 class MiniTrendChart extends StatelessWidget {
   final List<double> values;
-  final Color color;
-  final Color mutedColor;
+  final Color? color;
+  final Color? mutedColor;
 
   const MiniTrendChart({
     super.key,
     required this.values,
-    this.color = AppTheme.primary,
-    this.mutedColor = AppTheme.bgSurface,
+    this.color,
+    this.mutedColor,
   });
 
   @override
@@ -86,13 +86,16 @@ class MiniTrendChart extends StatelessWidget {
     if (values.isEmpty) {
       return const SizedBox(height: 140);
     }
+    final activeColor = color ?? AppTheme.primary;
+    final bgCol = mutedColor ?? AppTheme.bgSurface;
+
     return SizedBox(
       height: 160,
       child: CustomPaint(
         painter: _BarChartPainter(
           values: values,
-          color: color,
-          mutedColor: mutedColor,
+          color: activeColor,
+          mutedColor: bgCol,
         ),
       ),
     );
@@ -118,7 +121,7 @@ class CategoryProgressList extends StatelessWidget {
                         flex: 3,
                         child: Text(
                           item.label,
-                          style: const TextStyle(
+                          style:       TextStyle(
                             fontSize: 13,
                             color: AppTheme.textSecondary,
                             fontWeight: FontWeight.w500,
@@ -145,7 +148,7 @@ class CategoryProgressList extends StatelessWidget {
                         child: Text(
                           '${(item.progress * 100).round()}%',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(
+                          style:       TextStyle(
                             fontSize: 12,
                             color: AppTheme.textMuted,
                             fontWeight: FontWeight.w600,
@@ -204,7 +207,7 @@ class ActivityFeed extends StatelessWidget {
                       children: [
                         Text(
                           item.title,
-                          style: const TextStyle(
+                          style:       TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textPrimary,
@@ -213,7 +216,7 @@ class ActivityFeed extends StatelessWidget {
                         const SizedBox(height: 2),
                         Text(
                           item.subtitle,
-                          style: const TextStyle(
+                          style:       TextStyle(
                             fontSize: 12,
                             color: AppTheme.textSecondary,
                           ),
@@ -223,7 +226,7 @@ class ActivityFeed extends StatelessWidget {
                   ),
                   Text(
                     item.timeLabel,
-                    style: const TextStyle(
+                    style:       TextStyle(
                       fontSize: 11,
                       color: AppTheme.textMuted,
                     ),

@@ -261,7 +261,7 @@ class _UserManagementState extends State<UserManagement> {
                         const SizedBox(height: 4),
                         Text(
                           user.panchayatName!,
-                          style: const TextStyle(
+                          style:       TextStyle(
                             fontSize: 12,
                             color: AppTheme.textMuted,
                           ),

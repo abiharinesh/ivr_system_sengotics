@@ -173,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           const SizedBox(height: 18),
-          const Text(
+                Text(
             'Welcome Back',
             style: TextStyle(
               fontSize: 24,
@@ -182,7 +182,7 @@ class _LoginScreenState extends State<LoginScreen>
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
+                Text(
             'Sign in to IVR System Dashboard',
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
@@ -190,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen>
           TextFormField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(
+            decoration:       InputDecoration(
               labelText: 'Email Address',
               prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textMuted),
             ),
@@ -210,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen>
             obscureText: _obscurePassword,
             decoration: InputDecoration(
               labelText: 'Password',
-              prefixIcon: const Icon(
+              prefixIcon:       Icon(
                 Icons.lock_outline,
                 color: AppTheme.textMuted,
               ),

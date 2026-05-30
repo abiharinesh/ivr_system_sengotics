@@ -28,7 +28,7 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
@@ -44,7 +44,7 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (categories.isEmpty)
-              const Padding(
+                    Padding(
                 padding: EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
@@ -68,7 +68,7 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
                           Expanded(
                             child: Text(
                               row.label,
-                              style: const TextStyle(
+                              style:       TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,
                               ),
@@ -78,7 +78,7 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
                           const SizedBox(width: 8),
                           Text(
                             '${row.count}',
-                            style: const TextStyle(
+                            style:       TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
                             ),

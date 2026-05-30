@@ -95,7 +95,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                           color: AppTheme.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
+                        child:       Icon(
                           Icons.location_city_rounded,
                           color: AppTheme.primary,
                           size: 20,
@@ -116,7 +116,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             if (p.ivrNumber != null)
                               Text(
                                 'IVR: ${p.ivrNumber}',
-                                style: const TextStyle(
+                                style:       TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.textMuted,
                                 ),
@@ -372,7 +372,7 @@ class _InfoChip extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+          style:       TextStyle(fontSize: 12, color: AppTheme.textSecondary),
         ),
       ],
     );

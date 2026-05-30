@@ -44,6 +44,8 @@ class TenderLineItem {
   final String? unit;
   final int? poleId;
   final int? complaintId;
+  final String? poleNumber;
+  final String? keypadId;
 
   const TenderLineItem({
     required this.id,
@@ -54,18 +56,25 @@ class TenderLineItem {
     this.unit,
     this.poleId,
     this.complaintId,
+    this.poleNumber,
+    this.keypadId,
   });
 
-  factory TenderLineItem.fromJson(Map<String, dynamic> j) => TenderLineItem(
-    id: j['id'] as int,
-    seq: (j['seq'] ?? 1) as int,
-    descriptionTa: j['description_ta'] as String?,
-    descriptionEn: j['description_en'] as String?,
-    quantity: j['quantity']?.toString(),
-    unit: j['unit'] as String?,
-    poleId: j['pole_id'] as int?,
-    complaintId: j['complaint_id'] as int?,
-  );
+  factory TenderLineItem.fromJson(Map<String, dynamic> j) {
+    final poleMap = j['pole'] is Map ? Map<String, dynamic>.from(j['pole'] as Map) : null;
+    return TenderLineItem(
+      id: j['id'] as int,
+      seq: (j['seq'] ?? 1) as int,
+      descriptionTa: j['description_ta'] as String?,
+      descriptionEn: j['description_en'] as String?,
+      quantity: j['quantity']?.toString(),
+      unit: j['unit'] as String?,
+      poleId: j['pole_id'] as int?,
+      complaintId: j['complaint_id'] as int?,
+      poleNumber: poleMap?['pole_number'] as String?,
+      keypadId: poleMap?['keypad_id'] as String?,
+    );
+  }
 }
 
 class TenderQuotation {

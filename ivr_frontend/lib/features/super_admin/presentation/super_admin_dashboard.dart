@@ -10,6 +10,7 @@ import '../../../core/widgets/map_overview.dart';
 import '../../../core/widgets/stat_card.dart';
 import '../../../models/pole_model.dart';
 import '../bloc/dashboard_bloc.dart';
+import '../../../app.dart';
 
 class SuperAdminDashboard extends StatelessWidget {
   const SuperAdminDashboard({super.key});
@@ -37,7 +38,7 @@ class SuperAdminDashboard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Text(
                   state.message,
-                  style: const TextStyle(color: AppTheme.textSecondary),
+                  style:       TextStyle(color: AppTheme.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
@@ -61,6 +62,140 @@ class SuperAdminDashboard extends StatelessWidget {
   Widget _buildDashboard(BuildContext context, SADashLoaded state) {
     final stats = state.stats;
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
+
+    // Read user widget customization
+    final widgetConfigs = context.adminCustomizationProvider.sortedWidgets;
+    final visibleIds = widgetConfigs.where((w) => w.isVisible).map((w) => w.widgetId).toList();
+
+    final dashboardWidgets = <Widget>[];
+
+    int i = 0;
+    while (i < visibleIds.length) {
+      final id = visibleIds[i];
+
+      // Side-by-side flex layout group for resolution_trend and category_breakdown
+      if (i < visibleIds.length - 1 &&
+          ((id == 'resolution_trend' && visibleIds[i + 1] == 'category_breakdown') ||
+           (id == 'category_breakdown' && visibleIds[i + 1] == 'resolution_trend'))) {
+
+        final firstId = id;
+        final secondId = visibleIds[i + 1];
+
+        dashboardWidgets.add(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final twoColumn = constraints.maxWidth > 980;
+              final firstWidget = firstId == 'resolution_trend'
+                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
+                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
+              final secondWidget = secondId == 'resolution_trend'
+                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
+                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
+
+              if (!twoColumn) {
+                return Column(
+                  children: [firstWidget, const SizedBox(height: 16), secondWidget],
+                );
+              }
+
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(flex: firstId == 'resolution_trend' ? 2 : 1, child: firstWidget),
+                  const SizedBox(width: 16),
+                  Expanded(flex: secondId == 'resolution_trend' ? 2 : 1, child: secondWidget),
+                ],
+              );
+            },
+          ),
+        );
+        dashboardWidgets.add(const SizedBox(height: 20));
+        i += 2;
+      } else {
+        switch (id) {
+          case 'stat_cards':
+            dashboardWidgets.add(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  final crossAxisCount = w > 900 ? 4 : 2;
+                  final isMobile = w < 600;
+                  return GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: isMobile ? 1.45 : 1.85,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: [
+                      StatCard(
+                        title: 'Total Complaints',
+                        value: stats.totalComplaints.toString(),
+                        icon: Icons.report_problem_rounded,
+                        gradient: AppTheme.primaryGradient,
+                        delta: '+12%',
+                      ),
+                      StatCard(
+                        title: 'Resolved',
+                        value: stats.resolvedComplaints.toString(),
+                        icon: Icons.check_circle_rounded,
+                        gradient: AppTheme.accentGradient,
+                        delta: '+8%',
+                      ),
+                      StatCard(
+                        title: 'Pending',
+                        value: stats.pendingComplaints.toString(),
+                        icon: Icons.schedule_rounded,
+                        gradient: AppTheme.warningGradient,
+                        delta: '-3%',
+                        positiveDelta: false,
+                      ),
+                      StatCard(
+                        title: 'Active Pole Issues',
+                        value:
+                            ((stats.totalPoles ?? 0) -
+                                    (stats.totalPoles ?? 0) * 0.82)
+                                .round()
+                                .toString(),
+                        icon: Icons.warning_amber_rounded,
+                        gradient: AppTheme.errorGradient,
+                        delta: '+5%',
+                        positiveDelta: false,
+                      ),
+                    ],
+                  );
+                },
+              ),
+            );
+            break;
+          case 'map_overview':
+            dashboardWidgets.add(
+              _MapDesignCard(totalPoles: state.poles.length, poles: state.poles),
+            );
+            break;
+          case 'resolution_trend':
+            dashboardWidgets.add(
+              DashboardResolutionTrendCard(trend: state.insights.resolutionTrend),
+            );
+            break;
+          case 'category_breakdown':
+            dashboardWidgets.add(
+              DashboardCategoryBreakdownCard(categories: state.insights.byCategory),
+            );
+            break;
+          case 'recent_activity':
+            dashboardWidgets.add(
+              DashboardRecentActivityCard(
+                items: state.insights.recentActivity,
+                onViewAll: () => context.go('/complaints'),
+              ),
+            );
+            break;
+        }
+        dashboardWidgets.add(const SizedBox(height: 20));
+        i += 1;
+      }
+    }
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -94,7 +229,7 @@ class SuperAdminDashboard extends StatelessWidget {
                       color: AppTheme.warning,
                     ),
                     const SizedBox(width: 8),
-                    const Expanded(
+                          Expanded(
                       child: Text(
                         'Some dashboard data is temporarily unavailable. Pull to refresh.',
                         style: TextStyle(
@@ -114,90 +249,7 @@ class SuperAdminDashboard extends StatelessWidget {
               ),
               const SizedBox(height: 16),
             ],
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final w = constraints.maxWidth;
-                final crossAxisCount = w > 900 ? 4 : 2;
-                final isMobile = w < 600;
-                return GridView.count(
-                  crossAxisCount: crossAxisCount,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: isMobile ? 1.45 : 1.85,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: [
-                    StatCard(
-                      title: 'Total Complaints',
-                      value: stats.totalComplaints.toString(),
-                      icon: Icons.report_problem_rounded,
-                      gradient: AppTheme.primaryGradient,
-                      delta: '+12%',
-                    ),
-                    StatCard(
-                      title: 'Resolved',
-                      value: stats.resolvedComplaints.toString(),
-                      icon: Icons.check_circle_rounded,
-                      gradient: AppTheme.accentGradient,
-                      delta: '+8%',
-                    ),
-                    StatCard(
-                      title: 'Pending',
-                      value: stats.pendingComplaints.toString(),
-                      icon: Icons.schedule_rounded,
-                      gradient: AppTheme.warningGradient,
-                      delta: '-3%',
-                      positiveDelta: false,
-                    ),
-                    StatCard(
-                      title: 'Active Pole Issues',
-                      value:
-                          ((stats.totalPoles ?? 0) -
-                                  (stats.totalPoles ?? 0) * 0.82)
-                              .round()
-                              .toString(),
-                      icon: Icons.warning_amber_rounded,
-                      gradient: AppTheme.errorGradient,
-                      delta: '+5%',
-                      positiveDelta: false,
-                    ),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-
-            _MapDesignCard(totalPoles: state.poles.length, poles: state.poles),
-            const SizedBox(height: 20),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final twoColumn = constraints.maxWidth > 980;
-                final trend = DashboardResolutionTrendCard(
-                  trend: state.insights.resolutionTrend,
-                );
-                final category = DashboardCategoryBreakdownCard(
-                  categories: state.insights.byCategory,
-                );
-                if (!twoColumn) {
-                  return Column(
-                    children: [trend, const SizedBox(height: 16), category],
-                  );
-                }
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: trend),
-                    const SizedBox(width: 16),
-                    Expanded(child: category),
-                  ],
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            DashboardRecentActivityCard(
-              items: state.insights.recentActivity,
-              onViewAll: () => context.go('/complaints'),
-            ),
+            ...dashboardWidgets,
           ],
         ),
       ),
@@ -297,7 +349,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                 ] else
                   Row(
                     children: [
-                      const Expanded(
+                            Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -363,7 +415,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                             color: Colors.white.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Column(
+                          child:       Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -449,7 +501,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                     'Pending: ${_selectedPole!.pendingComplaints}, '
                                     'Processing: ${_selectedPole!.inProgressComplaints}, '
                                     'Manual: ${_selectedPole!.manualReviewComplaints}',
-                                    style: const TextStyle(
+                                    style:       TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.textSecondary,
                                     ),
@@ -457,7 +509,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                   const SizedBox(height: 2),
                                   Text(
                                     'Keypad: ${_selectedPole!.keypadId ?? 'Not linked'}',
-                                    style: const TextStyle(
+                                    style:       TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.textSecondary,
                                     ),
@@ -465,7 +517,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                   const SizedBox(height: 2),
                                   Text(
                                     'Pole Ref: PL-${_selectedPole!.id}',
-                                    style: const TextStyle(
+                                    style:       TextStyle(
                                       fontSize: 11,
                                       color: AppTheme.textSecondary,
                                     ),
@@ -522,7 +574,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                               '${widget.totalPoles} assets tracked',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                              style:       TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.textSecondary,
                                 fontWeight: FontWeight.w600,
@@ -581,7 +633,7 @@ class _LegendRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style:       TextStyle(
               fontSize: 10.5,
               color: AppTheme.textSecondary,
             ),

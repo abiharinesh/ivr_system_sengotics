@@ -241,7 +241,7 @@ class _VendorDialogState extends State<_VendorDialog> {
                   builder: (context, snap) {
                     final list = snap.data ?? [];
                     return DropdownButtonFormField<int?>(
-                      value: _panchayatId,
+                      initialValue: _panchayatId,
                       hint: const Text('Select Panchayat'),
                       decoration: const InputDecoration(labelText: 'Panchayat'),
                       items: list.map((p) => DropdownMenuItem(

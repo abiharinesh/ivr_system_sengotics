@@ -73,7 +73,7 @@ class _AppLoadingStateState extends State<AppLoadingState>
               Container(
                 width: 40,
                 height: 40,
-                decoration: const BoxDecoration(
+                decoration:       BoxDecoration(
                   color: AppTheme.bgSurface,
                   shape: BoxShape.circle,
                 ),
@@ -391,7 +391,7 @@ class _AppLoadingStateState extends State<AppLoadingState>
           const SizedBox(width: AppTheme.spaceXs),
           Text(
             widget.message,
-            style: const TextStyle(color: AppTheme.textSecondary),
+            style:       TextStyle(color: AppTheme.textSecondary),
           ),
         ],
       );
@@ -406,7 +406,7 @@ class _AppLoadingStateState extends State<AppLoadingState>
             const SizedBox(height: AppTheme.spaceSm),
             Text(
               widget.message,
-              style: const TextStyle(color: AppTheme.textSecondary),
+              style:       TextStyle(color: AppTheme.textSecondary),
             ),
           ],
         ),

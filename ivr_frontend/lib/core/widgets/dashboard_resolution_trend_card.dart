@@ -23,7 +23,7 @@ class DashboardResolutionTrendCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
@@ -36,10 +36,10 @@ class DashboardResolutionTrendCard extends StatelessWidget {
               builder: (context, constraints) {
                 final narrow = constraints.maxWidth < 380;
                 if (narrow) {
-                  return const Column(
+                  return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      const Text(
                         'Complaint Resolution Trend',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
@@ -55,9 +55,9 @@ class DashboardResolutionTrendCard extends StatelessWidget {
                     ],
                   );
                 }
-                return const Row(
+                return Row(
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Text(
                         'Complaint Resolution Trend',
                         style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
@@ -108,7 +108,7 @@ class DashboardResolutionTrendCard extends StatelessWidget {
                           const SizedBox(height: 6),
                           Text(
                             _days[i],
-                            style: const TextStyle(
+                            style:       TextStyle(
                               fontSize: 11,
                               color: AppTheme.textMuted,
                             ),
@@ -145,7 +145,7 @@ class _LegendDot extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+          style:       TextStyle(fontSize: 11, color: AppTheme.textMuted),
         ),
       ],
     );

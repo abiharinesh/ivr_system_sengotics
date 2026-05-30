@@ -89,8 +89,28 @@ model Panchayat {
   export_jobs    ExportJob[]
   vendors        Vendor[]
   tenders        Tender[]
+  zones          PanchayatZone[]
 
   @@map("panchayats")
+}
+
+/** Admin-defined zones within a panchayat. Boundary stored as GeoJSON for flexible rendering. */
+model PanchayatZone {
+  id               Int       @id @default(autoincrement())
+  panchayat_id     Int
+  name             String
+  boundary_geojson Json      // GeoJSON Polygon/MultiPolygon
+  color            String?   @default("#2563EB")
+  opacity          Float     @default(0.3)
+  places           String[]  @default([])
+  is_active        Boolean   @default(true)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  panchayat        Panchayat @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+
+  @@index([panchayat_id])
+  @@map("panchayat_zones")
 }
 
 model User {

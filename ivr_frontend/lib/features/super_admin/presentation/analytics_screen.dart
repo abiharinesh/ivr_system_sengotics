@@ -39,7 +39,7 @@ class AnalyticsScreen extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
         child: Text(
           value,
-          style: const TextStyle(
+          style:       TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: AppTheme.textPrimary,
@@ -80,14 +80,14 @@ class _AnalyticsPanels extends StatelessWidget {
     ];
 
     final activity = [
-      const ActivityFeedItem(
+            ActivityFeedItem(
         icon: Icons.campaign_rounded,
         color: AppTheme.primary,
         title: 'IVR campaign sent',
         subtitle: 'Power cut alert broadcast to Ward 3 and 4',
         timeLabel: '18 mins ago',
       ),
-      const ActivityFeedItem(
+            ActivityFeedItem(
         icon: Icons.check_circle_rounded,
         color: AppTheme.accent,
         title: 'Bulk complaints resolved',
@@ -165,4 +165,3 @@ class _AnalyticsPanels extends StatelessWidget {
     );
   }
 }
-

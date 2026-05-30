@@ -76,12 +76,12 @@ class ListScreenShell extends StatelessWidget {
       children: [
         Text(
           title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+          style:       TextStyle(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
         ),
         const SizedBox(height: 4),
         Text(
           subtitle,
-          style: const TextStyle(
+          style:       TextStyle(
             fontSize: 13,
             color: AppTheme.textSecondary,
           ),
@@ -89,7 +89,7 @@ class ListScreenShell extends StatelessWidget {
         const SizedBox(height: 8),
         Text(
           countLabel,
-          style: const TextStyle(
+          style:       TextStyle(
             fontSize: 12,
             color: AppTheme.textMuted,
             fontWeight: FontWeight.w600,

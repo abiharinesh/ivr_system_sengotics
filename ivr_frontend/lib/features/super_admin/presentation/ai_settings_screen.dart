@@ -61,7 +61,7 @@ class AiSettingsScreen extends StatelessWidget {
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          const Text(
+                Text(
             'Choose the AI provider for speech-to-text processing',
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
@@ -79,7 +79,7 @@ class AiSettingsScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          const Text(
+                Text(
             'LLM Provider',
             style: TextStyle(
               fontSize: 20,
@@ -88,7 +88,7 @@ class AiSettingsScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
+                Text(
             'Choose the AI provider for language model processing and data extraction',
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
@@ -215,7 +215,7 @@ class AiSettingsScreen extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: const TextStyle(
+                      style:       TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.textPrimary,
@@ -224,7 +224,7 @@ class AiSettingsScreen extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
+                      style:       TextStyle(
                         fontSize: 13,
                         color: AppTheme.textSecondary,
                       ),
@@ -247,7 +247,7 @@ class AiSettingsScreen extends StatelessWidget {
                       color: AppTheme.accent.withValues(alpha: 0.4),
                     ),
                   ),
-                  child: const Row(
+                  child:       Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(

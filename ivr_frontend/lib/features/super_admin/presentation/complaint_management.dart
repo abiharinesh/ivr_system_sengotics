@@ -234,7 +234,7 @@ class _ComplaintCard extends StatelessWidget {
               children: [
                 Text(
                   '#${complaint.id}',
-                  style: const TextStyle(
+                  style:       TextStyle(
                     fontWeight: FontWeight.w700,
                     color: AppTheme.primaryLight,
                   ),
@@ -249,7 +249,7 @@ class _ComplaintCard extends StatelessWidget {
             if (complaint.description != null)
               Text(
                 complaint.description!,
-                style: const TextStyle(
+                style:       TextStyle(
                   color: AppTheme.textSecondary,
                   fontSize: 14,
                 ),
@@ -299,7 +299,7 @@ class _ComplaintCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                            Text(
                         'Transcript',
                         style: TextStyle(
                           fontSize: 11,
@@ -310,7 +310,7 @@ class _ComplaintCard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         complaint.voiceCall!.transcriptEnglish!,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 13,
                           color: AppTheme.textSecondary,
                         ),
@@ -334,7 +334,7 @@ class _ComplaintCard extends StatelessWidget {
         Flexible(
           child: Text(
             text,
-            style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+            style:       TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             overflow: TextOverflow.ellipsis,
           ),
         ),
@@ -344,7 +344,7 @@ class _ComplaintCard extends StatelessWidget {
 
   Widget _buildStatusMenu(BuildContext context) {
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_vert, color: AppTheme.textMuted),
+      icon:       Icon(Icons.more_vert, color: AppTheme.textMuted),
       onSelected: (action) async {
         if (action == 'resolve') {
           _showResolveDialog(context);

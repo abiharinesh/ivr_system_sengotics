@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../core/customization/admin_customization_provider.dart';
+import '../core/customization/dynamic_theme_builder.dart';
 
 class AppTheme {
   static const double spaceXs = 8;
@@ -60,28 +62,28 @@ class AppTheme {
   }
 
   // Brand
-  static const Color primary = Color(0xFF2563EB);
-  static const Color primaryLight = Color(0xFF3B82F6);
-  static const Color primaryDark = Color(0xFF1D4ED8);
+  static Color primary = const Color(0xFF2563EB);
+  static Color primaryLight = const Color(0xFF3B82F6);
+  static Color primaryDark = const Color(0xFF1D4ED8);
 
   // Semantic
-  static const Color accent = Color(0xFF10B981);
+  static Color accent = const Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
   static const Color info = Color(0xFF0EA5E9);
 
   // Light Enterprise Palette
-  static const Color bgDark = Color(0xFFF6F8FC);
-  static const Color bgCard = Colors.white;
-  static const Color bgSurface = Color(0xFFF1F5F9);
-  static const Color bgElevated = Color(0xFFE2E8F0);
-  static const Color stroke = Color(0xFFE2E8F0);
-  static const Color strokeStrong = Color(0xFFCBD5E1);
-  static const Color textPrimary = Color(0xFF0F172A);
-  static const Color textSecondary = Color(0xFF475569);
-  static const Color textMuted = Color(0xFF64748B);
+  static Color bgDark = const Color(0xFFF6F8FC);
+  static Color bgCard = Colors.white;
+  static Color bgSurface = const Color(0xFFF1F5F9);
+  static Color bgElevated = const Color(0xFFE2E8F0);
+  static Color stroke = const Color(0xFFE2E8F0);
+  static Color strokeStrong = const Color(0xFFCBD5E1);
+  static Color textPrimary = const Color(0xFF0F172A);
+  static Color textSecondary = const Color(0xFF475569);
+  static Color textMuted = const Color(0xFF64748B);
 
-  static const Color dividerColor = stroke;
+  static Color get dividerColor => stroke;
 
   static Color statusColor(String status) {
     switch (status) {
@@ -156,7 +158,7 @@ class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: bgDark,
       textTheme: textTheme,
-      colorScheme: const ColorScheme.light(
+      colorScheme:       ColorScheme.light(
         primary: primary,
         secondary: accent,
         surface: bgCard,
@@ -182,7 +184,7 @@ class AppTheme {
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: stroke, width: 1),
+          side:       BorderSide(color: stroke, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
@@ -266,9 +268,9 @@ class AppTheme {
           side: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.pressed) ||
                 states.contains(WidgetState.hovered)) {
-              return const BorderSide(color: primary, width: 1.2);
+              return       BorderSide(color: primary, width: 1.2);
             }
-            return const BorderSide(color: strokeStrong);
+            return       BorderSide(color: strokeStrong);
           }),
           animationDuration: durationFast,
           padding: WidgetStateProperty.all(
@@ -301,15 +303,15 @@ class AppTheme {
         fillColor: Colors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: stroke),
+          borderSide:       BorderSide(color: stroke),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: stroke),
+          borderSide:       BorderSide(color: stroke),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide:       BorderSide(color: primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -337,7 +339,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         behavior: SnackBarBehavior.floating,
       ),
-      dividerTheme: const DividerThemeData(color: stroke, thickness: 1),
+      dividerTheme:       DividerThemeData(color: stroke, thickness: 1),
       chipTheme: ChipThemeData(
         backgroundColor: bgSurface,
         selectedColor: primary.withValues(alpha: 0.12),
@@ -351,12 +353,12 @@ class AppTheme {
         tileColor: Colors.transparent,
         iconColor: textSecondary,
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      floatingActionButtonTheme:       FloatingActionButtonThemeData(
         backgroundColor: primary,
         foregroundColor: Colors.white,
         elevation: 4,
       ),
-      drawerTheme: const DrawerThemeData(backgroundColor: bgCard),
+      drawerTheme:       DrawerThemeData(backgroundColor: bgCard),
       dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStateProperty.all(const Color(0xFFF8FAFC)),
         dataRowColor: WidgetStateProperty.all(Colors.white),
@@ -378,10 +380,30 @@ class AppTheme {
           fillColor: Colors.white,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: stroke),
+            borderSide:       BorderSide(color: stroke),
           ),
         ),
       ),
     );
+  }
+
+  static ThemeData buildTheme(AdminCustomizationSettings settings) {
+    final isDark = settings.themeMode == 'dark';
+    primary = settings.primaryColor;
+    primaryLight = primary.withAlpha(210);
+    primaryDark = primary;
+    accent = settings.accentColor;
+    
+    bgDark = isDark ? const Color(0xFF0F172A) : const Color(0xFFF6F8FC);
+    bgCard = isDark ? const Color(0xFF1E293B) : Colors.white;
+    bgSurface = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
+    bgElevated = isDark ? const Color(0xFF1E293B) : const Color(0xFFE2E8F0);
+    stroke = isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0);
+    strokeStrong = isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1);
+    textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
+    textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
+    textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+
+    return DynamicThemeBuilder.buildTheme(settings);
   }
 }

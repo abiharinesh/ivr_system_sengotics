@@ -36,6 +36,7 @@ dependencies:
   flutter_dotenv: ^5.2.1
   share_plus: ^10.1.4
 
+  web: any
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -73,7 +73,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
+                  Text(
               'Field agent',
               style: TextStyle(
                 fontSize: 22,
@@ -114,7 +114,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                                  Text(
                               'Poles in scope',
                               style: TextStyle(
                                 fontSize: 13,
@@ -124,7 +124,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
                             ),
                             Text(
                               '$_poleCount',
-                              style: const TextStyle(
+                              style:       TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.textPrimary,

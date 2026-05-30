@@ -211,7 +211,7 @@ class _DocumentTemplatesSettingsScreenState
       await _repo.saveSettings(_buildSavePayload());
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+              SnackBar(
           content: Text('Template design and layout saved'),
           backgroundColor: AppTheme.accent,
         ),

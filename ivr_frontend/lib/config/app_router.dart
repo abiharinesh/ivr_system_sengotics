@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/bloc/auth_bloc.dart';
+import '../features/zone_management/bloc/zone_bloc.dart';
+import '../features/zone_management/presentation/zone_management_screen.dart';
+import '../features/customization/presentation/admin_customization_screen.dart';
 import '../features/auth/bloc/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 
@@ -184,6 +187,17 @@ GoRouter createRouter(AuthBloc authBloc) {
                 child: const PADashboard(),
               );
             },
+          ),
+          GoRoute(
+            path: '/zone-management',
+            builder: (context, state) => BlocProvider(
+              create: (_) => ZoneBloc()..add(LoadZones()),
+              child: const ZoneManagementScreen(),
+            ),
+          ),
+          GoRoute(
+            path: '/settings/customization',
+            builder: (context, state) => const AdminCustomizationScreen(),
           ),
 
           // Super Admin Routes
@@ -407,6 +421,10 @@ String _getTitle(String location) {
 	  return 'IVR Logs';
 	case '/analytics':
 	  return 'Analytics';
+    case '/zone-management':
+      return 'Zone Management';
+    case '/settings/customization':
+      return 'Customization';
     case '/tenders':
     case '/superadmin/tenders':
       return 'Tenders';

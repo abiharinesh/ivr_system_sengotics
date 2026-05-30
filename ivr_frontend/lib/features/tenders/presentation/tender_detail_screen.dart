@@ -81,7 +81,11 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _OverviewTab(detail: d),
+                    _OverviewTab(
+                      detail: d,
+                      repo: _repo,
+                      onChanged: _reload,
+                    ),
                     _VendorsTab(detail: d, repo: _repo, onChanged: _reload),
                     _DocsTab(
                       detail: d,
@@ -386,40 +390,299 @@ class _TenderHeaderState extends State<_TenderHeader> {
 
 // â”€â”€ Tabs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-class _OverviewTab extends StatelessWidget {
+class _OverviewTab extends StatefulWidget {
   final TenderDetail detail;
-  const _OverviewTab({required this.detail});
+  final TenderRepository repo;
+  final VoidCallback onChanged;
+
+  const _OverviewTab({
+    required this.detail,
+    required this.repo,
+    required this.onChanged,
+  });
+
+  @override
+  State<_OverviewTab> createState() => _OverviewTabState();
+}
+
+class _OverviewTabState extends State<_OverviewTab> {
+  bool _busy = false;
+
+  Future<void> _showAddEditDialog([TenderLineItem? li]) async {
+    final isEdit = li != null;
+    final descEnCtrl = TextEditingController(text: li?.descriptionEn);
+    final descTaCtrl = TextEditingController(text: li?.descriptionTa);
+    final qtyCtrl = TextEditingController(text: li?.quantity);
+    final unitCtrl = TextEditingController(text: li?.unit);
+    final poleRefCtrl = TextEditingController(
+      text: li != null ? (li.poleNumber ?? li.poleId?.toString() ?? '') : '',
+    );
+    final complaintIdCtrl = TextEditingController(text: li?.complaintId?.toString());
+
+    bool saving = false;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) {
+          return AlertDialog(
+            title: Text(isEdit ? 'Edit Line Item #${li.seq}' : 'Add Line Item'),
+            content: SizedBox(
+              width: 450,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: descEnCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Description (English)',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: descTaCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'விவரம் (Tamil)',
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: qtyCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Quantity',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: unitCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Unit',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: poleRefCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Pole No. / ID',
+                              helperText: 'Pole number (e.g. TY-002) or DB ID from Pole Management',
+                              helperMaxLines: 2,
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: TextField(
+                            controller: complaintIdCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Complaint ID',
+                              border: OutlineInputBorder(),
+                            ),
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: saving ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                onPressed: saving
+                    ? null
+                    : () async {
+                        setDialogState(() => saving = true);
+                        try {
+                          final body = {
+                            'description_en': descEnCtrl.text.trim(),
+                            'description_ta': descTaCtrl.text.trim(),
+                            'quantity': qtyCtrl.text.trim().isEmpty ? null : double.tryParse(qtyCtrl.text.trim()) ?? qtyCtrl.text.trim(),
+                            'unit': unitCtrl.text.trim(),
+                            'pole_ref': poleRefCtrl.text.trim().isEmpty ? null : poleRefCtrl.text.trim(),
+                            'complaint_id': complaintIdCtrl.text.trim().isEmpty ? null : int.tryParse(complaintIdCtrl.text.trim()),
+                          };
+
+                          if (isEdit) {
+                            await widget.repo.updateLineItem(widget.detail.summary.id, li.id, body);
+                          } else {
+                            await widget.repo.addLineItem(widget.detail.summary.id, body);
+                          }
+
+                          if (mounted) {
+                            Navigator.pop(ctx);
+                            widget.onChanged();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(isEdit ? 'Line item updated.' : 'Line item added.')),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Error: $e')),
+                            );
+                          }
+                        } finally {
+                          setDialogState(() => saving = false);
+                        }
+                      },
+                child: saving
+                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _deleteLineItem(TenderLineItem li) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Delete Line Item #${li.seq}'),
+        content: const Text('Are you sure you want to delete this line item? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true || !mounted) return;
+
+    setState(() => _busy = true);
+    try {
+      await widget.repo.deleteLineItem(widget.detail.summary.id, li.id);
+      widget.onChanged();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Line item deleted.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isClosed = widget.detail.summary.status == 'closed';
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text('Line items', style: Theme.of(context).textTheme.titleMedium),
+        if (_busy)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: LinearProgressIndicator(),
+          ),
+        Row(
+          children: [
+            Text('Line items', style: Theme.of(context).textTheme.titleMedium),
+            const Spacer(),
+            if (!isClosed)
+              TextButton.icon(
+                onPressed: _busy ? null : () => _showAddEditDialog(),
+                icon: const Icon(Icons.add),
+                label: const Text('Add line item'),
+              ),
+          ],
+        ),
         const SizedBox(height: 8),
-        if (detail.lineItems.isEmpty)
-          const Text('No line items.')
+        if (widget.detail.lineItems.isEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text('No line items.'),
+          )
         else
-          ...detail.lineItems.map(
+          ...widget.detail.lineItems.map(
             (li) => Card(
               child: ListTile(
                 leading: CircleAvatar(child: Text('${li.seq}')),
                 title: Text(li.descriptionEn ?? li.descriptionTa ?? '—'),
                 subtitle: Text(
                   [
-                    if (li.quantity != null)
-                      '${li.quantity} ${li.unit ?? ''}'.trim(),
-                    if (li.poleId != null) 'Pole #${li.poleId}',
+                    if (li.quantity != null) '${li.quantity} ${li.unit ?? ''}'.trim(),
+                    if (li.poleId != null) () {
+                      final details = <String>[];
+                      if (li.poleNumber != null && li.poleNumber!.isNotEmpty) {
+                        details.add('No: ${li.poleNumber}');
+                      }
+                      if (li.keypadId != null && li.keypadId!.isNotEmpty) {
+                        details.add('Keypad: ${li.keypadId}');
+                      }
+                      if (details.isEmpty) return 'Pole ID: ${li.poleId}';
+                      return 'Pole ID: ${li.poleId} (${details.join(' • ')})';
+                    }(),
                     if (li.complaintId != null) 'Complaint #${li.complaintId}',
                   ].join(' • '),
                 ),
+                trailing: isClosed
+                    ? null
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, size: 20),
+                            tooltip: 'Edit line item',
+                            onPressed: _busy ? null : () => _showAddEditDialog(li),
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
+                            tooltip: 'Delete line item',
+                            onPressed: _busy ? null : () => _deleteLineItem(li),
+                          ),
+                        ],
+                      ),
               ),
             ),
           ),
         const SizedBox(height: 24),
         Text('Timeline', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...detail.timeline.entries.map(
+        ...widget.detail.timeline.entries.map(
           (e) => ListTile(
             dense: true,
             leading: const Icon(Icons.event_outlined),

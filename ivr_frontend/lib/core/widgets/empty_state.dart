@@ -24,7 +24,7 @@ class EmptyState extends StatelessWidget {
           padding: const EdgeInsets.all(28),
           constraints: const BoxConstraints(maxWidth: 420),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppTheme.stroke),
             boxShadow: AppTheme.softShadow,
@@ -43,7 +43,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 16),
               Text(
                 title,
-                style: const TextStyle(
+                style:       TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
@@ -52,7 +52,7 @@ class EmptyState extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 subtitle,
-                style: const TextStyle(
+                style:       TextStyle(
                   fontSize: 14,
                   color: AppTheme.textSecondary,
                 ),

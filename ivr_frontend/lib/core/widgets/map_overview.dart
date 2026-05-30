@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../config/app_theme.dart';
 import '../env_maps_loader.dart';
+import '../map/map_theme_provider.dart';
 import '../../models/pole_model.dart';
+import '../../app.dart';
 
 enum PoleMarkerStatus { active, inactive, fault }
 
@@ -20,6 +22,10 @@ class MapOverview extends StatefulWidget {
   final gmap.BitmapDescriptor Function(PoleModel pole, PoleMarkerStatus status)?
   markerIconBuilder;
   final bool usePngMarkers;
+  /// Optional Google Maps JSON style string. When provided, overrides the map
+  /// appearance. Pass `null` to use the default Google Maps style.
+  /// Use [MapThemeProvider.currentStyleJson] for theme-based styling.
+  final String? mapStyle;
   final String faultMarkerAsset;
   final String activeMarkerAsset;
   final String inactiveMarkerAsset;
@@ -37,6 +43,7 @@ class MapOverview extends StatefulWidget {
     this.focusFaultPolesFirst = false,
     this.markerIconBuilder,
     this.usePngMarkers = false,
+    this.mapStyle,
     this.faultMarkerAsset = 'assets/map_markers/fault_red.png',
     this.activeMarkerAsset = 'assets/map_markers/active_green.png',
     this.inactiveMarkerAsset = 'assets/map_markers/inactive_yellow.png',
@@ -51,6 +58,7 @@ class _MapOverviewState extends State<MapOverview> {
   gmap.BitmapDescriptor? _faultPngMarker;
   gmap.BitmapDescriptor? _activePngMarker;
   gmap.BitmapDescriptor? _inactivePngMarker;
+  String? _lastAppliedStyle;
 
   List<PoleModel> get _validPoles =>
       widget.poles.where((p) => p.latitude != null && p.longitude != null).toList();
@@ -222,6 +230,11 @@ class _MapOverviewState extends State<MapOverview> {
       _loadPngMarkers();
     }
 
+    // Apply map style changes without recreating the map.
+    if (oldWidget.mapStyle != widget.mapStyle && _mapController != null) {
+      _mapController!.setMapStyle(widget.mapStyle);
+    }
+
     final shouldRefocus =
         oldWidget.poles != widget.poles ||
         oldWidget.focusFaultPolesFirst != widget.focusFaultPolesFirst;
@@ -235,6 +248,14 @@ class _MapOverviewState extends State<MapOverview> {
 
   @override
   Widget build(BuildContext context) {
+    final themeStyle = context.mapThemeProvider.currentStyleJson;
+    final effectiveMapStyle = widget.mapStyle ?? themeStyle;
+
+    if (_lastAppliedStyle != effectiveMapStyle) {
+      _lastAppliedStyle = effectiveMapStyle;
+      _mapController?.setMapStyle(effectiveMapStyle);
+    }
+
     // Collect valid locations
     final validPoles = _validPoles;
 
@@ -280,7 +301,7 @@ class _MapOverviewState extends State<MapOverview> {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     mapsWebUnavailableMessage,
-                    style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                    style:       TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                     textAlign: TextAlign.center,
                   ),
                 )
@@ -289,6 +310,7 @@ class _MapOverviewState extends State<MapOverview> {
                     target: center,
                     zoom: validPoles.isEmpty ? 5.0 : 13.0,
                   ),
+                  style: effectiveMapStyle,
                   onMapCreated: (controller) {
                     _mapController = controller;
                     _moveCameraToPreferredPoles(
@@ -306,7 +328,7 @@ class _MapOverviewState extends State<MapOverview> {
         if (validPoles.isEmpty)
           Container(
             color: Colors.white70,
-            child: const Center(
+            child:       Center(
               child: Text(
                 'No mapped poles available',
                 style: TextStyle(color: AppTheme.textSecondary, fontSize: 15),
@@ -352,7 +374,7 @@ class _MapOverviewState extends State<MapOverview> {
     return Container(
       height: widget.height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(widget.borderRadius),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
@@ -382,7 +404,7 @@ class _LegendItem extends StatelessWidget {
         const SizedBox(width: 4),
         Text(
           label,
-          style: const TextStyle(color: AppTheme.textSecondary, fontSize: 12),
+          style:       TextStyle(color: AppTheme.textSecondary, fontSize: 12),
         ),
       ],
     );

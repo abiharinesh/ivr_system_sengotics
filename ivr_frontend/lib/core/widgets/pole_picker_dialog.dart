@@ -56,7 +56,7 @@ class _PolePickerDialogState extends State<_PolePickerDialog> {
                   Expanded(
                     child: Text(
                       widget.title,
-                      style: const TextStyle(
+                      style:       TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textPrimary,
@@ -128,7 +128,7 @@ class _PolePickerDialogState extends State<_PolePickerDialog> {
                       _selectedPole == null
                           ? 'Select a pole from map or list'
                           : 'Selected: ${_selectedPole!.poleNumber ?? '#${_selectedPole!.id}'}',
-                      style: const TextStyle(color: AppTheme.textMuted),
+                      style:       TextStyle(color: AppTheme.textMuted),
                     ),
                   ),
                   OutlinedButton(

@@ -168,7 +168,7 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
                     builder: (context, snap) {
                       final list = snap.data ?? [];
                       return DropdownButtonFormField<int?>(
-                        value: _selectedPanchayatId,
+                        initialValue: _selectedPanchayatId,
                         hint: const Text('Select Panchayat'),
                         decoration: const InputDecoration(
                           labelText: 'Panchayat',

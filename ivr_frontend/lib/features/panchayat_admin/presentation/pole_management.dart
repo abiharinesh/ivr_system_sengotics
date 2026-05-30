@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
@@ -86,7 +87,9 @@ class PoleManagement extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Header row: icon + title + menu ──────────────────
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
@@ -107,21 +110,81 @@ class PoleManagement extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Pole number (main title)
                             Text(
-                              pole.poleNumber ?? 'Pole #${pole.id}',
+                              pole.poleNumber ?? '(No pole number)',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            if (pole.keypadId != null)
-                              Text(
-                                'Keypad: ${pole.keypadId}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textMuted,
+                            const SizedBox(height: 4),
+                            // DB ID + Keypad side by side
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: [
+                                // Database ID badge — highlighted so it's easy to spot
+                                InkWell(
+                                  onTap: () {
+                                    Clipboard.setData(ClipboardData(text: '${pole.id}'));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Pole ID ${pole.id} copied to clipboard')),
+                                    );
+                                  },
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Tooltip(
+                                    message: 'Database ID — use this when linking poles in tender line items',
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+                                        border: Border.all(color: const Color(0xFF8B5CF6), width: 1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.tag, size: 12, color: Color(0xFF8B5CF6)),
+                                          const SizedBox(width: 3),
+                                          Text(
+                                            'ID: ${pole.id}',
+                                            style: const TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w700,
+                                              color: Color(0xFF8B5CF6),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                if (pole.keypadId != null)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blueGrey.withValues(alpha: 0.1),
+                                      border: Border.all(color: Colors.blueGrey.shade300, width: 1),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                              Icon(Icons.dialpad, size: 12, color: AppTheme.textMuted),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          'Keypad: ${pole.keypadId}',
+                                          style:       TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.textMuted,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
                         ),
                       ),
@@ -150,77 +213,67 @@ class PoleManagement extends StatelessWidget {
                       ),
                     ],
                   ),
+
+                  // ── Location row ──────────────────────────────────────
+                  if (pole.latitude != null && pole.longitude != null) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                              Icon(Icons.location_on, size: 14, color: AppTheme.textMuted),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${pole.latitude!.toStringAsFixed(5)}, ${pole.longitude!.toStringAsFixed(5)}',
+                          style:       TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+
+                  // ── Landmarks ─────────────────────────────────────────
                   if (pole.landmarks.isNotEmpty) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Wrap(
                       spacing: 6,
                       runSpacing: 6,
-                      children:
-                          pole.landmarks
-                              .map(
-                                (l) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary.withValues(
-                                      alpha: 0.1,
-                                    ),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    l,
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.primary,
-                                    ),
-                                  ),
-                                ),
-                              )
-                              .toList(),
+                      children: pole.landmarks.map(
+                        (l) => Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            l,
+                            style:       TextStyle(
+                              fontSize: 11,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                      ).toList(),
                     ),
                   ],
-                  const SizedBox(height: 8),
+
+                  // ── Footer: complaints count ───────────────────────────
+                  const SizedBox(height: 10),
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      if (pole.latitude != null && pole.longitude != null)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: AppTheme.textMuted,
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${pole.latitude!.toStringAsFixed(4)}, ${pole.longitude!.toStringAsFixed(4)}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
+                            Icon(
+                        Icons.report_problem_rounded,
+                        size: 14,
+                        color: AppTheme.textMuted,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${pole.complaintsCount} complaint(s)',
+                        style:       TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
                         ),
-                      const Spacer(),
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.report_problem_rounded,
-                            size: 14,
-                            color: AppTheme.textMuted,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${pole.complaintsCount} complaint(s)',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
                       ),
                     ],
                   ),
@@ -375,7 +428,7 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
               child: Text(
                 mapsWebUnavailableMessage,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: AppTheme.textSecondary),
+                style:       TextStyle(color: AppTheme.textSecondary),
               ),
             )
             : gmap.GoogleMap(
@@ -490,10 +543,21 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                         controller: _latC,
                         decoration: const InputDecoration(
                           labelText: 'Latitude',
-                          hintText: 'Tap on map',
+                          hintText: 'Tap map or type here',
                         ),
-                        keyboardType: TextInputType.number,
-                        readOnly: true,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          signed: true,
+                          decimal: true,
+                        ),
+                        onChanged: (val) {
+                          final lat = double.tryParse(val);
+                          final lng = double.tryParse(_lngC.text);
+                          if (lat != null && lng != null) {
+                            setState(() {
+                              _selectedLocation = gmap.LatLng(lat, lng);
+                            });
+                          }
+                        },
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -502,10 +566,21 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
                         controller: _lngC,
                         decoration: const InputDecoration(
                           labelText: 'Longitude',
-                          hintText: 'Tap on map',
+                          hintText: 'Tap map or type here',
                         ),
-                        keyboardType: TextInputType.number,
-                        readOnly: true,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          signed: true,
+                          decimal: true,
+                        ),
+                        onChanged: (val) {
+                          final lat = double.tryParse(_latC.text);
+                          final lng = double.tryParse(val);
+                          if (lat != null && lng != null) {
+                            setState(() {
+                              _selectedLocation = gmap.LatLng(lat, lng);
+                            });
+                          }
+                        },
                       ),
                     ),
                   ],

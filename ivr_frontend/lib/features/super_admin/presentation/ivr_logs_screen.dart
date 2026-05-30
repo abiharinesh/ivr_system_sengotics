@@ -55,7 +55,7 @@ class IvrLogsScreen extends StatelessWidget {
                           color: AppTheme.bgSurface,
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Icon(
+                        child:       Icon(
                           Icons.phone_missed_rounded,
                           size: 20,
                           color: AppTheme.textSecondary,
@@ -76,7 +76,7 @@ class IvrLogsScreen extends StatelessWidget {
                             const SizedBox(height: 2),
                             Text(
                               item.flowName,
-                              style: const TextStyle(
+                              style:       TextStyle(
                                 fontSize: 12,
                                 color: AppTheme.textSecondary,
                               ),
@@ -86,7 +86,7 @@ class IvrLogsScreen extends StatelessWidget {
                       ),
                       Text(
                         item.durationLabel,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 12,
                           color: AppTheme.textMuted,
                           fontWeight: FontWeight.w600,
@@ -97,7 +97,7 @@ class IvrLogsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(
+                            Icon(
                         Icons.call_rounded,
                         size: 14,
                         color: AppTheme.textMuted,
@@ -105,7 +105,7 @@ class IvrLogsScreen extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         item.callerNumber,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 12,
                           color: AppTheme.textSecondary,
                         ),
@@ -113,7 +113,7 @@ class IvrLogsScreen extends StatelessWidget {
                       const Spacer(),
                       Text(
                         item.createdAt,
-                        style: const TextStyle(
+                        style:       TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
                         ),
@@ -132,7 +132,7 @@ class IvrLogsScreen extends StatelessWidget {
                     ),
                     child: Row(
                       children: [
-                        const Icon(
+                              Icon(
                           Icons.info_outline_rounded,
                           size: 14,
                           color: AppTheme.textMuted,
@@ -141,7 +141,7 @@ class IvrLogsScreen extends StatelessWidget {
                         Expanded(
                           child: Text(
                             item.result,
-                            style: const TextStyle(
+                            style:       TextStyle(
                               fontSize: 12,
                               color: AppTheme.textSecondary,
                             ),
@@ -194,4 +194,3 @@ class _IvrLogItem {
     required this.createdAt,
   });
 }
-

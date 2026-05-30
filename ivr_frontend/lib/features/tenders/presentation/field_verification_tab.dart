@@ -54,7 +54,15 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
       seen.add(poleId);
       final desc =
           li.descriptionEn ?? li.descriptionTa ?? 'Work item #${li.id}';
-      options.add((poleId: poleId, label: 'Pole #$poleId — $desc'));
+      final details = <String>[];
+      if (li.poleNumber != null && li.poleNumber!.isNotEmpty) {
+        details.add('No: ${li.poleNumber}');
+      }
+      if (li.keypadId != null && li.keypadId!.isNotEmpty) {
+        details.add('Keypad: ${li.keypadId}');
+      }
+      final poleLabel = details.isEmpty ? 'Pole #$poleId' : 'Pole #$poleId (${details.join(' • ')})';
+      options.add((poleId: poleId, label: '$poleLabel — $desc'));
     }
     options.sort((a, b) => a.poleId.compareTo(b.poleId));
     return options;
@@ -352,10 +360,15 @@ class _FieldVerificationTabState extends State<FieldVerificationTab> {
   String _workTitle(ChecklistItem item) {
     final li = item.lineItem;
     final desc = li?['description_en'] ?? li?['description_ta'];
+    final pole = li?['pole'];
+    final poleMap = pole is Map ? pole : null;
+    final poleNum = poleMap?['pole_number'];
+    final poleRef = poleNum != null ? 'Pole $poleNum' : (item.poleId != null ? 'Pole #${item.poleId}' : null);
+
     if (desc != null && desc.toString().isNotEmpty) {
-      return '${desc}${item.poleId != null ? ' • Pole #${item.poleId}' : ''}';
+      return '${desc}${poleRef != null ? ' • $poleRef' : ''}';
     }
-    return 'Item #${item.id}${item.poleId != null ? ' • Pole #${item.poleId}' : ''}';
+    return 'Item #${item.id}${poleRef != null ? ' • $poleRef' : ''}';
   }
 
   Color _matchColor(String confidence) {
@@ -740,7 +753,7 @@ class _FieldVerificationReviewCard extends StatelessWidget {
                 DropdownMenuItem(
                   value: o.poleId,
                   child: Text(
-                    'Pole #${o.poleId}',
+                    o.label,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),

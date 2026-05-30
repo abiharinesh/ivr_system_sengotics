@@ -138,17 +138,17 @@ class _AgentPoleDetailScreenState extends State<AgentPoleDetailScreen> {
         children: [
           Text(
             'Pole #${p['id']}',
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+            style:       TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
           ),
           const SizedBox(height: 8),
           Text(
             'No. ${p['pole_number'] ?? '—'} · Keypad ${p['keypad_id'] ?? '—'}',
-            style: const TextStyle(color: AppTheme.textMuted),
+            style:       TextStyle(color: AppTheme.textMuted),
           ),
           if (p['image_latitude'] != null)
             Text(
               'Last geo: ${p['image_latitude']}, ${p['image_longitude']}',
-              style: const TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              style:       TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
           const SizedBox(height: 20),
           if (imgUrl.isNotEmpty)

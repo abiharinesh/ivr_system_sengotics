@@ -40,7 +40,7 @@ class DashboardRecentActivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,
@@ -66,7 +66,7 @@ class DashboardRecentActivityCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             if (items.isEmpty)
-              const Padding(
+                    Padding(
                 padding: EdgeInsets.symmetric(vertical: 20),
                 child: Text(
                   'No recent activity',
@@ -129,7 +129,7 @@ class _ActivityLine extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style:       TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.textPrimary,
@@ -140,7 +140,7 @@ class _ActivityLine extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   subtitle,
-                  style: const TextStyle(
+                  style:       TextStyle(
                     fontSize: 12,
                     color: AppTheme.textSecondary,
                   ),
@@ -153,7 +153,7 @@ class _ActivityLine extends StatelessWidget {
           const SizedBox(width: 8),
           Text(
             time,
-            style: const TextStyle(fontSize: 11, color: AppTheme.textMuted),
+            style:       TextStyle(fontSize: 11, color: AppTheme.textMuted),
           ),
         ],
       ),
