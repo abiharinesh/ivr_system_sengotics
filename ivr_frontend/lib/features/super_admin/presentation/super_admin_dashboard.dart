@@ -304,7 +304,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.bgCard,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppTheme.stroke),
             boxShadow: AppTheme.softShadow,
@@ -412,7 +412,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                           width: ultraCompact ? 95 : (veryCompact ? 110 : 130),
                           padding: EdgeInsets.all(veryCompact ? 6 : 10),
                           decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.95),
+                            color: AppTheme.bgCard.withValues(alpha: 0.95),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child:       Column(
@@ -427,12 +427,12 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
-                              SizedBox(height: 6),
-                              _LegendRow('Active (Healthy)', Color(0xFF10B981)),
-                              SizedBox(height: 4),
-                              _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
-                              SizedBox(height: 4),
-                              _LegendRow('Critical Fault', Color(0xFFEF4444)),
+                              const SizedBox(height: 6),
+                              const _LegendRow('Active (Healthy)', Color(0xFF10B981)),
+                              const SizedBox(height: 4),
+                              const _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
+                              const SizedBox(height: 4),
+                              const _LegendRow('Critical Fault', Color(0xFFEF4444)),
                             ],
                           ),
                         ),
@@ -453,7 +453,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                               width: ultraCompact ? w - 24 : infoCardWidth,
                               padding: EdgeInsets.all(veryCompact ? 10 : 12),
                               decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.96),
+                                color: AppTheme.bgCard.withValues(alpha: 0.96),
                                 borderRadius: BorderRadius.circular(10),
                                 boxShadow: AppTheme.softShadow,
                               ),
@@ -567,7 +567,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                               vertical: 5,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.9),
+                              color: AppTheme.bgCard.withValues(alpha: 0.9),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -598,7 +598,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: active ? const Color(0xFFF3F4F6) : Colors.transparent,
+        color: active ? AppTheme.bgSurface : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppTheme.stroke),
       ),

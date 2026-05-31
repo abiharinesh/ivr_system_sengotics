@@ -111,7 +111,12 @@ class InviteLinksPanel extends StatelessWidget {
                   ? 'Publish this tender to generate a unique link for each invited vendor. '
                       'Share each link only with that vendor.'
                   : 'Each vendor has a personal link. Opening it shows a form pre-filled for that vendor only.',
-              style: const TextStyle(color: Colors.black54, fontSize: 13),
+              style: TextStyle(
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white60
+                    : Colors.black54,
+                fontSize: 13,
+              ),
             ),
             if (needsRefresh && onRefresh != null) ...[
               const SizedBox(height: 8),
@@ -123,9 +128,13 @@ class InviteLinksPanel extends StatelessWidget {
             ],
             const SizedBox(height: 12),
             if (detail.invitedVendors.isEmpty)
-              const Text(
+              Text(
                 'No vendors invited yet. Use “Invite vendors” below to add some.',
-                style: TextStyle(color: Colors.black54),
+                style: TextStyle(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white60
+                      : Colors.black54,
+                ),
               )
             else
               for (final v in detail.invitedVendors)
@@ -187,7 +196,11 @@ class _InviteLinkRow extends StatelessWidget {
         onPressed: canCopy && invite != null ? () => onCopy(invite!) : null,
         icon: Icon(
           Icons.link,
-          color: canCopy ? Theme.of(context).colorScheme.primary : Colors.black26,
+          color: canCopy
+              ? Theme.of(context).colorScheme.primary
+              : (Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white24
+                  : Colors.black26),
         ),
       ),
     );

@@ -388,7 +388,9 @@ class AppTheme {
   }
 
   static ThemeData buildTheme(AdminCustomizationSettings settings) {
-    final isDark = settings.themeMode == 'dark';
+    final isDark = settings.themeMode == 'dark' ||
+        (settings.themeMode == 'system' &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
     primary = settings.primaryColor;
     primaryLight = primary.withAlpha(210);
     primaryDark = primary;

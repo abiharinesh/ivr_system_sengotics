@@ -296,7 +296,7 @@ class _MapOverviewState extends State<MapOverview> {
         Positioned.fill(
           child: mapUnavailableOnWeb
               ? Container(
-                  color: Colors.white70,
+                  color: AppTheme.bgCard.withValues(alpha: 0.7),
                   alignment: Alignment.center,
                   padding: const EdgeInsets.all(20),
                   child: Text(
@@ -327,7 +327,7 @@ class _MapOverviewState extends State<MapOverview> {
           ),
         if (validPoles.isEmpty)
           Container(
-            color: Colors.white70,
+            color: AppTheme.bgCard.withValues(alpha: 0.7),
             child:       Center(
               child: Text(
                 'No mapped poles available',
@@ -342,7 +342,7 @@ class _MapOverviewState extends State<MapOverview> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.95),
+                color: AppTheme.bgCard.withValues(alpha: 0.95),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: AppTheme.stroke),
               ),

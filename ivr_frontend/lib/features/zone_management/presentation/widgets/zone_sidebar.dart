@@ -49,7 +49,7 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
     return Container(
       width: 310,
       decoration:       BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         border: Border(right: BorderSide(color: AppTheme.stroke)),
       ),
       child: Column(
@@ -172,7 +172,7 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                 ),
                 if (widget.isDrawing)
                         Padding(
-                    padding: EdgeInsets.only(top: 6),
+                    padding: const EdgeInsets.only(top: 6),
                     child: Text(
                       'Click on the map to place vertices. Close the polygon by clicking the first point.',
                       style: TextStyle(
@@ -311,7 +311,7 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                                   size: 32,
                                   color: AppTheme.textMuted,
                                 ),
-                                SizedBox(height: 8),
+                                const SizedBox(height: 8),
                                 Text(
                                   'No zones defined yet',
                                   style: TextStyle(
@@ -319,7 +319,7 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                                     color: AppTheme.textMuted,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Search for a place or draw a zone',
                                   style: TextStyle(
@@ -442,7 +442,7 @@ class _ZoneCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? color.withValues(alpha: 0.06)
-              : Colors.white,
+              : AppTheme.bgCard,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: isSelected ? color : AppTheme.stroke,

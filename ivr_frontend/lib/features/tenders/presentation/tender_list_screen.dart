@@ -165,13 +165,27 @@ class _TenderRowState extends State<_TenderRow> {
   Widget build(BuildContext context) {
     final df = DateFormat.yMMMd();
     final t = widget.t;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isInvited = t.quotationAccessMode == 'invited_only';
     final accessChip = Chip(
       label: Text(
-        t.quotationAccessMode == 'invited_only' ? 'Invited' : 'Open',
+        isInvited ? 'Invited' : 'Open',
+        style: TextStyle(
+          color: isInvited
+              ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800)
+              : (isDark ? Colors.green.shade200 : Colors.green.shade800),
+          fontWeight: FontWeight.w600,
+          fontSize: 11,
+        ),
       ),
-      backgroundColor: t.quotationAccessMode == 'invited_only'
-          ? Colors.blueGrey.shade100
-          : Colors.lightGreen.shade100,
+      backgroundColor: isInvited
+          ? (isDark ? Colors.blueGrey.shade900.withValues(alpha: 0.6) : Colors.blueGrey.shade100)
+          : (isDark ? Colors.green.shade900.withValues(alpha: 0.6) : Colors.lightGreen.shade100),
+      side: BorderSide(
+        color: isInvited
+            ? (isDark ? Colors.blueGrey.shade800 : Colors.blueGrey.shade200)
+            : (isDark ? Colors.green.shade800 : Colors.green.shade200),
+      ),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
@@ -219,8 +233,20 @@ class _TenderRowState extends State<_TenderRow> {
                     AppStatusBadge(status: t.status),
                     if (widget.isSuperAdmin && t.panchayatName != null)
                       Chip(
-                        label: Text(t.panchayatName!),
-                        backgroundColor: Colors.purple.shade50,
+                        label: Text(
+                          t.panchayatName!,
+                          style: TextStyle(
+                            color: isDark ? Colors.purple.shade200 : Colors.purple.shade800,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
+                        ),
+                        backgroundColor: isDark
+                            ? Colors.purple.shade900.withValues(alpha: 0.6)
+                            : Colors.purple.shade50,
+                        side: BorderSide(
+                          color: isDark ? Colors.purple.shade800 : Colors.purple.shade200,
+                        ),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
@@ -230,8 +256,18 @@ class _TenderRowState extends State<_TenderRow> {
                       Chip(
                         label: Text(
                           'Verification: ${t.verificationProgress!.done}/${t.verificationProgress!.total}',
+                          style: TextStyle(
+                            color: isDark ? Colors.teal.shade200 : Colors.teal.shade800,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 11,
+                          ),
                         ),
-                        backgroundColor: Colors.teal.shade50,
+                        backgroundColor: isDark
+                            ? Colors.teal.shade900.withValues(alpha: 0.6)
+                            : Colors.teal.shade50,
+                        side: BorderSide(
+                          color: isDark ? Colors.teal.shade800 : Colors.teal.shade200,
+                        ),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),

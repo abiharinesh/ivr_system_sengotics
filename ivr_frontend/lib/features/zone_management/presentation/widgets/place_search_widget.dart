@@ -79,7 +79,7 @@ class _PlaceSearchWidgetState extends State<PlaceSearchWidget> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: AppTheme.bgCard,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppTheme.stroke),
           ),
@@ -136,7 +136,7 @@ class _PlaceSearchWidgetState extends State<PlaceSearchWidget> {
             margin: const EdgeInsets.only(top: 6),
             constraints: const BoxConstraints(maxHeight: 260),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: AppTheme.bgCard,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppTheme.stroke),
               boxShadow: AppTheme.softShadow,

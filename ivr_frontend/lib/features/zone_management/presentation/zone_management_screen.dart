@@ -551,7 +551,7 @@ class _DrawingToolbar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(12),
         boxShadow: AppTheme.softShadow,
         border: Border.all(color: AppTheme.stroke),
@@ -652,7 +652,7 @@ class _PreviewInfoBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(12),
         boxShadow: AppTheme.softShadow,
         border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
@@ -719,7 +719,7 @@ class _ZoneLegend extends StatelessWidget {
       padding: const EdgeInsets.all(10),
       constraints: const BoxConstraints(maxWidth: 180),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.95),
+        color: AppTheme.bgCard.withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppTheme.stroke),
         boxShadow: AppTheme.softShadow,

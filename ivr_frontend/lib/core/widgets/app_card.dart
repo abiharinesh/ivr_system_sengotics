@@ -68,7 +68,7 @@ class _AppCardState extends State<AppCard> {
         0.0,
       ),
       decoration: BoxDecoration(
-        color: widget.color ?? AppTheme.bgCard,
+        color: widget.color ?? Theme.of(context).cardTheme.color ?? AppTheme.bgCard,
         borderRadius: radius,
         border: Border.all(
           color:

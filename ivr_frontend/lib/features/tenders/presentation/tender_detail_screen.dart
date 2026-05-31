@@ -22,7 +22,11 @@ import '../../../core/widgets/api_file_image.dart';
 class TenderDetailScreen extends StatefulWidget {
   final int tenderId;
   final bool isSuperAdmin;
-  const TenderDetailScreen({super.key, required this.tenderId, this.isSuperAdmin = false});
+  const TenderDetailScreen({
+    super.key,
+    required this.tenderId,
+    this.isSuperAdmin = false,
+  });
 
   @override
   State<TenderDetailScreen> createState() => _TenderDetailScreenState();
@@ -81,11 +85,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
               Expanded(
                 child: TabBarView(
                   children: [
-                    _OverviewTab(
-                      detail: d,
-                      repo: _repo,
-                      onChanged: _reload,
-                    ),
+                    _OverviewTab(detail: d, repo: _repo, onChanged: _reload),
                     _VendorsTab(detail: d, repo: _repo, onChanged: _reload),
                     _DocsTab(
                       detail: d,
@@ -173,12 +173,19 @@ class _TenderHeaderState extends State<_TenderHeader> {
     }
   }
 
-  Future<void> _updateAnchorDate(BuildContext context, DateTime? currentAnchor) async {
+  Future<void> _updateAnchorDate(
+    BuildContext context,
+    DateTime? currentAnchor,
+  ) async {
     final now = DateTime.now();
     final initialDate = currentAnchor ?? now;
     final pickedDate = await showDatePicker(
       context: context,
-      initialDate: initialDate.isAfter(DateTime(2030)) || initialDate.isBefore(DateTime(2024)) ? now : initialDate,
+      initialDate:
+          initialDate.isAfter(DateTime(2030)) ||
+                  initialDate.isBefore(DateTime(2024))
+              ? now
+              : initialDate,
       firstDate: DateTime(2024),
       lastDate: DateTime(2030),
     );
@@ -266,10 +273,7 @@ class _TenderHeaderState extends State<_TenderHeader> {
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             if (s.titleTa != null && (s.titleEn ?? '').isNotEmpty)
-              Text(
-                s.titleTa!,
-                style: const TextStyle(color: Colors.black54),
-              ),
+              Text(s.titleTa!, style: const TextStyle(color: Colors.black54)),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
@@ -279,12 +283,15 @@ class _TenderHeaderState extends State<_TenderHeader> {
                 Chip(label: Text(s.status)),
                 ActionChip(
                   avatar: const Icon(Icons.edit_calendar, size: 16),
-                  label: Text(s.anchorDate != null
-                      ? 'Anchor: ${DateFormat.yMMMd().add_jm().format(s.anchorDate!.toLocal())}'
-                      : 'Set Anchor Date'),
-                  onPressed: closed || _accessBusy
-                      ? null
-                      : () => _updateAnchorDate(context, s.anchorDate),
+                  label: Text(
+                    s.anchorDate != null
+                        ? 'Anchor: ${DateFormat.yMMMd().add_jm().format(s.anchorDate!.toLocal())}'
+                        : 'Set Anchor Date',
+                  ),
+                  onPressed:
+                      closed || _accessBusy
+                          ? null
+                          : () => _updateAnchorDate(context, s.anchorDate),
                 ),
                 ConstrainedBox(
                   constraints: BoxConstraints(
@@ -318,9 +325,10 @@ class _TenderHeaderState extends State<_TenderHeader> {
                             ),
                           ),
                         ],
-                        onChanged: closed || _accessBusy
-                            ? null
-                            : (v) => _onAccessModeChanged(context, v),
+                        onChanged:
+                            closed || _accessBusy
+                                ? null
+                                : (v) => _onAccessModeChanged(context, v),
                       ),
                     ),
                   ),
@@ -331,8 +339,9 @@ class _TenderHeaderState extends State<_TenderHeader> {
                     avatar: const Icon(Icons.copy, size: 16),
                     label: const Text('Copy public link'),
                     onPressed: () {
-                      final url =
-                          ApiConfig.webUrl('/public/open/${d.publicToken}');
+                      final url = ApiConfig.webUrl(
+                        '/public/open/${d.publicToken}',
+                      );
                       Clipboard.setData(ClipboardData(text: url));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -358,30 +367,31 @@ class _TenderHeaderState extends State<_TenderHeader> {
 
         return Padding(
           padding: EdgeInsets.all(hPad),
-          child: isNarrow
-              ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    headerInfo,
-                    if (primaryAction != null) ...[
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: primaryAction,
-                      ),
+          child:
+              isNarrow
+                  ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      headerInfo,
+                      if (primaryAction != null) ...[
+                        const SizedBox(height: 12),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: primaryAction,
+                        ),
+                      ],
                     ],
-                  ],
-                )
-              : Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(child: headerInfo),
-                    if (primaryAction != null) ...[
-                      const SizedBox(width: 16),
-                      primaryAction,
+                  )
+                  : Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(child: headerInfo),
+                      if (primaryAction != null) ...[
+                        const SizedBox(width: 16),
+                        primaryAction,
+                      ],
                     ],
-                  ],
-                ),
+                  ),
         );
       },
     );
@@ -417,171 +427,219 @@ class _OverviewTabState extends State<_OverviewTab> {
     final poleRefCtrl = TextEditingController(
       text: li != null ? (li.poleNumber ?? li.poleId?.toString() ?? '') : '',
     );
-    final complaintIdCtrl = TextEditingController(text: li?.complaintId?.toString());
+    final complaintIdCtrl = TextEditingController(
+      text: li?.complaintId?.toString(),
+    );
 
     bool saving = false;
 
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) {
-          return AlertDialog(
-            title: Text(isEdit ? 'Edit Line Item #${li.seq}' : 'Add Line Item'),
-            content: SizedBox(
-              width: 450,
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    TextField(
-                      controller: descEnCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'Description (English)',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descTaCtrl,
-                      decoration: const InputDecoration(
-                        labelText: 'விவரம் (Tamil)',
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: qtyCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Quantity',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: unitCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Unit',
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: poleRefCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Pole No. / ID',
-                              helperText: 'Pole number (e.g. TY-002) or DB ID from Pole Management',
-                              helperMaxLines: 2,
-                              border: OutlineInputBorder(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: TextField(
-                            controller: complaintIdCtrl,
-                            decoration: const InputDecoration(
-                              labelText: 'Complaint ID',
-                              border: OutlineInputBorder(),
-                            ),
-                            keyboardType: TextInputType.number,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+      builder:
+          (ctx) => StatefulBuilder(
+            builder: (ctx, setDialogState) {
+              return AlertDialog(
+                title: Text(
+                  isEdit ? 'Edit Line Item #${li.seq}' : 'Add Line Item',
                 ),
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: saving ? null : () => Navigator.pop(ctx),
-                child: const Text('Cancel'),
-              ),
-              FilledButton(
-                onPressed: saving
-                    ? null
-                    : () async {
-                        setDialogState(() => saving = true);
-                        try {
-                          final body = {
-                            'description_en': descEnCtrl.text.trim(),
-                            'description_ta': descTaCtrl.text.trim(),
-                            'quantity': qtyCtrl.text.trim().isEmpty ? null : double.tryParse(qtyCtrl.text.trim()) ?? qtyCtrl.text.trim(),
-                            'unit': unitCtrl.text.trim(),
-                            'pole_ref': poleRefCtrl.text.trim().isEmpty ? null : poleRefCtrl.text.trim(),
-                            'complaint_id': complaintIdCtrl.text.trim().isEmpty ? null : int.tryParse(complaintIdCtrl.text.trim()),
-                          };
+                content: SizedBox(
+                  width: 450,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextField(
+                          controller: descEnCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'Description (English)',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: descTaCtrl,
+                          decoration: const InputDecoration(
+                            labelText: 'விவரம் (Tamil)',
+                            border: OutlineInputBorder(),
+                          ),
+                          maxLines: 2,
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: qtyCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Quantity',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                      decimal: true,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: unitCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Unit',
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: poleRefCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Pole No. / ID',
+                                  helperText:
+                                      'Pole number (e.g. TY-002) or DB ID from Pole Management',
+                                  helperMaxLines: 2,
+                                  border: OutlineInputBorder(),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: complaintIdCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Complaint ID',
+                                  border: OutlineInputBorder(),
+                                ),
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: saving ? null : () => Navigator.pop(ctx),
+                    child: const Text('Cancel'),
+                  ),
+                  FilledButton(
+                    onPressed:
+                        saving
+                            ? null
+                            : () async {
+                              setDialogState(() => saving = true);
+                              try {
+                                final body = {
+                                  'description_en': descEnCtrl.text.trim(),
+                                  'description_ta': descTaCtrl.text.trim(),
+                                  'quantity':
+                                      qtyCtrl.text.trim().isEmpty
+                                          ? null
+                                          : double.tryParse(
+                                                qtyCtrl.text.trim(),
+                                              ) ??
+                                              qtyCtrl.text.trim(),
+                                  'unit': unitCtrl.text.trim(),
+                                  'pole_ref':
+                                      poleRefCtrl.text.trim().isEmpty
+                                          ? null
+                                          : poleRefCtrl.text.trim(),
+                                  'complaint_id':
+                                      complaintIdCtrl.text.trim().isEmpty
+                                          ? null
+                                          : int.tryParse(
+                                            complaintIdCtrl.text.trim(),
+                                          ),
+                                };
 
-                          if (isEdit) {
-                            await widget.repo.updateLineItem(widget.detail.summary.id, li.id, body);
-                          } else {
-                            await widget.repo.addLineItem(widget.detail.summary.id, body);
-                          }
+                                if (isEdit) {
+                                  await widget.repo.updateLineItem(
+                                    widget.detail.summary.id,
+                                    li.id,
+                                    body,
+                                  );
+                                } else {
+                                  await widget.repo.addLineItem(
+                                    widget.detail.summary.id,
+                                    body,
+                                  );
+                                }
 
-                          if (mounted) {
-                            Navigator.pop(ctx);
-                            widget.onChanged();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(isEdit ? 'Line item updated.' : 'Line item added.')),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Error: $e')),
-                            );
-                          }
-                        } finally {
-                          setDialogState(() => saving = false);
-                        }
-                      },
-                child: saving
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Text('Save'),
-              ),
-            ],
-          );
-        },
-      ),
+                                if (mounted) {
+                                  Navigator.pop(ctx);
+                                  widget.onChanged();
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        isEdit
+                                            ? 'Line item updated.'
+                                            : 'Line item added.',
+                                      ),
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $e')),
+                                  );
+                                }
+                              } finally {
+                                setDialogState(() => saving = false);
+                              }
+                            },
+                    child:
+                        saving
+                            ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                            : const Text('Save'),
+                  ),
+                ],
+              );
+            },
+          ),
     );
   }
 
   Future<void> _deleteLineItem(TenderLineItem li) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Delete Line Item #${li.seq}'),
-        content: const Text('Are you sure you want to delete this line item? This action cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              foregroundColor: Colors.white,
+      builder:
+          (ctx) => AlertDialog(
+            title: Text('Delete Line Item #${li.seq}'),
+            content: const Text(
+              'Are you sure you want to delete this line item? This action cannot be undone.',
             ),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  foregroundColor: Colors.white,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Delete'),
+              ),
+            ],
           ),
-        ],
-      ),
     );
 
     if (confirm != true || !mounted) return;
@@ -591,15 +649,15 @@ class _OverviewTabState extends State<_OverviewTab> {
       await widget.repo.deleteLineItem(widget.detail.summary.id, li.id);
       widget.onChanged();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Line item deleted.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Line item deleted.')));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -644,38 +702,48 @@ class _OverviewTabState extends State<_OverviewTab> {
                 title: Text(li.descriptionEn ?? li.descriptionTa ?? '—'),
                 subtitle: Text(
                   [
-                    if (li.quantity != null) '${li.quantity} ${li.unit ?? ''}'.trim(),
-                    if (li.poleId != null) () {
-                      final details = <String>[];
-                      if (li.poleNumber != null && li.poleNumber!.isNotEmpty) {
-                        details.add('No: ${li.poleNumber}');
-                      }
-                      if (li.keypadId != null && li.keypadId!.isNotEmpty) {
-                        details.add('Keypad: ${li.keypadId}');
-                      }
-                      if (details.isEmpty) return 'Pole ID: ${li.poleId}';
-                      return 'Pole ID: ${li.poleId} (${details.join(' • ')})';
-                    }(),
+                    if (li.quantity != null)
+                      '${li.quantity} ${li.unit ?? ''}'.trim(),
+                    if (li.poleId != null)
+                      () {
+                        final details = <String>[];
+                        if (li.poleNumber != null &&
+                            li.poleNumber!.isNotEmpty) {
+                          details.add('No: ${li.poleNumber}');
+                        }
+                        if (li.keypadId != null && li.keypadId!.isNotEmpty) {
+                          details.add('Keypad: ${li.keypadId}');
+                        }
+                        if (details.isEmpty) return 'Pole ID: ${li.poleId}';
+                        return 'Pole ID: ${li.poleId} (${details.join(' • ')})';
+                      }(),
                     if (li.complaintId != null) 'Complaint #${li.complaintId}',
                   ].join(' • '),
                 ),
-                trailing: isClosed
-                    ? null
-                    : Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit_outlined, size: 20),
-                            tooltip: 'Edit line item',
-                            onPressed: _busy ? null : () => _showAddEditDialog(li),
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete_outline, size: 20, color: Colors.red.shade700),
-                            tooltip: 'Delete line item',
-                            onPressed: _busy ? null : () => _deleteLineItem(li),
-                          ),
-                        ],
-                      ),
+                trailing:
+                    isClosed
+                        ? null
+                        : Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined, size: 20),
+                              tooltip: 'Edit line item',
+                              onPressed:
+                                  _busy ? null : () => _showAddEditDialog(li),
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                Icons.delete_outline,
+                                size: 20,
+                                color: Colors.red.shade700,
+                              ),
+                              tooltip: 'Delete line item',
+                              onPressed:
+                                  _busy ? null : () => _deleteLineItem(li),
+                            ),
+                          ],
+                        ),
               ),
             ),
           ),
@@ -713,31 +781,32 @@ class _VendorsTabState extends State<_VendorsTab> {
   void _showImageDialog(String imageUrl) {
     showDialog<void>(
       context: context,
-      builder: (ctx) => Dialog(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppBar(
-                title: const Text('Quotation attachment'),
-                automaticallyImplyLeading: false,
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(ctx),
+      builder:
+          (ctx) => Dialog(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppBar(
+                    title: const Text('Quotation attachment'),
+                    automaticallyImplyLeading: false,
+                    actions: [
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: InteractiveViewer(
+                      child: ApiFileImage(path: imageUrl, fit: BoxFit.contain),
+                    ),
                   ),
                 ],
               ),
-              Expanded(
-                child: InteractiveViewer(
-                  child: ApiFileImage(path: imageUrl, fit: BoxFit.contain),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
     );
   }
 
@@ -834,6 +903,7 @@ class _VendorsTabState extends State<_VendorsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final active =
         widget.detail.quotations.where((q) => q.supersededById == null).toList()
           ..sort((a, b) => a.amountNum.compareTo(b.amountNum));
@@ -875,9 +945,7 @@ class _VendorsTabState extends State<_VendorsTab> {
             builder: (context, constraints) {
               final isNarrow = constraints.maxWidth < 560;
               return ListView(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isNarrow ? 8 : 12,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : 12),
                 children: [
                   InviteLinksPanel(
                     detail: widget.detail,
@@ -885,7 +953,25 @@ class _VendorsTabState extends State<_VendorsTab> {
                   ),
                   for (final q in active)
                     Card(
-                      color: q.id == l1Id ? Colors.amber.shade50 : null,
+                      color:
+                          q.id == l1Id
+                              ? (isDark
+                                  ? const Color(0xFF2D2412)
+                                  : Colors.amber.shade50)
+                              : null,
+                      shape:
+                          q.id == l1Id
+                              ? RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color:
+                                      isDark
+                                          ? Colors.amber.shade700.withAlpha(120)
+                                          : Colors.amber.shade300,
+                                  width: 1.5,
+                                ),
+                              )
+                              : null,
                       child: Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: isNarrow ? 12 : 16,
@@ -898,11 +984,23 @@ class _VendorsTabState extends State<_VendorsTab> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 CircleAvatar(
-                                  backgroundColor: q.id == l1Id
-                                      ? Colors.amber
-                                      : Colors.grey.shade300,
+                                  backgroundColor:
+                                      q.id == l1Id
+                                          ? Colors.amber
+                                          : (isDark
+                                              ? Colors.grey.shade800
+                                              : Colors.grey.shade300),
+                                  foregroundColor:
+                                      q.id == l1Id
+                                          ? Colors.black87
+                                          : (isDark
+                                              ? Colors.white70
+                                              : Colors.black87),
                                   child: Text(
                                     q.id == l1Id ? 'L1' : '#${q.id}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -920,8 +1018,11 @@ class _VendorsTabState extends State<_VendorsTab> {
                                       const SizedBox(height: 2),
                                       Text(
                                         '${q.submitterPhoneE164} • ${q.source} • ${q.screeningOutcome}',
-                                        style: const TextStyle(
-                                          color: Colors.black54,
+                                        style: TextStyle(
+                                          color:
+                                              isDark
+                                                  ? Colors.white60
+                                                  : Colors.black54,
                                         ),
                                       ),
                                     ],
@@ -931,7 +1032,9 @@ class _VendorsTabState extends State<_VendorsTab> {
                                     q.attachmentUrl!.isNotEmpty) ...[
                                   const SizedBox(width: 12),
                                   InkWell(
-                                    onTap: () => _showImageDialog(q.attachmentUrl!),
+                                    onTap:
+                                        () =>
+                                            _showImageDialog(q.attachmentUrl!),
                                     borderRadius: BorderRadius.circular(8),
                                     child: ClipRRect(
                                       borderRadius: BorderRadius.circular(8),
@@ -955,28 +1058,57 @@ class _VendorsTabState extends State<_VendorsTab> {
                               children: [
                                 Text(
                                   '₹ ${q.amount}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w700,
                                     fontSize: 16,
+                                    color:
+                                        q.id == l1Id
+                                            ? (isDark
+                                                ? Colors.amber.shade300
+                                                : Colors.amber.shade900)
+                                            : null,
                                   ),
                                 ),
                                 if (widget.detail.awardedQuotationId == q.id)
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 5,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: Colors.green.shade100,
+                                      color:
+                                          isDark
+                                              ? const Color(
+                                                0xFF064E3B,
+                                              ).withAlpha(150)
+                                              : Colors.green.shade100,
                                       borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(color: Colors.green.shade300),
+                                      border: Border.all(
+                                        color:
+                                            isDark
+                                                ? Colors.green.shade800
+                                                : Colors.green.shade300,
+                                      ),
                                     ),
                                     child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Icon(Icons.check_circle, size: 14, color: Colors.green.shade800),
+                                        Icon(
+                                          Icons.check_circle,
+                                          size: 14,
+                                          color:
+                                              isDark
+                                                  ? Colors.green.shade400
+                                                  : Colors.green.shade800,
+                                        ),
                                         const SizedBox(width: 4),
                                         Text(
                                           'Awarded Contract',
                                           style: TextStyle(
-                                            color: Colors.green.shade800,
+                                            color:
+                                                isDark
+                                                    ? Colors.green.shade400
+                                                    : Colors.green.shade800,
                                             fontWeight: FontWeight.bold,
                                             fontSize: 12,
                                           ),
@@ -990,7 +1122,11 @@ class _VendorsTabState extends State<_VendorsTab> {
                                         'vendor_selected')
                                   OutlinedButton(
                                     onPressed: () => _award(q.id),
-                                    child: Text(widget.detail.awardedQuotationId != null ? 'Re-award' : 'Award'),
+                                    child: Text(
+                                      widget.detail.awardedQuotationId != null
+                                          ? 'Re-award'
+                                          : 'Award',
+                                    ),
                                   ),
                               ],
                             ),
@@ -998,11 +1134,11 @@ class _VendorsTabState extends State<_VendorsTab> {
                         ),
                       ),
                     ),
-              if (active.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('No quotations yet.'),
-                ),
+                  if (active.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(16),
+                      child: Text('No quotations yet.'),
+                    ),
                 ],
               );
             },
@@ -1246,16 +1382,17 @@ class _DocsTabState extends State<_DocsTab> {
 
     return showDialog<int>(
       context: context,
-      builder: (ctx) => SimpleDialog(
-        title: const Text('Quotation for which vendor?'),
-        children: [
-          for (final entry in options.entries)
-            SimpleDialogOption(
-              onPressed: () => Navigator.of(ctx).pop(entry.key),
-              child: Text(entry.value),
-            ),
-        ],
-      ),
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text('Quotation for which vendor?'),
+            children: [
+              for (final entry in options.entries)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(entry.key),
+                  child: Text(entry.value),
+                ),
+            ],
+          ),
     );
   }
 
@@ -1301,7 +1438,10 @@ class _DocsTabState extends State<_DocsTab> {
     }
   }
 
-  TenderDocumentSummary? _latestForTemplate(String templateId, {int? vendorId}) {
+  TenderDocumentSummary? _latestForTemplate(
+    String templateId, {
+    int? vendorId,
+  }) {
     var matches = _docs.where((d) => d.templateId == templateId);
     if (templateId == 'quotation' && vendorId != null) {
       matches = matches.where((d) => d.vendorId == vendorId);
@@ -1373,7 +1513,10 @@ class _DocsTabState extends State<_DocsTab> {
 
   Future<void> _previewDoc(TenderDocumentSummary doc) async {
     try {
-      final preview = await widget.repo.previewDocument(widget.tenderId, doc.id);
+      final preview = await widget.repo.previewDocument(
+        widget.tenderId,
+        doc.id,
+      );
       if (!mounted) return;
       final action = await showDialog<String>(
         context: context,
@@ -1384,9 +1527,11 @@ class _DocsTabState extends State<_DocsTab> {
               isHtml: preview.isHtml,
               canEdit: true,
               onDownloadFormat: (format) => _downloadDocInFormat(doc, format),
-              onFetchHtml: () => widget.repo.getDocumentHtmlContent(
-                widget.tenderId, doc.id,
-              ),
+              onFetchHtml:
+                  () => widget.repo.getDocumentHtmlContent(
+                    widget.tenderId,
+                    doc.id,
+                  ),
               onSaveHtml: (html) => _saveDocHtml(doc, html),
             ),
       );
@@ -1405,10 +1550,13 @@ class _DocsTabState extends State<_DocsTab> {
     TenderDocumentSummary doc,
     String format,
   ) async {
-    print('[_downloadDocInFormat] Downloading doc ${doc.id} in format: $format');
+    print(
+      '[_downloadDocInFormat] Downloading doc ${doc.id} in format: $format',
+    );
     try {
       await widget.repo.downloadDocumentInFormat(
-        widget.tenderId, doc.id,
+        widget.tenderId,
+        doc.id,
         format: format,
       );
       print('[_downloadDocInFormat] Download succeeded');
@@ -1423,9 +1571,7 @@ class _DocsTabState extends State<_DocsTab> {
 
   Future<bool> _saveDocHtml(TenderDocumentSummary doc, String html) async {
     try {
-      await widget.repo.saveDocumentContent(
-        widget.tenderId, doc.id, html,
-      );
+      await widget.repo.saveDocumentContent(widget.tenderId, doc.id, html);
       if (!mounted) return false;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Document saved successfully.')),
@@ -1582,9 +1728,10 @@ class _DocsTabState extends State<_DocsTab> {
       final latest = templateDocs.first;
       final statusLabel = latest.status.replaceAll('_', ' ');
       final errorText = latest.errorMessage;
-      final vendorNote = isQuotation && latest.vendorId != null
-          ? _vendorName(latest.vendorId!) ?? 'Vendor #${latest.vendorId}'
-          : null;
+      final vendorNote =
+          isQuotation && latest.vendorId != null
+              ? _vendorName(latest.vendorId!) ?? 'Vendor #${latest.vendorId}'
+              : null;
       statusBody = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1615,7 +1762,10 @@ class _DocsTabState extends State<_DocsTab> {
     final busy = _isGeneratingTemplate(tpl.id);
     final actions = <Widget>[
       OutlinedButton.icon(
-        onPressed: busy ? null : () => _editAndGenerate(tpl.id, vendorId: readyDoc?.vendorId),
+        onPressed:
+            busy
+                ? null
+                : () => _editAndGenerate(tpl.id, vendorId: readyDoc?.vendorId),
         icon: const Icon(Icons.edit_outlined, size: 16),
         label: const Text('Edit'),
       ),
@@ -1766,9 +1916,9 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Save failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Save failed: $e')));
     }
   }
 
@@ -1896,7 +2046,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Close'),
         ),
-        
+
         // Direct format buttons instead of popup overlay to avoid Flutter Web iframe event hijacking
         OutlinedButton.icon(
           onPressed: () => widget.onDownloadFormat('pdf'),
@@ -1915,8 +2065,7 @@ class _DocumentPreviewDialogState extends State<_DocumentPreviewDialog> {
         ),
 
         FilledButton.icon(
-          onPressed:
-              !widget.canEdit || _loadingHtml ? null : _enterEditMode,
+          onPressed: !widget.canEdit || _loadingHtml ? null : _enterEditMode,
           icon: const Icon(Icons.edit_outlined),
           label: Text(widget.canEdit ? 'Edit' : 'Edit (locked)'),
         ),

@@ -15,7 +15,9 @@ class DynamicThemeBuilder {
   }
 
   static ThemeData buildTheme(AdminCustomizationSettings settings) {
-    final isDark = settings.themeMode == 'dark';
+    final isDark = settings.themeMode == 'dark' ||
+        (settings.themeMode == 'system' &&
+            WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
     final primary = settings.primaryColor;
     final accent = settings.accentColor;
 
