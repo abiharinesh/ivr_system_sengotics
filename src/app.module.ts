@@ -17,6 +17,7 @@ import { WhatsAppModule } from './whatsapp/whatsapp.module'
 import { ElectricianOpsModule } from './field-ops/field-ops.module'
 import { TenderModule } from './tender/tender.module'
 import { ZoneModule } from './zone/zone.module'
+import { ReportsModule } from './reports/reports.module'
 
 @Module({
   imports: [
@@ -40,7 +41,8 @@ import { ZoneModule } from './zone/zone.module'
     AgentModule,
     ElectricianModule,
     TenderModule,
-    ZoneModule
+    ZoneModule,
+    ReportsModule
   ],
   controllers: [AppController],
   providers: [

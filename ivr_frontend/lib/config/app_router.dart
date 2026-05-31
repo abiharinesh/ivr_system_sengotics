@@ -23,6 +23,7 @@ import '../features/document_templates/presentation/document_templates_settings_
 import '../features/super_admin/presentation/voice_calls_screen.dart';
 import '../features/super_admin/presentation/ivr_logs_screen.dart';
 import '../features/super_admin/presentation/analytics_screen.dart';
+import '../features/reports/presentation/report_generation_screen.dart';
 import '../features/super_admin/presentation/super_admin_pole_management.dart';
 import '../features/super_admin/presentation/agent_management.dart';
 import '../features/super_admin/presentation/electrician_management.dart';
@@ -302,6 +303,10 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/analytics',
             builder: (context, state) => const AnalyticsScreen(),
           ),
+          GoRoute(
+            path: '/report-generation',
+            builder: (context, state) => const ReportGenerationScreen(),
+          ),
 
           // Panchayat Admin Routes
           GoRoute(
@@ -421,6 +426,8 @@ String _getTitle(String location) {
 	  return 'IVR Logs';
 	case '/analytics':
 	  return 'Analytics';
+    case '/report-generation':
+      return 'Report Generation';
     case '/zone-management':
       return 'Zone Management';
     case '/settings/customization':

@@ -31,3 +31,13 @@ Future<void> saveBytes({
   // Defer revocation so the browser has time to commit the download.
   scheduleMicrotask(() => web.URL.revokeObjectURL(url));
 }
+
+Future<void> printHtml(String htmlContent) async {
+  final newWindow = web.window.open('', '_blank');
+  if (newWindow != null) {
+    newWindow.document.open();
+    newWindow.document.write(htmlContent.toJS);
+    newWindow.document.close();
+    newWindow.print();
+  }
+}

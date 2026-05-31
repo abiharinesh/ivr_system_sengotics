@@ -21,3 +21,13 @@ Future<void> saveBytes({
     subject: filename,
   );
 }
+
+Future<void> printHtml(String htmlContent) async {
+  final dir = await getTemporaryDirectory();
+  final file = File(p.join(dir.path, 'print_report.html'));
+  await file.writeAsString(htmlContent, flush: true);
+  await Share.shareXFiles(
+    [XFile(file.path, mimeType: 'text/html', name: 'print_report.html')],
+    subject: 'Print Report',
+  );
+}

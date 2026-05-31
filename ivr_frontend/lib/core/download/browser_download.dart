@@ -17,3 +17,8 @@ Future<void> saveBytes({
     contentType: contentType,
   );
 }
+
+/// Prompt system printing dialog with the given [htmlContent] string.
+Future<void> printHtml(String htmlContent) {
+  return impl.printHtml(htmlContent);
+}

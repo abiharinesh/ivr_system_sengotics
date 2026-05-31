@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../app.dart';
 import '../../config/app_theme.dart';
 import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
 import '../../features/super_admin/data/super_admin_repository.dart';
@@ -52,38 +53,44 @@ class _AppScaffoldState extends State<AppScaffold> {
   @override
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 800;
+    final customization = context.adminCustomizationProvider;
 
-    if (isMobile) {
-      return Scaffold(
-        appBar: AppBar(
-          title: Text(widget.title),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.logout_rounded),
-              onPressed: widget.onLogout,
-              tooltip: 'Logout',
+    return ListenableBuilder(
+      listenable: customization,
+      builder: (context, _) {
+        if (isMobile) {
+          return Scaffold(
+            appBar: AppBar(
+              title: Text(widget.title),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.logout_rounded),
+                  onPressed: widget.onLogout,
+                  tooltip: 'Logout',
+                ),
+              ],
             ),
-          ],
-        ),
-        drawer: _buildDrawer(context),
-        body: widget.body,
-        floatingActionButton: widget.floatingActionButton,
-      );
-    }
+            drawer: _buildDrawer(context),
+            body: widget.body,
+            floatingActionButton: widget.floatingActionButton,
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: AppTheme.bgDark,
-      body: Row(
-        children: [
-          _buildSidebar(context),
-          Expanded(
-            child: Column(
-              children: [_buildTopBar(context), Expanded(child: widget.body)],
-            ),
+        return Scaffold(
+          backgroundColor: AppTheme.bgDark,
+          body: Row(
+            children: [
+              _buildSidebar(context),
+              Expanded(
+                child: Column(
+                  children: [_buildTopBar(context), Expanded(child: widget.body)],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
-      floatingActionButton: widget.floatingActionButton,
+          floatingActionButton: widget.floatingActionButton,
+        );
+      },
     );
   }
 
@@ -274,7 +281,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                     size: 18,
                     color: AppTheme.textMuted,
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
                     vertical: 8,
                   ),
@@ -418,6 +425,11 @@ class _AppScaffoldState extends State<AppScaffold> {
       return const [];
     }
     return const [
+      _NavSpec(
+        icon: Icons.document_scanner_rounded,
+        label: 'Report Generation',
+        route: '/report-generation',
+      ),
       _NavSpec(icon: Icons.insights_rounded, label: 'Analytics', route: '/analytics'),
       _NavSpec(icon: Icons.palette_rounded, label: 'Customization', route: '/settings/customization'),
       _NavSpec(
