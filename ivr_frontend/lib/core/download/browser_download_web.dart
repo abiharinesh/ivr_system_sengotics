@@ -33,11 +33,33 @@ Future<void> saveBytes({
 }
 
 Future<void> printHtml(String htmlContent) async {
-  final newWindow = web.window.open('', '_blank');
-  if (newWindow != null) {
-    newWindow.document.open();
-    newWindow.document.write(htmlContent.toJS);
-    newWindow.document.close();
-    newWindow.print();
+  final iframe = web.document.createElement('iframe') as web.HTMLIFrameElement;
+  
+  // Set styles to keep it hidden off-screen and not alter the page layout
+  iframe.style.position = 'fixed';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  iframe.style.visibility = 'hidden';
+  
+  web.document.body?.append(iframe);
+  
+  final iframeDoc = iframe.contentWindow?.document;
+  if (iframeDoc != null) {
+    iframeDoc.open();
+    iframeDoc.write(htmlContent.toJS);
+    iframeDoc.close();
+    
+    // Allow a small delay for the DOM and styling to parse/render inside the iframe
+    await Future.delayed(const Duration(milliseconds: 150));
+    
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
   }
+  
+  // Clean up the iframe from the DOM after the print dialog is spawned
+  Future.delayed(const Duration(seconds: 10), () {
+    iframe.remove();
+  });
 }
+
