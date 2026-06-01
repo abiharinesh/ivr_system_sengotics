@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -1385,7 +1386,7 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
         filters: filters,
       );
 
-      final String htmlContent = String.fromCharCodes(downloaded.bytes);
+      final String htmlContent = utf8.decode(downloaded.bytes);
       await printHtml(htmlContent);
     } catch (err) {
       // Graceful local print fallback
@@ -1440,9 +1441,9 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
 
   Uint8List _generateReportBytes() {
     if (_format == 'CSV') {
-      return Uint8List.fromList(_generateCSVData().codeUnits);
+      return Uint8List.fromList(utf8.encode(_generateCSVData()));
     } else {
-      return Uint8List.fromList(_generateHTMLData().codeUnits);
+      return Uint8List.fromList(utf8.encode(_generateHTMLData()));
     }
   }
 
@@ -1815,9 +1816,10 @@ class _ReportGenerationScreenState extends State<ReportGenerationScreen> {
     <head>
       <meta charset="UTF-8">
       <title>$title</title>
+      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Sans:wght@400;600;700&display=swap" rel="stylesheet" />
       <style>
         body {
-          font-family: 'Helvetica Neue', Arial, sans-serif;
+          font-family: 'Noto Sans', 'Noto Sans Tamil', 'Helvetica Neue', Arial, sans-serif;
           color: #1e293b;
           margin: 40px;
           line-height: 1.5;
