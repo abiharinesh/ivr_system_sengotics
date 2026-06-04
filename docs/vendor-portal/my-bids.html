@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>My Bids | Panchayat OS Vendor Portal</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-background": "#1a1b25",
+                    "secondary-container": "#d0e1fb",
+                    "error": "#ba1a1a",
+                    "surface-container-highest": "#e3e1ef",
+                    "warning-amber": "#d97706",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#454556",
+                    "on-error": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "info-blue": "#2563eb",
+                    "surface-tint": "#3a3efa",
+                    "background-light": "#f6f6f8",
+                    "on-tertiary-container": "#ffab9a",
+                    "outline-variant": "#c6c4da",
+                    "on-secondary": "#ffffff",
+                    "inverse-surface": "#2f2f3a",
+                    "surface-dim": "#dbd8e7",
+                    "inverse-on-surface": "#f2effe",
+                    "surface-container-low": "#f5f2ff",
+                    "background-dark": "#111121",
+                    "tertiary-container": "#9c1700",
+                    "on-primary-fixed-variant": "#1711e5",
+                    "surface": "#fbf8ff",
+                    "inverse-primary": "#bfc1ff",
+                    "sidebar-border": "#e2e8f0",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed-dim": "#b7c8e1",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-fixed": "#ffdad3",
+                    "background": "#fbf8ff",
+                    "primary": "#0a00c0",
+                    "primary-fixed": "#e1e0ff",
+                    "on-primary-container": "#b7baff",
+                    "success-emerald": "#059669",
+                    "on-secondary-fixed": "#0b1c30",
+                    "on-secondary-fixed-variant": "#38485d",
+                    "on-tertiary-fixed-variant": "#8e1400",
+                    "primary-container": "#2424eb",
+                    "on-surface": "#1a1b25",
+                    "on-tertiary-fixed": "#3e0400",
+                    "error-red": "#dc2626",
+                    "tertiary": "#720e00",
+                    "primary-fixed-dim": "#bfc1ff",
+                    "outline": "#767588",
+                    "surface-variant": "#e3e1ef",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#d3e4fe",
+                    "on-primary-fixed": "#03006d",
+                    "surface-container-high": "#e9e6f5",
+                    "surface-bright": "#fbf8ff",
+                    "surface-container": "#efecfb",
+                    "secondary": "#505f76",
+                    "tertiary-fixed-dim": "#ffb4a5",
+                    "on-secondary-container": "#54647a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "element-gap": "1rem",
+                    "container-padding": "2rem",
+                    "component-padding-y": "0.5rem",
+                    "stack-gap": "2rem",
+                    "component-padding-x": "1rem",
+                    "grid-gutter": "1.5rem"
+            },
+            "fontFamily": {
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-xs": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "headline-md": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-xs": ["10px", {"lineHeight": "14px", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "500"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f6f6f8; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(8px); }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="text-on-background bg-background-light">
+<!-- TopNavBar -->
+<header class="bg-surface dark:bg-background-dark border-b border-sidebar-border dark:border-outline-variant shadow-sm flex justify-between items-center w-full px-container-padding h-16 sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<span class="font-display-lg text-display-lg text-primary dark:text-primary-fixed">Panchayat OS Vendor Portal</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary font-body-md text-body-md transition-colors" href="vendor-dashboard.html">Dashboard</a>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary font-body-md text-body-md transition-colors" href="vendor-dashboard.html">Tenders</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary dark:border-primary-fixed pb-1 font-body-md text-body-md" href="open-tenders.html">Bids</a>
+<a class="text-secondary dark:text-secondary-fixed-dim hover:text-primary font-body-md text-body-md transition-colors" href="my-bids.html">Documents</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-slate-50 border-none rounded-xl text-body-md focus:ring-2 focus:ring-primary/20 w-64" placeholder="Search bids..." type="text"/>
+</div>
+<button onclick="window.location.href='tender-details.html'" class="material-symbols-outlined text-secondary hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</button>
+<button class="material-symbols-outlined text-secondary hover:bg-surface-container-low p-2 rounded-full transition-colors">help_outline</button>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center overflow-hidden border border-outline-variant">
+<img alt="Vendor Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCHZok9U5FQi--f1uCk1ryyJHNQwwUJxIv60FEl9YDGdlJMsxnr2AjQKeu31d6nAT5hkNTaVNIPeseLhvM9dlzkjtEQPkq1AM_N2rkGlIv3gfORQFG5N0xwDtbbdKXOwUaV8Yn_sRCSis_2w9ShAV8DqySEqLDGCs4TaOemw3yUpkwy7eK2_BTqaG5Shtykfq_JJ6qVE-xd70TwuC0CAHbxrrNep2_X5-DMcmNlBuY2IXMF0QLFuFMQNnzOcB-cRVb6ONhe68DrZnU"/>
+</div>
+</div>
+</header>
+<div class="flex min-h-[calc(100vh-4rem)]">
+<!-- SideNavBar -->
+<aside class="bg-surface-container-lowest dark:bg-background-dark border-r border-sidebar-border dark:border-outline-variant shadow-sm flex flex-col h-full py-component-padding-y px-component-padding-x fixed left-0 top-16 w-64 hidden md:flex">
+<div class="mb-8 px-2">
+<h2 class="font-headline-md text-headline-md text-on-surface dark:text-on-background">Vendor Services</h2>
+<p class="text-label-sm font-label-sm text-secondary">Local Govt. Procurement</p>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary dark:text-on-secondary-fixed-variant hover:bg-surface-container-high rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">dashboard</span> Overview
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary dark:text-on-secondary-fixed-variant hover:bg-surface-container-high rounded-xl transition-all font-label-sm text-label-sm" href="my-bids.html">
+<span class="material-symbols-outlined">gavel</span> Active Tenders
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary-container dark:bg-primary-container text-primary dark:text-on-primary-container rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">description</span> My Submissions
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary dark:text-on-secondary-fixed-variant hover:bg-surface-container-high rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">folder_shared</span> Document Vault
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-secondary dark:text-on-secondary-fixed-variant hover:bg-surface-container-high rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">settings</span> Settings
+                </a>
+</nav>
+<div class="mt-auto space-y-1 border-t border-sidebar-border pt-4">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary hover:bg-surface-container-high rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">help</span> Help Center
+                </a>
+<a class="flex items-center gap-3 px-4 py-3 text-error hover:bg-error-container rounded-xl transition-all font-label-sm text-label-sm" href="#">
+<span class="material-symbols-outlined">logout</span> Logout
+                </a>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-grow md:ml-64 p-8 bg-background-light">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+<div>
+<h1 class="font-display-lg text-display-lg text-on-background mb-1">My Bids</h1>
+<p class="font-body-md text-body-md text-secondary">Manage and track your active procurement submissions</p>
+</div>
+<button onclick="window.location.href='tender-details.html'" class="bg-primary hover:bg-primary-container text-white px-6 py-2.5 rounded-xl font-body-md flex items-center gap-2 shadow-sm transition-all active:scale-95">
+<span class="material-symbols-outlined text-[20px]">add</span>
+                    New Bid Submission
+                </button>
+</div>
+<!-- Dashboard Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="bg-white border border-sidebar-border p-6 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-primary/10 rounded-lg text-primary">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="bg-success-emerald/10 text-success-emerald text-label-xs px-2 py-1 rounded-full">+2 this month</span>
+</div>
+<div>
+<p class="text-secondary font-label-sm text-label-sm uppercase tracking-wider">Total Submissions</p>
+<h3 class="text-display-lg font-display-lg mt-1">24</h3>
+</div>
+</div>
+<div class="bg-white border border-sidebar-border p-6 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-warning-amber/10 rounded-lg text-warning-amber">
+<span class="material-symbols-outlined">pending_actions</span>
+</div>
+<span class="bg-warning-amber/10 text-warning-amber text-label-xs px-2 py-1 rounded-full">Requires Action</span>
+</div>
+<div>
+<p class="text-secondary font-label-sm text-label-sm uppercase tracking-wider">Pending Review</p>
+<h3 class="text-display-lg font-display-lg mt-1">08</h3>
+</div>
+</div>
+<div class="bg-white border border-sidebar-border p-6 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-success-emerald/10 rounded-lg text-success-emerald">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+</div>
+<div>
+<p class="text-secondary font-label-sm text-label-sm uppercase tracking-wider">Bids Won</p>
+<h3 class="text-display-lg font-display-lg mt-1">03</h3>
+</div>
+</div>
+<div class="bg-white border border-sidebar-border p-6 rounded-xl shadow-sm flex flex-col gap-4">
+<div class="flex justify-between items-start">
+<div class="p-2 bg-info-blue/10 rounded-lg text-info-blue">
+<span class="material-symbols-outlined">question_answer</span>
+</div>
+</div>
+<div>
+<p class="text-secondary font-label-sm text-label-sm uppercase tracking-wider">Open Clarifications</p>
+<h3 class="text-display-lg font-display-lg mt-1">02</h3>
+</div>
+</div>
+</div>
+<!-- Bento Layout Content -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left: Bids Table (Span 2) -->
+<div class="lg:col-span-2 bg-white border border-sidebar-border rounded-xl shadow-sm overflow-hidden">
+<div class="px-6 py-4 border-b border-sidebar-border flex justify-between items-center bg-slate-50/50">
+<h2 class="font-headline-md text-headline-md">Active Submissions</h2>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-slate-100 rounded-lg transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[20px]">filter_list</span>
+</button>
+<button class="p-2 hover:bg-slate-100 rounded-lg transition-colors border border-outline-variant">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50/50">
+<tr>
+<th class="px-6 py-4 font-label-sm text-label-sm text-secondary uppercase tracking-wider">Bid Ref.</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-secondary uppercase tracking-wider">Tender Name</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-secondary uppercase tracking-wider">Submitted</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-secondary uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-sm text-label-sm text-secondary uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-sidebar-border">
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-6 py-4 font-body-md text-body-md font-bold text-primary">#BID-2023-089</td>
+<td class="px-6 py-4">
+<div class="font-body-md text-body-md">Rural Connectivity Project Phase II</div>
+<div class="text-label-xs text-secondary">Zilla Parishad Pune</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md">Oct 24, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-info-blue/10 text-info-blue px-3 py-1 rounded-full text-label-sm font-label-sm">Under Technical Review</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm flex items-center justify-end gap-1 ml-auto">
+<span class="material-symbols-outlined text-[18px]">visibility</span> Quick View
+                                        </button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-6 py-4 font-body-md text-body-md font-bold text-primary">#BID-2023-102</td>
+<td class="px-6 py-4">
+<div class="font-body-md text-body-md">Solar Street Lighting Installation</div>
+<div class="text-label-xs text-secondary">Gram Panchayat Mulshi</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md">Nov 02, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-warning-amber/10 text-warning-amber px-3 py-1 rounded-full text-label-sm font-label-sm">Action Required</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm flex items-center justify-end gap-1 ml-auto">
+<span class="material-symbols-outlined text-[18px]">visibility</span> Quick View
+                                        </button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-6 py-4 font-body-md text-body-md font-bold text-primary">#BID-2023-115</td>
+<td class="px-6 py-4">
+<div class="font-body-md text-body-md">Waste Management System Deployment</div>
+<div class="text-label-xs text-secondary">Aundh Municipal Corp</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md">Nov 05, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-label-sm font-label-sm">Submitted</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm flex items-center justify-end gap-1 ml-auto">
+<span class="material-symbols-outlined text-[18px]">visibility</span> Quick View
+                                        </button>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 transition-colors group">
+<td class="px-6 py-4 font-body-md text-body-md font-bold text-primary">#BID-2023-045</td>
+<td class="px-6 py-4">
+<div class="font-body-md text-body-md">Primary School Renovation - Block 4</div>
+<div class="text-label-xs text-secondary">Dept. of Education</div>
+</td>
+<td class="px-6 py-4 font-body-md text-body-md">Sep 15, 2023</td>
+<td class="px-6 py-4">
+<span class="bg-success-emerald/10 text-success-emerald px-3 py-1 rounded-full text-label-sm font-label-sm">Bid Won</span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline font-label-sm text-label-sm flex items-center justify-end gap-1 ml-auto">
+<span class="material-symbols-outlined text-[18px]">visibility</span> Quick View
+                                        </button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Right: Clarification Requests -->
+<div class="flex flex-col gap-6">
+<div class="bg-white border border-sidebar-border rounded-xl shadow-sm overflow-hidden flex flex-col h-full">
+<div class="px-6 py-4 border-b border-sidebar-border flex items-center gap-2 bg-slate-50/50">
+<span class="material-symbols-outlined text-warning-amber">campaign</span>
+<h2 class="font-headline-md text-headline-md">Clarification Desk</h2>
+</div>
+<div class="p-6 flex-grow overflow-y-auto max-h-[600px] space-y-6">
+<!-- Request 1 -->
+<div class="p-4 rounded-xl border border-warning-amber/30 bg-warning-amber/5 relative">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-sm text-label-sm text-warning-amber font-bold">URGENT REQUEST</span>
+<span class="text-label-xs text-secondary">2h ago</span>
+</div>
+<h4 class="font-body-md text-body-md font-bold mb-1">Solar Street Light (#BID-102)</h4>
+<p class="text-body-md font-body-md text-on-surface-variant mb-4">
+                                    "Please provide detailed spectral data for the proposed LED modules. The current datasheet lacks color rendering index (CRI) details."
+                                </p>
+<div class="flex gap-2">
+<button class="flex-grow bg-white border border-warning-amber text-warning-amber py-2 rounded-lg font-label-sm text-label-sm hover:bg-warning-amber hover:text-white transition-all active:scale-95">Respond Now</button>
+</div>
+</div>
+<!-- Request 2 -->
+<div class="p-4 rounded-xl border border-sidebar-border bg-slate-50 relative">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-sm text-label-sm text-secondary font-bold">CLARIFICATION #241</span>
+<span class="text-label-xs text-secondary">1d ago</span>
+</div>
+<h4 class="font-body-md text-body-md font-bold mb-1">Rural Connectivity (#BID-089)</h4>
+<p class="text-body-md font-body-md text-on-surface-variant mb-4">
+                                    "Is the mobilization period of 15 days fixed or can it be reduced if site access is provided early?"
+                                </p>
+<div class="bg-white p-3 rounded-lg border border-sidebar-border mb-4">
+<div class="flex items-center gap-2 mb-1">
+<span class="material-symbols-outlined text-[16px] text-success-emerald" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-sm text-label-sm text-success-emerald">Your Response (Sent)</span>
+</div>
+<p class="text-body-md font-body-md text-secondary">"We can mobilize within 10 days if site permissions are expedited..."</p>
+</div>
+</div>
+<div class="text-center py-4">
+<button class="text-primary font-label-sm text-label-sm hover:underline">View All History</button>
+</div>
+</div>
+</div>
+<!-- Visual Accent Card -->
+<div class="relative rounded-xl overflow-hidden h-40 group cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" data-alt="A professional aerial view of a clean, modern city infrastructure project under golden hour lighting. The image showcases high-quality construction and engineering work, reflecting the scale of government procurement. The style is crisp and corporate, utilizing a palette of deep blues and architectural grays to convey stability and institutional excellence." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD4AdQpGJf1n-YmVm6B1LnCNNsqOnN92zYb3tAMaaeSQsr0BBttAQplX47cI6VnVaMODUNOe6qTQaCucBZaJ6gUxYTCaqwwcoZOkAiE0AhjS5c_QRKryY2nAfBgmC-CDgUWVdm82RFaVwB5uw-xGnTHVWXXN56gsXGS5n4IkrzxYuEx2ufpZ42DDaZm6YDbeX9iuf_17XGKKi618debZK6bm8IIAHU4rwwE8USL8pulUN_K-csC7QADXKG5dQiXl04JcE2QTqeddPA"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-transparent flex flex-col justify-end p-6">
+<h4 class="text-white font-headline-md text-headline-md">Winning Strategies</h4>
+<p class="text-white/80 font-body-md text-body-md">Download our guide to government bidding.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Mobile Bottom Navigation -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 bg-surface-container-lowest border-t border-sidebar-border flex justify-around items-center h-16 px-4 z-50">
+<button class="flex flex-col items-center gap-1 text-secondary">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-xs font-label-xs">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-secondary">
+<span class="material-symbols-outlined">gavel</span>
+<span class="text-label-xs font-label-xs">Tenders</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">description</span>
+<span class="text-label-xs font-label-xs font-bold">Bids</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-secondary">
+<span class="material-symbols-outlined">folder_shared</span>
+<span class="text-label-xs font-label-xs">Docs</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-secondary">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-xs font-label-xs">Settings</span>
+</button>
+</nav>
+<!-- Simple Hover Micro-interaction -->
+<script>
+        document.querySelectorAll('tr').forEach(row => {
+            row.addEventListener('mouseenter', () => {
+                row.style.transform = 'translateX(4px)';
+                row.style.transition = 'transform 0.2s ease-out';
+            });
+            row.addEventListener('mouseleave', () => {
+                row.style.transform = 'translateX(0)';
+            });
+        });
+    </script>
+</body></html>

@@ -38,7 +38,7 @@ async function bootstrap() {
     console.log(`Downloading Audio From: "${audioUrl}"\n`);
 
     try {
-        const result1 = await voiceService.processVoiceComplaint(callSid1, audioUrl, ivrNumber);
+        const result1 = await voiceService.processPhase1Voice(callSid1, audioUrl, ivrNumber);
 
         console.log('\n⏳ Waiting 5 seconds for async background LLM enrichment to finish...');
         await new Promise(r => setTimeout(r, 5000));
@@ -73,7 +73,7 @@ async function bootstrap() {
     console.log(`(Forcing Phase 1 strict match to fail so it cascades to Phase 2 LLM)\n`);
 
     try {
-        const result2 = await voiceService.processVoiceComplaint(callSid2, audioUrl, ivrNumber);
+        const result2 = await voiceService.processPhase1Voice(callSid2, audioUrl, ivrNumber);
 
         if (result2.complaintId) {
             const complaint = await prisma.complaint.findUnique({

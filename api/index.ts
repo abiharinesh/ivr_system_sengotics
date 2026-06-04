@@ -14,9 +14,11 @@ import { VoiceProcessingService } from '../src/voice-processing/voice-processing
 import { DbSetupService } from '../src/prisma/db-setup.service'
 import { DocumentStorageService } from '../src/storage/document-storage.service'
 import express from 'express'
+import { join } from 'path'
 import { waitUntil } from '@vercel/functions'
 
 const server = express()
+server.use('/docs', express.static(join(process.cwd(), 'docs')))
 
 let cachedApp: any
 let bootstrapError: Error | null = null

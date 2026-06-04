@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ooraatchi by Sengotics — Product Catalog</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #0A2463;
+            --primary-light: #1E3A8A;
+            --accent: #3B82F6;
+            --accent-light: #60A5FA;
+            --accent-gradient: linear-gradient(135deg, #0A2463 0%, #1E40AF 50%, #3B82F6 100%);
+            --surface: #F8FAFC;
+            --white: #FFFFFF;
+            --text: #1E293B;
+            --text-muted: #64748B;
+            --border: #E2E8F0;
+            --success: #10B981;
+            --warning: #F59E0B;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: var(--text);
+            background: var(--white);
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        /* ─── Page Layout ─── */
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 0;
+            page-break-after: always;
+            position: relative;
+            overflow: hidden;
+            background: var(--white);
+        }
+
+        .page:last-child {
+            page-break-after: avoid;
+        }
+
+        .page-inner {
+            padding: 40px 50px;
+            min-height: 297mm;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ─── Cover Page ─── */
+        .cover {
+            background: var(--accent-gradient);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px 70px;
+        }
+
+        .cover-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 30px;
+            padding: 8px 22px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+        }
+
+        .cover-logo {
+            font-size: 18px;
+            font-weight: 800;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 60px;
+            opacity: 0.9;
+        }
+
+        .cover h1 {
+            font-size: 44px;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 16px;
+            max-width: 550px;
+        }
+
+        .cover-subtitle {
+            font-size: 20px;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-bottom: 40px;
+            max-width: 500px;
+            line-height: 1.5;
+        }
+
+        .cover-summary {
+            font-size: 14px;
+            line-height: 1.8;
+            opacity: 0.75;
+            max-width: 460px;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 30px;
+            margin-top: 20px;
+        }
+
+        .cover-footer {
+            position: absolute;
+            bottom: 40px;
+            left: 70px;
+            right: 70px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            font-size: 11px;
+            opacity: 0.6;
+        }
+
+        .cover-category {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        /* ─── Section Pages ─── */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 2px solid var(--primary);
+            margin-bottom: 35px;
+        }
+
+        .page-header-brand {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: var(--primary);
+        }
+
+        .page-header-num {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .section-badge {
+            display: inline-block;
+            background: var(--accent-gradient);
+            color: var(--white);
+            border-radius: 20px;
+            padding: 5px 16px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 30px;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .section-subtitle {
+            font-size: 15px;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-bottom: 30px;
+            line-height: 1.5;
+        }
+
+        .body-text {
+            font-size: 13px;
+            line-height: 1.8;
+            color: var(--text);
+            margin-bottom: 20px;
+        }
+
+        /* ─── Feature Cards ─── */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .feature-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 22px;
+        }
+
+        .feature-card-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--accent-gradient);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .feature-card p {
+            font-size: 11.5px;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        /* ─── Highlight Box ─── */
+        .highlight-box {
+            background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+            border-left: 4px solid var(--accent);
+            border-radius: 0 12px 12px 0;
+            padding: 20px 24px;
+            margin: 20px 0;
+        }
+
+        .highlight-box h4 {
+            font-size: 13px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 6px;
+        }
+
+        .highlight-box p {
+            font-size: 12px;
+            line-height: 1.7;
+            color: var(--text);
+        }
+
+        /* ─── Placeholder Boxes (for screenshots) ─── */
+        .placeholder {
+            background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            margin: 20px 0;
+        }
+
+        .placeholder-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        /* ─── Stats Row ─── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: var(--accent-gradient);
+            color: var(--white);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 4px;
+        }
+
+        .stat-card .stat-label {
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.8;
+        }
+
+        /* ─── Bullet List ─── */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+            margin: 16px 0;
+        }
+
+        .feature-list li {
+            font-size: 12.5px;
+            line-height: 1.6;
+            padding: 8px 0 8px 28px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 14px;
+        }
+
+        /* ─── Two-Column Layout ─── */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 16px 0;
+        }
+
+        /* ─── Contact Page ─── */
+        .contact-section {
+            background: var(--accent-gradient);
+            color: var(--white);
+            border-radius: 16px;
+            padding: 35px;
+            margin: 20px 0;
+        }
+
+        .contact-section h3 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .contact-item {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 10px;
+            padding: 16px;
+        }
+
+        .contact-item .label {
+            font-size: 10px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.7;
+            margin-bottom: 6px;
+        }
+
+        .contact-item .value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        /* ─── Tech Specs Table ─── */
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            margin: 16px 0;
+        }
+
+        .specs-table th {
+            background: var(--primary);
+            color: var(--white);
+            padding: 10px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .specs-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .specs-table tr:nth-child(even) td {
+            background: var(--surface);
+        }
+
+        /* ─── Page Footer ─── */
+        .page-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            font-size: 9px;
+            color: var(--text-muted);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        /* ─── Print ─── */
+        @media print {
+            .page {
+                margin: 0;
+                box-shadow: none;
+            }
+        }
+
+        @media screen {
+            .page {
+                box-shadow: 0 4px 40px rgba(0,0,0,0.1);
+                margin: 20px auto;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 1 — COVER & EXECUTIVE SUMMARY
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page cover">
+    <div class="cover-logo">SENGOTICS</div>
+    <div class="cover-badge">Web GIS Based Project Management Software</div>
+    <h1>Ooraatchi</h1>
+    <p class="cover-subtitle">Next-Generation Web GIS &amp; E-Tendering Platform for Smart Municipalities</p>
+    <p class="cover-summary">
+        A unified cloud platform empowering government departments with real-time asset mapping, 
+        seamless procurement, IoT-driven utility monitoring, and automated citizen engagement — 
+        all in a single, secure, multi-tenant application.
+    </p>
+    <div class="cover-footer">
+        <div>
+            <strong>Sengotics</strong><br>
+            contact@sengotics.com | www.sengotics.com
+        </div>
+        <div class="cover-category">
+            GeM Category: WEB GIS Based<br>Project Management Software
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 2 — THE SENGOTICS VALUE PROPOSITION
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">02 / 10</span>
+        </div>
+
+        <div class="section-badge">Value Proposition</div>
+        <h2 class="section-title">One Platform. Every Department.<br>Zero Fragmentation.</h2>
+        <p class="section-subtitle">Government departments waste millions on disconnected systems that cannot share data. Sengotics eliminates that problem.</p>
+
+        <p class="body-text">
+            Today, most municipalities operate with a patchwork of disconnected tools — separate GIS viewers, 
+            offline spreadsheet-based procurement trackers, manual complaint registers, and paper-based field 
+            inspection reports. This fragmentation leads to <strong>data silos, compliance gaps, delayed procurement, 
+            and poor citizen satisfaction</strong>.
+        </p>
+
+        <div class="highlight-box">
+            <h4>The Sengotics Difference</h4>
+            <p>
+                Sengotics merges <strong>GIS spatial intelligence</strong>, <strong>cloud telephony</strong>, 
+                <strong>IoT telemetry</strong>, <strong>e-tendering workflows</strong>, and <strong>AI-powered analytics</strong> 
+                into a single, secure, multi-tenant cloud platform — purpose-built for Indian local governance.
+            </p>
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-card-icon">🗺️</div>
+                <h4>Unified GIS Foundation</h4>
+                <p>Every asset, complaint, and project plotted on an interactive Web Map with PostGIS spatial queries.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card-icon">📋</div>
+                <h4>End-to-End Procurement</h4>
+                <p>From draft tender to work-order award — fully digital, auditable, and compliant with GFR 2017.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card-icon">📞</div>
+                <h4>Citizen Engagement</h4>
+                <p>IVR-based helpdesk with AI voice processing that converts calls into geo-tagged digital tickets automatically.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-card-icon">🔒</div>
+                <h4>Government-Grade Security</h4>
+                <p>Role-based access, immutable audit trails, geo-fenced operations, and encrypted data at rest and in transit.</p>
+            </div>
+        </div>
+
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">8+</div>
+                <div class="stat-label">Integrated Modules</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">100%</div>
+                <div class="stat-label">Cloud Native</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">24/7</div>
+                <div class="stat-label">Technical Support</div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 3 — ADVANCED GIS & ASSET MAPPING
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">03 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 1</div>
+        <h2 class="section-title">Advanced GIS &amp; Asset Mapping</h2>
+        <p class="section-subtitle">Map, visualise, and manage every physical asset across entire districts on an interactive Web Map powered by PostGIS.</p>
+
+        <p class="body-text">
+            At the heart of Sengotics is a <strong>PostgreSQL/PostGIS spatial database</strong> that stores the precise 
+            geographic coordinates and metadata of every physical asset under the municipality's jurisdiction. Officers 
+            can view, search, filter, and manage infrastructure directly on a rich, interactive map interface.
+        </p>
+
+        <div class="placeholder">
+            <div class="placeholder-icon">🗺️</div>
+            [ Map Screenshot — Interactive Web Map showing geo-tagged assets across a district ]
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>⚡ Electrical Poles</h4>
+                <p>Geo-tagged with unique Keypad IDs, wattage, pole type, installation date, and maintenance history. Each pole is a clickable map marker.</p>
+            </div>
+            <div class="feature-card">
+                <h4>💧 Water Pipelines</h4>
+                <p>Imported via GeoJSON pathways — visualise pipeline routes, junction nodes, valve positions, and connection points across the network.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🏛️ Municipal Buildings</h4>
+                <p>Plot government offices, community halls, schools, and health centres as polygon boundaries with area, usage, and condition data.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔍 Spatial Queries</h4>
+                <p>Find all assets within a radius, along a road, or inside a ward boundary. PostGIS-powered queries return results in milliseconds.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4>Multi-Layer Map View</h4>
+            <p>Toggle between satellite imagery, street maps, and custom overlay layers. Filter assets by type, status, ward, or date range. Export map views as high-resolution images for reports.</p>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 4 — IoT & REAL-TIME TELEMETRY
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">04 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 2</div>
+        <h2 class="section-title">IoT &amp; Real-Time Telemetry</h2>
+        <p class="section-subtitle">Monitor water infrastructure health in real time — from overhead tank capacities to pipeline pressure — with automated alert thresholds.</p>
+
+        <p class="body-text">
+            The Sengotics IoT module connects to field-deployed sensors and telemetry devices to provide a 
+            <strong>live operational dashboard</strong> for water and utility management. Officers can monitor tank levels, 
+            flow rates, and pressure readings without leaving their desk.
+        </p>
+
+        <div class="placeholder">
+            <div class="placeholder-icon">📊</div>
+            [ Dashboard Screenshot — Real-time telemetry dashboard showing tank levels, flow rates, and alerts ]
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🏗️ Overhead Tank Monitoring</h4>
+                <p>Live capacity readings (litres), fill-level percentages, and historical fill/drain cycle analytics for every registered tank.</p>
+            </div>
+            <div class="feature-card">
+                <h4>💧 Flow Rate Tracking (LPS)</h4>
+                <p>Real-time Litres-Per-Second measurements at pipeline junctions. Detect anomalies that indicate leaks or unauthorised tapping.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📈 Pressure Logs</h4>
+                <p>Continuous pipeline pressure monitoring with time-series charts. Set min/max thresholds to auto-detect pressure drops or surges.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🚨 Automated Alerts</h4>
+                <p>Configurable SMS/email alerts for critical events: low water levels, burst detection, pump failure, or sensor offline conditions.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4>Predictive Maintenance</h4>
+            <p>Historical telemetry trends enable officers to predict infrastructure failures before they happen — reducing emergency repairs and water wastage across the district.</p>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 5 — E-TENDERING & PROCUREMENT ENGINE
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">05 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 3</div>
+        <h2 class="section-title">E-Tendering &amp; Procurement Engine</h2>
+        <p class="section-subtitle">Manage the complete tender lifecycle — from draft creation to comparative award — with full audit compliance.</p>
+
+        <p class="body-text">
+            The procurement module digitises every step of the government tendering process. Officers create tenders 
+            linked to specific GIS-mapped assets, define line items, set milestone rules, invite vendors, collect quotations, 
+            generate comparative statements, and issue work orders — all within a single, auditable workflow.
+        </p>
+
+        <div class="two-col">
+            <div>
+                <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 12px;">Tender Lifecycle Stages</h4>
+                <ul class="feature-list">
+                    <li><strong>Draft</strong> — Create tender with description, line items, and timeline rules</li>
+                    <li><strong>Published</strong> — Send invite links to selected vendors</li>
+                    <li><strong>Quotation Collection</strong> — Vendors submit sealed bids within the deadline</li>
+                    <li><strong>Comparative Statement</strong> — Auto-generated L1/L2 comparison</li>
+                    <li><strong>Award & Work Order</strong> — Issue digitally signed work orders</li>
+                    <li><strong>Execution & Completion</strong> — Track progress against physical assets</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 12px;">Key Capabilities</h4>
+                <ul class="feature-list">
+                    <li>Custom milestone rules (anchor date + offset days)</li>
+                    <li>Project line items linked to specific GIS-mapped poles/assets</li>
+                    <li>Automated PDF generation for all tender documents</li>
+                    <li>Canvas-based document template designer (Fabric.js)</li>
+                    <li>Immutable state-transition audit log</li>
+                    <li>GeM-compliant procurement workflow</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="placeholder">
+            <div class="placeholder-icon">📄</div>
+            [ Screenshot — Tender detail page showing line items, milestone timeline, and vendor quotations ]
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 6 — SECURE VENDOR MANAGEMENT & COMPLIANCE
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">06 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 4</div>
+        <h2 class="section-title">Secure Vendor Management &amp; Compliance</h2>
+        <p class="section-subtitle">A tamper-proof vendor ecosystem with invite-only bidding, automated document generation, and immutable audit trails.</p>
+
+        <p class="body-text">
+            Government procurement demands absolute transparency and traceability. The Sengotics vendor module ensures 
+            that only authorised vendors can participate in tenders, every document is generated with consistent formatting, 
+            and every action is logged in an immutable, timestamped audit trail.
+        </p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🔐 Invite-Only Quotation Access</h4>
+                <p>Tenders can be set to "Invited Only" mode — only vendors explicitly invited by the officer can view or submit quotations. Prevents unauthorised bidding and bid manipulation.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📄 Automated PDF Documents</h4>
+                <p>Work orders, comparative statements, and tender notices are generated as professional PDFs using customisable templates with the panchayat's branding and seal.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Vendor Master Database</h4>
+                <p>Centralised registry of approved vendors with GST details, past performance ratings, contact information, and category-wise qualification status.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🔏 Immutable Audit Logs</h4>
+                <p>Every tender state transition (Draft → Published → Awarded) is logged with timestamp, user ID, IP address, and action details. Cannot be edited or deleted.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4>Government Compliance Built-In</h4>
+            <p>
+                The platform is designed to comply with <strong>General Financial Rules (GFR) 2017</strong>, 
+                <strong>GeM procurement guidelines</strong>, and state-level public works department (PWD) norms. 
+                Every procurement action is auditable and traceable from creation to completion.
+            </p>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 7 — IVR & AUTOMATED CITIZEN HELPDESK
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">07 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 5</div>
+        <h2 class="section-title">IVR &amp; Automated Citizen Helpdesk</h2>
+        <p class="section-subtitle">An intelligent call-routing system that converts citizen phone calls into prioritised, geo-tagged digital tickets — automatically.</p>
+
+        <p class="body-text">
+            Citizens can report grievances (streetlight failures, water supply issues, road damage) by simply 
+            calling a dedicated helpline number. The system's <strong>IVR (Interactive Voice Response)</strong> module 
+            guides the caller through structured menu options and records voice messages for AI processing.
+        </p>
+
+        <div class="placeholder">
+            <div class="placeholder-icon">📱</div>
+            [ Screenshot — Mobile app interface showing IVR call flow and generated complaint ticket ]
+        </div>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🎙️ AI Voice Processing</h4>
+                <p>Whisper-powered speech-to-text automatically transcribes citizen voice messages in Tamil and English with high accuracy.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🧠 Intent & Urgency Extraction</h4>
+                <p>LLM-powered NLP extracts the complaint type, location references, caller language, and urgency level to create prioritised tickets.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📍 Auto Geo-Matching</h4>
+                <p>Location names mentioned in voice messages are matched against the GIS database to automatically link complaints to specific mapped assets.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Call Analytics Dashboard</h4>
+                <p>Track call volumes, resolution rates, average response times, and complaint category breakdowns with real-time analytics.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4>Multi-Language Support</h4>
+            <p>The IVR system supports Tamil, English, and configurable regional languages — ensuring accessibility for all citizens regardless of literacy or language preference.</p>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 8 — FIELD VERIFICATION & AI-OCR INSPECTION
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">08 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 6</div>
+        <h2 class="section-title">Field Verification &amp; AI-OCR Inspection</h2>
+        <p class="section-subtitle">Secure, token-gated inspection sessions with AI-powered image verification to prevent fraudulent work claims.</p>
+
+        <p class="body-text">
+            After a work order is issued and physical work is completed, the system requires on-ground verification 
+            before payment release. Field staff use a <strong>secure, token-gated mobile interface</strong> to upload 
+            geo-tagged photographs of completed work — which are then validated by <strong>AI-powered OCR</strong>.
+        </p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>🔑 Token-Gated Sessions</h4>
+                <p>Each inspection session is secured with a unique, time-limited token. Only authorised field staff can access the upload interface for a specific asset.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📸 Geo-Tagged Photo Uploads</h4>
+                <p>Photos are automatically embedded with GPS coordinates, timestamp, and device metadata. Prevents submission of pre-taken or stock images.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🤖 AI-OCR Validation</h4>
+                <p>The system reads text (pole IDs, serial numbers) from uploaded images using Google Vision AI and calculates a confidence score to verify authenticity.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Confidence Scoring</h4>
+                <p>Each verification attempt receives a confidence percentage. Low scores are flagged for manual review by the supervising officer before approval.</p>
+            </div>
+        </div>
+
+        <div class="highlight-box">
+            <h4>Anti-Fraud by Design</h4>
+            <p>The combination of token-gated access, GPS enforcement, timestamp validation, and AI-OCR cross-referencing creates a multi-layered fraud prevention system that ensures only genuine, verified work is approved for payment.</p>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 9 — MULTI-TIER ADMINISTRATION & GEO-FENCED RESOLUTION
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">09 / 10</span>
+        </div>
+
+        <div class="section-badge">Module 7</div>
+        <h2 class="section-title">Multi-Tier Administration &amp; Geo-Fenced Resolution</h2>
+        <p class="section-subtitle">Advanced Role-Based Access Control (RBAC) with geo-fenced operations ensuring accountability at every level.</p>
+
+        <p class="body-text">
+            Sengotics implements a <strong>hierarchical, role-based access control system</strong> with distinct, 
+            secure login portals for each administrative tier. Each role sees only the data and actions relevant 
+            to their jurisdiction and responsibility level.
+        </p>
+
+        <div class="two-col">
+            <div>
+                <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 12px;">Role Hierarchy</h4>
+                <ul class="feature-list">
+                    <li><strong>Super Admin</strong> — Platform-wide configuration, user management, cross-panchayat analytics, and system settings</li>
+                    <li><strong>Panchayat Admin (Officer)</strong> — Create tenders, manage assets, review field verifications, and generate reports for their jurisdiction</li>
+                    <li><strong>Field Staff (Electricians / Plumbers)</strong> — View assigned complaints, navigate to asset locations, and submit geo-tagged completion evidence</li>
+                    <li><strong>Vendors</strong> — View invited tenders, submit quotations, and track work order status via secure portal</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 14px; color: var(--primary); margin-bottom: 12px;">Geo-Fenced Operations</h4>
+                <ul class="feature-list">
+                    <li>Field workers must submit completion images from the <strong>exact GPS coordinates</strong> of the assigned physical asset</li>
+                    <li>Configurable geo-fence radius (e.g., 50m, 100m) to account for GPS accuracy</li>
+                    <li>Automatic rejection of submissions from outside the geo-fence boundary</li>
+                    <li>GPS coordinates logged and displayed on the admin dashboard for every submission</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="placeholder">
+            <div class="placeholder-icon">👥</div>
+            [ Screenshot — Admin dashboard showing role hierarchy, user management, and geo-fenced resolution map ]
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved.</span>
+            <span>www.sengotics.com</span>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     PAGE 10 — REPORTS, ANALYTICS (MIS) & CONTACT
+     ═══════════════════════════════════════════════════════════════════ -->
+<div class="page">
+    <div class="page-inner">
+        <div class="page-header">
+            <span class="page-header-brand">Sengotics</span>
+            <span class="page-header-num">10 / 10</span>
+        </div>
+
+        <div class="section-badge">MIS & Contact</div>
+        <h2 class="section-title">Reports, Analytics &amp; MIS</h2>
+        <p class="section-subtitle">Automated reporting, export engines, and performance dashboards for data-driven governance.</p>
+
+        <div class="feature-grid">
+            <div class="feature-card">
+                <h4>📦 Automated Export Engine</h4>
+                <p>Generate ZIP archives of resolved complaints with all attached proof images, field verification photos, and audit trails — ready for statutory reporting.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📊 Utility Health Dashboards</h4>
+                <p>Real-time visualisation of water tank levels, pipeline network status, power infrastructure uptime, and IoT sensor health across the district.</p>
+            </div>
+            <div class="feature-card">
+                <h4>📈 Contractor Performance</h4>
+                <p>Track vendor delivery timelines, work quality scores, bid competitiveness, and compliance rates to make data-driven procurement decisions.</p>
+            </div>
+            <div class="feature-card">
+                <h4>🏛️ Governance KPIs</h4>
+                <p>Citizen satisfaction scores, complaint resolution SLA adherence, tender completion rates, and budget utilisation — all on a single executive dashboard.</p>
+            </div>
+        </div>
+
+        <!-- Tech Specs -->
+        <h4 style="font-size: 14px; color: var(--primary); margin: 16px 0 8px;">Technical Specifications</h4>
+        <table class="specs-table">
+            <tr>
+                <th style="width: 35%;">Specification</th>
+                <th>Details</th>
+            </tr>
+            <tr><td><strong>Deployment</strong></td><td>Cloud SaaS (Multi-Tenant) / On-Premise / Hybrid</td></tr>
+            <tr><td><strong>Backend</strong></td><td>NestJS (Node.js/TypeScript), PostgreSQL + PostGIS</td></tr>
+            <tr><td><strong>Frontend</strong></td><td>Flutter (Web + Mobile — Android & iOS)</td></tr>
+            <tr><td><strong>AI/ML</strong></td><td>Google Gemini, OpenAI Whisper, Google Vision AI (OCR)</td></tr>
+            <tr><td><strong>GIS Engine</strong></td><td>PostGIS, Google Maps API, GeoJSON</td></tr>
+            <tr><td><strong>Telephony</strong></td><td>Exotel Cloud Telephony (IVR, Call Recording)</td></tr>
+            <tr><td><strong>Security</strong></td><td>JWT Auth, RBAC, AES-256 Encryption, Audit Logging</td></tr>
+            <tr><td><strong>Support</strong></td><td>24/7 Technical Support, Dedicated Account Manager</td></tr>
+            <tr><td><strong>Compliance</strong></td><td>GFR 2017, GeM T&C, DPDP Act 2023</td></tr>
+        </table>
+
+        <!-- Contact Section -->
+        <div class="contact-section">
+            <h3>Contact Sengotics</h3>
+            <div class="contact-grid">
+                <div class="contact-item">
+                    <div class="label">Brand / OEM</div>
+                    <div class="value">Sengotics</div>
+                </div>
+                <div class="contact-item">
+                    <div class="label">GSTIN</div>
+                    <div class="value">33DKDPA5555E1ZL</div>
+                </div>
+                <div class="contact-item">
+                    <div class="label">MSME Udyam Reg No</div>
+                    <div class="value">UDYAM-TN-03-0308455</div>
+                </div>
+                <div class="contact-item">
+                    <div class="label">Phone</div>
+                    <div class="value">9597769501</div>
+                </div>
+                <div class="contact-item" style="grid-column: span 2;">
+                    <div class="label">Corporate Office</div>
+                    <div class="value">4/360, Anna Nagar, Dhayanur, Karamadai Tholampalayam Road, Near Gram Panchayat Office, Kemmarampalayam, Kalampalayam, Coimbatore, Tamil Nadu – 641113</div>
+                </div>
+                <div class="contact-item">
+                    <div class="label">Email</div>
+                    <div class="value">contact@sengotics.com</div>
+                </div>
+                <div class="contact-item">
+                    <div class="label">Website</div>
+                    <div class="value">www.sengotics.com</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="page-footer">
+            <span>© 2026 Sengotics. All rights reserved. Proprietary and Confidential.</span>
+            <span>GeM Category: WEB GIS Based Project Management Software</span>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

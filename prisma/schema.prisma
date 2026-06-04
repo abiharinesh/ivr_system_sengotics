@@ -84,6 +84,9 @@ model Panchayat {
   document_template_settings Json?
 
   electric_poles ElectricPole[]
+  water_pipelines WaterPipeline[]
+  water_tanks     WaterTankBorewell[]
+  water_valves    WaterValve[]
   complaints     Complaint[]
   users          User[]
   export_jobs    ExportJob[]
@@ -124,6 +127,7 @@ model User {
 
   panchayat            Panchayat?    @relation(fields: [panchayat_id], references: [id])
   assigned_complaints  Complaint[]   @relation("AssignedElectrician")
+  assigned_plumbing_jobs Complaint[] @relation("AssignedPlumber")
   pole_image_uploads   ElectricPole[] @relation("PoleImageUploader")
 
   export_jobs_created    ExportJob[] @relation("ExportJobCreator")
@@ -171,6 +175,8 @@ model Complaint {
   id              Int      @id @default(autoincrement())
   voice_call_id   Int?
   pole_id         Int?
+  pipeline_id     Int?
+  tank_id         Int?
   panchayat_id    Int?
   complaint_type  String?
   description     String?
@@ -185,6 +191,7 @@ model Complaint {
   whatsapp_done_ack_at    DateTime?
 
   assigned_electrician_id Int?
+  assigned_plumber_id     Int?
   assigned_at             DateTime?
   resolved_at             DateTime?
 
@@ -199,8 +206,11 @@ model Complaint {
 
   voice_call          VoiceCall?    @relation(fields: [voice_call_id], references: [id])
   pole                ElectricPole? @relation(fields: [pole_id], references: [id])
+  pipeline            WaterPipeline? @relation(fields: [pipeline_id], references: [id])
+  tank                WaterTankBorewell? @relation(fields: [tank_id], references: [id])
   panchayat           Panchayat?    @relation(fields: [panchayat_id], references: [id])
   assigned_electrician User?       @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
+  assigned_plumber     User?       @relation("AssignedPlumber", fields: [assigned_plumber_id], references: [id])
 
   tender_line_items   TenderLineItem[]
 
@@ -503,4 +513,76 @@ model TenderAuditLog {
 
   @@index([tender_id])
   @@map("tender_audit_logs")
+}
+
+model WaterPipeline {
+  id           Int           @id @default(autoincrement())
+  name         String?       // e.g., "Main Annur Conduit"
+  panchayat_id Int
+  path_geojson Json          // GeoJSON LineString for path rendering and GIS calculations
+  diameter_mm  Float?
+  material     String?       // PVC, HDPE, Cast Iron
+  status       String        @default("active") // active, leak_alert, maintenance
+  created_at   DateTime      @default(now())
+  updated_at   DateTime      @updatedAt
+
+  panchayat    Panchayat     @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  flow_logs    WaterFlowLog[]
+  complaints   Complaint[]
+
+  @@index([panchayat_id])
+  @@map("water_pipelines")
+}
+
+model WaterTankBorewell {
+  id               Int            @id @default(autoincrement())
+  name             String         // e.g., "Coimbatore Reservoir A"
+  type             String         // overhead_tank, borewell_pump
+  latitude         Float
+  longitude        Float
+  panchayat_id     Int
+  capacity_liters  Float?
+  current_level_pct Float         @default(100.0) // 0 to 100
+  status           String         @default("active") // active, empty, critical, maintenance
+  pump_status      String?        // on, off, faulty
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+
+  panchayat        Panchayat      @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  flow_logs        WaterFlowLog[]
+  complaints       Complaint[]
+
+  @@index([panchayat_id])
+  @@map("water_tank_borewells")
+}
+
+model WaterValve {
+  id           Int      @id @default(autoincrement())
+  valve_number String?
+  latitude     Float
+  longitude     Float
+  panchayat_id Int
+  status       String   @default("open") // open, closed, maintenance
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  panchayat    Panchayat @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+
+  @@index([panchayat_id])
+  @@map("water_valves")
+}
+
+model WaterFlowLog {
+  id           BigInt            @id @default(autoincrement())
+  pipeline_id  Int?
+  tank_id      Int?
+  flow_rate_lps Float             // Liters per second
+  pressure_bar Float             // Water pressure in bars
+  logged_at    DateTime          @default(now())
+
+  pipeline     WaterPipeline?     @relation(fields: [pipeline_id], references: [id], onDelete: Cascade)
+  tank         WaterTankBorewell? @relation(fields: [tank_id], references: [id], onDelete: Cascade)
+
+  @@index([logged_at])
+  @@map("water_flow_logs")
 }

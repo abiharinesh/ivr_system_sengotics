@@ -112,6 +112,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     for (final s in _primaryNavSpecs()) {
       yield s.route;
     }
+    for (final s in _waterSupplyNavSpecs()) {
+      yield s.route;
+    }
     for (final s in _secondaryNavSpecs()) {
       yield s.route;
     }
@@ -177,6 +180,9 @@ class _AppScaffoldState extends State<AppScaffold> {
               padding: const EdgeInsets.symmetric(horizontal: 12),
               children: [
                 ..._getPrimaryNavItems(),
+                const SizedBox(height: 12),
+                _navLabel('WATER SUPPLY'),
+                ..._getWaterSupplyNavItems(),
                 const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
@@ -367,6 +373,9 @@ class _AppScaffoldState extends State<AppScaffold> {
               children: [
                 ..._getPrimaryNavItems(),
                 const SizedBox(height: 12),
+                _navLabel('WATER SUPPLY'),
+                ..._getWaterSupplyNavItems(),
+                const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
               ],
@@ -397,6 +406,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
         _NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
         _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/superadmin/electricians'),
+        _NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/superadmin/plumbers'),
         _NavSpec(icon: Icons.group_rounded, label: 'Agents', route: '/fieldops/agents'),
         _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
         _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
@@ -405,6 +415,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.people_rounded, label: 'User Management', route: '/users'),
         _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/superadmin/tenders'),
         _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/superadmin/vendors'),
+        _NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),
       ];
     }
     return const [
@@ -415,8 +426,10 @@ class _AppScaffoldState extends State<AppScaffold> {
       _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
       _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
       _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/admin/electricians'),
+      _NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/admin/plumbers'),
       _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
       _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/vendors'),
+      _NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),
     ];
   }
 
@@ -457,6 +470,30 @@ class _AppScaffoldState extends State<AppScaffold> {
   List<Widget> _getSecondaryNavItems() {
     final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
     return _secondaryNavSpecs()
+        .map((s) => _NavItem(
+              icon: s.icon,
+              label: s.label,
+              route: s.route,
+              isActive: s.route != null && s.route == active,
+              currentRoute: widget.currentRoute,
+            ))
+        .toList();
+  }
+
+  List<_NavSpec> _waterSupplyNavSpecs() {
+    if (widget.userRole == 'agent' || widget.userRole == 'electrician') {
+      return const [];
+    }
+    return const [
+      _NavSpec(icon: Icons.grid_on_rounded, label: 'Pipeline Grid', route: '/water/pipeline-grid'),
+      _NavSpec(icon: Icons.opacity_rounded, label: 'Tanks & Borewells', route: '/water/tanks'),
+      _NavSpec(icon: Icons.history_edu_rounded, label: 'Water Flow Logs', route: '/water/flow-logs'),
+    ];
+  }
+
+  List<Widget> _getWaterSupplyNavItems() {
+    final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
+    return _waterSupplyNavSpecs()
         .map((s) => _NavItem(
               icon: s.icon,
               label: s.label,

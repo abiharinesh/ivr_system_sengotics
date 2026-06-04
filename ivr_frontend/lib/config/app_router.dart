@@ -51,6 +51,8 @@ import '../features/tenders/presentation/vendor_directory_screen.dart';
 import '../features/tenders/presentation/public_tender_screen.dart';
 import '../features/tenders/presentation/invite_tender_screen.dart';
 import '../features/tenders/presentation/public_field_upload_screen.dart';
+import '../features/tenders/presentation/vendor_bidding_portal_screen.dart';
+
 
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
@@ -381,6 +383,10 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/superadmin/vendors',
             builder: (context, state) => const VendorDirectoryScreen(isSuperAdmin: true),
           ),
+          GoRoute(
+            path: '/tenders/vendor-portal',
+            builder: (context, state) => const VendorBiddingPortalScreen(),
+          ),
         ],
       ),
     ],
@@ -441,6 +447,8 @@ String _getTitle(String location) {
     case '/vendors':
     case '/superadmin/vendors':
       return 'Vendor directory';
+    case '/tenders/vendor-portal':
+      return 'Vendor Bidding Portal';
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';

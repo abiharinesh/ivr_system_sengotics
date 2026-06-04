@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Proprietary Software License Agreement — Ooraatchi by Sengotics</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        @page { size: A4; margin: 25mm 20mm 25mm 20mm; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', Arial, sans-serif;
+            font-size: 11px;
+            line-height: 1.7;
+            color: #1a1a1a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .letterhead {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 3px solid #0A2463;
+            padding-bottom: 14px;
+            margin-bottom: 24px;
+        }
+        .letterhead-left h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #0A2463;
+            letter-spacing: 2px;
+        }
+        .letterhead-left p {
+            font-size: 9px;
+            color: #64748B;
+            margin-top: 2px;
+        }
+        .letterhead-right {
+            text-align: right;
+            font-size: 9px;
+            color: #475569;
+            line-height: 1.5;
+        }
+
+        .doc-title {
+            text-align: center;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0A2463;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 20px 0 6px;
+        }
+        .doc-version {
+            text-align: center;
+            font-size: 10px;
+            color: #64748B;
+            margin-bottom: 24px;
+        }
+
+        .between-block {
+            background: #F8FAFC;
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 16px 20px;
+            margin: 16px 0;
+        }
+        .between-block .party-label {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #0A2463;
+            margin-bottom: 4px;
+        }
+        .between-block .party-name {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .between-block .party-details {
+            font-size: 10px;
+            color: #475569;
+            margin-top: 2px;
+        }
+        .between-and {
+            text-align: center;
+            font-weight: 700;
+            color: #64748B;
+            font-size: 11px;
+            margin: 8px 0;
+        }
+        .blank-line {
+            border-bottom: 1px dotted #94A3B8;
+            display: inline-block;
+            width: 280px;
+        }
+
+        h2 {
+            font-size: 13px;
+            font-weight: 800;
+            color: #0A2463;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 22px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1.5px solid #DBEAFE;
+        }
+        h3 {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: #1E3A8A;
+            margin: 14px 0 4px;
+        }
+
+        p { margin: 6px 0; }
+
+        .recital { font-style: italic; margin: 4px 0; }
+
+        table.defs {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+            margin: 8px 0 14px;
+        }
+        table.defs th {
+            background: #0A2463;
+            color: #fff;
+            padding: 6px 10px;
+            text-align: left;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        table.defs td {
+            padding: 6px 10px;
+            border-bottom: 1px solid #E2E8F0;
+            vertical-align: top;
+        }
+        table.defs td:first-child { font-weight: 600; width: 25%; white-space: nowrap; }
+        table.defs tr:nth-child(even) td { background: #F8FAFC; }
+
+        ol.restrictions { padding-left: 18px; margin: 6px 0; }
+        ol.restrictions li { margin: 4px 0; }
+        ul.bullets { padding-left: 18px; margin: 6px 0; }
+        ul.bullets li { margin: 3px 0; }
+
+        .highlight {
+            background: #EFF6FF;
+            border-left: 3px solid #3B82F6;
+            padding: 10px 14px;
+            margin: 10px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 10.5px;
+        }
+
+        .sig-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        .sig-party {
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 16px;
+        }
+        .sig-party h4 {
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #0A2463;
+            margin-bottom: 12px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #DBEAFE;
+        }
+        .sig-row {
+            display: flex;
+            margin: 8px 0;
+            font-size: 10px;
+        }
+        .sig-row .sig-label {
+            width: 90px;
+            font-weight: 600;
+            color: #475569;
+        }
+        .sig-row .sig-value {
+            flex: 1;
+            border-bottom: 1px dotted #CBD5E1;
+            min-height: 16px;
+        }
+
+        .witness-block {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 16px 0;
+        }
+        .witness {
+            border: 1px solid #E2E8F0;
+            border-radius: 6px;
+            padding: 12px;
+        }
+        .witness h4 {
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #64748B;
+            margin-bottom: 8px;
+        }
+
+        .footer {
+            margin-top: 30px;
+            padding-top: 10px;
+            border-top: 2px solid #0A2463;
+            text-align: center;
+            font-size: 9px;
+            color: #64748B;
+        }
+        .footer strong { color: #0A2463; }
+
+        .page-break { page-break-before: always; }
+
+        .corporate-box {
+            background: #0A2463;
+            color: #fff;
+            border-radius: 6px;
+            padding: 14px 18px;
+            margin: 16px 0;
+            font-size: 10px;
+        }
+        .corporate-box .corp-label {
+            font-size: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.7;
+            margin-bottom: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- LETTERHEAD -->
+<div class="letterhead">
+    <div class="letterhead-left">
+        <h1>SENGOTICS</h1>
+        <p>Original Equipment Manufacturer (OEM) | Web GIS Based Project Management Software</p>
+    </div>
+    <div class="letterhead-right">
+        4/360, Anna Nagar, Dhayanur,<br>
+        Karamadai Tholampalayam Road,<br>
+        Coimbatore, Tamil Nadu – 641113<br>
+        <strong>contact@sengotics.com</strong><br>
+        www.sengotics.com
+    </div>
+</div>
+
+<!-- TITLE -->
+<div class="doc-title">Proprietary Software License Agreement</div>
+<div class="doc-version">Version 1.0 | Effective Date: 3 June 2026</div>
+
+<!-- BETWEEN BLOCK -->
+<div class="between-block">
+    <div class="party-label">Licensor / OEM</div>
+    <div class="party-name">M/s. Sengotics</div>
+    <div class="party-details">
+        4/360, Anna Nagar, Dhayanur, Karamadai Tholampalayam Road,
+        Near Gram Panchayat Office, Kemmarampalayam, Kalampalayam,
+        Coimbatore, Tamil Nadu – 641113<br>
+        Email: contact@sengotics.com | Web: www.sengotics.com
+    </div>
+</div>
+
+<div class="between-and">— AND —</div>
+
+<div class="between-block">
+    <div class="party-label">Licensee</div>
+    <div class="party-name"><span class="blank-line">&nbsp;</span></div>
+    <div class="party-details" style="margin-top: 6px;">
+        Address: <span class="blank-line">&nbsp;</span><br>
+        Contact: <span class="blank-line">&nbsp;</span>
+    </div>
+</div>
+
+<p style="font-size: 10px; color: #64748B; text-align: center; margin: 10px 0;">
+    <em>(The Licensor and the Licensee are individually referred to as a "Party" and collectively as the "Parties.")</em>
+</p>
+
+<!-- RECITALS -->
+<h2>Recitals</h2>
+<p class="recital"><strong>WHEREAS</strong>, the Licensor is the owner, developer, and Original Equipment Manufacturer (OEM) of the proprietary software product known as <strong>"Ooraatchi"</strong> (a Web GIS Based Project Management Software, hereinafter referred to as the <strong>"Software"</strong>); and</p>
+<p class="recital"><strong>WHEREAS</strong>, the Licensee desires to obtain a licence to use the Software for its internal administrative and governance operations; and</p>
+<p class="recital"><strong>WHEREAS</strong>, the Parties wish to set out the terms and conditions under which the Licensor grants such licence to the Licensee;</p>
+<p class="recital"><strong>NOW, THEREFORE</strong>, in consideration of the mutual covenants and agreements set forth herein, the Parties agree as follows:</p>
+
+<!-- 1. DEFINITIONS -->
+<h2>1. Definitions</h2>
+<table class="defs">
+    <tr><th>Term</th><th>Meaning</th></tr>
+    <tr><td>"Software"</td><td>The complete program known as Ooraatchi (Web GIS Based Project Management Software), including all source code, object code, compiled binaries, documentation, database schemas, GIS spatial data layers, configuration files, libraries, APIs, mobile applications, user interface designs, and any related material provided by the Licensor.</td></tr>
+    <tr><td>"Copy"</td><td>Any reproduction, whether full or partial, in any medium (including but not limited to electronic, printed, archived, cloud-hosted, or backup copies).</td></tr>
+    <tr><td>"Derivative Work"</td><td>Any work that is based upon, incorporates, modifies, translates, adapts, extends, or otherwise changes any portion of the Software.</td></tr>
+    <tr><td>"Confidential Information"</td><td>Any non-public technical, business, financial, or operational information disclosed by one Party to the other, whether oral, written, or electronic.</td></tr>
+    <tr><td>"Breach"</td><td>Any act or omission by the Licensee that violates any provision of this Licence Agreement.</td></tr>
+    <tr><td>"Territory"</td><td>The territory of the Republic of India, unless otherwise agreed in writing by both Parties.</td></tr>
+    <tr><td>"GeM"</td><td>Government e-Marketplace (gem.gov.in), the national public procurement platform of the Government of India.</td></tr>
+    <tr><td>"Work Order"</td><td>The purchase order, contract, or tender award issued by the Licensee for procurement of the Software through GeM or any other government procurement channel.</td></tr>
+</table>
+
+<!-- 2. GRANT OF LICENSE -->
+<h2>2. Grant of License</h2>
+<h3>2.1 Limited, Non-Exclusive, Non-Transferable Licence</h3>
+<p>Subject to the terms and conditions of this Agreement, the Licensor hereby grants the Licensee a <strong>limited, non-exclusive, non-transferable, revocable licence</strong> to install, configure, run, and use the Software solely for the Licensee's internal administrative and governance operations, including but not limited to:</p>
+<ul class="bullets">
+    <li>Web GIS-based mapping and management of physical infrastructure across districts;</li>
+    <li>IoT telemetry monitoring for utility assets (overhead water tanks, flow rates, pipeline pressure);</li>
+    <li>End-to-end e-tendering, procurement, and work-order lifecycle management;</li>
+    <li>Secure vendor management with invite-only quotation access and automated PDF document generation;</li>
+    <li>IVR-based automated citizen helpdesk with AI-powered voice processing and ticket creation;</li>
+    <li>Field verification and AI-OCR inspection for on-ground quality assurance;</li>
+    <li>Multi-tier role-based administration with geo-fenced complaint resolution;</li>
+    <li>MIS reporting, analytics dashboards, and automated export of compliance records.</li>
+</ul>
+
+<h3>2.2 Scope of Use</h3>
+<p>The licence may be exercised only by the Licensee's authorised employees, officers, agents, or contractors who require access to perform the permitted use. The number of users or jurisdictions covered shall be as specified in the Work Order.</p>
+
+<h3>2.3 No Rights to Source Code</h3>
+<p>The Licensee receives no right, title, or interest in the source code of the Software, except as expressly provided in Section 3.2.</p>
+
+<!-- 3. OWNERSHIP -->
+<h2>3. Ownership and Intellectual Property</h2>
+<div class="highlight">
+    <strong>Copyright © 2026 Sengotics. All rights reserved.</strong><br>
+    The Software, and all associated intellectual property rights (including copyrights, patents, trade secrets, trademarks, and moral rights), are and shall remain the exclusive property of the Licensor. Nothing in this Licence shall be construed as a transfer of ownership.
+</div>
+
+<h3>3.2 Source-Code Access (Conditional)</h3>
+<p>If the Licensor, at its sole discretion, provides the Licensee with source code for maintenance or integration purposes, such copy shall be subject to all restrictions of this Licence and marked as "Strictly Confidential".</p>
+
+<h3>3.3 Trademarks</h3>
+<p>The name "Sengotics", "Ooraatchi", associated logos, and any related trademarks remain the exclusive property of the Licensor.</p>
+
+<!-- 4. RESTRICTIONS -->
+<div class="page-break"></div>
+
+<!-- RE-PRINT LETTERHEAD ON PAGE 2 -->
+<div class="letterhead">
+    <div class="letterhead-left">
+        <h1>SENGOTICS</h1>
+        <p>Proprietary Software License Agreement — Ooraatchi | Page 2</p>
+    </div>
+    <div class="letterhead-right">
+        Version 1.0<br>3 June 2026
+    </div>
+</div>
+
+<h2>4. Restrictions</h2>
+<p>The Licensee shall <strong>NOT</strong>:</p>
+<ol class="restrictions">
+    <li>Copy, reproduce, distribute, publish, or disclose the Software to any third party.</li>
+    <li>Reverse-engineer, decompile, disassemble, or otherwise attempt to derive the source code.</li>
+    <li>Create, distribute, or deploy any Derivative Works based on the Software.</li>
+    <li>Sublicense, lease, rent, lend, pledge, or otherwise transfer the Software or any rights therein.</li>
+    <li>Remove, alter, obscure, or deface any proprietary notices, copyright statements, or licence headers.</li>
+    <li>Use the Software for any purpose other than the internal administrative use set out in Section 2.1.</li>
+    <li>Bypass, disable, or circumvent any licensing controls, security mechanisms, or API rate limiters.</li>
+    <li>Use the Software in any manner that violates applicable law.</li>
+    <li>Benchmark, publicly review, or publish performance metrics without the Licensor's written consent.</li>
+</ol>
+<p>Any breach of the above restrictions shall constitute a <strong>material breach</strong> triggering termination (Section 8).</p>
+
+<!-- 5. CONFIDENTIALITY -->
+<h2>5. Confidentiality</h2>
+<h3>5.1 Obligations</h3>
+<p>Each Party shall keep all Confidential Information received from the other Party strictly confidential, use it only for exercising rights under this Agreement, and restrict disclosure to personnel bound by equivalent confidentiality obligations.</p>
+
+<h3>5.2 Exclusions</h3>
+<p>Confidential Information excludes information that is (a) publicly known, (b) lawfully possessed prior to disclosure, (c) independently developed, or (d) required to be disclosed by law or court order (with prompt notice to the disclosing Party).</p>
+
+<h3>5.3 Duration</h3>
+<p>Confidentiality obligations survive termination for a period of <strong>five (5) years</strong>.</p>
+
+<!-- 6. DATA PRIVACY -->
+<h2>6. Data Privacy and Compliance</h2>
+<h3>6.1 Third-Party Integrations</h3>
+<p>The Software integrates with third-party service providers including cloud telephony (e.g., Exotel), mapping services (e.g., Google Maps), and AI/ML services (e.g., Google Gemini, OpenAI Whisper). The Licensee is solely responsible for maintaining its own API credentials, ensuring compliance with the Indian Telegraph Act, 1885, TRAI regulations, and all applicable laws.</p>
+
+<h3>6.2 Citizen Data and Privacy</h3>
+<p>The Licensee shall comply with the <strong>Digital Personal Data Protection (DPDP) Act, 2023</strong>, obtain lawful consent before recording, implement encryption at rest and in transit, and retain data only as long as necessary.</p>
+
+<h3>6.3 Data Ownership</h3>
+<p>All citizen data, recordings, and administrative records generated through the Software remain the <strong>exclusive property of the Licensee</strong>.</p>
+
+<!-- 7. DISCLAIMER -->
+<h2>7. Disclaimer of Warranties</h2>
+<p>THE SOFTWARE IS PROVIDED <strong>"AS-IS"</strong> AND <strong>"WITH ALL FAULTS"</strong>, WITHOUT ANY WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, NON-INFRINGEMENT, OR UNINTERRUPTED OPERATION.</p>
+
+<!-- 8. LIMITATION OF LIABILITY -->
+<h2>8. Limitation of Liability</h2>
+<p>To the maximum extent permitted by applicable law, the Licensor shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages. The Licensor's total aggregate liability shall not exceed the total amount paid by the Licensee under the applicable Work Order.</p>
+
+<!-- 9. TERMINATION -->
+<h2>9. Termination</h2>
+<h3>9.1 Automatic Termination</h3>
+<p>This Agreement terminates automatically upon any material breach, including violation of Section 4 restrictions, non-payment of fees, or insolvency of the Licensee.</p>
+
+<h3>9.2 Termination for Convenience</h3>
+<p>Either Party may terminate with <strong>thirty (30) days' prior written notice</strong>.</p>
+
+<h3>9.3 Effect of Termination</h3>
+<p>Upon termination, the Licensee must: (1) immediately cease all use; (2) permanently delete all copies; (3) return or destroy all Confidential Information; (4) provide written certification of destruction. Fees paid are non-refundable.</p>
+
+<h3>9.4 Survival</h3>
+<p>Sections 3, 5, 6, 7, 8, 10, and 11 survive termination.</p>
+
+<!-- 10. GOVERNING LAW -->
+<h2>10. Governing Law and Jurisdiction</h2>
+<p>This Agreement shall be governed by the <strong>laws of India</strong>. Disputes shall be submitted exclusively to the <strong>competent courts of Coimbatore, Tamil Nadu, India</strong>. Before initiating legal proceedings, the Parties shall attempt amicable resolution through good-faith negotiations for <strong>thirty (30) days</strong>.</p>
+
+<!-- 11. MISCELLANEOUS -->
+<h2>11. Miscellaneous</h2>
+<ul class="bullets">
+    <li><strong>Entire Agreement</strong> — This Agreement constitutes the entire understanding between the Parties.</li>
+    <li><strong>Amendments</strong> — No amendment shall be effective unless in writing and signed by both Parties.</li>
+    <li><strong>Severability</strong> — Invalid provisions do not affect the enforceability of remaining provisions.</li>
+    <li><strong>Assignment</strong> — The Licensee may not assign rights without the Licensor's prior written consent.</li>
+    <li><strong>Force Majeure</strong> — Neither Party is liable for delays caused by circumstances beyond reasonable control.</li>
+    <li><strong>Notices</strong> — All notices shall be in writing (registered post, courier, or email).</li>
+    <li><strong>Counterparts</strong> — This Agreement may be executed in counterparts.</li>
+</ul>
+
+<!-- CORPORATE DETAILS -->
+<div class="corporate-box">
+    <div class="corp-label">Licensor's Corporate Details</div>
+    <strong>Sengotics</strong> | Product: Ooraatchi (Web GIS Based Project Management Software)<br>
+    4/360, Anna Nagar, Dhayanur, Karamadai Tholampalayam Road, Coimbatore, Tamil Nadu – 641113<br>
+    Email: contact@sengotics.com | Web: www.sengotics.com
+</div>
+
+<!-- PAGE BREAK FOR SIGNATURES -->
+<div class="page-break"></div>
+
+<!-- LETTERHEAD PAGE 3 -->
+<div class="letterhead">
+    <div class="letterhead-left">
+        <h1>SENGOTICS</h1>
+        <p>Proprietary Software License Agreement — Ooraatchi | Signature Page</p>
+    </div>
+    <div class="letterhead-right">
+        Version 1.0<br>3 June 2026
+    </div>
+</div>
+
+<h2>12. Signatures</h2>
+<p style="margin-bottom: 16px;"><strong>IN WITNESS WHEREOF</strong>, the Parties hereto have executed this Proprietary Software License Agreement as of the date last written below.</p>
+
+<div class="sig-block">
+    <div class="sig-party">
+        <h4>For the Licensor (OEM)</h4>
+        <div class="sig-row"><span class="sig-label">Company:</span><span class="sig-value" style="border: none; font-weight: 600;">&nbsp;Sengotics</span></div>
+        <div class="sig-row"><span class="sig-label">Name:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Designation:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Signature:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Date:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Place:</span><span class="sig-value" style="border: none;">&nbsp;Coimbatore</span></div>
+        <div class="sig-row"><span class="sig-label">Company Seal:</span><span class="sig-value">&nbsp;</span></div>
+    </div>
+    <div class="sig-party">
+        <h4>For the Licensee</h4>
+        <div class="sig-row"><span class="sig-label">Organisation:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Name:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Designation:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Signature:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Date:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Place:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Official Seal:</span><span class="sig-value">&nbsp;</span></div>
+    </div>
+</div>
+
+<div class="witness-block">
+    <div class="witness">
+        <h4>Witness 1</h4>
+        <div class="sig-row"><span class="sig-label">Name:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Signature:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Date:</span><span class="sig-value">&nbsp;</span></div>
+    </div>
+    <div class="witness">
+        <h4>Witness 2</h4>
+        <div class="sig-row"><span class="sig-label">Name:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Signature:</span><span class="sig-value">&nbsp;</span></div>
+        <div class="sig-row"><span class="sig-label">Date:</span><span class="sig-value">&nbsp;</span></div>
+    </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+    <em>This document is the proprietary and confidential property of Sengotics. Unauthorized reproduction, distribution, or disclosure is strictly prohibited.</em><br>
+    <strong>© 2026 Sengotics. All rights reserved.</strong>
+</div>
+
+</body>
+</html>

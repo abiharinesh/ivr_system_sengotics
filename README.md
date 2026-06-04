@@ -99,7 +99,7 @@ See [DOCKER.md](DOCKER.md) for detailed Docker documentation.
 Set these environment variables in your Vercel project before deploy (see `.env.example` for the full list):
 
 - `DATABASE_URL`, `JWT_SECRET`, `DB_POOL_MAX` (e.g. `3`)
-- `GROQ_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_SPEECH_API_KEY`, `RAPIDAPI_KEY` (as needed)
+- `GROQ_API_KEY`, `GEMINI_API_KEY`, `GOOGLE_SPEECH_API_KEY`, `GOOGLE_VISION_API_KEY`, `RAPIDAPI_KEY` (as needed)
 - `EXOTEL_API_KEY`, `EXOTEL_API_TOKEN` (if using Exotel recordings)
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_STORAGE_BUCKET` (default: `tender-documents`)
 - `GOTENBERG_URL`, `GOTENBERG_TIMEOUT_MS` (recommended: `45000`)

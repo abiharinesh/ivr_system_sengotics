@@ -6,8 +6,8 @@ import { PrismaService } from './prisma/prisma.service';
 export class AppController {
   constructor(
     private readonly appService: AppService,
-    private readonly prisma: PrismaService
-  ) { }
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   getHello(): string {
@@ -20,8 +20,11 @@ export class AppController {
       await this.prisma.getPool().query('SELECT 1');
       return { status: 'ok', message: 'Database Connected' };
     } catch (error) {
-      return { status: 'error', message: 'Database Connection Failed', error: error.message };
+      return {
+        status: 'error',
+        message: 'Database Connection Failed',
+        error: error.message,
+      };
     }
   }
-
 }

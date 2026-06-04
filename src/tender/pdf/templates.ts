@@ -7,124 +7,167 @@
  * without any browser dependency.
  */
 
-import { rupeesInWordsEn, rupeesInWordsTa } from './amount-in-words'
-import { layoutStyleBlock, TemplateLayoutConfig } from './document-template-config'
-import { sanitizeOverlaySvg } from './overlay-sanitize'
+import { rupeesInWordsEn, rupeesInWordsTa } from './amount-in-words';
+import {
+  layoutStyleBlock,
+  TemplateLayoutConfig,
+} from './document-template-config';
+import { sanitizeOverlaySvg } from './overlay-sanitize';
 
 export interface TemplateContext {
-    panchayat: { id: number; name: string }
-    tender: {
-        id: number
-        title_ta: string | null
-        title_en: string | null
-        narrative_ta: string | null
-        narrative_en: string | null
-        anchor_date: Date | null
-        work_order_date: Date | null
-        work_completed_at: Date | null
-        public_token: string | null
-        status: string
-    }
-    timeline: Record<string, string | null>
-    line_items: Array<{
-        id: number
-        seq: number
-        description_ta: string | null
-        description_en: string | null
-        quantity: string | null
-        unit: string | null
-    }>
-    invited_vendors: Array<{ id: number; name: string; phone_e164: string; place: string | null }>
-    quotations: Array<{
-        id: number
-        vendor_id: number | null
-        submitter_name: string
-        submitter_phone_e164: string
-        amount: string
-        remarks: string | null
-        screening_outcome: string
-        superseded_by_id: number | null
-    }>
-    awarded_quotation_id: number | null
-    payment_meta: Record<string, any> | null
-    document: { template_id: string; version: number; vendor_id: number | null; field_overrides: Record<string, unknown> | null }
-    generated_at: Date
-    layout?: TemplateLayoutConfig
+  panchayat: { id: number; name: string };
+  tender: {
+    id: number;
+    title_ta: string | null;
+    title_en: string | null;
+    narrative_ta: string | null;
+    narrative_en: string | null;
+    anchor_date: Date | null;
+    work_order_date: Date | null;
+    work_completed_at: Date | null;
+    public_token: string | null;
+    status: string;
+  };
+  timeline: Record<string, string | null>;
+  line_items: Array<{
+    id: number;
+    seq: number;
+    description_ta: string | null;
+    description_en: string | null;
+    quantity: string | null;
+    unit: string | null;
+  }>;
+  invited_vendors: Array<{
+    id: number;
+    name: string;
+    phone_e164: string;
+    place: string | null;
+  }>;
+  quotations: Array<{
+    id: number;
+    vendor_id: number | null;
+    submitter_name: string;
+    submitter_phone_e164: string;
+    amount: string;
+    remarks: string | null;
+    screening_outcome: string;
+    superseded_by_id: number | null;
+  }>;
+  awarded_quotation_id: number | null;
+  payment_meta: Record<string, any> | null;
+  document: {
+    template_id: string;
+    version: number;
+    vendor_id: number | null;
+    field_overrides: Record<string, unknown> | null;
+  };
+  generated_at: Date;
+  layout?: TemplateLayoutConfig;
 }
 
-const fmtDate = (d: Date | null | undefined) => (d ? new Date(d).toISOString().slice(0, 10) : '—')
-const fmtAmount = (s: string | null | undefined) => (s == null ? '—' : Number(s).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-const escape = (s: unknown) => String(s ?? '').replace(/[&<>"']/g, (c) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-}[c] as string))
+const fmtDate = (d: Date | null | undefined) =>
+  d ? new Date(d).toISOString().slice(0, 10) : '—';
+const fmtAmount = (s: string | null | undefined) =>
+  s == null
+    ? '—'
+    : Number(s).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+const escape = (s: unknown) =>
+  String(s ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+      })[c] as string,
+  );
 const fieldOverrides = (ctx: TemplateContext) =>
-    (ctx.document.field_overrides ?? {}) as Record<string, unknown>
+  ctx.document.field_overrides ?? {};
 const overrideText = (ctx: TemplateContext, key: string): string | null => {
-    const v = fieldOverrides(ctx)[key]
-    if (v == null) return null
-    const text = String(v).trim()
-    return text.length === 0 ? null : text
-}
+  const v = fieldOverrides(ctx)[key];
+  if (v == null) return null;
+  const text = String(v).trim();
+  return text.length === 0 ? null : text;
+};
 
 function canvasLayers(ctx: TemplateContext): Array<{
-    text: string
-    x: number
-    y: number
-    fontSize: number
-    color: string
+  text: string;
+  x: number;
+  y: number;
+  fontSize: number;
+  color: string;
 }> {
-    const raw = (fieldOverrides(ctx).__canvas_layers ?? []) as unknown
-    if (!Array.isArray(raw)) return []
-    return raw
-        .filter((x) => x && typeof x === 'object')
-        .map((x: any) => ({
-            text: String(x.text ?? ''),
-            x: Number.isFinite(Number(x.x)) ? Math.max(0, Math.min(1, Number(x.x))) : 0.5,
-            y: Number.isFinite(Number(x.y)) ? Math.max(0, Math.min(1, Number(x.y))) : 0.5,
-            fontSize: Number.isFinite(Number(x.fontSize)) ? Math.max(10, Number(x.fontSize)) : 16,
-            color: String(x.color ?? '#111111'),
-        }))
-        .filter((x) => x.text.trim().length > 0)
+  const raw = (fieldOverrides(ctx).__canvas_layers ?? []) as unknown;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((x) => x && typeof x === 'object')
+    .map((x: any) => ({
+      text: String(x.text ?? ''),
+      x: Number.isFinite(Number(x.x))
+        ? Math.max(0, Math.min(1, Number(x.x)))
+        : 0.5,
+      y: Number.isFinite(Number(x.y))
+        ? Math.max(0, Math.min(1, Number(x.y)))
+        : 0.5,
+      fontSize: Number.isFinite(Number(x.fontSize))
+        ? Math.max(10, Number(x.fontSize))
+        : 16,
+      color: String(x.color ?? '#111111'),
+    }))
+    .filter((x) => x.text.trim().length > 0);
 }
 
 function overlaySvgHtml(ctx: TemplateContext): string {
-    const raw = fieldOverrides(ctx).overlay_svg
-    if (raw == null) return ''
-    let svg: string | null
-    try {
-        svg = sanitizeOverlaySvg(raw)
-    } catch {
-        return ''
-    }
-    if (!svg) return ''
-    return `<div class="fabric-overlay" aria-hidden="true">${svg}</div>`
+  const raw = fieldOverrides(ctx).overlay_svg;
+  if (raw == null) return '';
+  let svg: string | null;
+  try {
+    svg = sanitizeOverlaySvg(raw);
+  } catch {
+    return '';
+  }
+  if (!svg) return '';
+  return `<div class="fabric-overlay" aria-hidden="true">${svg}</div>`;
 }
 
 function canvasLayerHtml(ctx: TemplateContext): string {
-    const layers = canvasLayers(ctx)
-    if (!layers.length) return ''
-    return layers.map((layer) => `
+  const layers = canvasLayers(ctx);
+  if (!layers.length) return '';
+  return layers
+    .map(
+      (layer) => `
 <div class="canvas-layer" style="left:${(layer.x * 100).toFixed(3)}%;top:${(layer.y * 100).toFixed(3)}%;font-size:${layer.fontSize.toFixed(1)}px;color:${escape(layer.color)}">${escape(layer.text)}</div>
-`).join('')
+`,
+    )
+    .join('');
 }
 
 function shellFooter(ctx: TemplateContext, title: string): string {
-    const branding = ctx.layout?.branding
-    if (branding?.showGeneratedFooter === false) {
-        const ta = branding.customFooterTextTa?.trim()
-        const en = branding.customFooterTextEn?.trim()
-        if (ta || en) {
-            return `<div class="muted small custom-footer" style="margin-top:24px">
+  const branding = ctx.layout?.branding;
+  if (branding?.showGeneratedFooter === false) {
+    const ta = branding.customFooterTextTa?.trim();
+    const en = branding.customFooterTextEn?.trim();
+    if (ta || en) {
+      return `<div class="muted small custom-footer" style="margin-top:24px">
   ${ta ? `<div class="ta">${escape(ta)}</div>` : ''}
   ${en ? `<div>${escape(en)}</div>` : ''}
-</div>`
-        }
-        return ''
+</div>`;
     }
-    return `<div class="muted small" style="margin-top:24px">Generated by Panchayat tender system • ${escape(title)} • Tender #${'{tenderId}'} • v${'{ver}'}</div>`
+    return '';
+  }
+  return `<div class="muted small" style="margin-top:24px">Generated by Panchayat tender system • ${escape(title)} • Tender #${'{tenderId}'} • v${'{ver}'}</div>`;
 }
 
-const SHELL = (title: string, body: string, ctx: TemplateContext) => `<!doctype html>
+const SHELL = (
+  title: string,
+  body: string,
+  ctx: TemplateContext,
+) => `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
@@ -172,53 +215,66 @@ ${canvasLayerHtml(ctx)}
 ${shellFooter(ctx, title)}
 </div>
 </body>
-</html>`
+</html>`;
 
-function header(ctx: TemplateContext, titleTa: string, titleEn: string): string {
-    return `<div class="header-block">
+function header(
+  ctx: TemplateContext,
+  titleTa: string,
+  titleEn: string,
+): string {
+  return `<div class="header-block">
   <div class="panchayat-name ta">${escape(ctx.panchayat.name)} ஊராட்சி</div>
   <div class="panchayat-name">${escape(ctx.panchayat.name)} Panchayat</div>
   <h1 class="ta">${escape(titleTa)}</h1>
   <h2>${escape(titleEn)}</h2>
   <div class="doc-meta">Tender #${ctx.tender.id} • Status: ${escape(ctx.tender.status)} • Generated: ${fmtDate(ctx.generated_at)}</div>
-</div>`
+</div>`;
 }
 
 function lineItemsTable(ctx: TemplateContext): string {
-    const rows = ctx.line_items.length
-        ? ctx.line_items.map((li) => `
+  const rows = ctx.line_items.length
+    ? ctx.line_items
+        .map(
+          (li) => `
         <tr>
           <td>${li.seq}</td>
           <td class="ta">${escape(li.description_ta || li.description_en || '—')}</td>
           <td>${escape(li.description_en || '—')}</td>
           <td>${escape(li.quantity ?? '—')}</td>
           <td>${escape(li.unit ?? '—')}</td>
-        </tr>`).join('')
-        : '<tr><td colspan="5" class="muted center">No line items</td></tr>'
-    return `<table>
+        </tr>`,
+        )
+        .join('')
+    : '<tr><td colspan="5" class="muted center">No line items</td></tr>';
+  return `<table>
   <thead><tr><th>#</th><th class="ta">விவரம்</th><th>Description</th><th>Qty</th><th>Unit</th></tr></thead>
   <tbody>${rows}</tbody>
-</table>`
+</table>`;
 }
 
 function editorNoteSection(ctx: TemplateContext): string {
-    const ta = overrideText(ctx, 'editor_text_ta')
-    const en = overrideText(ctx, 'editor_text_en')
-    if (ta == null && en == null) return ''
-    return `<div style="margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #d1d5db; background: #f8fafc;">
+  const ta = overrideText(ctx, 'editor_text_ta');
+  const en = overrideText(ctx, 'editor_text_en');
+  if (ta == null && en == null) return '';
+  return `<div style="margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #d1d5db; background: #f8fafc;">
   <div style="font-weight: 700; margin-bottom: 6px;">Edited note</div>
   ${ta != null ? `<div class="ta">${escape(ta)}</div>` : ''}
   ${en != null ? `<div>${escape(en)}</div>` : ''}
-</div>`
+</div>`;
 }
 
 // ── 1. RFQ ────────────────────────────────────────────────────────────────
 export function renderRfq(ctx: TemplateContext): string {
-    const recipients = ctx.invited_vendors.length
-        ? ctx.invited_vendors.map((v) => `<li>${escape(v.name)}${v.place ? `, ${escape(v.place)}` : ''} (${escape(v.phone_e164)})</li>`).join('')
-        : '<li class="muted">(No invited vendors)</li>'
-    const deadline = ctx.timeline.quotation_deadline ?? '—'
-    const body = `
+  const recipients = ctx.invited_vendors.length
+    ? ctx.invited_vendors
+        .map(
+          (v) =>
+            `<li>${escape(v.name)}${v.place ? `, ${escape(v.place)}` : ''} (${escape(v.phone_e164)})</li>`,
+        )
+        .join('')
+    : '<li class="muted">(No invited vendors)</li>';
+  const deadline = ctx.timeline.quotation_deadline ?? '—';
+  const body = `
 ${header(ctx, 'விலைப்புள்ளி கோருதல்', 'Request for Quotation (RFQ)')}
 <p class="ta"><strong>பெறுநர்:</strong></p>
 <ul>${recipients}</ul>
@@ -238,30 +294,48 @@ ${editorNoteSection(ctx)}
     <div class="ta">தனி அலுவலர் / Special Officer</div>
     <div class="sig">Signature</div>
   </div>
-</div>`
-    return SHELL('RFQ', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('RFQ', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
 // ── 2. Quotation letter (per bidder) ──────────────────────────────────────
 export function renderQuotation(ctx: TemplateContext): string {
-    const targetVendorId = ctx.document.vendor_id
-    const q = ctx.quotations.find((x) => x.vendor_id === targetVendorId) || ctx.quotations[0]
-    const vendor = ctx.invited_vendors.find((v) => v.id === targetVendorId)
-        || (q ? { id: q.vendor_id ?? 0, name: q.submitter_name, phone_e164: q.submitter_phone_e164, place: null } : null)
+  const targetVendorId = ctx.document.vendor_id;
+  const q =
+    ctx.quotations.find((x) => x.vendor_id === targetVendorId) ||
+    ctx.quotations[0];
+  const vendor =
+    ctx.invited_vendors.find((v) => v.id === targetVendorId) ||
+    (q
+      ? {
+          id: q.vendor_id ?? 0,
+          name: q.submitter_name,
+          phone_e164: q.submitter_phone_e164,
+          place: null,
+        }
+      : null);
 
-    if (!q || !vendor) {
-        const msg = '<p class="muted">No quotation found for the selected vendor.</p>'
-        return SHELL('Quotation', `${header(ctx, 'கொட்டேஷன்', 'Quotation')}${msg}`, ctx)
-            .replace('{tenderId}', String(ctx.tender.id))
-            .replace('{ver}', String(ctx.document.version))
-    }
+  if (!q || !vendor) {
+    const msg =
+      '<p class="muted">No quotation found for the selected vendor.</p>';
+    return SHELL(
+      'Quotation',
+      `${header(ctx, 'கொட்டேஷன்', 'Quotation')}${msg}`,
+      ctx,
+    )
+      .replace('{tenderId}', String(ctx.tender.id))
+      .replace('{ver}', String(ctx.document.version));
+  }
 
-    const stamp = q.screening_outcome === 'rejected'
-        ? '<span class="stamp-rejected ta">நிராகரிக்கப்பட்டது / Rejected</span>'
-        : q.screening_outcome === 'approved'
-            ? '<span class="stamp-approved ta">அங்கீகரிக்கப்பட்டது / Approved</span>'
-            : ''
-    const body = `
+  const stamp =
+    q.screening_outcome === 'rejected'
+      ? '<span class="stamp-rejected ta">நிராகரிக்கப்பட்டது / Rejected</span>'
+      : q.screening_outcome === 'approved'
+        ? '<span class="stamp-approved ta">அங்கீகரிக்கப்பட்டது / Approved</span>'
+        : '';
+  const body = `
 ${header(ctx, 'கொட்டேஷன்', 'Quotation')}
 <div class="grid">
   <div><strong class="ta">அனுப்புனர் / From:</strong><br/>${escape(vendor.name)}${vendor.place ? `, ${escape(vendor.place)}` : ''}<br/>${escape(vendor.phone_e164)}</div>
@@ -279,29 +353,42 @@ ${editorNoteSection(ctx)}
 <div class="footer">
   <div></div>
   <div><div>Vendor signature</div><div class="sig">${escape(vendor.name)}</div></div>
-</div>`
-    return SHELL('Quotation', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('Quotation', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
 // ── 3. Comparative statement ──────────────────────────────────────────────
 export function renderComparative(ctx: TemplateContext): string {
-    const active = ctx.quotations.filter((q) => q.superseded_by_id == null)
-    const sorted = [...active].sort((a, b) => Number(a.amount) - Number(b.amount))
-    const l1Id = sorted[0]?.id ?? null
+  const active = ctx.quotations.filter((q) => q.superseded_by_id == null);
+  const sorted = [...active].sort(
+    (a, b) => Number(a.amount) - Number(b.amount),
+  );
+  const l1Id = sorted[0]?.id ?? null;
 
-    const cols = active.length
-        ? active.map((q, i) => `<th>${i + 1}. ${escape(q.submitter_name)}</th>`).join('')
-        : '<th class="muted">No quotations</th>'
+  const cols = active.length
+    ? active
+        .map((q, i) => `<th>${i + 1}. ${escape(q.submitter_name)}</th>`)
+        .join('')
+    : '<th class="muted">No quotations</th>';
 
-    const amounts = active.length
-        ? active.map((q) => `<td class="amount${q.id === l1Id ? ' l1' : ''}">₹ ${fmtAmount(q.amount)}</td>`).join('')
-        : '<td class="muted">—</td>'
+  const amounts = active.length
+    ? active
+        .map(
+          (q) =>
+            `<td class="amount${q.id === l1Id ? ' l1' : ''}">₹ ${fmtAmount(q.amount)}</td>`,
+        )
+        .join('')
+    : '<td class="muted">—</td>';
 
-    const phones = active.length
-        ? active.map((q) => `<td class="small">${escape(q.submitter_phone_e164)}</td>`).join('')
-        : '<td>—</td>'
+  const phones = active.length
+    ? active
+        .map((q) => `<td class="small">${escape(q.submitter_phone_e164)}</td>`)
+        .join('')
+    : '<td>—</td>';
 
-    const body = `
+  const body = `
 ${header(ctx, 'ஒப்பு நோக்கு பட்டியல்', 'Comparative Statement')}
 <p class="ta">${escape(ctx.tender.title_ta ?? '')}</p>
 <p>${escape(ctx.tender.title_en ?? '')}</p>
@@ -318,25 +405,30 @@ ${l1Id != null ? `<p><strong>Lowest bidder (L1):</strong> ${escape(active.find((
 <div class="footer">
   <div></div>
   <div><div class="ta">தனி அலுவலர் / Special Officer</div><div class="sig">Signature</div></div>
-</div>`
-    return SHELL('Comparative', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('Comparative', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
 // ── 4. Work order ─────────────────────────────────────────────────────────
 const DEFAULT_CONDITIONS = [
-    'பணி குறிப்பிட்ட காலக்கெடுவுக்குள் முடிக்க வேண்டும். / Work to be completed within the stipulated period.',
-    'பணியின் தரம் ஊராட்சி அலுவலர் மேற்பார்வையில் உறுதி செய்யப்பட வேண்டும். / Quality must be supervised by panchayat officer.',
-    'நிபந்தனை மீறினால் ஒப்பந்தம் ரத்து செய்யப்படும். / Breach voids the contract.',
-    'விலைப்புள்ளி அளவில் கூடுதல் கட்டணம் கோர முடியாது. / No additional charges beyond quoted amount.',
-]
+  'பணி குறிப்பிட்ட காலக்கெடுவுக்குள் முடிக்க வேண்டும். / Work to be completed within the stipulated period.',
+  'பணியின் தரம் ஊராட்சி அலுவலர் மேற்பார்வையில் உறுதி செய்யப்பட வேண்டும். / Quality must be supervised by panchayat officer.',
+  'நிபந்தனை மீறினால் ஒப்பந்தம் ரத்து செய்யப்படும். / Breach voids the contract.',
+  'விலைப்புள்ளி அளவில் கூடுதல் கட்டணம் கோர முடியாது. / No additional charges beyond quoted amount.',
+];
 
 export function renderWorkOrder(ctx: TemplateContext): string {
-    const awarded = ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id)
-    const completion = ctx.timeline.completion_deadline ?? fmtDate(ctx.tender.work_order_date)
-    const overrides = (ctx.document.field_overrides ?? {}) as Record<string, any>
-    const conditions: string[] = Array.isArray(overrides.conditions) ? overrides.conditions : DEFAULT_CONDITIONS
+  const awarded = ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id);
+  const completion =
+    ctx.timeline.completion_deadline ?? fmtDate(ctx.tender.work_order_date);
+  const overrides = (ctx.document.field_overrides ?? {}) as Record<string, any>;
+  const conditions: string[] = Array.isArray(overrides.conditions)
+    ? overrides.conditions
+    : DEFAULT_CONDITIONS;
 
-    const body = `
+  const body = `
 ${header(ctx, 'வேலை உத்தரவு', 'Work Order')}
 <p><strong>Tender:</strong> #${ctx.tender.id} <span class="ta">${escape(ctx.tender.title_ta ?? '')}</span></p>
 <p><strong>Work order date:</strong> ${fmtDate(ctx.tender.work_order_date)}</p>
@@ -364,15 +456,17 @@ ${lineItemsTable(ctx)}
     </ol>
   </div>
   <div><div class="ta">தனி அலுவலர் / Special Officer</div><div class="sig">Signature</div></div>
-</div>`
-    return SHELL('Work Order', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('Work Order', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
 // ── 5. SO Proceedings (payment authorization) ─────────────────────────────
 export function renderSoProceedings(ctx: TemplateContext): string {
-    const pm = ctx.payment_meta ?? {}
-    const amount = Number(pm.payment_amount ?? 0)
-    const body = `
+  const pm = ctx.payment_meta ?? {};
+  const amount = Number(pm.payment_amount ?? 0);
+  const body = `
 ${header(ctx, 'தனி அலுவலர் ... நடவடிக்கைகள்', 'Special Officer — Proceedings (Payment Authorization)')}
 ${editorNoteSection(ctx)}
 <table>
@@ -383,7 +477,7 @@ ${editorNoteSection(ctx)}
   <tr><th>Expense head</th><td>${escape(pm.expense_head ?? '—')}</td></tr>
   <tr><th>Amount (figures)</th><td class="amount">₹ ${fmtAmount(String(amount))}</td></tr>
   <tr><th>Amount (words)</th><td class="ta">${escape(pm.payment_amount_in_words_ta ?? rupeesInWordsTa(amount))}<br/><span class="small">${escape(pm.payment_amount_in_words_en ?? rupeesInWordsEn(amount))}</span></td></tr>
-  <tr><th>Payee</th><td>${escape((ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id)?.submitter_name) ?? '—')}</td></tr>
+  <tr><th>Payee</th><td>${escape(ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id)?.submitter_name ?? '—')}</td></tr>
   ${pm.payment_method === 'tnpass' ? `<tr><th>TNPASS ref</th><td>${escape(pm.tnpass_ref ?? '—')} (${escape(pm.tnpass_date ?? '—')})</td></tr>` : ''}
   ${pm.payment_method === 'cheque' ? `<tr><th>Cheque</th><td>${escape(pm.cheque_no ?? '—')} (${escape(pm.cheque_bank ?? '—')}, ${escape(pm.cheque_date ?? '—')})</td></tr>` : ''}
 </table>
@@ -391,16 +485,18 @@ ${editorNoteSection(ctx)}
 <div class="footer">
   <div></div>
   <div><div class="ta">தனி அலுவலர் / Special Officer</div><div class="sig">Signature</div></div>
-</div>`
-    return SHELL('SO Proceedings', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('SO Proceedings', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
 // ── 6. Form 19 (expenditure voucher) ──────────────────────────────────────
 export function renderForm19(ctx: TemplateContext): string {
-    const pm = ctx.payment_meta ?? {}
-    const amount = Number(pm.payment_amount ?? 0)
-    const awarded = ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id)
-    const body = `
+  const pm = ctx.payment_meta ?? {};
+  const amount = Number(pm.payment_amount ?? 0);
+  const awarded = ctx.quotations.find((q) => q.id === ctx.awarded_quotation_id);
+  const body = `
 ${header(ctx, 'செலவினச் சீட்டு (படிவம் 19)', 'Expenditure Voucher — Form 19')}
 ${editorNoteSection(ctx)}
 <div class="grid">
@@ -430,18 +526,30 @@ ${pm.payment_method === 'cheque' ? `<p><strong>Paid via cheque:</strong> ${escap
 <div class="footer">
   <div><div>Verified by</div><div class="sig">Account clerk</div></div>
   <div><div class="ta">தனி அலுவலர் / Special Officer</div><div class="sig">Signature</div></div>
-</div>`
-    return SHELL('Form 19', body, ctx).replace('{tenderId}', String(ctx.tender.id)).replace('{ver}', String(ctx.document.version))
+</div>`;
+  return SHELL('Form 19', body, ctx)
+    .replace('{tenderId}', String(ctx.tender.id))
+    .replace('{ver}', String(ctx.document.version));
 }
 
-export function renderTemplate(templateId: string, ctx: TemplateContext): string {
-    switch (templateId) {
-        case 'rfq': return renderRfq(ctx)
-        case 'quotation': return renderQuotation(ctx)
-        case 'comparative': return renderComparative(ctx)
-        case 'work_order': return renderWorkOrder(ctx)
-        case 'so_proceedings': return renderSoProceedings(ctx)
-        case 'form19': return renderForm19(ctx)
-        default: throw new Error(`Unknown template id: ${templateId}`)
-    }
+export function renderTemplate(
+  templateId: string,
+  ctx: TemplateContext,
+): string {
+  switch (templateId) {
+    case 'rfq':
+      return renderRfq(ctx);
+    case 'quotation':
+      return renderQuotation(ctx);
+    case 'comparative':
+      return renderComparative(ctx);
+    case 'work_order':
+      return renderWorkOrder(ctx);
+    case 'so_proceedings':
+      return renderSoProceedings(ctx);
+    case 'form19':
+      return renderForm19(ctx);
+    default:
+      throw new Error(`Unknown template id: ${templateId}`);
+  }
 }

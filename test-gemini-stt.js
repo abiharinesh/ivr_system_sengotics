@@ -5,14 +5,14 @@
 require('dotenv/config');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-if (!GOOGLE_API_KEY) {
-    console.error('❌ GOOGLE_API_KEY not set in .env');
+if (!GEMINI_API_KEY) {
+    console.error('❌ GEMINI_API_KEY not set in .env');
     process.exit(1);
 }
 
-console.log(`✅ GOOGLE_API_KEY: ${GOOGLE_API_KEY.substring(0, 10)}...`);
+console.log(`✅ GEMINI_API_KEY: ${GEMINI_API_KEY.substring(0, 10)}...`);
 
 // Exotel recording URL from your database
 const audioUrl = 'https://recordings.exotel.com/exotelrecordings/nexerawe1/1772118444.76627_1.mp3';
@@ -54,7 +54,7 @@ async function test() {
     const audioBase64 = Buffer.from(buffer).toString('base64');
     console.log(`Base64 size: ${audioBase64.length} characters`);
 
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
     const startTime = Date.now();
