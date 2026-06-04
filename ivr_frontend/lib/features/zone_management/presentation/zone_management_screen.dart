@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../config/app_theme.dart';
 import '../../../core/env_maps_loader.dart';
-import '../../../models/zone_model.dart';
+import '../data/models/zone_model.dart';
 import '../../../app.dart';
 import '../bloc/zone_bloc.dart';
 import 'widgets/zone_sidebar.dart';

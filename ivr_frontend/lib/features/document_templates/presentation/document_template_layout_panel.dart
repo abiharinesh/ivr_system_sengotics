@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../config/app_theme.dart';
-import '../models/document_template_config.dart';
+import '../data/models/document_template_config.dart';
 
 class DocumentTemplateLayoutPanel extends StatelessWidget {
   const DocumentTemplateLayoutPanel({

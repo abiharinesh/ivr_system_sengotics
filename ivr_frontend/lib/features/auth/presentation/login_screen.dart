@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  'GramPanchayat',
+                  'Ooraatchi',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 30,
@@ -123,7 +123,7 @@ class _LoginScreenState extends State<LoginScreen>
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Voice complaint operations and analytics platform',
+                  'Integrated GIS-Map & E-Tendering System',
                   style: TextStyle(color: Colors.white70, fontSize: 14),
                 ),
                 const SizedBox(height: 26),
@@ -183,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen>
           ),
           const SizedBox(height: 6),
                 Text(
-            'Sign in to IVR System Dashboard',
+            'Sign in to Ooraatchi Portal',
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 28),

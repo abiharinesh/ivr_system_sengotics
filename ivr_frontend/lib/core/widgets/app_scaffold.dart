@@ -4,8 +4,8 @@ import '../../app.dart';
 import '../../config/app_theme.dart';
 import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
 import '../../features/super_admin/data/super_admin_repository.dart';
-import '../../models/dashboard_insights_model.dart';
-import '../../models/pole_model.dart';
+import '../models/dashboard_insights_model.dart';
+import '../models/pole_model.dart';
 import 'nav_guard.dart';
 import 'pole_picker_dialog.dart';
 
@@ -146,12 +146,12 @@ class _AppScaffoldState extends State<AppScaffold> {
                   ),
                 ),
                 const SizedBox(width: 12),
-                      Expanded(
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'GramPanchayat',
+                        'Ooraatchi',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -159,7 +159,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                         ),
                       ),
                       Text(
-                        'Operations Console',
+                        'GIS & Project Portal',
                         style: TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
@@ -354,7 +354,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'GramPanchayat',
+                  'Ooraatchi',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 20,
@@ -406,7 +406,6 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
         _NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
         _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/superadmin/electricians'),
-        _NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/superadmin/plumbers'),
         _NavSpec(icon: Icons.group_rounded, label: 'Agents', route: '/fieldops/agents'),
         _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
         _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
@@ -426,7 +425,6 @@ class _AppScaffoldState extends State<AppScaffold> {
       _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
       _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
       _NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/admin/electricians'),
-      _NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/admin/plumbers'),
       _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
       _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/vendors'),
       _NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),

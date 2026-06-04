@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../models/zone_model.dart';
+import '../../data/models/zone_model.dart';
 import '../../bloc/zone_bloc.dart';
 import 'place_search_widget.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../config/app_theme.dart';
-import '../../models/dashboard_insights_model.dart';
+import '../models/dashboard_insights_model.dart';
 
 /// Mon–Sun bar chart: primary = current week, light = last week (UTC weeks from API).
 class DashboardResolutionTrendCard extends StatelessWidget {

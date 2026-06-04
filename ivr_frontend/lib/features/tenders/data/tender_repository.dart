@@ -5,7 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/download/browser_download.dart';
-import 'tender_models.dart';
+import 'models/tender_models.dart';
 
 class TenderRepository {
   final ApiClient _api;

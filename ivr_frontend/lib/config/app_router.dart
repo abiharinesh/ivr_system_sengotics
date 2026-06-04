@@ -5,7 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/bloc/auth_bloc.dart';
 import '../features/zone_management/bloc/zone_bloc.dart';
 import '../features/zone_management/presentation/zone_management_screen.dart';
-import '../features/customization/presentation/admin_customization_screen.dart';
+import '../features/customization/presentation/screens/admin_customization_screen.dart';
 import '../features/auth/bloc/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 
@@ -14,45 +14,48 @@ import '../features/super_admin/bloc/panchayat_bloc.dart';
 import '../features/super_admin/bloc/user_bloc.dart';
 import '../features/super_admin/bloc/complaint_bloc.dart';
 import '../features/super_admin/bloc/settings_bloc.dart';
-import '../features/super_admin/presentation/super_admin_dashboard.dart';
-import '../features/super_admin/presentation/panchayat_management.dart';
-import '../features/super_admin/presentation/user_management.dart';
-import '../features/super_admin/presentation/complaint_management.dart';
-import '../features/super_admin/presentation/ai_settings_screen.dart';
+import '../features/super_admin/presentation/screens/super_admin_dashboard.dart';
+import '../features/super_admin/presentation/screens/panchayat_management.dart';
+import '../features/super_admin/presentation/screens/user_management.dart';
+import '../features/super_admin/presentation/screens/complaint_management.dart';
+import '../features/super_admin/presentation/screens/ai_settings_screen.dart';
 import '../features/document_templates/presentation/document_templates_settings_screen.dart';
-import '../features/super_admin/presentation/voice_calls_screen.dart';
-import '../features/super_admin/presentation/ivr_logs_screen.dart';
-import '../features/super_admin/presentation/analytics_screen.dart';
+import '../features/super_admin/presentation/screens/voice_calls_screen.dart';
+import '../features/super_admin/presentation/screens/ivr_logs_screen.dart';
+import '../features/super_admin/presentation/screens/analytics_screen.dart';
 import '../features/reports/presentation/report_generation_screen.dart';
-import '../features/super_admin/presentation/super_admin_pole_management.dart';
-import '../features/super_admin/presentation/agent_management.dart';
-import '../features/super_admin/presentation/electrician_management.dart';
+import '../features/super_admin/presentation/screens/super_admin_pole_management.dart';
+import '../features/super_admin/presentation/screens/agent_management.dart';
+import '../features/super_admin/presentation/screens/electrician_management.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
 import '../features/panchayat_admin/bloc/pa_complaint_bloc.dart';
-import '../features/panchayat_admin/presentation/pa_dashboard.dart';
-import '../features/panchayat_admin/presentation/pole_management.dart';
-import '../features/panchayat_admin/presentation/pa_complaint_management.dart';
-import '../features/panchayat_admin/presentation/electrician_management.dart';
+import '../features/panchayat_admin/presentation/screens/pa_dashboard.dart';
+import '../features/panchayat_admin/presentation/screens/pole_management.dart';
+import '../features/panchayat_admin/presentation/screens/pa_complaint_management.dart';
+import '../features/panchayat_admin/presentation/screens/electrician_management.dart';
 
-import '../features/agent/presentation/agent_dashboard_screen.dart';
-import '../features/agent/presentation/agent_pole_list_screen.dart';
-import '../features/agent/presentation/agent_pole_detail_screen.dart';
-import '../features/agent/presentation/agent_add_pole_screen.dart';
-import '../features/electrician/presentation/electrician_dashboard_screen.dart';
-import '../features/electrician/presentation/electrician_jobs_screen.dart';
-import '../features/electrician/presentation/electrician_complaint_detail_screen.dart';
+import '../features/agent/presentation/screens/agent_dashboard_screen.dart';
+import '../features/agent/presentation/screens/agent_pole_list_screen.dart';
+import '../features/agent/presentation/screens/agent_pole_detail_screen.dart';
+import '../features/agent/presentation/screens/agent_add_pole_screen.dart';
+import '../features/electrician/presentation/screens/electrician_dashboard_screen.dart';
+import '../features/electrician/presentation/screens/electrician_jobs_screen.dart';
+import '../features/electrician/presentation/screens/electrician_complaint_detail_screen.dart';
 
-import '../features/tenders/presentation/tender_list_screen.dart';
-import '../features/tenders/presentation/tender_create_screen.dart';
-import '../features/tenders/presentation/tender_detail_screen.dart';
-import '../features/tenders/presentation/vendor_directory_screen.dart';
-import '../features/tenders/presentation/public_tender_screen.dart';
-import '../features/tenders/presentation/invite_tender_screen.dart';
-import '../features/tenders/presentation/public_field_upload_screen.dart';
-import '../features/tenders/presentation/vendor_bidding_portal_screen.dart';
+import '../features/tenders/presentation/screens/tender_list_screen.dart';
+import '../features/tenders/presentation/screens/tender_create_screen.dart';
+import '../features/tenders/presentation/screens/tender_detail_screen.dart';
+import '../features/tenders/presentation/screens/vendor_directory_screen.dart';
+import '../features/tenders/presentation/screens/public_tender_screen.dart';
+import '../features/tenders/presentation/screens/invite_tender_screen.dart';
+import '../features/tenders/presentation/screens/public_field_upload_screen.dart';
+import '../features/tenders/presentation/screens/vendor_bidding_portal_screen.dart';
 
+import '../features/water_supply/presentation/screens/pipeline_grid_screen.dart';
+import '../features/water_supply/presentation/screens/tanks_borewells_screen.dart';
+import '../features/water_supply/presentation/screens/water_flow_logs_screen.dart';
 
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
@@ -387,6 +390,18 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/tenders/vendor-portal',
             builder: (context, state) => const VendorBiddingPortalScreen(),
           ),
+          GoRoute(
+            path: '/water/pipeline-grid',
+            builder: (context, state) => const PipelineGridScreen(),
+          ),
+          GoRoute(
+            path: '/water/tanks',
+            builder: (context, state) => const TanksBorewellsScreen(),
+          ),
+          GoRoute(
+            path: '/water/flow-logs',
+            builder: (context, state) => const WaterFlowLogsScreen(),
+          ),
         ],
       ),
     ],
@@ -449,11 +464,17 @@ String _getTitle(String location) {
       return 'Vendor directory';
     case '/tenders/vendor-portal':
       return 'Vendor Bidding Portal';
+    case '/water/pipeline-grid':
+      return 'Pipeline Grid';
+    case '/water/tanks':
+      return 'Tanks & Borewells';
+    case '/water/flow-logs':
+      return 'Water Flow Logs';
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
       if (location.startsWith('/electrician/jobs/')) return 'Complaint';
-      return 'IVR System';
+      return 'Ooraatchi';
   }
 }
 

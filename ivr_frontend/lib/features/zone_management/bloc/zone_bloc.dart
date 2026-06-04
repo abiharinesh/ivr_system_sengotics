@@ -1,6 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../../models/zone_model.dart';
+import '../data/models/zone_model.dart';
 import '../data/zone_repository.dart';
 
 // ── Events ───────────────────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../config/app_theme.dart';
 import '../env_maps_loader.dart';
 import '../map/map_theme_provider.dart';
-import '../../models/pole_model.dart';
+import '../models/pole_model.dart';
 import '../../app.dart';
 
 enum PoleMarkerStatus { active, inactive, fault }

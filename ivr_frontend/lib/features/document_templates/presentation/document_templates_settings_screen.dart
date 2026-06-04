@@ -9,7 +9,7 @@ import '../../../core/widgets/dashboard_panels.dart';
 import '../../../core/widgets/nav_guard.dart';
 import '../../../core/widgets/template_fabric_canvas.dart';
 import '../data/document_template_settings_repository.dart';
-import '../models/document_template_config.dart';
+import '../data/models/document_template_config.dart';
 import 'document_template_layout_panel.dart';
 
 class DocumentTemplatesSettingsScreen extends StatefulWidget {

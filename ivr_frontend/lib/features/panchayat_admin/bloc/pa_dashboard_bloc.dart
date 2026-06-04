@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
-import '../../../models/stats_model.dart';
-import '../../../models/user_model.dart';
-import '../../../models/pole_model.dart';
-import '../../../models/dashboard_insights_model.dart';
+import '../../../core/models/stats_model.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/models/pole_model.dart';
+import '../../../core/models/dashboard_insights_model.dart';
 import '../data/panchayat_admin_repository.dart';
 
 // Events

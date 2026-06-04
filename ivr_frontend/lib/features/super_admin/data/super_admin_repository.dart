@@ -2,11 +2,11 @@ import 'dart:typed_data';
 
 import '../../../core/api/api_client.dart';
 import '../../../config/api_config.dart';
-import '../../../models/panchayat_model.dart';
-import '../../../models/complaint_model.dart';
-import '../../../models/user_model.dart';
-import '../../../models/stats_model.dart';
-import '../../../models/dashboard_insights_model.dart';
+import '../../../core/models/panchayat_model.dart';
+import 'models/complaint_model.dart';
+import '../../../core/models/user_model.dart';
+import '../../../core/models/stats_model.dart';
+import '../../../core/models/dashboard_insights_model.dart';
 
 class SuperAdminRepository {
   final ApiClient _api = ApiClient.instance;

@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
-import '../../../models/complaint_model.dart';
+import '../../super_admin/data/models/complaint_model.dart';
 import '../data/panchayat_admin_repository.dart';
 
 // ── Events ────────────────────────────────────────────────────────────────

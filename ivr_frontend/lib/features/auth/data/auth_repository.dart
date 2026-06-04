@@ -1,6 +1,6 @@
 import '../../../core/api/api_client.dart';
 import '../../../config/api_config.dart';
-import '../../../models/user_model.dart';
+import '../../../core/models/user_model.dart';
 
 class AuthRepository {
   final ApiClient _apiClient = ApiClient.instance;

@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../../config/api_config.dart';
-import '../../../models/zone_model.dart';
+import 'models/zone_model.dart';
 
 /// Repository for zone management API operations.
 class ZoneRepository {

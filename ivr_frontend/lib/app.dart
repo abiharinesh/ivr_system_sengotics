@@ -59,7 +59,7 @@ class _AppViewState extends State<_AppView> {
         child: _MapThemeScope(
           provider: _mapThemeProvider,
           child: MaterialApp.router(
-            title: 'IVR System - Sengotics',
+            title: 'Ooraatchi: Integrated GIS-Map & E-Tendering System',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.buildTheme(_adminCustomizationProvider.settings),
             themeMode: _adminCustomizationProvider.settings.themeMode == 'dark'

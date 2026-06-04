@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../config/app_theme.dart';
-import '../../models/dashboard_insights_model.dart';
+import '../models/dashboard_insights_model.dart';
 
 String formatActivityTime(DateTime at) {
   final now = DateTime.now();

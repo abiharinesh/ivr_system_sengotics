@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../config/app_theme.dart';
-import '../../models/dashboard_insights_model.dart';
+import '../models/dashboard_insights_model.dart';
 
 /// Top complaint types with counts and progress vs max bucket.
 class DashboardCategoryBreakdownCard extends StatelessWidget {

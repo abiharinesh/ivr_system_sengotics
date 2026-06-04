@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../models/zone_model.dart';
+import '../../data/models/zone_model.dart';
 
 /// Widget for searching place names via OSM Nominatim proxy.
 /// Shows autocomplete results with boundary polygon availability indicators.
