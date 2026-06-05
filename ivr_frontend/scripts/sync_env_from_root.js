@@ -35,6 +35,7 @@ function getApiBaseFromFrontend() {
 }
 
 const key = process.env.GOOGLE_MAPS_API_KEY || getKeyFromRoot();
+const mapId = process.env.GOOGLE_MAPS_MAP_ID || getRootVar('GOOGLE_MAPS_MAP_ID');
 const apiBase =
   process.env.FLUTTER_API_BASE_URL ||
   getRootVar('FLUTTER_API_BASE_URL') ||
@@ -43,6 +44,9 @@ const webAppBase = process.env.FLUTTER_WEB_APP_BASE_URL || getRootVar('FLUTTER_W
 
 if (key) {
   let out = `# Auto-synced from root .env – edit ivr_system_sengotics/.env only\nGOOGLE_MAPS_API_KEY=${key}\n`;
+  if (mapId) {
+    out += `GOOGLE_MAPS_MAP_ID=${mapId}\n`;
+  }
   if (apiBase) {
     out += `API_BASE_URL=${apiBase}\n`;
   }
@@ -51,6 +55,9 @@ if (key) {
   }
   fs.writeFileSync(frontendEnv, out);
   console.log('Synced GOOGLE_MAPS_API_KEY to ivr_frontend/.env');
+  if (mapId) {
+    console.log('Synced GOOGLE_MAPS_MAP_ID to ivr_frontend/.env');
+  }
   if (apiBase) {
     console.log('Kept or set API_BASE_URL in ivr_frontend/.env (from FLUTTER_API_BASE_URL / existing file)');
   }

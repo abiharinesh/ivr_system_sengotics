@@ -5,6 +5,9 @@
 cd "$(dirname "$0")/.." && \
 if [ -n "$GOOGLE_MAPS_API_KEY" ]; then
   echo "GOOGLE_MAPS_API_KEY=$GOOGLE_MAPS_API_KEY" > .env
+  if [ -n "$GOOGLE_MAPS_MAP_ID" ]; then
+    echo "GOOGLE_MAPS_MAP_ID=$GOOGLE_MAPS_MAP_ID" >> .env
+  fi
   echo "Wrote .env with GOOGLE_MAPS_API_KEY"
 else
   echo "GOOGLE_MAPS_API_KEY not set; .env unchanged"

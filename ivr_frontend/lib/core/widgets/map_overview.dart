@@ -306,6 +306,8 @@ class _MapOverviewState extends State<MapOverview> {
                   ),
                 )
               : gmap.GoogleMap(
+                  mapId: googleMapsMapId,
+                  markerType: googleMapsMarkerType,
                   initialCameraPosition: gmap.CameraPosition(
                     target: center,
                     zoom: validPoles.isEmpty ? 5.0 : 13.0,

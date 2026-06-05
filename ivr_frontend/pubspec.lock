@@ -420,42 +420,42 @@ packages:
     dependency: "direct main"
     description:
       name: google_maps_flutter
-      sha256: "819985697596a42e1054b5feb2f407ba1ac92262e02844a40168e742b9f36dca"
+      sha256: f4040715c2998144a46cfc0fd91ee83226655af069dfed3d2b84552dc5e4facb
       url: "https://pub.dev"
     source: hosted
-    version: "2.14.0"
+    version: "2.17.1"
   google_maps_flutter_android:
     dependency: transitive
     description:
       name: google_maps_flutter_android
-      sha256: "7c7ff5b883b27bfdd0d52d91d89faf00858a6c1b33aeca0dc80faca64f389983"
+      sha256: "06c9c886e887dd61b9a8728c43344e58071279182bbc7a3c4001d322fc3cd111"
       url: "https://pub.dev"
     source: hosted
-    version: "2.18.3"
+    version: "2.19.10"
   google_maps_flutter_ios:
     dependency: transitive
     description:
       name: google_maps_flutter_ios
-      sha256: ca02463b19a9abc7d31fcaf22631d021d647107467f741b917a69fa26659fd75
+      sha256: f573749a75c4074b7a74ab986703607e9cd859fb2807c332872620f3656400dc
       url: "https://pub.dev"
     source: hosted
-    version: "2.15.5"
+    version: "2.18.3"
   google_maps_flutter_platform_interface:
     dependency: transitive
     description:
       name: google_maps_flutter_platform_interface
-      sha256: f4b9b44f7b12a1f6707ffc79d082738e0b7e194bf728ee61d2b3cdf5fdf16081
+      sha256: ddbe34435dfb34e83fca295c6a8dcc53c3b51487e9eec3c737ce4ae605574347
       url: "https://pub.dev"
     source: hosted
-    version: "2.14.0"
+    version: "2.15.0"
   google_maps_flutter_web:
     dependency: "direct main"
     description:
       name: google_maps_flutter_web
-      sha256: d416602944e1859f3cbbaa53e34785c223fa0a11eddb34a913c964c5cbb5d8cf
+      sha256: e23f2869449bb3e2ed7cfdb178d716e1da7edc684363987e4cb2c42f2bd7a9e0
       url: "https://pub.dev"
     source: hosted
-    version: "0.5.14+3"
+    version: "0.6.2+3"
   gsettings:
     dependency: transitive
     description:
@@ -1054,5 +1054,5 @@ packages:
     source: hosted
     version: "6.5.0"
 sdks:
-  dart: ">=3.9.0-0 <4.0.0"
-  flutter: ">=3.29.0"
+  dart: ">=3.10.0 <4.0.0"
+  flutter: ">=3.38.0"

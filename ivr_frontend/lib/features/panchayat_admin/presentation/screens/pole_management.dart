@@ -212,6 +212,8 @@ class _PoleManagementState extends State<PoleManagement> {
                                 ),
                               )
                             : gmap.GoogleMap(
+                                mapId: googleMapsMapId,
+                                markerType: googleMapsMarkerType,
                                 initialCameraPosition: gmap.CameraPosition(
                                   target: initialCenter ?? const gmap.LatLng(12.9716, 77.5946),
                                   zoom: initialCenter == null ? 5.0 : 16.0,
@@ -809,6 +811,8 @@ class _PoleFormDialogState extends State<PoleFormDialog> {
               ),
             )
             : gmap.GoogleMap(
+              mapId: googleMapsMapId,
+              markerType: googleMapsMarkerType,
               initialCameraPosition: gmap.CameraPosition(
                 target: _selectedLocation ?? const gmap.LatLng(20.5937, 78.9629),
                 zoom: _selectedLocation == null ? 4.0 : 15.0,

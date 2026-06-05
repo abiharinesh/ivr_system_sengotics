@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/env_maps_loader.dart';
 import '../../data/water_repository.dart';
 import '../../../../features/plumber/data/plumber_repository.dart';
 
@@ -162,6 +163,8 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
           // 1. Google Maps
           Positioned.fill(
             child: gmap.GoogleMap(
+              mapId: googleMapsMapId,
+              markerType: googleMapsMarkerType,
               initialCameraPosition: const gmap.CameraPosition(
                 target: center,
                 zoom: 11.5,

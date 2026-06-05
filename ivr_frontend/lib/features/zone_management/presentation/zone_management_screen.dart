@@ -178,6 +178,8 @@ class _ZoneManagementScreenState extends State<ZoneManagementScreen> {
     }
 
     return gmap.GoogleMap(
+      mapId: googleMapsMapId,
+      markerType: googleMapsMarkerType,
       initialCameraPosition: const gmap.CameraPosition(
         target: gmap.LatLng(10.8505, 76.2711), // Tamil Nadu center
         zoom: 8,
