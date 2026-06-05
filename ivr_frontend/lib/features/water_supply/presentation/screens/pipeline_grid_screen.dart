@@ -410,6 +410,127 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     return Icons.filter_tilt_shift_rounded;
   }
 
+  Widget _buildRealtimeSensorChart(bool isCritical) {
+    final values = isCritical
+        ? [35, 32, 28, 25, 20, 18, 15, 12, 10, 12, 11, 10, 9]
+        : [22, 24, 23, 25, 24, 26, 25, 27, 26, 28, 27, 29, 28];
+
+    final color = isCritical ? AppTheme.error : AppTheme.accent;
+
+    return Container(
+      margin: const EdgeInsets.only(top: 12, bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppTheme.bgSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppTheme.stroke, width: 0.8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'REAL-TIME SENSOR TELEMETRY',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textMuted,
+                  letterSpacing: 0.8,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                isCritical ? 'Flow Dropping' : 'Telemetry OK',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            height: 48,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: List.generate(values.length, (i) {
+                return Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    height: values[i].toDouble() * 1.5,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: (i / values.length) * 0.7 + 0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('15 mins ago', style: TextStyle(fontSize: 8, color: AppTheme.textMuted)),
+              Text('Now', style: TextStyle(fontSize: 8, color: AppTheme.textMuted, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('FLOW RATE', style: TextStyle(fontSize: 8, color: AppTheme.textMuted, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      isCritical ? '2.1 LPS' : '5.4 LPS',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isCritical ? AppTheme.error : AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('PRESSURE', style: TextStyle(fontSize: 8, color: AppTheme.textMuted, fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      isCritical ? '0.6 Bar' : '1.8 Bar',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: isCritical ? AppTheme.error : AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDetailsSection() {
     if (_selectedAssetType == 'pipeline') {
       final isLeak = _selectedAsset!['status'] == 'leak_alert';
@@ -419,8 +540,9 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
           _detailsRow('Diameter:', '${_selectedAsset!['diameter_mm']} mm'),
           _detailsRow('Material:', '${_selectedAsset!['material']}'),
           _detailsRow('Status:', isLeak ? 'CRITICAL LEAK ALERT' : 'Normal Operational', color: isLeak ? AppTheme.error : AppTheme.accent),
+          _buildRealtimeSensorChart(isLeak),
           if (isLeak) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -452,6 +574,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     }
     if (_selectedAssetType == 'tank') {
       final isTank = _selectedAsset!['type'] == 'overhead_tank';
+      final pumpOff = _selectedAsset!['pump_status'] != 'on';
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -461,6 +584,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
             _detailsRow('Storage Level:', '${_selectedAsset!['current_level_pct']}%', color: AppTheme.accent),
           ],
           _detailsRow('Pump Status:', '${_selectedAsset!['pump_status'] ?? 'off'}'.toUpperCase(), color: _selectedAsset!['pump_status'] == 'on' ? AppTheme.accent : AppTheme.textMuted),
+          _buildRealtimeSensorChart(pumpOff && !isTank),
         ],
       );
     }

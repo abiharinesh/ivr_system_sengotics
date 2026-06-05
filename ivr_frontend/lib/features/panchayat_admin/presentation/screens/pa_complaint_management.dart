@@ -13,6 +13,7 @@ import '../../../../core/widgets/status_badge.dart';
 import '../../../super_admin/data/models/complaint_model.dart';
 import '../../data/panchayat_admin_repository.dart';
 import '../../bloc/pa_complaint_bloc.dart';
+import 'pa_complaint_detail.dart';
 
 class PAComplaintManagement extends StatefulWidget {
   final String initialQuery;
@@ -32,6 +33,7 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
   String? _selectedStatus;
   String _query = '';
   bool _createPromptShown = false;
+  int? _selectedComplaintId;
 
   final _statuses = [
     null,
@@ -195,7 +197,58 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
       }
       return LayoutBuilder(
         builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 950;
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+
+          if (isWide) {
+            if (_selectedComplaintId == null && filtered.isNotEmpty) {
+              _selectedComplaintId = filtered.first.id;
+            } else if (_selectedComplaintId != null && !filtered.any((c) => c.id == _selectedComplaintId)) {
+              _selectedComplaintId = filtered.isNotEmpty ? filtered.first.id : null;
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(
+                  width: 380,
+                  child: ListView.builder(
+                    padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
+                    itemCount: filtered.length,
+                    itemBuilder: (context, index) {
+                      final c = filtered[index];
+                      final isSelected = c.id == _selectedComplaintId;
+                      return _PAComplaintCard(
+                        complaint: c,
+                        isSelected: isSelected,
+                        onTap: () {
+                          setState(() {
+                            _selectedComplaintId = c.id;
+                          });
+                        },
+                      );
+                    },
+                  ),
+                ),
+                VerticalDivider(width: 1, color: AppTheme.stroke, thickness: 1),
+                Expanded(
+                  child: _selectedComplaintId != null
+                      ? PAComplaintDetailScreen(
+                          key: ValueKey(_selectedComplaintId),
+                          complaintId: _selectedComplaintId!,
+                          embedMode: true,
+                        )
+                      : Center(
+                          child: Text(
+                            'Select a complaint to view details',
+                            style: TextStyle(color: AppTheme.textMuted, fontSize: 16),
+                          ),
+                        ),
+                ),
+              ],
+            );
+          }
+
           return ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: hPad),
             itemCount: filtered.length,
@@ -213,8 +266,14 @@ bool _canAssignElectrician(String status) =>
 
 class _PAComplaintCard extends StatelessWidget {
   final ComplaintModel complaint;
+  final bool isSelected;
+  final VoidCallback? onTap;
 
-  const _PAComplaintCard({required this.complaint});
+  const _PAComplaintCard({
+    required this.complaint,
+    this.isSelected = false,
+    this.onTap,
+  });
 
   Color _statusColor(String status) {
     switch (status) {
@@ -274,12 +333,23 @@ class _PAComplaintCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.stroke, width: 1.2),
-        boxShadow: AppTheme.softShadow,
+        border: Border.all(
+          color: isSelected ? AppTheme.primary : AppTheme.stroke,
+          width: isSelected ? 2.0 : 1.2,
+        ),
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: AppTheme.primary.withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                )
+              ]
+            : AppTheme.softShadow,
       ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => context.go('/complaints/${complaint.id}'),
+        onTap: onTap ?? () => context.go('/complaints/${complaint.id}'),
         borderRadius: BorderRadius.circular(16),
         child: Container(
           decoration: BoxDecoration(

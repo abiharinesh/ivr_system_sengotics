@@ -285,223 +285,336 @@ class _PlumberAdminManagementScreenState
     }
     return LayoutBuilder(
       builder: (context, constraints) {
+        final isWide = constraints.maxWidth > 800;
         final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+
+        if (isWide) {
+          return GridView.builder(
+            padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
+            gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+              maxCrossAxisExtent: 480,
+              mainAxisExtent: 290,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+            ),
+            itemCount: _rows.length,
+            itemBuilder: (context, index) {
+              final m = Map<String, dynamic>.from(_rows[index] as Map);
+              final id = m['id'] as int;
+              return _buildStaffCard(m, id, true);
+            },
+          );
+        }
+
         return ListView.builder(
           padding: EdgeInsets.symmetric(horizontal: hPad),
           itemCount: _rows.length,
           itemBuilder: (context, index) {
             final m = Map<String, dynamic>.from(_rows[index] as Map);
             final id = m['id'] as int;
-            final email = m['email']?.toString() ?? '$id';
-            final phone = m['phone_e164']?.toString();
-            final pName =
-                m['panchayat'] is Map
-                    ? (m['panchayat'] as Map)['name']?.toString()
-                    : null;
-            final expanded = _expanded.contains(id);
-            return Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.stroke, width: 1.2),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: ExpansionTile(
-                  key: ValueKey(id),
-                  onExpansionChanged: (open) {
-                    setState(() {
-                      if (open) {
-                        _expanded.add(id);
-                      } else {
-                        _expanded.remove(id);
-                      }
-                    });
-                  },
-                  shape: const Border(),
-                  collapsedShape: const Border(),
-                  leading: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.person_rounded, color: AppTheme.primary, size: 20),
-                  ),
-                  title: Text(
-                    email,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  subtitle: Padding(
-                    padding: const EdgeInsets.only(top: 4),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 4,
-                      children: [
-                        if (pName != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgSurface,
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppTheme.stroke, width: 0.8),
-                            ),
-                            child: Text(
-                              pName,
-                              style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
-                            ),
-                          ),
-                        if (phone != null && phone.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppTheme.accent.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppTheme.accent.withValues(alpha: 0.15), width: 0.8),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.phone_rounded, size: 10, color: AppTheme.accent),
-                                const SizedBox(width: 4),
-                                Text(
-                                  phone,
-                                  style: TextStyle(fontSize: 11, color: AppTheme.accent, fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
-                      child: FutureBuilder<Map<String, dynamic>>(
-                        key: ValueKey('$id-$_exportPreset'),
-                        future: expanded ? _fetchStats(id) : null,
-                        builder: (context, snap) {
-                          if (!expanded) return const SizedBox.shrink();
-                          if (snap.connectionState != ConnectionState.done) {
-                            return const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 16),
-                              child: AppLoadingState(
-                                message: 'Loading performance stats...',
-                                compact: true,
-                              ),
-                            );
-                          }
-                          if (snap.hasError) {
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 8),
-                              child: Text(snap.error.toString(), style: TextStyle(color: AppTheme.error)),
-                            );
-                          }
-                          final s = snap.data!;
-                          final a = s['assigned_in_period'] ?? 0;
-                          final r = s['resolved_in_period'] ?? 0;
-                          final o = s['open_assigned'] ?? 0;
-
-                          // Quick local helper to build a nice card
-                          Widget buildMetric(String label, String value, IconData icon, Color color) {
-                            return Expanded(
-                              child: Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.06),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: color.withValues(alpha: 0.15), width: 0.8),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Icon(icon, size: 16, color: color),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      value,
-                                      style: TextStyle(
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.textPrimary,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.textMuted,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          }
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              const Divider(height: 20),
-                              Row(
-                                children: [
-                                  Text(
-                                    'PERFORMANCE SUMMARY',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.textMuted,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                  const Spacer(),
-                                  Text(
-                                    'Period: ${_presetLabels[_presetIds.indexOf(_exportPreset)]}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.textMuted,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  buildMetric('Assigned', '$a', Icons.assignment_turned_in_rounded, AppTheme.primary),
-                                  const SizedBox(width: 10),
-                                  buildMetric('Resolved', '$r', Icons.check_circle_rounded, AppTheme.accent),
-                                  const SizedBox(width: 10),
-                                  buildMetric('Active Open', '$o', Icons.pending_actions_rounded, AppTheme.warning),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              OutlinedButton.icon(
-                                onPressed: () => _runExport(id),
-                                icon: const Icon(Icons.folder_zip_rounded, size: 16),
-                                label: const Text('Export Resolved Tasks (ZIP)'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
+            return _buildStaffCard(m, id, false);
           },
         );
       },
+    );
+  }
+
+  Widget _buildStaffCard(Map<String, dynamic> m, int id, bool showDetailsDirectly) {
+    final email = m['email']?.toString() ?? '$id';
+    final phone = m['phone_e164']?.toString();
+    final pName =
+        m['panchayat'] is Map
+            ? (m['panchayat'] as Map)['name']?.toString()
+            : null;
+    final expanded = _expanded.contains(id) || showDetailsDirectly;
+
+    final Widget cardHeader = Row(
+      children: [
+        CircleAvatar(
+          radius: 20,
+          backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+          child: Icon(Icons.person_rounded, color: AppTheme.primary, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                email,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 15,
+                  color: AppTheme.textPrimary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 6,
+                runSpacing: 4,
+                children: [
+                  if (pName != null)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bgSurface,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppTheme.stroke, width: 0.8),
+                      ),
+                      child: Text(
+                        pName,
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                      ),
+                    ),
+                  if (phone != null && phone.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.15), width: 0.8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.phone_rounded, size: 10, color: AppTheme.accent),
+                          const SizedBox(width: 4),
+                          Text(
+                            phone,
+                            style: TextStyle(fontSize: 11, color: AppTheme.accent, fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    final Widget statsView = FutureBuilder<Map<String, dynamic>>(
+      key: ValueKey('$id-$_exportPreset'),
+      future: expanded ? _fetchStats(id) : null,
+      builder: (context, snap) {
+        if (!expanded) return const SizedBox.shrink();
+        if (snap.connectionState != ConnectionState.done) {
+          return const Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: AppLoadingState(
+              message: 'Loading performance stats...',
+              compact: true,
+            ),
+          );
+        }
+        if (snap.hasError) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text(snap.error.toString(), style: TextStyle(color: AppTheme.error)),
+          );
+        }
+        final s = snap.data!;
+        final a = s['assigned_in_period'] ?? 0;
+        final r = s['resolved_in_period'] ?? 0;
+        final o = s['open_assigned'] ?? 0;
+
+        Widget buildMetric(String label, String value, IconData icon, Color color) {
+          return Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: color.withValues(alpha: 0.15), width: 0.8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 14, color: color),
+                  const SizedBox(height: 6),
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textMuted,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Divider(height: 16),
+            Row(
+              children: [
+                Text(
+                  'PERFORMANCE SUMMARY',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textMuted,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  'Period: ${_presetLabels[_presetIds.indexOf(_exportPreset)]}',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                buildMetric('Assigned', '$a', Icons.assignment_turned_in_rounded, AppTheme.primary),
+                const SizedBox(width: 8),
+                buildMetric('Resolved', '$r', Icons.check_circle_rounded, AppTheme.accent),
+                const SizedBox(width: 8),
+                buildMetric('Active Open', '$o', Icons.pending_actions_rounded, AppTheme.warning),
+              ],
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
+              onPressed: () => _runExport(id),
+              icon: const Icon(Icons.folder_zip_rounded, size: 14),
+              label: const Text('Export Resolved Tasks (ZIP)'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (showDetailsDirectly) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.bgCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.stroke, width: 1.2),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            cardHeader,
+            Expanded(child: SingleChildScrollView(child: statsView)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.stroke, width: 1.2),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: ExpansionTile(
+          key: ValueKey(id),
+          onExpansionChanged: (open) {
+            setState(() {
+              if (open) {
+                _expanded.add(id);
+              } else {
+                _expanded.remove(id);
+              }
+            });
+          },
+          shape: const Border(),
+          collapsedShape: const Border(),
+          leading: CircleAvatar(
+            radius: 20,
+            backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+            child: Icon(Icons.person_rounded, color: AppTheme.primary, size: 20),
+          ),
+          title: Text(
+            email,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                if (pName != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bgSurface,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppTheme.stroke, width: 0.8),
+                    ),
+                    child: Text(
+                      pName,
+                      style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                if (phone != null && phone.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppTheme.accent.withValues(alpha: 0.15), width: 0.8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.phone_rounded, size: 10, color: AppTheme.accent),
+                        const SizedBox(width: 4),
+                        Text(
+                          phone,
+                          style: TextStyle(fontSize: 11, color: AppTheme.accent, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 18),
+              child: statsView,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

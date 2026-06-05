@@ -9,10 +9,12 @@ import '../../../plumber/data/plumber_repository.dart';
 
 class PAComplaintDetailScreen extends StatefulWidget {
   final int complaintId;
+  final bool embedMode;
 
   const PAComplaintDetailScreen({
     super.key,
     required this.complaintId,
+    this.embedMode = false,
   });
 
   @override
@@ -199,106 +201,123 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return Scaffold(
-        backgroundColor: AppTheme.bgDark,
-        body: const AppLoadingState(message: 'Loading complaint details...'),
-      );
+      return widget.embedMode
+          ? const Center(child: AppLoadingState(message: 'Loading details...', compact: true))
+          : Scaffold(
+              backgroundColor: AppTheme.bgDark,
+              body: const AppLoadingState(message: 'Loading complaint details...'),
+            );
     }
 
     if (_error != null || _complaint == null) {
-      return Scaffold(
-        backgroundColor: AppTheme.bgDark,
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text(
-                _error ?? 'Complaint details could not be loaded.',
-                style: TextStyle(color: AppTheme.textSecondary),
+      return widget.embedMode
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(_error ?? 'Failed to load details.', style: TextStyle(color: AppTheme.textSecondary)),
               ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _loadData,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+            )
+          : Scaffold(
+              backgroundColor: AppTheme.bgDark,
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
+                    const SizedBox(height: 16),
+                    Text(
+                      _error ?? 'Complaint details could not be loaded.',
+                      style: TextStyle(color: AppTheme.textSecondary),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: _loadData,
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retry'),
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
-        ),
-      );
+            );
     }
 
     final complaint = _complaint!;
-    final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
+    final padding = widget.embedMode ? 16.0 : (MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0);
     final w = MediaQuery.sizeOf(context).width;
-    final isDesktop = w >= 1024;
+    final isDesktop = w >= (widget.embedMode ? 850 : 1024);
+
+    final Widget contentBody = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.embedMode) ...[
+          _buildHeader(complaint),
+          const SizedBox(height: 24),
+        ],
+        if (isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 7,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildAudioPlayerCard(complaint),
+                    const SizedBox(height: 24),
+                    _buildTranscriptCard(complaint),
+                    const SizedBox(height: 24),
+                    _buildAiInsightsGrid(complaint),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildGisMapCard(complaint),
+                    const SizedBox(height: 24),
+                    _buildTimelineCard(complaint),
+                    const SizedBox(height: 24),
+                    _buildAdminActionsCard(complaint),
+                  ],
+                ),
+              ),
+            ],
+          )
+        else
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildAudioPlayerCard(complaint),
+              const SizedBox(height: 24),
+              _buildTranscriptCard(complaint),
+              const SizedBox(height: 24),
+              _buildAiInsightsGrid(complaint),
+              const SizedBox(height: 24),
+              _buildGisMapCard(complaint),
+              const SizedBox(height: 24),
+              _buildTimelineCard(complaint),
+              const SizedBox(height: 24),
+              _buildAdminActionsCard(complaint),
+            ],
+          ),
+      ],
+    );
+
+    if (widget.embedMode) {
+      return SingleChildScrollView(
+        padding: EdgeInsets.all(padding),
+        child: contentBody,
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
       body: SingleChildScrollView(
         padding: EdgeInsets.all(padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Breadcrumbs & Header
-            _buildHeader(complaint),
-            const SizedBox(height: 24),
-
-            // Bento Grid Details
-            if (isDesktop)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 7,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildAudioPlayerCard(complaint),
-                        const SizedBox(height: 24),
-                        _buildTranscriptCard(complaint),
-                        const SizedBox(height: 24),
-                        _buildAiInsightsGrid(complaint),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 24),
-                  Expanded(
-                    flex: 5,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildGisMapCard(complaint),
-                        const SizedBox(height: 24),
-                        _buildTimelineCard(complaint),
-                        const SizedBox(height: 24),
-                        _buildAdminActionsCard(complaint),
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            else
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildAudioPlayerCard(complaint),
-                  const SizedBox(height: 24),
-                  _buildTranscriptCard(complaint),
-                  const SizedBox(height: 24),
-                  _buildAiInsightsGrid(complaint),
-                  const SizedBox(height: 24),
-                  _buildGisMapCard(complaint),
-                  const SizedBox(height: 24),
-                  _buildTimelineCard(complaint),
-                  const SizedBox(height: 24),
-                  _buildAdminActionsCard(complaint),
-                ],
-              ),
-          ],
-        ),
+        child: contentBody,
       ),
     );
   }
