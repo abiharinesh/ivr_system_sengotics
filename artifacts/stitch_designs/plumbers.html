@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ooraatchi Admin - Plumbing Staff Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600&display=swap');
+        @font-face {
+            font-family: 'metropolis';
+            src: url('https://fonts.cdnfonts.com/css/metropolis');
+        }
+        
+        body {
+            font-family: 'publicSans', sans-serif;
+            background-color: #f7f9fb;
+        }
+
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(198, 198, 205, 0.3);
+        }
+
+        .bento-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+
+        .status-chip {
+            padding: 2px 10px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "tertiary-fixed": "#d5e3fd",
+                      "background": "#f7f9fb",
+                      "secondary-container": "#9af1c6",
+                      "on-error": "#ffffff",
+                      "surface-variant": "#e0e3e5",
+                      "on-surface": "#191c1e",
+                      "outline-variant": "#c6c6cd",
+                      "on-primary-fixed-variant": "#474747",
+                      "surface-container": "#eceef0",
+                      "on-secondary-container": "#0b714e",
+                      "tertiary-container": "#0d1c2f",
+                      "primary-container": "#1b1b1b",
+                      "on-primary-container": "#848484",
+                      "primary-fixed": "#e2e2e2",
+                      "on-error-container": "#93000a",
+                      "surface-container-low": "#f2f4f6",
+                      "primary-fixed-dim": "#c6c6c6",
+                      "on-secondary-fixed-variant": "#005237",
+                      "on-secondary-fixed": "#002114",
+                      "inverse-surface": "#2d3133",
+                      "primary": "#000000",
+                      "on-tertiary": "#ffffff",
+                      "outline": "#76777d",
+                      "on-background": "#191c1e",
+                      "secondary-fixed": "#9df4c9",
+                      "on-surface-variant": "#45464d",
+                      "on-tertiary-fixed-variant": "#3a485c",
+                      "surface": "#f7f9fb",
+                      "on-tertiary-container": "#76859b",
+                      "tertiary": "#000000",
+                      "surface-tint": "#5e5e5e",
+                      "surface-container-highest": "#e0e3e5",
+                      "inverse-primary": "#c6c6c6",
+                      "surface-container-high": "#e6e8ea",
+                      "surface-bright": "#f7f9fb",
+                      "error-container": "#ffdad6",
+                      "secondary-fixed-dim": "#81d8ae",
+                      "on-primary-fixed": "#1b1b1b",
+                      "error": "#ba1a1a",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary-fixed-dim": "#b9c7e0",
+                      "on-tertiary-fixed": "#0d1c2f",
+                      "on-primary": "#ffffff",
+                      "surface-dim": "#d8dadc",
+                      "secondary": "#006c4a",
+                      "on-secondary": "#ffffff",
+                      "surface-container-lowest": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "margin-desktop": "64px",
+                      "gutter": "24px",
+                      "container-max": "1280px",
+                      "base": "8px"
+              },
+              "fontFamily": {
+                      "display-lg-mobile": ["metropolis"],
+                      "caption": ["publicSans"],
+                      "display-lg": ["metropolis"],
+                      "headline-lg": ["metropolis"],
+                      "body-md": ["publicSans"],
+                      "body-lg": ["publicSans"],
+                      "label-md": ["publicSans"],
+                      "headline-md": ["metropolis"]
+              },
+              "fontSize": {
+                      "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface overflow-x-hidden">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-surface-container dark:bg-surface-container-high flex flex-col py-8 px-4 gap-2 z-40 hidden md:flex">
+<div class="mb-8 px-2">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">Panchayat Portal</h1>
+<p class="text-on-surface-variant text-label-md font-label-md">Plumbing Division</p>
+</div>
+<nav class="flex-1 flex flex-col gap-1">
+<div class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl cursor-pointer transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl cursor-pointer transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">assignment_late</span>
+<span class="font-label-md text-label-md">Complaints</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl cursor-pointer transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-md text-label-md">GIS Map</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl cursor-pointer transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">leaderboard</span>
+<span class="font-label-md text-label-md">Analytics</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-xl font-bold cursor-pointer transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">engineering</span>
+<span class="font-label-md text-label-md">Staff Management</span>
+</div>
+</nav>
+<div class="mt-auto border-t border-outline-variant/30 pt-4 flex flex-col gap-1">
+<button class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">help</span>
+<span class="font-label-md text-label-md">Help Center</span>
+</button>
+<button class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-transform duration-200 hover:translate-x-1">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-label-md text-label-md">Logout</span>
+</button>
+</div>
+</aside>
+<!-- TopNavBar (Shared Component) -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm flex justify-between items-center h-16 px-4 md:pl-72 md:pr-16">
+<div class="flex items-center gap-4">
+<span class="md:hidden material-symbols-outlined cursor-pointer">menu</span>
+<div class="font-headline-md text-headline-md font-bold text-primary">Ooraatchi Admin</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="hidden md:flex items-center gap-6 mr-8">
+<a class="text-on-surface-variant font-medium font-body-md text-body-md hover:bg-surface-variant/50 transition-colors" href="#">Infrastructure</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-body-md text-body-md" href="#">Staffing</a>
+<a class="text-on-surface-variant font-medium font-body-md text-body-md hover:bg-surface-variant/50 transition-colors" href="#">Reports</a>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 hover:bg-surface-variant/50 rounded-full transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 hover:bg-surface-variant/50 rounded-full transition-all duration-200 active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container-high border border-outline-variant ml-2">
+<img alt="Admin Profile Avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD9542yfoZyOQAyA6tbKfdhHHvoHT4QIucValw2r7MY3uaehAlm0VsAi8vCA-xG1mtEgA_JuekwZlHMfRnu9f2-L4lxHF8e17MJHW1Cttaj1CWmqNkKAx8TZ2hAYy3oRkByRlbhlVZwoxN0DCWJVYBmsZXnno-rpIGer8jeayKK426V4oG0iRyxqy4FvZKA9Xj1mlePayybtG9dpFfSuXCa1gRMO0OhDGuGKyG5lP_B-EJpdLjTH9CczqgqGNxP_Bwa6K1mRHIRS9w"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="pt-24 pb-12 md:pl-72 pr-4 md:pr-16 min-h-screen">
+<div class="max-w-[1280px] mx-auto">
+<!-- Page Header -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">Plumbing Staff Management</h2>
+<p class="text-on-surface-variant font-body-lg text-body-lg mt-1">Monitor performance and manage water infrastructure assignments.</p>
+</div>
+<div class="flex gap-3">
+<button class="flex items-center gap-2 px-5 py-2.5 bg-surface-container-highest text-on-surface font-label-md text-label-md rounded-xl hover:translate-y-[-2px] transition-transform duration-200">
+<span class="material-symbols-outlined">download</span>
+                        ZIP Export
+                    </button>
+<button class="flex items-center gap-2 px-5 py-2.5 bg-primary text-on-primary font-label-md text-label-md rounded-xl hover:translate-y-[-2px] transition-transform duration-200 shadow-sm">
+<span class="material-symbols-outlined">person_add</span>
+                        Add New Plumber
+                    </button>
+</div>
+</div>
+<!-- KPI Cards Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6 mb-10">
+<!-- Chart Card -->
+<div class="md:col-span-6 glass-card rounded-2xl p-6 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Resolved vs Assigned</h3>
+<p class="text-caption font-caption text-outline">Last 7 Months Performance</p>
+</div>
+<span class="material-symbols-outlined text-secondary">analytics</span>
+</div>
+<div class="h-32 flex items-end gap-2 px-2">
+<!-- Mock Bar Chart -->
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 60%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 45%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 80%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 65%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 90%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary/10 rounded-t-lg relative group transition-all" style="height: 75%;">
+<div class="absolute inset-0 bg-secondary rounded-t-lg opacity-0 group-hover:opacity-100 transition-opacity"></div>
+</div>
+<div class="flex-1 bg-secondary rounded-t-lg relative group" style="height: 85%;"></div>
+</div>
+<div class="flex justify-between text-caption font-caption text-outline mt-2 px-1">
+<span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span>
+</div>
+</div>
+<!-- Stats Card 1 -->
+<div class="md:col-span-3 glass-card rounded-2xl p-6 flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 bg-tertiary-fixed rounded-xl flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-on-tertiary-fixed">timer</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Avg Resolution Time</h3>
+</div>
+<div>
+<div class="text-[40px] font-bold text-primary leading-tight">1h 24m</div>
+<div class="inline-flex items-center gap-1 mt-2 bg-secondary/10 text-secondary px-2 py-1 rounded-full text-caption font-caption font-bold">
+<span class="material-symbols-outlined text-[14px]">military_tech</span>
+                            Fastest in District
+                        </div>
+</div>
+</div>
+<!-- Stats Card 2 -->
+<div class="md:col-span-3 glass-card rounded-2xl p-6 flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 bg-secondary-container rounded-xl flex items-center justify-center mb-4">
+<span class="material-symbols-outlined text-on-secondary-container" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+<h3 class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Verification Rate</h3>
+</div>
+<div>
+<div class="text-[40px] font-bold text-primary leading-tight">92.4%</div>
+<p class="text-caption font-caption text-outline mt-2">Verified via EXIF geo-tags</p>
+</div>
+</div>
+</div>
+<!-- Active Staff Roster Table -->
+<div class="bg-surface-container-lowest rounded-2xl shadow-sm border border-outline-variant/30 overflow-hidden">
+<div class="px-8 py-6 border-b border-outline-variant/30 flex justify-between items-center bg-white">
+<h3 class="font-headline-md text-headline-md text-primary">Active Staff Roster</h3>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-xl text-label-md focus:ring-2 focus:ring-primary/20 w-64" placeholder="Search technicians..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50">
+<th class="px-8 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Name &amp; Role</th>
+<th class="px-8 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Contact Info</th>
+<th class="px-8 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-8 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-center">Workload</th>
+<th class="px-8 py-4 font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container">KS</div>
+<div>
+<div class="font-bold text-primary font-body-md text-body-md">Karthik S.</div>
+<div class="text-caption font-caption text-on-surface-variant">Senior Plumber</div>
+</div>
+</div>
+</td>
+<td class="px-8 py-4">
+<div class="text-label-md font-label-md text-on-surface">karthik.s@panchayat.gov.in</div>
+<div class="text-caption font-caption text-outline">+91 98765 43210</div>
+</td>
+<td class="px-8 py-4">
+<span class="status-chip bg-secondary-container text-on-secondary-container">On-Duty</span>
+</td>
+<td class="px-8 py-4 text-center">
+<div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-primary font-bold text-label-md">3</div>
+</td>
+<td class="px-8 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-tertiary-fixed flex items-center justify-center font-bold text-on-tertiary-fixed">AR</div>
+<div>
+<div class="font-bold text-primary font-body-md text-body-md">Ananya R.</div>
+<div class="text-caption font-caption text-on-surface-variant">Plumbing Technician</div>
+</div>
+</div>
+</td>
+<td class="px-8 py-4">
+<div class="text-label-md font-label-md text-on-surface">ananya.r@panchayat.gov.in</div>
+<div class="text-caption font-caption text-outline">+91 98765 43211</div>
+</td>
+<td class="px-8 py-4">
+<span class="status-chip bg-secondary-container text-on-secondary-container">On-Duty</span>
+</td>
+<td class="px-8 py-4 text-center">
+<div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-primary font-bold text-label-md">5</div>
+</td>
+<td class="px-8 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/30 transition-colors">
+<td class="px-8 py-4">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-outline">VK</div>
+<div>
+<div class="font-bold text-primary font-body-md text-body-md">Vikram K.</div>
+<div class="text-caption font-caption text-on-surface-variant">Junior Plumber</div>
+</div>
+</div>
+</td>
+<td class="px-8 py-4">
+<div class="text-label-md font-label-md text-on-surface">vikram.k@panchayat.gov.in</div>
+<div class="text-caption font-caption text-outline">+91 98765 43212</div>
+</td>
+<td class="px-8 py-4">
+<span class="status-chip bg-surface-variant text-on-surface-variant">Offline</span>
+</td>
+<td class="px-8 py-4 text-center">
+<div class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-surface-container text-primary font-bold text-label-md">0</div>
+</td>
+<td class="px-8 py-4 text-right">
+<button class="p-2 hover:bg-surface-variant/50 rounded-lg transition-colors">
+<span class="material-symbols-outlined text-outline">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-8 py-4 border-t border-outline-variant/30 bg-surface-container-lowest flex items-center justify-between">
+<p class="text-caption font-caption text-outline">Showing 1-3 of 24 Technicians</p>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-surface-variant/50 rounded transition-colors disabled:opacity-30" disabled="">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="p-1 hover:bg-surface-variant/50 rounded transition-colors">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Verification Report Preview (Contextual Action) -->
+<div class="mt-10 bento-grid">
+<div class="col-span-12 md:col-span-8 glass-card rounded-2xl p-8 relative overflow-hidden">
+<div class="z-10 relative">
+<h4 class="font-headline-md text-headline-md text-primary mb-2">Automated Geo-Tag Verification</h4>
+<p class="text-body-md font-body-md text-on-surface-variant mb-6 max-w-lg">
+                            Every plumbing resolution is verified using AI-driven EXIF metadata analysis. Images from the field are cross-referenced with assigned GIS coordinates to ensure authentic reporting.
+                        </p>
+<div class="flex gap-4">
+<div class="flex items-center gap-2 text-secondary font-bold text-label-md">
+<span class="material-symbols-outlined">location_on</span>
+                                GIS Linked
+                            </div>
+<div class="flex items-center gap-2 text-secondary font-bold text-label-md">
+<span class="material-symbols-outlined">schedule</span>
+                                Real-time Sync
+                            </div>
+</div>
+</div>
+<!-- Illustrative Background Element -->
+<div class="absolute right-0 top-0 h-full w-1/3 opacity-10 pointer-events-none">
+<img class="w-full h-full object-cover" data-alt="A detailed digital topographical map of a rural district with glowing emerald green lines representing water infrastructure pipelines. The visual style is high-fidelity and modern, using deep navy blue for landmasses and vibrant cyan for water channels. Soft atmospheric lighting highlights key pressure nodes and pumping stations across the landscape, creating a sense of technical precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCy-xxw7nExaJIXVhuNORyYw2W2XX-vBAkeWISOn8m20Gt8U3hhENeS66eiGyl8qlRVX0vYRNV7IqQmqwyqgxhsy53RGIlDxETSdzg4ax78mlVdXvlV4CsoGMqdLc8i8yrRMGQsiFMJQ2scL8MVLeekyA54quxpGETvK02FsH9G7Y5QaYUBPPNjLa4eYeSqS8hPKHGvyRmMSjOlcGlOuo4iBW6_ciIzDjw_GwD2cUkOQ8etm0JlsPRUGplkmmlJNp6cH8Xv6quMKDw"/>
+</div>
+</div>
+<div class="col-span-12 md:col-span-4 bg-primary rounded-2xl p-8 text-on-primary flex flex-col justify-between">
+<div>
+<span class="material-symbols-outlined text-[48px] mb-4 text-secondary-fixed">folder_zip</span>
+<h4 class="font-headline-sm text-headline-sm mb-2">Ready to Archive?</h4>
+<p class="text-on-primary-container font-body-md text-body-md">Download all resolved job history including high-res verified reports for this month.</p>
+</div>
+<button class="mt-8 w-full py-3 bg-secondary text-on-secondary rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-secondary/90 transition-colors">
+<span class="material-symbols-outlined">archive</span>
+                        Download ZIP Package
+                    </button>
+</div>
+</div>
+</div>
+</main>
+<script>
+        // Simple micro-interaction for bar charts
+        document.querySelectorAll('.group').forEach(bar => {
+            bar.addEventListener('mouseenter', () => {
+                bar.style.transform = 'scaleY(1.05)';
+            });
+            bar.addEventListener('mouseleave', () => {
+                bar.style.transform = 'scaleY(1)';
+            });
+        });
+    </script>
+</body></html>

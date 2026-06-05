@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ooraatchi GIS - Electric Pole Inventory</title>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error": "#ffffff",
+                    "on-tertiary-fixed-variant": "#3a485c",
+                    "secondary-container": "#9af1c6",
+                    "surface-tint": "#5e5e5e",
+                    "surface": "#f7f9fb",
+                    "on-primary-fixed-variant": "#474747",
+                    "surface-dim": "#d8dadc",
+                    "secondary": "#006c4a",
+                    "on-secondary-container": "#0b714e",
+                    "error-container": "#ffdad6",
+                    "inverse-primary": "#c6c6c6",
+                    "on-surface": "#191c1e",
+                    "background": "#f7f9fb",
+                    "outline-variant": "#c6c6cd",
+                    "on-primary": "#ffffff",
+                    "inverse-on-surface": "#eff1f3",
+                    "surface-container": "#eceef0",
+                    "outline": "#76777d",
+                    "on-primary-fixed": "#1b1b1b",
+                    "on-tertiary-fixed": "#0d1c2f",
+                    "tertiary-container": "#0d1c2f",
+                    "tertiary": "#000000",
+                    "surface-container-high": "#e6e8ea",
+                    "primary-container": "#1b1b1b",
+                    "on-secondary-fixed": "#002114",
+                    "secondary-fixed": "#9df4c9",
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-container": "#76859b",
+                    "on-background": "#191c1e",
+                    "on-surface-variant": "#45464d",
+                    "surface-container-highest": "#e0e3e5",
+                    "primary-fixed-dim": "#c6c6c6",
+                    "surface-container-low": "#f2f4f6",
+                    "primary-fixed": "#e2e2e2",
+                    "primary": "#000000",
+                    "surface-bright": "#f7f9fb",
+                    "on-secondary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#2d3133",
+                    "secondary-fixed-dim": "#81d8ae",
+                    "surface-variant": "#e0e3e5",
+                    "on-secondary-fixed-variant": "#005237",
+                    "tertiary-fixed": "#d5e3fd",
+                    "tertiary-fixed-dim": "#b9c7e0",
+                    "on-primary-container": "#848484"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "base": "8px",
+                    "container-max": "1280px",
+                    "margin-mobile": "20px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "headline-lg": ["metropolis", "sans-serif"],
+                    "display-lg": ["metropolis", "sans-serif"],
+                    "headline-md": ["metropolis", "sans-serif"],
+                    "display-lg-mobile": ["metropolis", "sans-serif"],
+                    "caption": ["publicSans", "sans-serif"],
+                    "body-md": ["publicSans", "sans-serif"],
+                    "label-md": ["publicSans", "sans-serif"],
+                    "body-lg": ["publicSans", "sans-serif"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        @import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&display=swap');
+        /* Mock for Metropolis as it's a premium font, using Public Sans as fallback or similar sans */
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #c6c6cd; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface flex overflow-hidden">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col p-4 gap-2 h-screen w-64 fixed left-0 top-0 bg-surface-container-low dark:bg-surface-container shadow-sm z-50">
+<div class="flex items-center gap-3 px-2 py-4 mb-4">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
+<span class="material-symbols-outlined text-on-primary">account_balance</span>
+</div>
+<div>
+<h2 class="font-headline-sm text-headline-sm font-bold text-primary">Administration</h2>
+<p class="text-caption text-on-surface-variant">State Level Panel</p>
+</div>
+</div>
+<nav class="flex-grow space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl hover:translate-x-1 transition-transform duration-200 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary-container text-on-secondary-container rounded-xl font-bold font-label-md text-label-md active:scale-98" href="#">
+<span class="material-symbols-outlined">map</span>
+<span>GIS Assets</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl hover:translate-x-1 transition-transform duration-200 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">gavel</span>
+<span>Tendering</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl hover:translate-x-1 transition-transform duration-200 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">assessment</span>
+<span>Reports</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant/30 pt-4 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">help</span>
+<span>Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span>Logout</span>
+</a>
+</div>
+</aside>
+<main class="flex-grow md:ml-64 flex flex-col h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-6 md:px-margin-desktop w-full sticky top-0 z-50 bg-surface/80 dark:bg-surface-container/80 backdrop-blur-md h-16 border-b border-outline-variant/30">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">Ooraatchi GIS</span>
+<div class="hidden lg:flex items-center ml-8 gap-6">
+<span class="text-secondary border-b-2 border-secondary pb-1 font-label-md text-label-md cursor-pointer transition-colors">Infrastructure</span>
+<span class="text-on-surface-variant hover:text-secondary font-label-md text-label-md cursor-pointer transition-colors">Tax Records</span>
+<span class="text-on-surface-variant hover:text-secondary font-label-md text-label-md cursor-pointer transition-colors">Citizen Services</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-2 text-label-md focus:ring-2 focus:ring-secondary w-64" placeholder="Search Assets..." type="text"/>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-primary hover:bg-surface-container-high rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-primary hover:bg-surface-container-high rounded-full transition-colors active:scale-95">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant cursor-pointer active:scale-95">
+<img alt="Administrator Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAp62MCpH3Cg86YEYJ4kFi6b1iisfFp2Wse-OcQWWKskNsOWoQm5ptHtb1PBG6Bb1GM0YLqty-A-Q8wOYasiO1kMARZaO5XxU7c0-B9--jmqcFm68emQvK-07Vt-O2XM85dJXDZO-JDNpbGESyh4vwwuDbIF3H7Ry5TgshRoEfOCOXm67t-FKAcQHgb0zLArkAezEHdTOyE1S-ROYVv_GXmnH28BX2IEch1G74pqnrEGxYIgF2_2qMUACAza6DcvyJccXVmvCilyIM"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex flex-col md:flex-row flex-grow overflow-hidden">
+<!-- Left List Panel -->
+<section class="w-full md:w-[400px] bg-surface-container-lowest flex flex-col border-r border-outline-variant/30 overflow-hidden">
+<div class="p-6 space-y-4">
+<div class="flex items-center justify-between">
+<h1 class="font-headline-md text-headline-md text-primary">Electric Pole Inventory</h1>
+</div>
+<button class="w-full bg-primary text-on-primary py-3 rounded-xl flex items-center justify-center gap-2 font-label-md text-label-md hover:translate-y-[-2px] transition-transform active:scale-95" onclick="toggleModal('add-pole-modal')">
+<span class="material-symbols-outlined">add_circle</span>
+                        Add New Pole
+                    </button>
+</div>
+<div class="flex-grow overflow-y-auto custom-scrollbar px-4 pb-6 space-y-3">
+<!-- Pole Item -->
+<div class="p-4 bg-white border border-outline-variant/30 rounded-xl hover:shadow-sm transition-shadow cursor-pointer group active:scale-[0.99]">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-bold text-on-surface font-body-lg">EP-4402-A</h3>
+<p class="text-caption text-secondary font-medium">Keypad: K-9921</p>
+</div>
+<span class="bg-error/10 text-error px-2 py-1 rounded text-[10px] font-bold tracking-wider">3 COMPLAINTS</span>
+</div>
+<div class="space-y-1 text-on-surface-variant font-label-md text-[13px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span>Near Amman Kovil, Main Street Corner</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">explore</span>
+<span>12.9716° N, 77.5946° E</span>
+</div>
+</div>
+</div>
+<!-- Pole Item 2 -->
+<div class="p-4 bg-white border border-outline-variant/30 rounded-xl hover:shadow-sm transition-shadow cursor-pointer active:scale-[0.99]">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-bold text-on-surface font-body-lg">EP-4405-B</h3>
+<p class="text-caption text-secondary font-medium">Keypad: K-9922</p>
+</div>
+<span class="bg-secondary/10 text-secondary px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase">Active</span>
+</div>
+<div class="space-y-1 text-on-surface-variant font-label-md text-[13px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span>Post Office Square, South Block</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">explore</span>
+<span>12.9720° N, 77.5950° E</span>
+</div>
+</div>
+</div>
+<!-- Pole Item 3 -->
+<div class="p-4 bg-white border border-outline-variant/30 rounded-xl hover:shadow-sm transition-shadow cursor-pointer active:scale-[0.99]">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h3 class="font-bold text-on-surface font-body-lg">EP-4408-X</h3>
+<p class="text-caption text-secondary font-medium">Keypad: K-9925</p>
+</div>
+<span class="bg-on-tertiary-container/10 text-on-tertiary-container px-2 py-1 rounded text-[10px] font-bold tracking-wider uppercase">Issue Detected</span>
+</div>
+<div class="space-y-1 text-on-surface-variant font-label-md text-[13px]">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">location_on</span>
+<span>Bus Terminus Entrance</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">explore</span>
+<span>12.9705° N, 77.5932° E</span>
+</div>
+</div>
+</div>
+<!-- More mock items... -->
+<div class="p-4 bg-white border border-outline-variant/30 rounded-xl opacity-60">
+<h3 class="font-bold text-on-surface font-body-lg">EP-4412-C</h3>
+<p class="text-caption text-on-surface-variant">Residential Zone 4</p>
+</div>
+</div>
+</section>
+<!-- Right GIS Map Panel -->
+<section class="flex-grow relative bg-surface-dim overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A sophisticated digital GIS map interface showing a detailed satellite view of a South Indian township. The map is overlaid with clean, minimalist data visualizations including glowing green and amber circular markers representing infrastructure assets. The lighting suggests a clear daytime environment with high-fidelity textures for buildings and roads. The aesthetic is professional, data-driven, and highly detailed, utilizing a professional color palette of deep greens and slate grays." data-location="Madurai" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRstAtqBgKzr1WeOMT2CVSJBbdktIfguko7l1HvHwx7VxzXhwniULAZXi9oVXw8Dj3XEnxAuaJKIu00uhKaqGpH7UPNwUtQIxVH72NOLjMWkHtsJJh2RGUSyaaShrlSprucsNBruufiJIuQIuraPcr22qlaBKSshdFNxMGg7Lt9aLJgrn9-aZPy9Ybwnp6uxMCJoMHZKc11rWvumwWcKXMYLEsaK0HN-D6HjtYbQRpX2FIrrFmWIRA1QtFicID0IHiL1Kav08TUg8"/>
+<!-- GIS Controls -->
+<div class="absolute right-6 top-6 flex flex-col gap-2">
+<button class="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-primary hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined">zoom_in</span>
+</button>
+<button class="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-primary hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined">zoom_out</span>
+</button>
+<button class="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-primary hover:bg-surface-container transition-colors active:scale-95 mt-4">
+<span class="material-symbols-outlined">layers</span>
+</button>
+<button class="w-12 h-12 bg-white rounded-xl shadow-lg flex items-center justify-center text-secondary hover:bg-surface-container transition-colors active:scale-95">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">my_location</span>
+</button>
+</div>
+<!-- Custom Map Markers (Visual Simulation) -->
+<div class="absolute top-[35%] left-[45%] group">
+<div class="w-6 h-6 bg-error rounded-full border-4 border-white shadow-xl animate-pulse cursor-pointer"></div>
+<div class="hidden group-hover:block absolute top-8 left-1/2 -translate-x-1/2 bg-white p-2 rounded shadow-lg text-[11px] whitespace-nowrap z-10">
+<b>EP-4402-A</b><br/>3 Complaints Pending
+                    </div>
+</div>
+<div class="absolute top-[20%] left-[60%] group">
+<div class="w-6 h-6 bg-secondary rounded-full border-4 border-white shadow-xl cursor-pointer"></div>
+</div>
+<div class="absolute top-[55%] left-[52%] group">
+<div class="w-6 h-6 bg-secondary rounded-full border-4 border-white shadow-xl cursor-pointer"></div>
+</div>
+<div class="absolute top-[48%] left-[30%] group">
+<div class="w-6 h-6 bg-[#f59e0b] rounded-full border-4 border-white shadow-xl cursor-pointer"></div>
+<div class="hidden group-hover:block absolute top-8 left-1/2 -translate-x-1/2 bg-white p-2 rounded shadow-lg text-[11px] whitespace-nowrap z-10">
+<b>EP-4408-X</b><br/>Low Voltage Alert
+                    </div>
+</div>
+<!-- Legend -->
+<div class="absolute left-6 bottom-6 bg-white/90 glass-panel p-4 rounded-xl shadow-lg border border-outline-variant/30 flex flex-col gap-2">
+<h4 class="font-bold text-caption text-primary uppercase tracking-wider">Map Legend</h4>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-secondary"></div>
+<span class="text-caption text-on-surface-variant">Active &amp; Operational</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-[#f59e0b]"></div>
+<span class="text-caption text-on-surface-variant">Maintenance Alert</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-error"></div>
+<span class="text-caption text-on-surface-variant">Active Complaint</span>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Quick Add Pole Modal Overlay -->
+<div class="hidden fixed inset-0 z-[100] flex items-center justify-center px-4" id="add-pole-modal">
+<div class="absolute inset-0 bg-primary/20 backdrop-blur-sm" onclick="toggleModal('add-pole-modal')"></div>
+<div class="relative bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-300">
+<div class="bg-primary p-6 text-on-primary flex justify-between items-center">
+<h2 class="font-headline-sm text-headline-sm">Quick Add Pole</h2>
+<button class="hover:bg-white/20 p-1 rounded-full" onclick="toggleModal('add-pole-modal')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<form class="p-6 space-y-4">
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Pole Number</label>
+<input class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md" placeholder="e.g. EP-5000" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Keypad ID</label>
+<input class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md" placeholder="e.g. K-1234" type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Installation Status</label>
+<select class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md">
+<option>Operational</option>
+<option>Under Maintenance</option>
+<option>New Installation</option>
+</select>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Latitude</label>
+<input class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md" placeholder="12.9716" type="text"/>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Longitude</label>
+<input class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md" placeholder="77.5946" type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-1">
+<label class="text-caption font-bold text-on-surface-variant">Nearest Landmark</label>
+<textarea class="border-outline-variant rounded-lg focus:ring-secondary focus:border-secondary text-body-md h-20" placeholder="e.g. Near Community Center Gate"></textarea>
+</div>
+<div class="pt-4 flex gap-3">
+<button class="flex-grow py-3 border border-outline text-on-surface font-label-md rounded-xl hover:bg-surface-container transition-colors" onclick="toggleModal('add-pole-modal')" type="button">Cancel</button>
+<button class="flex-grow py-3 bg-secondary text-on-secondary font-label-md rounded-xl shadow-lg hover:shadow-secondary/20 hover:translate-y-[-2px] transition-all" type="submit">Save Asset</button>
+</div>
+</form>
+</div>
+</div>
+<script>
+        function toggleModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.toggle('hidden');
+        }
+
+        // Add small hover effects and interactions
+        document.querySelectorAll('.material-symbols-outlined').forEach(icon => {
+            icon.addEventListener('mouseenter', function() {
+                this.classList.add('transition-transform');
+            });
+        });
+
+        // Simple map interaction simulation
+        const mapMarkers = document.querySelectorAll('.rounded-full[class*="bg-"]');
+        mapMarkers.forEach(marker => {
+            marker.addEventListener('click', function() {
+                // Focus the side list item or show popup
+                console.log('Marker clicked');
+            });
+        });
+    </script>
+</body></html>

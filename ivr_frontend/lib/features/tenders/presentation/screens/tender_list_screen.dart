@@ -12,6 +12,9 @@ import '../../../../core/widgets/list_screen_shell.dart';
 import '../../../super_admin/data/super_admin_repository.dart';
 import '../../data/models/tender_models.dart';
 import '../../data/tender_repository.dart';
+import '../widgets/tender_filter_bar.dart';
+import '../widgets/tender_grid_card.dart';
+import '../widgets/tender_kpi_section.dart';
 
 class TenderListScreen extends StatefulWidget {
   final bool isSuperAdmin;
@@ -25,18 +28,34 @@ class _TenderListScreenState extends State<TenderListScreen> {
   late final TenderRepository _repo;
   String? _statusFilter;
   int? _panchayatFilter;
+  List<dynamic>? _panchayats;
   late Future<List<TenderSummary>> _future;
+
+  String _searchQuery = '';
+  bool _isGridView = true;
 
   @override
   void initState() {
     super.initState();
     _repo = TenderRepository(isSuperAdmin: widget.isSuperAdmin);
     _future = _repo.listTenders();
+    if (widget.isSuperAdmin) {
+      SuperAdminRepository().listPanchayats().then((list) {
+        if (mounted) {
+          setState(() {
+            _panchayats = list;
+          });
+        }
+      });
+    }
   }
 
   void _reload() {
     setState(() {
-      _future = _repo.listTenders(status: _statusFilter, panchayatId: _panchayatFilter);
+      _future = _repo.listTenders(
+        status: _statusFilter,
+        panchayatId: _panchayatFilter,
+      );
     });
   }
 
@@ -50,64 +69,12 @@ class _TenderListScreenState extends State<TenderListScreen> {
               ? 'All tenders'
               : 'Filtered by ${_statusFilter!.replaceAll('_', ' ')}',
       action: FilledButton.icon(
-        onPressed: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/new' : '/tenders/new'),
+        onPressed:
+            () => context.go(
+              widget.isSuperAdmin ? '/superadmin/tenders/new' : '/tenders/new',
+            ),
         icon: const Icon(Icons.add),
         label: const Text('New tender'),
-      ),
-      filters: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          DropdownButton<String?>(
-            value: _statusFilter,
-            hint: const Text('All statuses'),
-            items: const [
-              DropdownMenuItem(value: null, child: Text('All statuses')),
-              DropdownMenuItem(value: 'draft', child: Text('Draft')),
-              DropdownMenuItem(value: 'published', child: Text('Published')),
-              DropdownMenuItem(
-                value: 'quotations_closed',
-                child: Text('Quotations closed'),
-              ),
-              DropdownMenuItem(
-                value: 'vendor_selected',
-                child: Text('Vendor selected'),
-              ),
-              DropdownMenuItem(
-                value: 'field_verification',
-                child: Text('Field verification'),
-              ),
-              DropdownMenuItem(value: 'closed', child: Text('Closed')),
-            ],
-            onChanged: (v) {
-              setState(() => _statusFilter = v);
-              _reload();
-            },
-          ),
-          if (widget.isSuperAdmin) ...[
-            const SizedBox(width: 12),
-            FutureBuilder<List<dynamic>>(
-              future: SuperAdminRepository().listPanchayats(),
-              builder: (context, snap) {
-                final list = snap.data ?? [];
-                return DropdownButton<int?>(
-                  value: _panchayatFilter,
-                  hint: const Text('All Panchayats'),
-                  items: [
-                    const DropdownMenuItem(value: null, child: Text('All Panchayats')),
-                    ...list.map((p) => DropdownMenuItem(
-                      value: p.id as int,
-                      child: Text(p.name as String),
-                    )),
-                  ],
-                  onChanged: (v) {
-                    setState(() => _panchayatFilter = v);
-                    _reload();
-                  },
-                );
-              },
-            ),
-          ],
-        ],
       ),
       child: FutureBuilder<List<TenderSummary>>(
         future: _future,
@@ -125,23 +92,131 @@ class _TenderListScreenState extends State<TenderListScreen> {
               onRetry: _reload,
             );
           }
-          final tenders = snap.data ?? [];
-          if (tenders.isEmpty) {
-            return AppEmptyState(
-              icon: Icons.assignment_outlined,
-              title: 'No tenders yet',
-              subtitle: 'Create your first tender to get started.',
-              action: FilledButton.icon(
-                onPressed: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/new' : '/tenders/new'),
-                icon: const Icon(Icons.add),
-                label: const Text('Create tender'),
-              ),
-            );
+
+          final allTenders = snap.data ?? [];
+
+          // Apply client-side search query filtering
+          var filteredTenders = allTenders;
+          if (_searchQuery.isNotEmpty) {
+            final query = _searchQuery.toLowerCase();
+            filteredTenders =
+                allTenders.where((t) {
+                  final title = (t.titleEn ?? t.titleTa ?? '').toLowerCase();
+                  final idStr = t.id.toString();
+                  return title.contains(query) || idStr.contains(query);
+                }).toList();
           }
-          return ListView.separated(
-            itemCount: tenders.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, i) => _TenderRow(t: tenders[i], isSuperAdmin: widget.isSuperAdmin),
+
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final double width = constraints.maxWidth;
+              // Responsive: always use list view if screen is very narrow (mobile)
+              final bool renderGrid = _isGridView && width > 560;
+
+              return ListView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                children: [
+                  // 1. KPI statistics Section
+                  TenderKpiSection(tenders: allTenders),
+                  const SizedBox(height: 20),
+
+                  // 2. Search & Filter Control Bar
+                  TenderFilterBar(
+                    searchQuery: _searchQuery,
+                    onSearchChanged: (val) {
+                      setState(() => _searchQuery = val);
+                    },
+                    statusFilter: _statusFilter,
+                    onStatusChanged: (val) {
+                      setState(() => _statusFilter = val);
+                      _reload();
+                    },
+                    panchayatFilter: _panchayatFilter,
+                    onPanchayatChanged:
+                        widget.isSuperAdmin
+                            ? (val) {
+                              setState(() => _panchayatFilter = val);
+                              _reload();
+                            }
+                            : null,
+                    panchayats: _panchayats,
+                    isGridView: _isGridView,
+                    onViewToggle: () {
+                      setState(() => _isGridView = !_isGridView);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 3. Grid or List of Tenders
+                  if (filteredTenders.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: AppEmptyState(
+                        icon: Icons.assignment_outlined,
+                        title:
+                            _searchQuery.isNotEmpty
+                                ? 'No matches found'
+                                : 'No tenders yet',
+                        subtitle:
+                            _searchQuery.isNotEmpty
+                                ? 'Try refining your search query keyword.'
+                                : 'Create your first tender to get started.',
+                        action:
+                            _searchQuery.isNotEmpty
+                                ? TextButton(
+                                  onPressed: () {
+                                    setState(() => _searchQuery = '');
+                                  },
+                                  child: const Text('Clear search'),
+                                )
+                                : FilledButton.icon(
+                                  onPressed:
+                                      () => context.go(
+                                        widget.isSuperAdmin
+                                            ? '/superadmin/tenders/new'
+                                            : '/tenders/new',
+                                      ),
+                                  icon: const Icon(Icons.add),
+                                  label: const Text('Create tender'),
+                                ),
+                      ),
+                    )
+                  else if (renderGrid)
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredTenders.length,
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: width > 960 ? 3 : 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: 1.25,
+                      ),
+                      itemBuilder: (context, i) {
+                        return TenderGridCard(
+                          t: filteredTenders[i],
+                          isSuperAdmin: widget.isSuperAdmin,
+                        );
+                      },
+                    )
+                  else
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: filteredTenders.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 8),
+                      itemBuilder:
+                          (context, i) => _TenderRow(
+                            t: filteredTenders[i],
+                            isSuperAdmin: widget.isSuperAdmin,
+                          ),
+                    ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -171,20 +246,29 @@ class _TenderRowState extends State<_TenderRow> {
       label: Text(
         isInvited ? 'Invited' : 'Open',
         style: TextStyle(
-          color: isInvited
-              ? (isDark ? Colors.blueGrey.shade200 : Colors.blueGrey.shade800)
-              : (isDark ? Colors.green.shade200 : Colors.green.shade800),
+          color:
+              isInvited
+                  ? (isDark
+                      ? Colors.blueGrey.shade200
+                      : Colors.blueGrey.shade800)
+                  : (isDark ? Colors.green.shade200 : Colors.green.shade800),
           fontWeight: FontWeight.w600,
           fontSize: 11,
         ),
       ),
-      backgroundColor: isInvited
-          ? (isDark ? Colors.blueGrey.shade900.withValues(alpha: 0.6) : Colors.blueGrey.shade100)
-          : (isDark ? Colors.green.shade900.withValues(alpha: 0.6) : Colors.lightGreen.shade100),
+      backgroundColor:
+          isInvited
+              ? (isDark
+                  ? Colors.blueGrey.shade900.withValues(alpha: 0.6)
+                  : Colors.blueGrey.shade100)
+              : (isDark
+                  ? Colors.green.shade900.withValues(alpha: 0.6)
+                  : Colors.lightGreen.shade100),
       side: BorderSide(
-        color: isInvited
-            ? (isDark ? Colors.blueGrey.shade800 : Colors.blueGrey.shade200)
-            : (isDark ? Colors.green.shade800 : Colors.green.shade200),
+        color:
+            isInvited
+                ? (isDark ? Colors.blueGrey.shade800 : Colors.blueGrey.shade200)
+                : (isDark ? Colors.green.shade800 : Colors.green.shade200),
       ),
       visualDensity: VisualDensity.compact,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -203,14 +287,16 @@ class _TenderRowState extends State<_TenderRow> {
               vertical: 4,
             ),
             decoration: BoxDecoration(
-              color: _hovered
-                  ? AppTheme.primary.withValues(alpha: 0.04)
-                  : Colors.transparent,
+              color:
+                  _hovered
+                      ? AppTheme.primary.withValues(alpha: 0.04)
+                      : Colors.transparent,
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               border: Border.all(
-                color: _hovered
-                    ? AppTheme.primary.withValues(alpha: 0.18)
-                    : Colors.transparent,
+                color:
+                    _hovered
+                        ? AppTheme.primary.withValues(alpha: 0.18)
+                        : Colors.transparent,
               ),
             ),
             child: ListTile(
@@ -218,7 +304,9 @@ class _TenderRowState extends State<_TenderRow> {
                 horizontal: isNarrow ? 12 : 16,
                 vertical: 4,
               ),
-              leading: const CircleAvatar(child: Icon(Icons.assignment_outlined)),
+              leading: const CircleAvatar(
+                child: Icon(Icons.assignment_outlined),
+              ),
               title: Text(
                 (t.titleEn ?? t.titleTa ?? 'Tender #${t.id}'),
                 style: const TextStyle(fontWeight: FontWeight.w600),
@@ -236,16 +324,23 @@ class _TenderRowState extends State<_TenderRow> {
                         label: Text(
                           t.panchayatName!,
                           style: TextStyle(
-                            color: isDark ? Colors.purple.shade200 : Colors.purple.shade800,
+                            color:
+                                isDark
+                                    ? Colors.purple.shade200
+                                    : Colors.purple.shade800,
                             fontWeight: FontWeight.w600,
                             fontSize: 11,
                           ),
                         ),
-                        backgroundColor: isDark
-                            ? Colors.purple.shade900.withValues(alpha: 0.6)
-                            : Colors.purple.shade50,
+                        backgroundColor:
+                            isDark
+                                ? Colors.purple.shade900.withValues(alpha: 0.6)
+                                : Colors.purple.shade50,
                         side: BorderSide(
-                          color: isDark ? Colors.purple.shade800 : Colors.purple.shade200,
+                          color:
+                              isDark
+                                  ? Colors.purple.shade800
+                                  : Colors.purple.shade200,
                         ),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -257,16 +352,23 @@ class _TenderRowState extends State<_TenderRow> {
                         label: Text(
                           'Verification: ${t.verificationProgress!.done}/${t.verificationProgress!.total}',
                           style: TextStyle(
-                            color: isDark ? Colors.teal.shade200 : Colors.teal.shade800,
+                            color:
+                                isDark
+                                    ? Colors.teal.shade200
+                                    : Colors.teal.shade800,
                             fontWeight: FontWeight.w600,
                             fontSize: 11,
                           ),
                         ),
-                        backgroundColor: isDark
-                            ? Colors.teal.shade900.withValues(alpha: 0.6)
-                            : Colors.teal.shade50,
+                        backgroundColor:
+                            isDark
+                                ? Colors.teal.shade900.withValues(alpha: 0.6)
+                                : Colors.teal.shade50,
                         side: BorderSide(
-                          color: isDark ? Colors.teal.shade800 : Colors.teal.shade200,
+                          color:
+                              isDark
+                                  ? Colors.teal.shade800
+                                  : Colors.teal.shade200,
                         ),
                         visualDensity: VisualDensity.compact,
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -282,7 +384,12 @@ class _TenderRowState extends State<_TenderRow> {
               ),
               trailing: isNarrow ? null : accessChip,
               isThreeLine: isNarrow,
-              onTap: () => context.go(widget.isSuperAdmin ? '/superadmin/tenders/${t.id}' : '/tenders/${t.id}'),
+              onTap:
+                  () => context.go(
+                    widget.isSuperAdmin
+                        ? '/superadmin/tenders/${t.id}'
+                        : '/tenders/${t.id}',
+                  ),
             ),
           ),
         );

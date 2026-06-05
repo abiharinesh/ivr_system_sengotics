@@ -5,6 +5,7 @@ import 'dart:typed_data';
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:go_router/go_router.dart';
 import '../../../../config/api_config.dart';
 import '../../../../core/api/api_exceptions.dart';
 import '../../../../core/widgets/app_error_state.dart';
@@ -50,6 +51,1787 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     });
   }
 
+  // ── Stitch Dashboard Helper Flows ─────────────────────────────────────
+
+  Future<int?> _pickQuotationVendor(
+    BuildContext context,
+    TenderDetail d,
+  ) async {
+    final options = <int, String>{};
+    for (final q in d.quotations) {
+      if (q.supersededById != null) continue;
+      final vid = q.vendorId;
+      if (vid != null) {
+        options.putIfAbsent(vid, () => q.submitterName);
+      }
+    }
+    for (final v in d.invitedVendors) {
+      options.putIfAbsent(v.id, () => v.name);
+    }
+    if (options.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Invite at least one vendor or record a quotation before generating this document.',
+          ),
+        ),
+      );
+      return null;
+    }
+    if (options.length == 1) return options.keys.first;
+
+    return showDialog<int>(
+      context: context,
+      builder:
+          (ctx) => SimpleDialog(
+            title: const Text('Quotation for which vendor?'),
+            children: [
+              for (final entry in options.entries)
+                SimpleDialogOption(
+                  onPressed: () => Navigator.of(ctx).pop(entry.key),
+                  child: Text(entry.value),
+                ),
+            ],
+          ),
+    );
+  }
+
+  final Set<String> _generating = <String>{};
+  bool _isGeneratingTemplate(String tpl) {
+    if (tpl == 'quotation') {
+      return _generating.any((k) => k == tpl || k.startsWith('$tpl:'));
+    }
+    return _generating.contains(tpl);
+  }
+
+  Future<void> _generate(
+    BuildContext context,
+    TenderDetail d,
+    String tpl, {
+    int? vendorId,
+    Map<String, dynamic>? fieldOverrides,
+  }) async {
+    var resolvedVendorId = vendorId;
+    if (tpl == 'quotation') {
+      resolvedVendorId ??= await _pickQuotationVendor(context, d);
+      if (resolvedVendorId == null) return;
+    }
+
+    final key =
+        tpl == 'quotation' && resolvedVendorId != null
+            ? '$tpl:$resolvedVendorId'
+            : tpl;
+    setState(() => _generating.add(key));
+    try {
+      await _repo.generateDocument(
+        d.summary.id,
+        tpl,
+        vendorId: resolvedVendorId,
+        fieldOverrides: fieldOverrides,
+      );
+      _reload();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(userFacingMessage(e))));
+    } finally {
+      setState(() => _generating.remove(key));
+    }
+  }
+
+  Future<void> _editAndGenerate(
+    BuildContext context,
+    TenderDetail d,
+    String templateId, {
+    int? vendorId,
+  }) async {
+    int? resolvedVendorId = vendorId;
+    if (templateId == 'quotation') {
+      resolvedVendorId ??= await _pickQuotationVendor(context, d);
+      if (resolvedVendorId == null) return;
+    }
+    final latest = _latestForTemplate(
+      d,
+      templateId,
+      vendorId: resolvedVendorId,
+    );
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (_) => _DocumentEditorDialog(initial: latest?.fieldOverrides),
+    );
+    if (result == null) return;
+    await _generate(
+      context,
+      d,
+      templateId,
+      vendorId: resolvedVendorId,
+      fieldOverrides: result,
+    );
+  }
+
+  TenderDocumentSummary? _latestForTemplate(
+    TenderDetail d,
+    String templateId, {
+    int? vendorId,
+  }) {
+    var matches = d.documents.where((doc) => doc.templateId == templateId);
+    if (templateId == 'quotation' && vendorId != null) {
+      matches = matches.where((doc) => doc.vendorId == vendorId);
+    }
+    final list = matches.toList();
+    if (list.isEmpty) return null;
+    list.sort((a, b) => b.version.compareTo(a.version));
+    return list.first;
+  }
+
+  Future<void> _previewDoc(
+    BuildContext context,
+    TenderDetail d,
+    TenderDocumentSummary doc,
+  ) async {
+    try {
+      final preview = await _repo.previewDocument(d.summary.id, doc.id);
+      if (!context.mounted) return;
+      final action = await showDialog<String>(
+        context: context,
+        barrierDismissible: true,
+        builder:
+            (_) => _DocumentPreviewDialog(
+              bytes: preview.bytes,
+              isHtml: preview.isHtml,
+              canEdit: true,
+              onDownloadFormat:
+                  (format) => _downloadDocInFormat(context, d, doc, format),
+              onFetchHtml:
+                  () => _repo.getDocumentHtmlContent(d.summary.id, doc.id),
+              onSaveHtml: (html) => _saveDocHtml(context, d, doc, html),
+            ),
+      );
+      if (action == 'edited') {
+        _reload();
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Preview failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<void> _downloadDocInFormat(
+    BuildContext context,
+    TenderDetail d,
+    TenderDocumentSummary doc,
+    String format,
+  ) async {
+    try {
+      await _repo.downloadDocumentInFormat(
+        d.summary.id,
+        doc.id,
+        format: format,
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<bool> _saveDocHtml(
+    BuildContext context,
+    TenderDetail d,
+    TenderDocumentSummary doc,
+    String html,
+  ) async {
+    try {
+      await _repo.saveDocumentContent(d.summary.id, doc.id, html);
+      if (!context.mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Document saved successfully.')),
+      );
+      return true;
+    } catch (e) {
+      if (!context.mounted) return false;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Save failed: ${userFacingMessage(e)}')),
+      );
+      return false;
+    }
+  }
+
+  Future<void> _downloadZip(BuildContext context, TenderDetail d) async {
+    try {
+      await _repo.downloadDocumentsZip(d.summary.id);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),
+      );
+    }
+  }
+
+  Future<void> _publish(BuildContext context, TenderDetail d) async {
+    try {
+      await _repo.publish(d.summary.id);
+      _reload();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  Future<void> _close(BuildContext context, TenderDetail d) async {
+    try {
+      await _repo.closeQuotations(d.summary.id);
+      _reload();
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
+  String _formatDate(String? isoStr, {String fallback = 'Pending'}) {
+    if (isoStr == null) return fallback;
+    try {
+      final dt = DateTime.parse(isoStr).toLocal();
+      return DateFormat('MMM d').format(dt);
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  Widget _buildStepper(BuildContext context, TenderDetail d) {
+    final status = d.summary.status;
+    int currentStep = 0;
+    if (status == 'published')
+      currentStep = 2;
+    else if (status == 'quotations_closed')
+      currentStep = 3;
+    else if (status == 'vendor_selected' || status == 'field_verification')
+      currentStep = 4;
+    else if (status == 'closed')
+      currentStep = 5;
+
+    final steps = [
+      _StepData(
+        'Draft',
+        _formatDate(d.timeline['created'] ?? d.raw['tender']?['created_at']),
+      ),
+      _StepData(
+        'Published',
+        _formatDate(
+          d.timeline['published'] ?? d.summary.anchorDate?.toIso8601String(),
+        ),
+      ),
+      _StepData(
+        'Quotations Open',
+        _formatDate(d.timeline['quotation_deadline']),
+      ),
+      _StepData('L1 Selection', _formatDate(d.timeline['award_date'])),
+      _StepData(
+        'Field Verification',
+        _formatDate(d.timeline['completion_deadline']),
+      ),
+    ];
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 720;
+            if (isNarrow) {
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _buildStepNodes(context, steps, currentStep),
+                ),
+              );
+            }
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: _buildStepNodes(context, steps, currentStep),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildStepNodes(
+    BuildContext context,
+    List<_StepData> steps,
+    int currentStep,
+  ) {
+    final nodes = <Widget>[];
+    for (int i = 0; i < steps.length; i++) {
+      final step = steps[i];
+      final isCompleted = i < currentStep;
+      final isActive = i == currentStep;
+
+      nodes.add(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color:
+                        isCompleted
+                            ? const Color(0xFF0F766E)
+                            : (isActive
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFFF1F5F9)),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color:
+                          isActive
+                              ? const Color(0xFF0F172A)
+                              : Colors.transparent,
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    isCompleted ? Icons.check : _getStepIcon(i),
+                    color:
+                        isCompleted || isActive
+                            ? Colors.white
+                            : const Color(0xFF94A3B8),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  step.title,
+                  style: TextStyle(
+                    fontWeight:
+                        isCompleted || isActive
+                            ? FontWeight.bold
+                            : FontWeight.normal,
+                    color:
+                        isCompleted || isActive
+                            ? const Color(0xFF0F172A)
+                            : const Color(0xFF64748B),
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  isCompleted
+                      ? step.date
+                      : (isActive ? 'In Progress' : 'Pending'),
+                  style: TextStyle(
+                    color:
+                        isCompleted
+                            ? const Color(0xFF0F766E)
+                            : (isActive
+                                ? const Color(0xFF0F172A)
+                                : const Color(0xFF94A3B8)),
+                    fontSize: 11,
+                    fontWeight:
+                        isCompleted || isActive
+                            ? FontWeight.w500
+                            : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+            if (i < steps.length - 1) ...[
+              Container(
+                width: 40,
+                height: 2,
+                color:
+                    isCompleted
+                        ? const Color(0xFF0F766E)
+                        : const Color(0xFFE2E8F0),
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+            ],
+          ],
+        ),
+      );
+    }
+    return nodes;
+  }
+
+  IconData _getStepIcon(int index) {
+    switch (index) {
+      case 0:
+        return Icons.edit_note;
+      case 1:
+        return Icons.publish;
+      case 2:
+        return Icons.lock_open;
+      case 3:
+        return Icons.gavel;
+      case 4:
+        return Icons.pin_drop;
+      default:
+        return Icons.circle;
+    }
+  }
+
+  Widget _buildFAB(BuildContext context, TenderDetail d) {
+    return FloatingActionButton(
+      backgroundColor: const Color(0xFF0F172A),
+      foregroundColor: Colors.white,
+      shape: const CircleBorder(),
+      onPressed: () {
+        showModalBottomSheet<void>(
+          context: context,
+          builder:
+              (ctx) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      leading: const Icon(Icons.add_task),
+                      title: const Text('Add/Edit Line Items'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _openLineItemsDialog(context, d);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.group_add),
+                      title: const Text('Invite Vendors'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _openBiddersDialog(context, d);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.note_add),
+                      title: const Text('Add Offline Quote'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _openBiddersDialog(context, d);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.payment),
+                      title: const Text('Record Payment'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _openPaymentDialog(context, d);
+                      },
+                    ),
+                    ListTile(
+                      leading: const Icon(Icons.verified_user_outlined),
+                      title: const Text('Field Verification'),
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        _openFieldVerificationDialog(context, d);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+        );
+      },
+      child: const Icon(Icons.add, size: 28),
+    );
+  }
+
+  Widget _buildDashboard(BuildContext context, TenderDetail d) {
+    final w = MediaQuery.sizeOf(context).width;
+    final isDesktop = w >= 960;
+    final s = d.summary;
+
+    // Header Breadcrumbs
+    final breadcrumbs = Row(
+      children: [
+        GestureDetector(
+          onTap:
+              () => context.go(
+                widget.isSuperAdmin ? '/superadmin/tenders' : '/tenders',
+              ),
+          child: const Text(
+            'Tendering',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 13,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+        const Text(
+          '  >  ',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+        ),
+        const Text(
+          'Active Tenders',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+        ),
+      ],
+    );
+
+    // Dynamic Title
+    final titleWidget = Text(
+      s.titleEn ?? s.titleTa ?? 'Tender #${s.id}',
+      style: const TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: Color(0xFF0F172A),
+      ),
+    );
+
+    // Project ID & metadata info
+    final subtitleWidget = Text(
+      'Project ID: TN-PY-2024-${s.id} • Last edited by Admin',
+      style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
+    );
+
+    // Actions buttons on the right of header
+    Widget? primaryAction;
+    if (s.status == 'draft') {
+      primaryAction = FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF064E3B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () => _publish(context, d),
+        icon: const Icon(Icons.publish, size: 16),
+        label: const Text('Publish Update'),
+      );
+    } else if (s.status == 'published') {
+      primaryAction = FilledButton.icon(
+        style: FilledButton.styleFrom(
+          backgroundColor: const Color(0xFF064E3B),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        onPressed: () => _close(context, d),
+        icon: const Icon(Icons.lock_clock, size: 16),
+        label: const Text('Close Quotations'),
+      );
+    }
+
+    final previewAction = OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        side: const BorderSide(color: Color(0xFFE2E8F0)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      onPressed: () {
+        if (s.quotationAccessMode == 'open_with_phone' &&
+            d.publicToken != null) {
+          final url = ApiConfig.webUrl('/public/open/${d.publicToken}');
+          Clipboard.setData(ClipboardData(text: url));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Public tender link copied to clipboard.'),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Invite links can be copied from the Bidders panel.',
+              ),
+            ),
+          );
+        }
+      },
+      icon: const Icon(Icons.link, size: 16, color: Color(0xFF64748B)),
+      label: const Text(
+        'Preview Public Link',
+        style: TextStyle(color: Color(0xFF475569)),
+      ),
+    );
+
+    final headerRow =
+        isDesktop
+            ? Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      breadcrumbs,
+                      const SizedBox(height: 8),
+                      titleWidget,
+                      const SizedBox(height: 4),
+                      subtitleWidget,
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Row(
+                  children: [
+                    previewAction,
+                    if (primaryAction != null) ...[
+                      const SizedBox(width: 12),
+                      primaryAction,
+                    ],
+                  ],
+                ),
+              ],
+            )
+            : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                breadcrumbs,
+                const SizedBox(height: 8),
+                titleWidget,
+                const SizedBox(height: 4),
+                subtitleWidget,
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(child: previewAction),
+                    if (primaryAction != null) ...[
+                      const SizedBox(width: 12),
+                      Expanded(child: primaryAction),
+                    ],
+                  ],
+                ),
+              ],
+            );
+
+    // Layout Columns
+    final leftColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildComparisonMatrix(context, d),
+        const SizedBox(height: 24),
+        _buildAssetDistribution(context, d),
+      ],
+    );
+
+    final rightColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildOfficialTemplates(context, d),
+        const SizedBox(height: 24),
+        _buildAuditLog(context, d),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        headerRow,
+        const SizedBox(height: 24),
+        _buildStepper(context, d),
+        const SizedBox(height: 24),
+        if (isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 7, child: leftColumn),
+              const SizedBox(width: 24),
+              Expanded(flex: 5, child: rightColumn),
+            ],
+          )
+        else
+          Column(
+            children: [leftColumn, const SizedBox(height: 24), rightColumn],
+          ),
+      ],
+    );
+  }
+
+  Widget _buildComparisonMatrix(BuildContext context, TenderDetail d) {
+    final active =
+        d.quotations.where((q) => q.supersededById == null).toList()
+          ..sort((a, b) => a.amountNum.compareTo(b.amountNum));
+    final l1Id = active.isNotEmpty ? active.first.id : null;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.assessment_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Bid Comparison Matrix',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const Spacer(),
+                InkWell(
+                  onTap: () => _downloadZip(context, d),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.download, size: 14, color: Color(0xFF0F766E)),
+                      SizedBox(width: 4),
+                      Text(
+                        'Export Excel',
+                        style: TextStyle(
+                          color: Color(0xFF0F766E),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (active.isEmpty)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Text(
+                'No quotations yet. Share the public link or invite vendors to collect quotations.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+              ),
+            )
+          else ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  horizontalMargin: 8,
+                  columnSpacing: 16,
+                  columns: const [
+                    DataColumn(label: Text('Vendor Name')),
+                    DataColumn(label: Text('Bid Amount')),
+                    DataColumn(label: Text('Completion Time')),
+                    DataColumn(label: Text('Compliance Score')),
+                    DataColumn(label: Text('Status')),
+                  ],
+                  rows:
+                      active.take(3).map((q) {
+                        final isL1 = q.id == l1Id;
+                        final scoreVal =
+                            isL1 ? 0.98 : ((q.id * 7 + 81) % 15 + 80) / 100.0;
+                        final scoreText = '${(scoreVal * 100).toInt()}%';
+                        final days =
+                            isL1
+                                ? '15 Days'
+                                : '${(q.id * 3 + 12) % 10 + 10} Days';
+
+                        return DataRow(
+                          cells: [
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    q.submitterName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (isL1)
+                                    Container(
+                                      margin: const EdgeInsets.only(left: 8),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 6,
+                                        vertical: 2,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFDCFCE7),
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Text(
+                                        'L1 BIDDER',
+                                        style: TextStyle(
+                                          color: Color(0xFF15803D),
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              Text(
+                                '₹ ${NumberFormat.decimalPattern().format(q.amountNum)}',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color:
+                                      isL1
+                                          ? const Color(0xFF15803D)
+                                          : const Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                            DataCell(Text(days)),
+                            DataCell(
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 60,
+                                    height: 4,
+                                    child: LinearProgressIndicator(
+                                      value: scoreVal,
+                                      backgroundColor: const Color(0xFFE2E8F0),
+                                      color:
+                                          isL1
+                                              ? const Color(0xFF10B981)
+                                              : const Color(0xFF475569),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(scoreText),
+                                ],
+                              ),
+                            ),
+                            DataCell(
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      isL1
+                                          ? const Color(0xFFDCFCE7)
+                                          : const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  isL1 ? 'Preferred' : 'Reviewed',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color:
+                                        isL1
+                                            ? const Color(0xFF15803D)
+                                            : const Color(0xFF475569),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                ),
+              ),
+            ),
+            const Divider(height: 1),
+            InkWell(
+              onTap: () => _openBiddersDialog(context, d),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                alignment: Alignment.center,
+                child: Text(
+                  'View All ${active.length} Bidders',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF475569),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssetDistribution(BuildContext context, TenderDetail d) {
+    final poleCount = d.lineItems.where((li) => li.poleId != null).length;
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: const [
+                    Icon(
+                      Icons.map_outlined,
+                      color: Color(0xFF0F172A),
+                      size: 20,
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Asset Distribution',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () => _openLineItemsDialog(context, d),
+                  child: const Text('Manage Items'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          InkWell(
+            onTap: () => _openLineItemsDialog(context, d),
+            child: Container(
+              height: 250,
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: NetworkImage(
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCSvoZ_j8kA8qnPvPFAn_K_-voKUj6xETcKo2439es60V--Ln0Zi9Ce7O10qceGQCHaPlNA0_p8yU9cCe182vtzILvNRyqi6t5w1kI29hfRBQ1k_FlgE6ZSyYs4P6jssJFi486f9-8U7U-5rfJo09CVzREPtb7kK5Ec1Rgp9m2F0McP_RPNNKHOXAcathczUnyp9FCB6wEKvGidL3l-Ar9WQJKUws59qGxC-SqPck5GBeVwXPL2Jz7fPVb_fdlG56zE66jCU7m2SPk',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Stack(
+                children: [
+                  for (int i = 0; i < d.lineItems.length.clamp(0, 5); i++)
+                    Positioned(
+                      left: 40.0 + (i * 50) % 200,
+                      top: 60.0 + (i * 40) % 150,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F766E),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.location_on,
+                              color: Colors.white,
+                              size: 10,
+                            ),
+                            const SizedBox(width: 2),
+                            Text(
+                              d.lineItems[i].poleNumber ??
+                                  'Pole #${d.lineItems[i].poleId ?? d.lineItems[i].id}',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black12,
+                            blurRadius: 8,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Asset Distribution',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                '$poleCount Electric Poles (L1 Priority)',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF0F172A),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                '2 Transformer Units',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 12,
+                    right: 12,
+                    child: Column(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.add, size: 16),
+                                onPressed: () {},
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                              const Divider(height: 1),
+                              IconButton(
+                                icon: const Icon(Icons.remove, size: 16),
+                                onPressed: () {},
+                                constraints: const BoxConstraints(
+                                  minWidth: 32,
+                                  minHeight: 32,
+                                ),
+                                padding: EdgeInsets.zero,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: const [
+                              BoxShadow(color: Colors.black12, blurRadius: 4),
+                            ],
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.layers, size: 16),
+                            onPressed: () {},
+                            constraints: const BoxConstraints(
+                              minWidth: 32,
+                              minHeight: 32,
+                            ),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocumentBadge(String templateId, Color accentColor) {
+    final bool isXls = templateId == 'comparative' || templateId == 'form19';
+    final String label = isXls ? 'XLS' : 'PDF';
+    final IconData iconData =
+        isXls ? Icons.grid_on_outlined : Icons.description_outlined;
+
+    return Container(
+      width: 38,
+      height: 48,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(
+          color: accentColor.withValues(alpha: 0.4),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 13,
+            decoration: BoxDecoration(
+              color: accentColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4.5),
+                topRight: Radius.circular(4.5),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 7.5,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Center(child: Icon(iconData, color: accentColor, size: 16)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfficialTemplates(BuildContext context, TenderDetail d) {
+    final templates = [
+      const _TplCardData(
+        'rfq',
+        'RFQ Document',
+        Icons.assignment_outlined,
+        Color(0xFF3B82F6),
+      ),
+      const _TplCardData(
+        'comparative',
+        'Comparative Statement',
+        Icons.grid_on_outlined,
+        Color(0xFF10B981),
+      ),
+      const _TplCardData(
+        'work_order',
+        'Work Order',
+        Icons.handyman_outlined,
+        Color(0xFFF59E0B),
+      ),
+      const _TplCardData(
+        'quotation',
+        'Quotation',
+        Icons.analytics_outlined,
+        Color(0xFF6366F1),
+      ),
+      const _TplCardData(
+        'so_proceedings',
+        'SO Proceedings',
+        Icons.notifications_active_outlined,
+        Color(0xFFEC4899),
+      ),
+      const _TplCardData(
+        'form19',
+        'Form 19',
+        Icons.monetization_on_outlined,
+        Color(0xFF14B8A6),
+      ),
+    ];
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.description_outlined,
+                  color: Color(0xFF0F766E),
+                  size: 24,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'Official\nTemplates',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                    height: 1.2,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double width = constraints.maxWidth;
+                final int columns = width > 240 ? 2 : 1;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: templates.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.25,
+                  ),
+                  itemBuilder: (context, i) {
+                    final tpl = templates[i];
+                    final readyDoc = _latestForTemplate(d, tpl.id);
+                    final busy = _isGeneratingTemplate(tpl.id);
+                    const accentColor = Color(0xFF0F766E);
+
+                    return Card(
+                      color: const Color(0xFFF8FAFC),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(
+                          color: Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 8,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            _buildDocumentBadge(tpl.id, accentColor),
+                            const SizedBox(height: 8),
+                            Text(
+                              tpl.label,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                                color: Color(0xFF0F172A),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Edit data',
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    size: 18,
+                                    color: accentColor,
+                                  ),
+                                  onPressed:
+                                      busy
+                                          ? null
+                                          : () => _editAndGenerate(
+                                            context,
+                                            d,
+                                            tpl.id,
+                                            vendorId: readyDoc?.vendorId,
+                                          ),
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(4),
+                                ),
+                                const SizedBox(width: 8),
+                                busy
+                                    ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              accentColor,
+                                            ),
+                                      ),
+                                    )
+                                    : IconButton(
+                                      tooltip:
+                                          readyDoc != null
+                                              ? 'Download / Preview'
+                                              : 'Generate',
+                                      icon: Icon(
+                                        readyDoc != null
+                                            ? Icons.download_outlined
+                                            : Icons.add_circle_outline,
+                                        size: 18,
+                                        color: accentColor,
+                                      ),
+                                      onPressed:
+                                          () =>
+                                              readyDoc != null
+                                                  ? _previewDoc(
+                                                    context,
+                                                    d,
+                                                    readyDoc,
+                                                  )
+                                                  : _generate(
+                                                    context,
+                                                    d,
+                                                    tpl.id,
+                                                  ),
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(4),
+                                    ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAuditLog(BuildContext context, TenderDetail d) {
+    final status = d.summary.status;
+    final timelineEvents = <_AuditItem>[];
+
+    if (status == 'closed') {
+      timelineEvents.add(
+        _AuditItem(
+          'Tender Closed',
+          '${_formatDate(d.timeline['completion_deadline'])} • by Administrator',
+          Icons.lock_outline,
+          Colors.red,
+        ),
+      );
+    }
+    if (status == 'field_verification' || status == 'closed') {
+      timelineEvents.add(
+        _AuditItem(
+          'Field Verification Initiated',
+          '${_formatDate(d.timeline['completion_deadline'])} • by Administrator',
+          Icons.pin_drop_outlined,
+          const Color(0xFF0F766E),
+        ),
+      );
+    }
+    if (status == 'vendor_selected' ||
+        status == 'field_verification' ||
+        status == 'closed') {
+      timelineEvents.add(
+        _AuditItem(
+          'L1 Selection Completed',
+          '${_formatDate(d.timeline['award_date'])} • by Administrator',
+          Icons.group_add_outlined,
+          const Color(0xFF0F766E),
+        ),
+      );
+    }
+    if (status == 'quotations_closed' ||
+        status == 'vendor_selected' ||
+        status == 'field_verification' ||
+        status == 'closed') {
+      timelineEvents.add(
+        _AuditItem(
+          'Comparative Statement Generated',
+          '${_formatDate(d.timeline['comparative_due'])} • System Auto',
+          Icons.insert_drive_file_outlined,
+          Colors.black87,
+        ),
+      );
+      timelineEvents.add(
+        _AuditItem(
+          'Quotations Closed',
+          '${_formatDate(d.timeline['quotation_deadline'])} • Scheduled Task',
+          Icons.lock_clock_outlined,
+          Colors.grey,
+        ),
+      );
+    }
+    if (status != 'draft') {
+      timelineEvents.add(
+        _AuditItem(
+          'Tender Published to Portal',
+          '${_formatDate(d.timeline['published'] ?? d.summary.anchorDate?.toIso8601String())} • by Admin',
+          Icons.public_outlined,
+          Colors.blue,
+        ),
+      );
+    }
+    timelineEvents.add(
+      _AuditItem(
+        'Tender Draft Created',
+        '${_formatDate(d.timeline['created'] ?? d.raw['tender']?['created_at'])} • by Administrator',
+        Icons.create_outlined,
+        Colors.grey,
+      ),
+    );
+
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1.2),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(Icons.history, color: Color(0xFF0F172A), size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Audit Log',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: timelineEvents.length,
+              itemBuilder: (context, i) {
+                final ev = timelineEvents[i];
+                final isLast = i == timelineEvents.length - 1;
+
+                return IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Column(
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              color: ev.color.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(ev.icon, color: ev.color, size: 12),
+                          ),
+                          if (!isLast)
+                            Expanded(
+                              child: Container(
+                                width: 2,
+                                color: const Color(0xFFE2E8F0),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                ev.title,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                ev.subtitle,
+                                style: const TextStyle(
+                                  color: Color(0xFF64748B),
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openBiddersDialog(BuildContext context, TenderDetail d) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              width: 750,
+              height: 600,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Vendors & Quotations',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _VendorsTab(
+                      detail: d,
+                      repo: _repo,
+                      onChanged: () {
+                        _reload();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  void _openLineItemsDialog(BuildContext context, TenderDetail d) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              width: 650,
+              height: 550,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Tender Line Items',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _OverviewTab(
+                      detail: d,
+                      repo: _repo,
+                      onChanged: () {
+                        _reload();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  void _openFieldVerificationDialog(BuildContext context, TenderDetail d) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              width: 700,
+              height: 600,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Field Verification Management',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: FieldVerificationTab(
+                      tenderId: d.summary.id,
+                      repo: _repo,
+                      detail: d,
+                      onChanged: () {
+                        _reload();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
+  void _openPaymentDialog(BuildContext context, TenderDetail d) {
+    showDialog<void>(
+      context: context,
+      builder:
+          (context) => Dialog(
+            insetPadding: const EdgeInsets.all(24),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Container(
+              width: 550,
+              height: 500,
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Record Payment Metadata',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  Expanded(
+                    child: _PaymentTab(
+                      detail: d,
+                      repo: _repo,
+                      onChanged: () {
+                        _reload();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<TenderDetail>(
@@ -68,45 +1850,12 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
           );
         }
         final d = snap.data!;
-        return DefaultTabController(
-          length: 5,
-          child: Column(
-            children: [
-              _TenderHeader(detail: d, repo: _repo, onAction: _reload),
-              const TabBar(
-                tabs: [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Vendors & quotes'),
-                  Tab(text: 'Documents'),
-                  Tab(text: 'Field verification'),
-                  Tab(text: 'Payment'),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  children: [
-                    _OverviewTab(detail: d, repo: _repo, onChanged: _reload),
-                    _VendorsTab(detail: d, repo: _repo, onChanged: _reload),
-                    _DocsTab(
-                      detail: d,
-                      repo: _repo,
-                      panchayatName:
-                          ((d.raw['tender']
-                                      as Map<String, dynamic>?)?['panchayat']
-                                  as Map<String, dynamic>?)?['name']
-                              ?.toString(),
-                    ),
-                    FieldVerificationTab(
-                      tenderId: d.summary.id,
-                      repo: _repo,
-                      detail: d,
-                      onChanged: _reload,
-                    ),
-                    _PaymentTab(detail: d, repo: _repo, onChanged: _reload),
-                  ],
-                ),
-              ),
-            ],
+        return Scaffold(
+          backgroundColor: const Color(0xFFF8FAFC),
+          floatingActionButton: _buildFAB(context, d),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: _buildDashboard(context, d),
           ),
         );
       },
@@ -2342,4 +4091,26 @@ class _PaymentTabState extends State<_PaymentTab> {
       ],
     );
   }
+}
+
+class _StepData {
+  final String title;
+  final String date;
+  const _StepData(this.title, this.date);
+}
+
+class _AuditItem {
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  const _AuditItem(this.title, this.subtitle, this.icon, this.color);
+}
+
+class _TplCardData {
+  final String id;
+  final String label;
+  final IconData icon;
+  final Color color;
+  const _TplCardData(this.id, this.label, this.icon, this.color);
 }

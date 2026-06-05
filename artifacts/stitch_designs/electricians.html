@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ooraatchi GIS - Staff Management &amp; Analytics</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Metropolis would typically be a local font, using Public Sans as high-quality fallback for this demo -->
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .font-metropolis { font-family: 'Public Sans', sans-serif; font-weight: 700; }
+        .font-publicSans { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container-high": "#e6e8ea",
+                        "outline-variant": "#c6c6cd",
+                        "error": "#ba1a1a",
+                        "surface-variant": "#e0e3e5",
+                        "surface-container": "#eceef0",
+                        "on-primary-fixed": "#1b1b1b",
+                        "on-surface-variant": "#45464d",
+                        "background": "#f7f9fb",
+                        "on-error": "#ffffff",
+                        "secondary-fixed-dim": "#81d8ae",
+                        "secondary-container": "#82f5c1",
+                        "on-primary": "#ffffff",
+                        "surface-tint": "#5e5e5e",
+                        "on-secondary-container": "#00714e",
+                        "primary-fixed-dim": "#c6c6c6",
+                        "tertiary-container": "#0d1c2f",
+                        "on-surface": "#191c1e",
+                        "primary-container": "#1b1b1b",
+                        "inverse-primary": "#c6c6c6",
+                        "outline": "#76777d",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary": "#ffffff",
+                        "primary": "#000000",
+                        "secondary-fixed": "#9df4c9",
+                        "tertiary-fixed": "#d5e3fd",
+                        "surface-bright": "#f7f9fb",
+                        "on-secondary-fixed": "#002114",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed": "#0d1c2f",
+                        "on-background": "#191c1e",
+                        "secondary": "#006c4a",
+                        "on-primary-container": "#848484",
+                        "on-tertiary-container": "#76859b",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#e0e3e5",
+                        "inverse-surface": "#2d3133",
+                        "on-primary-fixed-variant": "#474747",
+                        "tertiary-fixed-dim": "#b9c7e0",
+                        "tertiary": "#000000",
+                        "on-tertiary-fixed-variant": "#3a485c",
+                        "primary-fixed": "#e2e2e2",
+                        "surface-dim": "#d8dadc",
+                        "on-secondary-fixed-variant": "#005237",
+                        "surface-container-low": "#f2f4f6"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "margin-mobile": "20px",
+                        "base": "8px",
+                        "margin-desktop": "64px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["metropolis"],
+                        "body-md": ["publicSans"],
+                        "body-lg": ["publicSans"],
+                        "headline-lg": ["metropolis"],
+                        "display-lg-mobile": ["metropolis"],
+                        "caption": ["publicSans"],
+                        "label-md": ["publicSans"],
+                        "display-lg": ["metropolis"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-surface font-publicSans">
+<!-- TopNavBar Shell -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-md shadow-sm border-b border-outline-variant/30 h-16">
+<div class="flex justify-between items-center px-gutter max-w-container-max mx-auto h-full">
+<div class="flex items-center gap-8">
+<h1 class="font-headline-md text-headline-md font-bold text-primary">Ooraatchi GIS</h1>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-on-surface-variant hover:text-primary font-body-md transition-colors" href="#">Dashboard</a>
+<a class="text-on-surface-variant hover:text-primary font-body-md transition-colors" href="#">Analytics</a>
+<a class="text-secondary border-b-2 border-secondary pb-1 font-bold font-body-md" href="#">Staff</a>
+<a class="text-on-surface-variant hover:text-primary font-body-md transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Administrator Profile" data-alt="A professional close-up portrait of a high-ranking government administrator in a sleek modern office. The lighting is soft and professional, using a bright, high-key aesthetic that aligns with a clean corporate identity. The background is a blurred minimalist office interior with neutral tones of white and light grey." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB1zgTkXELwCYb3e0uG5-_inZ1wwrS2A_VeJ9bBnbkA5ITl1kBrnCW0VMY9tIW8sm_4r_w-4XRRUDCTDcT_ICgDGeVMsXKW7xY_bu1kZmmcPcpLx9l6Ni2bTndyor39JagdNgvv3OKB-nlAloaUfkVykpULqL0NsYhOcLNRuTEPheS_XuLprZpXRCk6-mL31f-hq38dGqRcBO7FIAtzanTZx7SzoNqQmiLuRKAHIa70Xfdj7rXyVg13fBbm6NkYFqSI8RsbR0lpdAI"/>
+</div>
+</div>
+</div>
+</header>
+<!-- SideNavBar Shell -->
+<aside class="fixed left-0 top-0 h-screen w-64 bg-surface-container-low flex flex-col py-8 px-4 gap-4 hidden lg:flex mt-16">
+<div class="mb-6 px-4">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">engineering</span>
+</div>
+<div>
+<h2 class="font-metropolis text-headline-sm font-bold text-primary leading-tight">Admin Portal</h2>
+<p class="text-on-surface-variant text-label-md">Staff Management</p>
+</div>
+</div>
+</div>
+<nav class="flex flex-col gap-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl active:translate-x-1" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-label-md">Overview</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 bg-secondary/10 text-secondary rounded-xl font-bold active:translate-x-1" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">engineering</span>
+<span class="text-label-md">Field Agents</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl active:translate-x-1" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="text-label-md">Work Orders</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl active:translate-x-1" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-label-md">GIS Mapping</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-xl active:translate-x-1" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="text-label-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto px-2">
+<button class="w-full bg-secondary text-on-secondary py-3 rounded-xl font-label-md shadow-sm hover:translate-y-[-2px] transition-transform active:scale-95" onclick="toggleModal(true)">
+                Add New Staff
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="lg:ml-64 pt-24 pb-16 px-gutter max-w-container-max mx-auto">
+<!-- Header & Actions -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-primary mb-1">Staff Management</h2>
+<p class="text-on-surface-variant text-body-md">Monitor performance and manage field electrician assignments.</p>
+</div>
+<div class="flex items-center gap-3">
+<button class="flex items-center gap-2 px-4 py-2 border border-outline text-on-surface-variant rounded-xl hover:bg-surface-container-low transition-colors font-label-md">
+<span class="material-symbols-outlined text-[20px]">download</span>
+                    ZIP Export
+                </button>
+<button class="flex items-center gap-2 px-6 py-2 bg-secondary text-on-secondary rounded-xl hover:translate-y-[-2px] transition-all shadow-sm font-label-md" onclick="toggleModal(true)">
+<span class="material-symbols-outlined text-[20px]">person_add</span>
+                    Add New Electrician
+                </button>
+</div>
+</div>
+<!-- Performance Analytics Dashboard (Bento Grid Style) -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
+<div class="md:col-span-2 glass-panel p-6 rounded-xl border border-outline-variant/30 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<p class="text-on-surface-variant text-label-md uppercase tracking-wider mb-1">Resolved vs Assigned</p>
+<h3 class="text-headline-md font-bold text-primary">284 / 312</h3>
+</div>
+<div class="bg-secondary/10 text-secondary px-2 py-1 rounded text-caption font-bold">
+                        +12.5%
+                    </div>
+</div>
+<div class="h-24 flex items-end gap-1 w-full mt-4">
+<!-- Simple CSS Chart -->
+<div class="bg-secondary/20 w-full h-[40%] rounded-t-sm"></div>
+<div class="bg-secondary/20 w-full h-[55%] rounded-t-sm"></div>
+<div class="bg-secondary/20 w-full h-[35%] rounded-t-sm"></div>
+<div class="bg-secondary/20 w-full h-[70%] rounded-t-sm"></div>
+<div class="bg-secondary/20 w-full h-[60%] rounded-t-sm"></div>
+<div class="bg-secondary/60 w-full h-[85%] rounded-t-sm"></div>
+<div class="bg-secondary w-full h-[95%] rounded-t-sm"></div>
+</div>
+<p class="text-caption text-on-surface-variant mt-2 text-center">Last 7 months performance trend</p>
+</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-tertiary-fixed flex items-center justify-center mb-4">
+<span class="material-symbols-outlined">timer</span>
+</div>
+<p class="text-on-surface-variant text-label-md mb-1">Avg Resolution Time</p>
+<h3 class="text-headline-md font-bold text-primary">1h 24m</h3>
+</div>
+<p class="text-caption text-on-secondary-container bg-secondary-container/30 px-2 py-1 rounded w-fit">
+                    Fastest in District
+                </p>
+</div>
+<div class="glass-panel p-6 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col justify-between">
+<div>
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mb-4">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<p class="text-on-surface-variant text-label-md mb-1">Job Completion Rate</p>
+<h3 class="text-headline-md font-bold text-primary">92.4%</h3>
+</div>
+<p class="text-caption text-on-surface-variant">
+                    Across 14 field agents
+                </p>
+</div>
+</div>
+<!-- Active Staff Roster -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-sm overflow-hidden">
+<div class="px-6 py-4 border-b border-outline-variant/30 flex justify-between items-center">
+<h3 class="font-headline-md text-primary text-body-lg font-bold">Active Staff Roster</h3>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">search</span>
+<input class="pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg text-label-md w-64 focus:ring-2 focus:ring-secondary/50" placeholder="Search staff..." type="text"/>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-container-low">
+<tr>
+<th class="px-6 py-4 text-label-md text-on-surface-variant font-bold uppercase tracking-wider">Name</th>
+<th class="px-6 py-4 text-label-md text-on-surface-variant font-bold uppercase tracking-wider">Email</th>
+<th class="px-6 py-4 text-label-md text-on-surface-variant font-bold uppercase tracking-wider">Phone</th>
+<th class="px-6 py-4 text-label-md text-on-surface-variant font-bold uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 text-label-md text-on-surface-variant font-bold uppercase tracking-wider text-right">Workload</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<!-- Staff Row 1 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Ramesh Kumar" class="w-10 h-10 rounded-full" data-alt="A portrait of a male electrical field technician in his late 30s wearing a dark blue government-issued polo shirt. He has a friendly and reliable expression. The lighting is clear and natural, set against a modern, bright office wall. High fidelity, corporate professional photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpx2brmJ-Kp375HThswDlI06NSDn6y0rkmtejW4iHoqGH4DhYhEAzn-NHmemcdJEMEwFx2HhSnYxQhQdcYjSjNzo5VT3Es8dtiuFmo9psGTGH_djg8zuMOQVK9-Or0iOQtY43pg4DaFSSsqDitj_dSaRvdnoLVhmyfe4kEkCvZQhVklxCDb1qT7R9O5YDShizvoj3XAPDkfpZ4aDbBu4egGhe0XHDTiqkPyacYCtlkN4aD6qz_UJa0Lwd9RtaRE6Ukdw4gUYUYEiI"/>
+<div>
+<p class="font-bold text-on-surface">Ramesh Kumar</p>
+<p class="text-caption text-on-surface-variant">Senior Electrician</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">ramesh.k@panchayat.gov.in</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">+91 98765 43210</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-label-md text-secondary font-bold">On-Duty</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full">
+<span class="font-bold text-primary">3</span>
+<span class="text-caption text-on-surface-variant">Active Tasks</span>
+</div>
+</td>
+</tr>
+<!-- Staff Row 2 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Anita Sharma" class="w-10 h-10 rounded-full" data-alt="A portrait of a female GIS field agent in her 20s, wearing a smart casual emerald green shirt. She has a confident, professional smile. The image is captured in a high-end studio setting with soft side-lighting, maintaining a modern and clean aesthetic for a corporate portal." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUtG0eSW3k6IU33xYQhmcpWIg_lexLjUm8wYYDijOWkfDTXwmwhtoMwx80NkXHqEKGDqpa9cRixwMFpZeGv2bOMxqpB3cQTJ6XVyryS0TG1nzLHfgzsAbqlYb6gDacyZwCdXoHnCvuGkfDy1bwB2k-R6ee22vvBV_CTOjsO5zbg3LYWCtybf7hIVpqGrM-JfR9hZsmDEc8v-Aw3JfLanMMYyAl2rWgfVuXueut4nQiq-BiROcYgzdQeN9lkx0nd1ct7sPqAAid8hE"/>
+<div>
+<p class="font-bold text-on-surface">Anita Sharma</p>
+<p class="text-caption text-on-surface-variant">GIS Technician</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">anita.s@panchayat.gov.in</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">+91 98765 43211</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-secondary"></span>
+<span class="text-label-md text-secondary font-bold">On-Duty</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full">
+<span class="font-bold text-primary">1</span>
+<span class="text-caption text-on-surface-variant">Active Task</span>
+</div>
+</td>
+</tr>
+<!-- Staff Row 3 -->
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<img alt="Vikram Singh" class="w-10 h-10 rounded-full" data-alt="A professional headshot of a male government field supervisor. He is wearing a white formal shirt, looking directly at the camera with a serious yet approachable expression. Crisp, bright lighting emphasizes a professional, high-trust visual language. Neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-aBXT3fdCmWXWZirnc86f1jvMc_Wa3ETigyIY67I8NExqKhd40wDmjI0S84V69RTH9hDsvCcOXTW2sj9kbBzlg97EAPS1W9tzorxTRuBwEEaehbt4IGir5atZYF_rh4wUS3H7z2oiwMLd_9ExFc9sJbuKMHBisnrjy8fZuEZZM_vZDECAY5GsoOqoL8bq2mNz0lMVfsYLpDCkiTfsDMXcgEOteJVOrmFK6t3QN4gOT7y8plGQba11wJBQ6sDGxql-Qelnd31iOsA"/>
+<div>
+<p class="font-bold text-on-surface">Vikram Singh</p>
+<p class="text-caption text-on-surface-variant">Junior Electrician</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">vikram.v@panchayat.gov.in</td>
+<td class="px-6 py-4 text-body-md text-on-surface-variant">+91 98765 43212</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-outline"></span>
+<span class="text-label-md font-medium">Offline</span>
+</div>
+</td>
+<td class="px-6 py-4 text-right">
+<div class="inline-flex items-center gap-2 px-3 py-1 bg-surface-container-high rounded-full opacity-50">
+<span class="font-bold text-primary">0</span>
+<span class="text-caption text-on-surface-variant">Active Tasks</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="px-6 py-4 bg-surface-container-low/50 flex justify-center">
+<button class="text-label-md text-secondary font-bold hover:underline">View All Staff (24)</button>
+</div>
+</div>
+</main>
+<!-- New Staff Dialog (Side Panel Modal) -->
+<div class="fixed inset-0 z-[100] hidden overflow-hidden" id="staffModal">
+<div class="absolute inset-0 bg-primary/40 backdrop-blur-sm" onclick="toggleModal(false)"></div>
+<div class="absolute right-0 top-0 h-full w-full max-w-md bg-surface shadow-2xl transition-transform duration-300 translate-x-full" id="modalPanel">
+<div class="flex flex-col h-full">
+<div class="p-6 border-b border-outline-variant/30 flex items-center justify-between bg-surface-container-low">
+<div>
+<h3 class="font-headline-md text-primary font-bold">Add New Electrician</h3>
+<p class="text-caption text-on-surface-variant">Register a new field agent to the GIS system.</p>
+</div>
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors" onclick="toggleModal(false)">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<form class="flex-1 overflow-y-auto p-6 space-y-6">
+<div class="space-y-2">
+<label class="text-label-md font-bold text-on-surface-variant">Full Name</label>
+<input class="w-full px-4 py-3 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary/50 text-body-md" placeholder="e.g. Rajesh Khanna" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="text-label-md font-bold text-on-surface-variant">Email Address</label>
+<input class="w-full px-4 py-3 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary/50 text-body-md" placeholder="rajesh.k@panchayat.gov.in" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="text-label-md font-bold text-on-surface-variant">Password</label>
+<div class="relative">
+<input class="w-full px-4 py-3 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary/50 text-body-md" type="password" value="••••••••"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant cursor-pointer">visibility</span>
+</div>
+</div>
+<div class="space-y-2">
+<label class="text-label-md font-bold text-on-surface-variant">Contact Phone Number</label>
+<div class="flex gap-2">
+<span class="px-3 py-3 bg-surface-container-high rounded-xl text-label-md font-bold flex items-center">+91</span>
+<input class="flex-1 px-4 py-3 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-secondary/50 text-body-md" placeholder="00000 00000" type="tel"/>
+</div>
+</div>
+<div class="p-4 bg-secondary/5 rounded-xl border border-secondary/20">
+<div class="flex gap-3">
+<span class="material-symbols-outlined text-secondary">info</span>
+<p class="text-caption text-on-secondary-fixed-variant">
+                                A temporary login credential will be sent to the electrician's phone via SMS once the profile is created.
+                            </p>
+</div>
+</div>
+</form>
+<div class="p-6 bg-surface-container-low border-t border-outline-variant/30 flex gap-3">
+<button class="flex-1 px-4 py-3 border border-outline text-on-surface-variant font-label-md rounded-xl hover:bg-surface-container-high transition-colors" onclick="toggleModal(false)">
+                        Cancel
+                    </button>
+<button class="flex-2 px-8 py-3 bg-secondary text-on-secondary font-label-md rounded-xl shadow-sm hover:translate-y-[-2px] transition-all active:scale-95">
+                        Save Electrician
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<script>
+        function toggleModal(show) {
+            const modal = document.getElementById('staffModal');
+            const panel = document.getElementById('modalPanel');
+            if (show) {
+                modal.classList.remove('hidden');
+                setTimeout(() => {
+                    panel.classList.remove('translate-x-full');
+                }, 10);
+            } else {
+                panel.classList.add('translate-x-full');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+        }
+    </script>
+</body></html>

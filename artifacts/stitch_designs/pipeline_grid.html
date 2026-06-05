@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Ooraatchi GIS | Water Grid Monitor</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Metropolis & Public Sans (Fallback to Inter/Public Sans for web) -->
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        @font-face {
+            font-family: 'metropolis';
+            src: url('https://fonts.cdnfonts.com/s/14352/Metropolis-Bold.woff') format('woff');
+            font-weight: 700;
+        }
+        @font-face {
+            font-family: 'metropolis';
+            src: url('https://fonts.cdnfonts.com/s/14352/Metropolis-Medium.woff') format('woff');
+            font-weight: 500;
+        }
+        body { font-family: 'Public Sans', sans-serif; }
+        .font-headline { font-family: 'metropolis', sans-serif; }
+        
+        /* Pulse Animation for Leak Alert */
+        @keyframes pulse-ring {
+            0% { transform: scale(.33); }
+            80%, 100% { opacity: 0; }
+        }
+        @keyframes pulse-dot {
+            0% { transform: scale(.8); }
+            50% { transform: scale(1); }
+            100% { transform: scale(.8); }
+        }
+        .pulse-container {
+            position: relative;
+            width: 40px;
+            height: 40px;
+        }
+        .pulse-ring {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-color: #ba1a1a;
+            border-radius: 50%;
+            animation: pulse-ring 1.25s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        .pulse-dot {
+            position: absolute;
+            left: 25%;
+            top: 25%;
+            width: 50%;
+            height: 50%;
+            background-color: #ba1a1a;
+            border-radius: 50%;
+            box-shadow: 0 0 8px rgba(0,0,0,.3);
+            animation: pulse-dot 1.25s cubic-bezier(0.455, 0.03, 0.515, 0.955) -.4s infinite;
+        }
+        .glass-panel {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "inverse-surface": "#2d3133",
+                      "surface-tint": "#5e5e5e",
+                      "surface-container-high": "#e6e8ea",
+                      "surface": "#f7f9fb",
+                      "on-secondary-fixed": "#002114",
+                      "error-container": "#ffdad6",
+                      "outline-variant": "#c6c6cd",
+                      "secondary-container": "#82f5c1",
+                      "inverse-on-surface": "#eff1f3",
+                      "inverse-primary": "#c6c6c6",
+                      "tertiary": "#000000",
+                      "on-tertiary-container": "#76859b",
+                      "on-secondary-container": "#0b714e",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error": "#ffffff",
+                      "on-secondary-fixed-variant": "#005237",
+                      "outline": "#76777d",
+                      "primary-fixed-dim": "#c6c6c6",
+                      "surface-container": "#eceef0",
+                      "surface-variant": "#e0e3e5",
+                      "surface-dim": "#d8dadc",
+                      "background": "#f7f9fb",
+                      "on-tertiary-fixed-variant": "#3a485c",
+                      "on-background": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "tertiary-fixed": "#d5e3fd",
+                      "on-primary-fixed": "#1b1b1b",
+                      "on-secondary": "#ffffff",
+                      "on-primary-container": "#848484",
+                      "surface-bright": "#f7f9fb",
+                      "secondary": "#006c4a",
+                      "tertiary-fixed-dim": "#b9c7e0",
+                      "on-surface": "#191c1e",
+                      "on-tertiary-fixed": "#0d1c2f",
+                      "on-surface-variant": "#45464d",
+                      "tertiary-container": "#0d1c2f",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-error-container": "#93000a",
+                      "on-primary-fixed-variant": "#474747",
+                      "primary-container": "#1b1b1b",
+                      "secondary-fixed": "#9df4c9",
+                      "error": "#ba1a1a",
+                      "secondary-fixed-dim": "#81d8ae",
+                      "primary": "#000000",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-low": "#f2f4f6",
+                      "primary-fixed": "#e2e2e2"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "margin-mobile": "20px",
+                      "margin-desktop": "64px",
+                      "gutter": "24px",
+                      "base": "8px",
+                      "container-max": "1280px"
+              },
+              "fontFamily": {
+                      "display-lg": ["metropolis"],
+                      "body-lg": ["publicSans"],
+                      "body-md": ["publicSans"],
+                      "label-md": ["publicSans"],
+                      "caption": ["publicSans"],
+                      "headline-md": ["metropolis"],
+                      "headline-lg": ["metropolis"],
+                      "display-lg-mobile": ["metropolis"]
+              },
+              "fontSize": {
+                      "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                      "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+      </script>
+</head>
+<body class="bg-surface text-on-surface selection:bg-secondary-container">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-desktop h-16 bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+<div class="flex items-center gap-4">
+<span class="text-headline-md font-headline-md font-bold text-primary dark:text-inverse-primary">Ooraatchi GIS</span>
+<nav class="hidden md:flex items-center gap-6 ml-12">
+<a class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-secondary-fixed transition-colors" href="#">Dashboard</a>
+<a class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-secondary-fixed transition-colors" href="#">Analytics</a>
+<a class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-secondary-fixed transition-colors" href="#">Staff</a>
+<a class="text-label-md font-label-md text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-secondary-fixed transition-colors" href="#">Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative flex items-center bg-surface-container rounded-full px-4 py-1.5 h-10 w-64">
+<span class="material-symbols-outlined text-outline">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-md w-full" placeholder="Search grid assets..." type="text"/>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">settings</button>
+<div class="h-8 w-8 rounded-full bg-secondary-container overflow-hidden border border-outline-variant">
+<img alt="Admin Profile" class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBxD7wGslVppxuCDb0Y-DxIunTuEz8J_A-lprJVeFrOabHlgAJZK1mXyar4WLUqUt9zDtvnBKxJpOzGHk_qh7ls76_cTzXAqzpyAs0NiuZeVmkpUQqahfpym6IrUGg2O9Nmo-OK7rWPiyQ6q8flPcJBF-BDMMonax1lcsstusuajpPxc2_qMTfPv36L67QD9tx4FfSXspZREVNTVKF7c_piEOebKqeo7H3R5h1nfoedS8Xe1OW714C7YjIbsmH4rhKYpD8eYtxeceU"/>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 z-40 flex flex-col py-6 px-4 bg-surface-container-low dark:bg-inverse-surface border-r border-outline-variant/30">
+<div class="mb-8 px-2">
+<div class="flex items-center gap-3">
+<div class="h-10 w-10 bg-primary text-on-primary rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<div>
+<h2 class="text-headline-sm font-headline-sm text-on-surface leading-tight">Grid Monitor</h2>
+<p class="text-caption text-secondary">Zone 04 - Active</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="text-label-md font-label-md">Pipeline Grid</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">water_drop</span>
+<span class="text-label-md font-label-md">Water Tanks</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">ev_station</span>
+<span class="text-label-md font-label-md">Borewells</span>
+</a>
+<a class="flex items-center gap-3 bg-secondary-container dark:bg-on-secondary-fixed-variant text-on-secondary-container dark:text-secondary-fixed rounded-xl px-4 py-3 translate-x-1 transition-transform" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">warning</span>
+<span class="text-label-md font-label-md">Leak Alerts</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant dark:text-outline-variant px-4 py-3 hover:bg-surface-container-high dark:hover:bg-surface-variant/10 rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined">engineering</span>
+<span class="text-label-md font-label-md">Maintenance</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-outline-variant/20 space-y-4">
+<button class="w-full bg-error text-on-error py-3 rounded-xl font-label-md flex items-center justify-center gap-2 hover:scale-[0.98] transition-transform">
+<span class="material-symbols-outlined">power_settings_new</span>
+                Emergency Shutdown
+            </button>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-xl" href="#">
+<span class="material-symbols-outlined">help_center</span>
+<span class="text-label-md font-label-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 p-6 h-[calc(100vh-64px)] flex gap-gutter">
+<!-- Central View: GIS Map Area -->
+<div class="flex-1 relative rounded-3xl overflow-hidden border border-outline-variant/30 bg-inverse-surface shadow-sm">
+<!-- Map Background Image -->
+<div class="absolute inset-0 z-0">
+<div class="w-full h-full bg-cover bg-center opacity-60 mix-blend-luminosity" data-alt="High-altitude satellite view of a rural landscape with intricate dark-toned terrain and winding dark water bodies, captured at night with a cinematic lighting effect. The aesthetic is high-contrast and professional, featuring subtle glowing emerald green and slate blue vector lines representing water pipelines mapped across the landscape. The mood is sophisticated and technical, utilizing a deep-dark map style to emphasize spatial data precision." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAynWURX-dopwSNEo_-XdcAWqDA6LIBSZ4DKEJmPky8lzbh7mJ9sZ5-fSQz_dLtlWAjMngNWtnpfa5it8XYBHzbhFCamI8jLbQr3ajWnqLLaMfDF2R1QfWOjKzzSM8H_cTfE0OAPA-zximWw_pMKQ8Px--pGzYMLDftFrQagKslib2zqVPYvedsXpP9BQN54psseh4XXPzU5QbzCCzqbJAuiAPQ6p5H3aJqz8zxB4XoKOsN9sBcHt77dRe8xq-bLwMf73CCrDvcxR8')">
+</div>
+<!-- SVG Pipeline Overlay (Faked for visual) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" viewbox="0 0 1000 1000">
+<path d="M 100,200 L 300,250 L 450,400 L 600,380 L 800,500" fill="none" opacity="0.8" stroke="#82f5c1" stroke-dasharray="10 5" stroke-width="4"></path>
+<path d="M 200,600 L 450,400 L 500,700 L 700,850" fill="none" opacity="0.8" stroke="#82f5c1" stroke-dasharray="10 5" stroke-width="4"></path>
+<circle cx="450" cy="400" fill="#ffffff" r="8" stroke="#006c4a" stroke-width="3"></circle>
+</svg>
+</div>
+<!-- Map UI Overlays -->
+<div class="absolute top-6 left-6 z-10 flex flex-col gap-2">
+<div class="bg-surface/90 glass-panel p-4 rounded-2xl shadow-sm border border-outline-variant/30">
+<h3 class="text-label-md font-bold text-on-surface uppercase tracking-wider mb-2">Layer Control</h3>
+<div class="flex flex-col gap-2">
+<label class="flex items-center gap-2 cursor-pointer">
+<input checked="" class="rounded border-outline text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="text-caption font-medium">Pipeline Net (GeoJSON)</span>
+</label>
+<label class="flex items-center gap-2 cursor-pointer">
+<input checked="" class="rounded border-outline text-secondary focus:ring-secondary" type="checkbox"/>
+<span class="text-caption font-medium">Borewell Hubs</span>
+</label>
+</div>
+</div>
+</div>
+<!-- LEAK ALERT PULSE -->
+<div class="absolute top-[40%] left-[45%] z-20 cursor-pointer" onclick="document.getElementById('assignModal').classList.remove('hidden')">
+<div class="pulse-container">
+<div class="pulse-ring"></div>
+<div class="pulse-dot"></div>
+</div>
+<div class="absolute -top-12 -left-10 bg-error text-on-error px-3 py-1 rounded-lg text-caption font-bold shadow-lg animate-bounce">
+                    LEAK: Z04-P09
+                </div>
+</div>
+<div class="absolute bottom-6 left-6 z-10 flex gap-2">
+<button class="h-10 w-10 bg-surface rounded-xl flex items-center justify-center shadow-sm hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">add</span>
+</button>
+<button class="h-10 w-10 bg-surface rounded-xl flex items-center justify-center shadow-sm hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">remove</span>
+</button>
+<button class="h-10 w-10 bg-surface rounded-xl flex items-center justify-center shadow-sm hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined">my_location</span>
+</button>
+</div>
+</div>
+<!-- Right Side Panel: Data-Dense -->
+<aside class="w-96 flex flex-col gap-gutter">
+<!-- Section 1: Pipeline Inventory -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col h-1/2 overflow-hidden">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline text-headline-md">Inventory</h3>
+<span class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-caption font-bold">42 Nodes</span>
+</div>
+<div class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+<!-- Leak Entry -->
+<div class="p-3 bg-error-container/40 border border-error/20 rounded-xl cursor-pointer hover:bg-error-container/60 transition-colors" onclick="document.getElementById('assignModal').classList.remove('hidden')">
+<div class="flex justify-between items-start mb-1">
+<span class="text-label-md font-bold text-error">Z04-P09</span>
+<span class="flex items-center gap-1 text-[10px] uppercase font-black text-error">
+<span class="material-symbols-outlined text-[14px]">warning</span> Leak
+                            </span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-caption">
+<div class="text-on-surface-variant">Size: <span class="text-on-surface font-bold">150mm</span></div>
+<div class="text-on-surface-variant">Mat: <span class="text-on-surface font-bold">HDPE</span></div>
+</div>
+</div>
+<!-- Healthy Entries -->
+<div class="p-3 bg-surface border border-outline-variant/20 rounded-xl">
+<div class="flex justify-between items-start mb-1">
+<span class="text-label-md font-bold text-on-surface">Z04-P10</span>
+<span class="flex items-center gap-1 text-[10px] uppercase font-black text-secondary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Active
+                            </span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-caption">
+<div class="text-on-surface-variant">Size: <span class="text-on-surface font-bold">110mm</span></div>
+<div class="text-on-surface-variant">Mat: <span class="text-on-surface font-bold">uPVC</span></div>
+</div>
+</div>
+<div class="p-3 bg-surface border border-outline-variant/20 rounded-xl">
+<div class="flex justify-between items-start mb-1">
+<span class="text-label-md font-bold text-on-surface">Z04-P11</span>
+<span class="flex items-center gap-1 text-[10px] uppercase font-black text-secondary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Active
+                            </span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-caption">
+<div class="text-on-surface-variant">Size: <span class="text-on-surface font-bold">110mm</span></div>
+<div class="text-on-surface-variant">Mat: <span class="text-on-surface font-bold">uPVC</span></div>
+</div>
+</div>
+<div class="p-3 bg-surface border border-outline-variant/20 rounded-xl">
+<div class="flex justify-between items-start mb-1">
+<span class="text-label-md font-bold text-on-surface">Z04-P12</span>
+<span class="flex items-center gap-1 text-[10px] uppercase font-black text-secondary">
+<span class="material-symbols-outlined text-[14px]">check_circle</span> Active
+                            </span>
+</div>
+<div class="grid grid-cols-2 gap-2 text-caption">
+<div class="text-on-surface-variant">Size: <span class="text-on-surface font-bold">150mm</span></div>
+<div class="text-on-surface-variant">Mat: <span class="text-on-surface font-bold">HDPE</span></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Section 2: Real-time Telemetry -->
+<div class="bg-surface-container-lowest rounded-3xl p-6 border border-outline-variant/30 shadow-sm flex flex-col h-1/2">
+<h3 class="font-headline text-headline-md mb-4">Telemetry</h3>
+<div class="flex-1 flex flex-col gap-4">
+<!-- Flow Rate Chart -->
+<div class="flex-1 flex flex-col">
+<div class="flex justify-between items-center mb-1">
+<span class="text-caption font-bold text-on-surface-variant">Flow Rate (LPS)</span>
+<span class="text-label-md font-bold text-error">42.8 LPS ↑</span>
+</div>
+<div class="flex-1 bg-surface-container rounded-xl relative overflow-hidden flex items-end px-2 pb-2 gap-1">
+<!-- Faked Bars for Chart -->
+<div class="w-2 bg-secondary/30 h-1/2 rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-2/3 rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-3/5 rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-1/2 rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-3/4 rounded-t-sm"></div>
+<div class="w-2 bg-error h-full rounded-t-sm"></div>
+<div class="w-2 bg-error h-[90%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-[95%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-full rounded-t-sm"></div>
+</div>
+</div>
+<!-- Pressure Chart -->
+<div class="flex-1 flex flex-col">
+<div class="flex justify-between items-center mb-1">
+<span class="text-caption font-bold text-on-surface-variant">Pressure (Bars)</span>
+<span class="text-label-md font-bold text-error">0.8 Bar ↓</span>
+</div>
+<div class="flex-1 bg-surface-container rounded-xl relative overflow-hidden flex items-end px-2 pb-2 gap-1">
+<div class="w-2 bg-secondary/30 h-4/5 rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-[78%] rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-[82%] rounded-t-sm"></div>
+<div class="w-2 bg-secondary/30 h-4/5 rounded-t-sm"></div>
+<div class="w-2 bg-error h-[20%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-[18%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-[15%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-[12%] rounded-t-sm"></div>
+<div class="w-2 bg-error h-[10%] rounded-t-sm"></div>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+<!-- Modal: Assign Plumber -->
+<div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-primary/20 backdrop-blur-sm" id="assignModal">
+<div class="bg-surface-container-lowest w-full max-w-md rounded-[32px] shadow-2xl overflow-hidden border border-outline-variant/30 transform transition-all scale-100">
+<div class="p-8">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h2 class="font-headline text-headline-lg mb-1">Assign Plumber</h2>
+<p class="text-body-md text-on-surface-variant">Leak detected at <span class="text-error font-bold">Z04-P09</span>. Urgent maintenance required.</p>
+</div>
+<button class="h-10 w-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors" onclick="document.getElementById('assignModal').classList.add('hidden')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<div class="space-y-4">
+<!-- Plumber 1 -->
+<div class="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="h-12 w-12 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Karthik S." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB2oTy6YaHzsstcfj2Xl5uF1x130vBcWM63ChUzt72bKmEHhPUIAD0cnzdlVq46QpPdAYOt_eVw5GpBQz98Bl1NWPnzBrhBuas7_iPBXxL-nnU1AYxvSmGmRC2kJYm3h0RxsaFc4bCJR6aMBOocvSTgwXgndYJlI8MNgifx709hcMC5M66ph96dlZKXIMOEG1IZesH4kq3-9bcYDRJ1jgzfaBCSCTBBTdh0ZBrI-rSP2fTgBnwqlLaNyilTfCmMtRgsnNuzajpoZGY"/>
+</div>
+<div>
+<h4 class="text-label-md font-bold">Karthik S.</h4>
+<p class="text-caption text-on-surface-variant">Senior Plumber • 400m away</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-xl text-label-md font-bold hover:scale-[0.96] active:scale-95 transition-transform">
+                            Assign
+                        </button>
+</div>
+<!-- Plumber 2 -->
+<div class="flex items-center justify-between p-4 bg-surface rounded-2xl border border-outline-variant/20">
+<div class="flex items-center gap-4">
+<div class="h-12 w-12 rounded-full bg-secondary-container overflow-hidden">
+<img alt="Ananya R." class="h-full w-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbukxmNB62S92LuVD_epM9L-SuiT2RrXRIGv3X7TQbfv8dARkHu2_HeFWAjp_llZrGv_xzTUI82B2QtzHk7J6zLS7vWcbt6TvuBOZq_VQOEtKvqYotGb_Fwe2G453GozVP8r3-8vtY8sFYvWtuvCQ0rfHGArNY4Kcix8sn3o8pwSJTyQosm5WDmQhc6kP_AFl_3WUTziXa73xEZ-QrYOBH9uri_UCGLUuSbgJAwIcl37Jcrj7uKzcvSTiXBSIlVbRI0A1IbkEtzds"/>
+</div>
+<div>
+<h4 class="text-label-md font-bold">Ananya R.</h4>
+<p class="text-caption text-on-surface-variant">Technician • 1.2km away</p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-xl text-label-md font-bold hover:scale-[0.96] active:scale-95 transition-transform">
+                            Assign
+                        </button>
+</div>
+</div>
+<div class="mt-8">
+<button class="w-full bg-secondary text-on-secondary py-4 rounded-2xl font-bold flex items-center justify-center gap-2 hover:translate-y-[-2px] transition-transform shadow-lg">
+<span class="material-symbols-outlined">send</span>
+                        Dispatch &amp; Notify All
+                    </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Micro-interaction Scripts -->
+<script>
+        // Simple modal escape key listener
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.getElementById('assignModal').classList.add('hidden');
+            }
+        });
+
+        // Background Animation Logic (Subtle movement for realism)
+        const mapContainer = document.querySelector('.bg-inverse-surface');
+        mapContainer.addEventListener('mousemove', (e) => {
+            const mapImage = mapContainer.querySelector('[data-alt]');
+            const x = (e.clientX / window.innerWidth - 0.5) * 20;
+            const y = (e.clientY / window.innerHeight - 0.5) * 20;
+            mapImage.style.transform = `scale(1.1) translate(${x}px, ${y}px)`;
+        });
+        
+        mapContainer.addEventListener('mouseleave', () => {
+            const mapImage = mapContainer.querySelector('[data-alt]');
+            mapImage.style.transform = `scale(1) translate(0px, 0px)`;
+        });
+    </script>
+</body></html>
