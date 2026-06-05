@@ -5,6 +5,7 @@ import '../../../core/models/stats_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/models/pole_model.dart';
 import '../../../core/models/dashboard_insights_model.dart';
+import '../../super_admin/data/models/complaint_model.dart';
 import '../data/panchayat_admin_repository.dart';
 
 // Events
@@ -30,16 +31,20 @@ class PADashLoaded extends PADashState {
   final UserModel profile;
   final List<PoleModel> poles;
   final DashboardInsights insights;
+  final List<ComplaintModel> complaints;
+  final List<dynamic> electricians;
   final String? warningMessage;
   PADashLoaded({
     required this.stats,
     required this.profile,
     required this.poles,
     required this.insights,
+    required this.complaints,
+    required this.electricians,
     this.warningMessage,
   });
   @override
-  List<Object?> get props => [stats, profile, poles, insights, warningMessage];
+  List<Object?> get props => [stats, profile, poles, insights, complaints, electricians, warningMessage];
 }
 
 class PADashError extends PADashState {
@@ -66,6 +71,8 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
     UserModel? profile;
     List<PoleModel>? poles;
     DashboardInsights? insights;
+    List<ComplaintModel>? complaints;
+    List<dynamic>? electricians;
 
     try {
       stats = await _repo.getStats();
@@ -91,7 +98,19 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
       errors.add('Dashboard insights unavailable: ${e.message}');
     }
 
-    if (stats == null && profile == null && poles == null && insights == null) {
+    try {
+      complaints = await _repo.listComplaints(status: 'pending');
+    } on ApiException catch (e) {
+      errors.add('Complaints unavailable: ${e.message}');
+    }
+
+    try {
+      electricians = await _repo.listElectricians();
+    } on ApiException catch (e) {
+      errors.add('Electricians unavailable: ${e.message}');
+    }
+
+    if (stats == null && profile == null && poles == null && insights == null && complaints == null && electricians == null) {
       emit(PADashError(errors.join('\n')));
       return;
     }
@@ -122,6 +141,8 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
               byCategory: [],
               recentActivity: [],
             ),
+        complaints: complaints ?? const [],
+        electricians: electricians ?? const [],
         warningMessage:
             errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
       ),

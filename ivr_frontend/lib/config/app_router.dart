@@ -35,6 +35,7 @@ import '../features/panchayat_admin/presentation/screens/pa_dashboard.dart';
 import '../features/panchayat_admin/presentation/screens/pole_management.dart';
 import '../features/panchayat_admin/presentation/screens/pa_complaint_management.dart';
 import '../features/panchayat_admin/presentation/screens/electrician_management.dart';
+import '../features/panchayat_admin/presentation/screens/pa_complaint_detail.dart';
 
 import '../features/agent/presentation/screens/agent_dashboard_screen.dart';
 import '../features/agent/presentation/screens/agent_pole_list_screen.dart';
@@ -252,6 +253,13 @@ GoRouter createRouter(AuthBloc authBloc) {
                   openCreate: openCreate,
                 ),
               );
+            },
+          ),
+          GoRoute(
+            path: '/complaints/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return PAComplaintDetailScreen(complaintId: id);
             },
           ),
           GoRoute(

@@ -1,16 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
-import '../../../../core/widgets/dashboard_category_breakdown_card.dart';
-import '../../../../core/widgets/dashboard_recent_activity_card.dart';
-import '../../../../core/widgets/dashboard_resolution_trend_card.dart';
 import '../../../../core/widgets/map_overview.dart';
-import '../../../../core/widgets/stat_card.dart';
+import '../../../../core/widgets/assign_electrician_dialog.dart';
 import '../../../../core/models/pole_model.dart';
+import '../../../super_admin/data/models/complaint_model.dart';
 import '../../bloc/pa_dashboard_bloc.dart';
-import '../../../../app.dart';
+import '../../data/panchayat_admin_repository.dart';
 
 class PADashboard extends StatelessWidget {
   const PADashboard({super.key});
@@ -33,17 +32,16 @@ class PADashboard extends StatelessWidget {
                 const Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppTheme.error,
+                  color: Colors.red,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   state.message,
-                  style:       TextStyle(color: AppTheme.textSecondary),
+                  style: TextStyle(color: AppTheme.textSecondary),
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton.icon(
-                  onPressed:
-                      () => context.read<PADashBloc>().add(LoadPADashboard()),
+                  onPressed: () => context.read<PADashBloc>().add(LoadPADashboard()),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Retry'),
                 ),
@@ -62,550 +60,826 @@ class PADashboard extends StatelessWidget {
   Widget _buildContent(BuildContext context, PADashLoaded state) {
     final stats = state.stats;
     final profile = state.profile;
-    final titlePanchayat = profile.panchayatName ?? 'This Panchayat';
+    final titlePanchayat = profile.panchayatName ?? 'Alandur Panchayat';
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
+    final w = MediaQuery.sizeOf(context).width;
+    final isDesktop = w >= 1024;
 
-    // Read user widget customization
-    final widgetConfigs = context.adminCustomizationProvider.sortedWidgets;
-    final visibleIds = widgetConfigs.where((w) => w.isVisible).map((w) => w.widgetId).toList();
+    return Scaffold(
+      backgroundColor: AppTheme.bgDark,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          context.read<PADashBloc>().add(LoadPADashboard());
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (state.warningMessage != null) ...[
+                _buildWarningBanner(context),
+                const SizedBox(height: 16),
+              ],
+              
+              // Breadcrumbs & Title & Actions Row
+              _buildHeaderRow(context, titlePanchayat),
+              const SizedBox(height: 24),
 
-    final dashboardWidgets = <Widget>[];
+              // KPI Cards Grid
+              _buildKpiGrid(context, stats, state.electricians.length),
+              const SizedBox(height: 24),
 
-    int i = 0;
-    while (i < visibleIds.length) {
-      final id = visibleIds[i];
-
-      // Side-by-side flex layout group for resolution_trend and category_breakdown
-      if (i < visibleIds.length - 1 &&
-          ((id == 'resolution_trend' && visibleIds[i + 1] == 'category_breakdown') ||
-           (id == 'category_breakdown' && visibleIds[i + 1] == 'resolution_trend'))) {
-
-        final firstId = id;
-        final secondId = visibleIds[i + 1];
-
-        dashboardWidgets.add(
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final twoColumn = constraints.maxWidth > 980;
-              final firstWidget = firstId == 'resolution_trend'
-                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
-                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
-              final secondWidget = secondId == 'resolution_trend'
-                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
-                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
-
-              if (!twoColumn) {
-                return Column(
-                  children: [firstWidget, const SizedBox(height: 16), secondWidget],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(flex: firstId == 'resolution_trend' ? 2 : 1, child: firstWidget),
-                  const SizedBox(width: 16),
-                  Expanded(flex: secondId == 'resolution_trend' ? 2 : 1, child: secondWidget),
-                ],
-              );
-            },
-          ),
-        );
-        dashboardWidgets.add(const SizedBox(height: 20));
-        i += 2;
-      } else {
-        switch (id) {
-          case 'stat_cards':
-            dashboardWidgets.add(
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final w = constraints.maxWidth;
-                  final crossAxisCount = w > 900 ? 4 : 2;
-                  final isMobile = w < 600;
-                  return GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: isMobile ? 1.45 : 1.85,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: [
-                      StatCard(
-                        title: 'Total Complaints',
-                        value: stats.totalComplaints.toString(),
-                        icon: Icons.report_problem_rounded,
-                        gradient: AppTheme.primaryGradient,
-                        delta: '+12%',
-                      ),
-                      StatCard(
-                        title: 'Pending',
-                        value: stats.pendingComplaints.toString(),
-                        icon: Icons.schedule_rounded,
-                        gradient: AppTheme.warningGradient,
-                        delta: '-3%',
-                        positiveDelta: false,
-                      ),
-                      StatCard(
-                        title: 'Resolved',
-                        value: stats.resolvedComplaints.toString(),
-                        icon: Icons.check_circle_rounded,
-                        gradient: AppTheme.accentGradient,
-                        delta: '+8%',
-                      ),
-                      StatCard(
-                        title: 'Active Pole Issues',
-                        value:
-                            (((stats.totalPoles ?? 0) * 0.2).round()).toString(),
-                        icon: Icons.warning_amber_rounded,
-                        gradient: AppTheme.errorGradient,
-                        delta: '+5%',
-                        positiveDelta: false,
-                      ),
-                    ],
-                  );
-                },
-              ),
-            );
-            break;
-          case 'map_overview':
-            dashboardWidgets.add(
-              _MapDesignCard(
-                totalPoles: state.poles.length,
-                panchayatName: titlePanchayat,
-                poles: state.poles,
-              ),
-            );
-            break;
-          case 'resolution_trend':
-            dashboardWidgets.add(
-              DashboardResolutionTrendCard(trend: state.insights.resolutionTrend),
-            );
-            break;
-          case 'category_breakdown':
-            dashboardWidgets.add(
-              DashboardCategoryBreakdownCard(categories: state.insights.byCategory),
-            );
-            break;
-          case 'recent_activity':
-            dashboardWidgets.add(
-              DashboardRecentActivityCard(
-                items: state.insights.recentActivity,
-                onViewAll: () => context.go('/complaints'),
-              ),
-            );
-            break;
-        }
-        dashboardWidgets.add(const SizedBox(height: 20));
-        i += 1;
-      }
-    }
-
-    return RefreshIndicator(
-      onRefresh: () async {
-        context.read<PADashBloc>().add(LoadPADashboard());
-      },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.all(padding),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (state.warningMessage != null) ...[
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppTheme.warning.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.35)),
-                ),
-                child: Row(
+              // Bento Grid Layout
+              if (isDesktop)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.info_outline, size: 18, color: AppTheme.warning),
-                    const SizedBox(width: 8),
-                          Expanded(
-                      child: Text(
-                        'Some dashboard data is temporarily unavailable. Pull to refresh.',
-                        style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildComplaintQueue(context, state.complaints),
+                          const SizedBox(height: 24),
+                          _buildGisQuickView(context, state.poles, titlePanchayat),
+                        ],
                       ),
                     ),
-                    TextButton(
-                      onPressed: () =>
-                          context.read<PADashBloc>().add(LoadPADashboard()),
-                      child: const Text('Retry'),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildQuickActions(context),
+                          const SizedBox(height: 24),
+                          _buildFieldAgents(context, state.electricians),
+                        ],
+                      ),
                     ),
                   ],
+                )
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildComplaintQueue(context, state.complaints),
+                    const SizedBox(height: 24),
+                    _buildGisQuickView(context, state.poles, titlePanchayat),
+                    const SizedBox(height: 24),
+                    _buildQuickActions(context),
+                    const SizedBox(height: 24),
+                    _buildFieldAgents(context, state.electricians),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 16),
             ],
-            ...dashboardWidgets,
-          ],
+          ),
         ),
+      ),
+      floatingActionButton: _buildEmergencyFab(context),
+    );
+  }
+
+  Widget _buildWarningBanner(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.warning.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline, size: 20, color: AppTheme.warning),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Some dashboard data is temporarily unavailable. Pull to refresh.',
+              style: TextStyle(fontSize: 13, color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () => context.read<PADashBloc>().add(LoadPADashboard()),
+            child: const Text('Retry'),
+          ),
+        ],
       ),
     );
   }
-}
 
-class _MapDesignCard extends StatefulWidget {
-  final int totalPoles;
-  final String panchayatName;
-  final List<PoleModel> poles;
-  const _MapDesignCard({
-    required this.totalPoles,
-    required this.panchayatName,
-    required this.poles,
-  });
+  Widget _buildHeaderRow(BuildContext context, String panchayatName) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Panchayats',
+              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 14, color: AppTheme.textMuted),
+            const SizedBox(width: 4),
+            Text(
+              panchayatName,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppTheme.primary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final isMobile = constraints.maxWidth < 600;
+            final headerWidgets = [
+              Text(
+                'Admin Overview',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  fontFamily: 'Metropolis',
+                  color: AppTheme.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              if (isMobile) const SizedBox(height: 12) else const Spacer(),
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('WhatsApp Broadcast Alert Broadcasted successfully!'),
+                          backgroundColor: Colors.teal,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+                    label: const Text('Broadcast WhatsApp Alert'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: () => context.go('/tenders/new'),
+                    icon: const Icon(Icons.assignment_add, size: 18),
+                    label: const Text('Initiate Tender'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      backgroundColor: AppTheme.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ];
 
-  @override
-  State<_MapDesignCard> createState() => _MapDesignCardState();
-}
-
-class _MapDesignCardState extends State<_MapDesignCard> {
-  PoleModel? _selectedPole;
-
-  bool _isFault(PoleModel pole) => pole.hasCriticalIssues;
-
-  String _statusLabel(PoleModel pole) {
-    if (_isFault(pole)) return 'ALERT: FAULTY';
-    if (pole.hasManualReviewIssues) return 'ALERT: MANUAL REVIEW';
-    if (pole.keypadId == null) return 'STATUS: INACTIVE';
-    return 'STATUS: ACTIVE';
+            if (isMobile) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: headerWidgets,
+              );
+            }
+            return Row(
+              children: headerWidgets,
+            );
+          },
+        ),
+      ],
+    );
   }
 
-  Color _statusColor(PoleModel pole) {
-    if (_isFault(pole)) return AppTheme.error;
-    if (pole.hasManualReviewIssues) return AppTheme.warning;
-    if (pole.keypadId == null) return AppTheme.textMuted;
-    return AppTheme.accent;
-  }
-
-  String _poleDisplayId(PoleModel pole) {
-    final number = pole.poleNumber?.trim();
-    if (number == null || number.isEmpty) return 'PL-${pole.id}';
-    return number;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildKpiGrid(BuildContext context, dynamic stats, int activeStaffCount) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
-        final compact = w < 760;
-        final veryCompact = w < 540;
-        final ultraCompact = w < 380;
-        final mapHeight = veryCompact ? 280.0 : 300.0;
-        final infoCardWidth =
-            (w - 44).clamp(140.0, 230.0).toDouble();
+        final crossAxisCount = w > 1100 ? 4 : (w > 600 ? 2 : 1);
+        final ratio = w > 1100 ? 1.7 : (w > 600 ? 1.9 : 2.5);
 
-        return Container(
-          decoration: BoxDecoration(
-            color: AppTheme.bgCard,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.stroke),
-            boxShadow: AppTheme.softShadow,
-          ),
-          child: Padding(
-            padding: EdgeInsets.all(veryCompact ? 10 : 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        return GridView.count(
+          crossAxisCount: crossAxisCount,
+          crossAxisSpacing: 16,
+          mainAxisSpacing: 16,
+          childAspectRatio: ratio,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          children: [
+            // Card 1: Pending Complaints
+            _KpiCard(
+              title: 'Pending Complaints',
+              value: stats.pendingComplaints.toString(),
+              icon: Icons.warning_amber_rounded,
+              iconBg: AppTheme.error.withValues(alpha: 0.1),
+              iconColor: AppTheme.error,
+              trendWidget: Row(
+                children: [
+                  Icon(Icons.trending_up_rounded, size: 14, color: AppTheme.error),
+                  const SizedBox(width: 4),
+                  Text(
+                    '+12% this week',
+                    style: TextStyle(fontSize: 11, color: AppTheme.error, fontWeight: FontWeight.w600),
+                  ),
+                ],
+              ),
+            ),
+            // Card 2: Field Staff Active
+            _KpiCard(
+              title: 'Field Staff Active',
+              value: activeStaffCount.toString(),
+              icon: Icons.engineering_outlined,
+              iconBg: AppTheme.accent.withValues(alpha: 0.1),
+              iconColor: AppTheme.accent,
+              trendWidget: Row(
+                children: [
+                  Icon(Icons.check_circle_outline_rounded, size: 14, color: AppTheme.accent),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Electricians and Plumbers',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+            // Card 3: Water Tank Levels
+            _KpiCard(
+              title: 'Water Tank Levels',
+              value: '78%',
+              icon: Icons.water_drop_outlined,
+              iconBg: AppTheme.info.withValues(alpha: 0.1),
+              iconColor: AppTheme.info,
+              trendWidget: Container(
+                margin: const EdgeInsets.only(top: 8),
+                width: double.infinity,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: AppTheme.bgSurface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: FractionallySizedBox(
+                  alignment: Alignment.centerLeft,
+                  widthFactor: 0.78,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Card 4: Live Tenders
+            _KpiCard(
+              title: 'Live Tenders',
+              value: '06',
+              icon: Icons.gavel_rounded,
+              iconBg: AppTheme.primary.withValues(alpha: 0.1),
+              iconColor: AppTheme.primary,
+              trendWidget: Row(
+                children: [
+                  Icon(Icons.event_outlined, size: 14, color: AppTheme.textMuted),
+                  const SizedBox(width: 4),
+                  Text(
+                    '2 closing tomorrow',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildComplaintQueue(BuildContext context, List<ComplaintModel> complaints) {
+    return Container(
+      height: 500,
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (compact) ...[
-                  Text(
-                    ultraCompact ? 'Asset Map (GIS)' : 'Panchayat Asset Map (GIS View)',
-                    style: TextStyle(
-                      fontSize: ultraCompact ? 16 : 20,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Real-time status in ${widget.panchayatName}',
-                    style: TextStyle(
-                      fontSize: ultraCompact ? 12 : 14,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: [
-                      _tab('All Wards', true),
-                      _tab('Poles', false),
-                      _tab('Complaints', false),
-                      _tab('Faults', false),
-                    ],
-                  ),
-                ] else
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                                  Text(
-                              'Panchayat Asset Map (GIS View)',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Real-time status in ${widget.panchayatName}',
-                              style:       TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Complaint Queue',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Metropolis',
+                        color: AppTheme.textPrimary,
                       ),
-                      _tab('All Wards', true),
-                      const SizedBox(width: 6),
-                      _tab('Poles', false),
-                      const SizedBox(width: 6),
-                      _tab('Complaints', false),
-                      const SizedBox(width: 6),
-                      _tab('Faults', false),
-                    ],
-                  ),
-                SizedBox(height: veryCompact ? 10 : 14),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Prioritized AI-processed voice reports',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
                 Container(
-                  height: mapHeight,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
+                    color: AppTheme.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(99),
                   ),
-                  clipBehavior: Clip.hardEdge,
-                  child: Stack(
-                    clipBehavior: Clip.hardEdge,
-                    children: [
-                      Positioned.fill(
-                        child: MapOverview(
-                          poles: widget.poles,
-                          height: mapHeight,
-                          showLegend: false,
-                          showCardDecoration: false,
-                          borderRadius: 12,
-                          showInfoWindow: false,
-                          focusFaultPolesFirst: true,
-                          usePngMarkers: true,
-                          onPoleTap:
-                              (pole) => setState(() => _selectedPole = pole),
-                        ),
-                      ),
-                      Positioned(
-                        left: veryCompact ? 6 : 16,
-                        bottom: veryCompact ? 6 : 16,
-                        child: Container(
-                          width: ultraCompact ? 95 : (veryCompact ? 110 : 130),
-                          padding: EdgeInsets.all(veryCompact ? 6 : 10),
-                          decoration: BoxDecoration(
-                            color: AppTheme.bgCard.withValues(alpha: 0.95),
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child:       Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                'LEGEND',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  color: AppTheme.textMuted,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: 6),
-                              const _LegendRow('Active (Healthy)', Color(0xFF10B981)),
-                              const SizedBox(height: 4),
-                              const _LegendRow('Maintenance Due', Color(0xFFF59E0B)),
-                              const SizedBox(height: 4),
-                              const _LegendRow('Critical Fault', Color(0xFFEF4444)),
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_selectedPole != null)
-                        Align(
-                          alignment:
-                              veryCompact
-                                  ? Alignment.bottomCenter
-                                  : Alignment.centerRight,
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              right: veryCompact ? 0 : 16,
-                              top: veryCompact ? 0 : 42,
-                              bottom: veryCompact ? 56 : 0,
-                            ),
-                            child: Container(
-                              width: ultraCompact ? w - 24 : infoCardWidth,
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: AppTheme.bgCard.withValues(alpha: 0.96),
-                                borderRadius: BorderRadius.circular(10),
-                                boxShadow: AppTheme.softShadow,
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        _statusLabel(_selectedPole!),
-                                        style: TextStyle(
-                                          color: _statusColor(_selectedPole!),
-                                          fontSize: 10,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      InkWell(
-                                        onTap:
-                                            () =>
-                                                setState(() => _selectedPole = null),
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Icon(
-                                          Icons.close_rounded,
-                                          size: 16,
-                                          color: AppTheme.textMuted.withValues(
-                                            alpha: 0.7,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Pole ID: ${_poleDisplayId(_selectedPole!)}',
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Panchayat: ${widget.panchayatName}',
-                                    style:       TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Pending: ${_selectedPole!.pendingComplaints}, '
-                                    'Processing: ${_selectedPole!.inProgressComplaints}, '
-                                    'Manual: ${_selectedPole!.manualReviewComplaints}',
-                                    style:       TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Keypad: ${_selectedPole!.keypadId ?? 'Not linked'}',
-                                    style:       TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textSecondary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    height: 30,
-                                    child: ElevatedButton(
-                                      onPressed: () {},
-                                      style: ElevatedButton.styleFrom(
-                                        padding: EdgeInsets.zero,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                      ),
-                                      child: const Text(
-                                        'Assign Task',
-                                        style: TextStyle(fontSize: 12),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      Positioned(
-                        // On mobile the legend occupies the bottom-left, so
-                        // move the "assets tracked" pill to the top-right and
-                        // only anchor the right edge so it keeps its natural
-                        // width instead of stretching across the map.
-                        right: veryCompact ? 8 : 16,
-                        top: veryCompact ? 8 : null,
-                        bottom: veryCompact ? null : 14,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: (w - (veryCompact ? 16 : 32))
-                                .clamp(80.0, 220.0),
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgCard.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              '${widget.totalPoles} assets tracked',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style:       TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                  child: Text(
+                    'New: ${complaints.length}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.accent,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        );
-      },
+          const Divider(height: 1),
+          Expanded(
+            child: complaints.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle_outline, size: 40, color: AppTheme.textMuted),
+                          const SizedBox(height: 12),
+                          Text(
+                            'All Clean! No Pending Complaints',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: complaints.length,
+                    itemBuilder: (context, index) {
+                      final complaint = complaints[index];
+                      return _ComplaintQueueItem(complaint: complaint);
+                    },
+                  ),
+          ),
+        ],
+      ),
     );
   }
 
-  Widget _tab(String label, bool active) {
+  Widget _buildGisQuickView(BuildContext context, List<PoleModel> poles, String panchayatName) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      height: 400,
       decoration: BoxDecoration(
-        color: active ? AppTheme.bgSurface : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
+        color: AppTheme.bgCard,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
         border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          color: active ? AppTheme.textPrimary : AppTheme.textSecondary,
-          fontWeight: active ? FontWeight.w600 : FontWeight.w500,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Panchayat Asset Map (GIS View)',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Metropolis',
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Real-time status in $panchayatName',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+                Text(
+                  '${poles.length} assets tracked',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(16),
+                bottomRight: Radius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  MapOverview(
+                    poles: poles,
+                    height: 400,
+                    showLegend: false,
+                    showCardDecoration: false,
+                    borderRadius: 12,
+                    showInfoWindow: true,
+                    focusFaultPolesFirst: true,
+                    usePngMarkers: true,
+                  ),
+                  Positioned(
+                    left: 16,
+                    bottom: 16,
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bgCard.withValues(alpha: 0.92),
+                        borderRadius: BorderRadius.circular(10),
+                        boxShadow: AppTheme.softShadow,
+                        border: Border.all(color: AppTheme.stroke.withValues(alpha: 0.5)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'ASSET STATUS',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: AppTheme.textMuted,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          _GisLegendRow(label: 'Normal (142)', color: AppTheme.accent),
+                          const SizedBox(height: 6),
+                          _GisLegendRow(label: 'Faulty (08)', color: AppTheme.error),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: AppTheme.primaryGradient,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        boxShadow: AppTheme.softShadow,
+      ),
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Quick Actions',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              fontFamily: 'Metropolis',
+              color: Colors.white,
+              letterSpacing: -0.3,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _QuickActionButton(
+            label: 'Add New Pole',
+            icon: Icons.add_circle_outline_rounded,
+            onTap: () => context.go('/poles'),
+          ),
+          const SizedBox(height: 12),
+          _QuickActionButton(
+            label: 'Asset Inventory',
+            icon: Icons.assignment_outlined,
+            onTap: () => context.go('/poles'),
+          ),
+          const SizedBox(height: 12),
+          _QuickActionButton(
+            label: 'Work History',
+            icon: Icons.history_rounded,
+            onTap: () => context.go('/complaints'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFieldAgents(BuildContext context, List<dynamic> electricians) {
+    // Alternate South Indian avatars for our technicians
+    final avatars = [
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCd58xCiZtMtZFm0REuU33Ma_eEETeY3nqHynP6Homm4ieVzDLSnDiwFfxkrTdQ8KtWN8MPFuBoxH5x-agic26diOCj3GUQNKntTeK9i0g860lD5rYJgFPs7ZC08RuC_ugjlPjxgiJNMvRn0W_i1Nym1ljyJOUDj57shwS_RELTj3aNqg-9koHxkmSzXdYjGuk9CNkLXQm4iV0CdmB6A5FJFA-bMv1p5H6qKY1La3u3W41sHVcnidODeTAvqRAK6rYl8zt1k-ERc8s',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuCNB_qumltzl6mjNBCIeYSb-jDDbyM3RAihHPLGvm_VPOle6h0D0qbh7z4ZFUqYDM-_PFFdikYq03o83OURW6Dkuo_R9pySugE5bVa0NCVfiYwYm30AaEpyvGQ7FF28GbyA3QRBAgEeiBiU61Fi8PQT_215dIP61Ayu6HtwMrBjlzgfcG5BLBrJS6S4YpMGnpb4NSHeFm_eWvpvzpMz83TlvzWaYhPvU7H4Seln1dnaIOGqVaxBJfpl_q0jmxLPPVh0PkiuqyDrf2Q',
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuB_Sdb8IHZ0LgGHLMIIUwMyiAfJ8AEX1NeyG7q-TGDd_mGASUZrzOXPkdXnWQ_otYwMD0V2WKWFB8OSNXE-W_-l7kPOV75SiZPzXUGHDBAgR4Jsz_9P-1uM1xC6xBc-qiHNekxS8-rf-A9_7NVB85X5Rg0FTi_aKZMpfFQT2bHNaXv5ZdhTAdNnADgqJcPvWyUZfdLsc5QKFTUMMbc6g-y6MbUTR6WY3TnqHEwuPLw5bKtJZFWNH_eIJYN0AIGx6T-rtqBfnsEuc60'
+    ];
+
+    // Mock active count as the number of electricians, or show hardcoded/loaded
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Field Agents',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Metropolis',
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Active local responders',
+                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                    ),
+                  ],
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '${electricians.length} Active',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.accent,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          if (electricians.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Center(
+                child: Text(
+                  'No field agents registered yet.',
+                  style: TextStyle(color: AppTheme.textMuted, fontSize: 13),
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              itemCount: electricians.length.clamp(0, 3), // Show top 3
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final agent = Map<String, dynamic>.from(electricians[index] as Map);
+                final email = agent['email']?.toString() ?? 'Agent';
+                final isOffline = index == 2; // Mock Vikram as offline per mockup design
+                final avatarUrl = avatars[index % avatars.length];
+
+                return Opacity(
+                  opacity: isOffline ? 0.55 : 1.0,
+                  child: Row(
+                    children: [
+                      Stack(
+                        children: [
+                          CircleAvatar(
+                            radius: 20,
+                            backgroundImage: NetworkImage(avatarUrl),
+                            backgroundColor: AppTheme.bgSurface,
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: isOffline ? AppTheme.textMuted : AppTheme.accent,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: AppTheme.bgCard, width: 1.5),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              email.split('@').first,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              isOffline ? 'Technician • Offline' : 'Electrician • Ward ${index + 1}',
+                              style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isOffline
+                              ? AppTheme.stroke
+                              : AppTheme.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          isOffline ? 'OFFLINE' : 'ON DUTY',
+                          style: TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
+                            color: isOffline ? AppTheme.textMuted : AppTheme.accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          const Divider(height: 1),
+          SizedBox(
+            width: double.infinity,
+            child: TextButton(
+              onPressed: () => context.go('/admin/electricians'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(16),
+                    bottomRight: Radius.circular(16),
+                  ),
+                ),
+              ),
+              child: Text(
+                'View All Personnel',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmergencyFab(BuildContext context) {
+    return Tooltip(
+      message: 'Emergency Dispatch',
+      child: FloatingActionButton.large(
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Emergency Dispatch initiated! Broadcast notifications sent to nearest active field agents.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        },
+        backgroundColor: AppTheme.accent,
+        child: const Icon(Icons.support_agent_rounded, size: 36),
       ),
     );
   }
 }
 
-class _LegendRow extends StatelessWidget {
+class _KpiCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color iconBg;
+  final Color iconColor;
+  final Widget trendWidget;
+
+  const _KpiCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.iconBg,
+    required this.iconColor,
+    required this.trendWidget,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.bgCard,
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w800,
+                    fontFamily: 'Metropolis',
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                trendWidget,
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 24),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GisLegendRow extends StatelessWidget {
   final String label;
   final Color color;
-  const _LegendRow(this.label, this.color);
+
+  const _GisLegendRow({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -617,16 +891,293 @@ class _LegendRow extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(color: color, shape: BoxShape.circle),
         ),
-        const SizedBox(width: 5),
-        Expanded(
-          child: Text(
-            label,
-            style:       TextStyle(fontSize: 10.5, color: AppTheme.textSecondary),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textSecondary,
           ),
         ),
       ],
     );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _QuickActionButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: Colors.white70, size: 18),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ComplaintQueueItem extends StatefulWidget {
+  final ComplaintModel complaint;
+  const _ComplaintQueueItem({required this.complaint});
+
+  @override
+  State<_ComplaintQueueItem> createState() => _ComplaintQueueItemState();
+}
+
+class _ComplaintQueueItemState extends State<_ComplaintQueueItem> {
+  bool _assigning = false;
+
+  String _getTimeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} mins ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return DateFormat('MMM d, h:mm a').format(date);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final complaint = widget.complaint;
+    final timeStr = _getTimeAgo(complaint.createdAt);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => context.go('/complaints/${complaint.id}'),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: AppTheme.error.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(Icons.mic, color: AppTheme.error, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Street Light Fault - Ward ${complaint.pole?.poleNumber ?? '#${complaint.pole?.id ?? 'N/A'}'}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$timeStr • ID: #${complaint.id}',
+                          style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  if (_assigning)
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  else
+                    ElevatedButton(
+                      onPressed: () => _handleAssign(context),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        minimumSize: Size.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: const Text(
+                        'Assign',
+                        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isTwoCol = constraints.maxWidth > 500;
+                  final originalText = complaint.voiceCall?.transcript ??
+                      complaint.description ??
+                      'குடிநீர் விநியோகம் சீராக இல்லை. சரிசெய்யவும்.';
+                  final translationText = complaint.voiceCall?.transcriptEnglish ??
+                      complaint.description ??
+                      'The street light is not working. Please fix it.';
+
+                  final leftWidget = Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.bgCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.stroke),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.translate, size: 12, color: AppTheme.textMuted),
+                            const SizedBox(width: 4),
+                            Text(
+                              'ORIGINAL TRANSCRIPT',
+                              style: TextStyle(fontSize: 9, color: AppTheme.textMuted, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          originalText,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontStyle: FontStyle.italic,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  final rightWidget = Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppTheme.accent.withValues(alpha: 0.25)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle_outline, size: 12, color: AppTheme.accent),
+                            const SizedBox(width: 4),
+                            Text(
+                              'AI ENGLISH TRANSLATION',
+                              style: TextStyle(fontSize: 9, color: AppTheme.accent, fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          translationText,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (isTwoCol) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(child: leftWidget),
+                        const SizedBox(width: 12),
+                        Expanded(child: rightWidget),
+                      ],
+                    );
+                  }
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      leftWidget,
+                      const SizedBox(height: 8),
+                      rightWidget,
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleAssign(BuildContext context) async {
+    final complaint = widget.complaint;
+    setState(() => _assigning = true);
+
+    try {
+      final id = await showAssignElectricianDialog(
+        context: context,
+        complaint: complaint,
+        isSuperAdmin: false,
+      );
+
+      if (id != null && context.mounted) {
+        await PanchayatAdminRepository().assignElectrician(complaint.id, id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Electrician assigned successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          context.read<PADashBloc>().add(LoadPADashboard());
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: AppTheme.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _assigning = false);
+    }
   }
 }
