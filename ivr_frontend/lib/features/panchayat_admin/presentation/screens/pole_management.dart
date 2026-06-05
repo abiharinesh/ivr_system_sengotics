@@ -80,204 +80,259 @@ class PoleManagement extends StatelessWidget {
         itemCount: state.poles.length,
         itemBuilder: (context, index) {
           final pole = state.poles[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Header row: icon + title + menu ──────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
-                          ),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Icon(
-                          Icons.electrical_services_rounded,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Pole number (main title)
-                            Text(
-                              pole.poleNumber ?? '(No pole number)',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: AppTheme.bgCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppTheme.stroke, width: 1.2),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // ── Header row: icon + title + menu ──────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF8B5CF6), Color(0xFFA855F7)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            const SizedBox(height: 4),
-                            // DB ID + Keypad side by side
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: [
-                                // Database ID badge — highlighted so it's easy to spot
-                                InkWell(
-                                  onTap: () {
-                                    Clipboard.setData(ClipboardData(text: '${pole.id}'));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Pole ID ${pole.id} copied to clipboard')),
-                                    );
-                                  },
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Tooltip(
-                                    message: 'Database ID — use this when linking poles in tender line items',
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              )
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.electrical_services_rounded,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Pole number (main title)
+                              Text(
+                                pole.poleNumber ?? '(No pole number)',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              // DB ID + Keypad side by side
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  // Database ID badge
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () {
+                                        Clipboard.setData(ClipboardData(text: '${pole.id}'));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('Pole ID ${pole.id} copied to clipboard'),
+                                            behavior: SnackBarBehavior.floating,
+                                          ),
+                                        );
+                                      },
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Tooltip(
+                                        message: 'Database ID — copy to clipboard',
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                                            border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3), width: 0.8),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.tag, size: 11, color: Color(0xFF8B5CF6)),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'ID: ${pole.id}',
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF8B5CF6),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  if (pole.keypadId != null)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-                                        border: Border.all(color: const Color(0xFF8B5CF6), width: 1),
+                                        color: AppTheme.bgSurface,
+                                        border: Border.all(color: AppTheme.stroke, width: 0.8),
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Row(
                                         mainAxisSize: MainAxisSize.min,
                                         children: [
-                                          const Icon(Icons.tag, size: 12, color: Color(0xFF8B5CF6)),
-                                          const SizedBox(width: 3),
+                                          Icon(Icons.dialpad, size: 11, color: AppTheme.textMuted),
+                                          const SizedBox(width: 4),
                                           Text(
-                                            'ID: ${pole.id}',
-                                            style: const TextStyle(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w700,
-                                              color: Color(0xFF8B5CF6),
+                                            'Keypad: ${pole.keypadId}',
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppTheme.textSecondary,
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        PopupMenuButton<String>(
+                          icon: Icon(Icons.more_vert, color: AppTheme.textMuted, size: 20),
+                          onSelected: (action) {
+                            if (action == 'edit') {
+                              _showEditDialog(context, pole);
+                            } else if (action == 'delete') {
+                              _showDeleteDialog(context, pole.id);
+                            }
+                          },
+                          itemBuilder: (_) => [
+                            const PopupMenuItem(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit_outlined, size: 16),
+                                  SizedBox(width: 8),
+                                  Text('Edit Details'),
+                                ],
+                              ),
+                            ),
+                            const PopupMenuItem(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete_outline, size: 16, color: AppTheme.error),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Delete Pole',
+                                    style: TextStyle(color: AppTheme.error),
                                   ),
-                                ),
-                                if (pole.keypadId != null)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blueGrey.withValues(alpha: 0.1),
-                                      border: Border.all(color: Colors.blueGrey.shade300, width: 1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                              Icon(Icons.dialpad, size: 12, color: AppTheme.textMuted),
-                                        const SizedBox(width: 3),
-                                        Text(
-                                          'Keypad: ${pole.keypadId}',
-                                          style:       TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.textMuted,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                              ],
+                                ],
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      PopupMenuButton<String>(
-                        onSelected: (action) {
-                          if (action == 'edit') {
-                            _showEditDialog(context, pole);
-                          } else if (action == 'delete') {
-                            _showDeleteDialog(context, pole.id);
-                          }
-                        },
-                        itemBuilder:
-                            (_) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Edit'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(color: AppTheme.error),
-                                ),
-                              ),
-                            ],
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  // ── Location row ──────────────────────────────────────
-                  if (pole.latitude != null && pole.longitude != null) ...[
-                    const SizedBox(height: 10),
+                    const Divider(height: 24),
+
+                    // ── Location Details ──────────────────────────────────
                     Row(
                       children: [
-                              Icon(Icons.location_on, size: 14, color: AppTheme.textMuted),
-                        const SizedBox(width: 4),
+                        Icon(Icons.location_on_rounded, size: 14, color: AppTheme.primaryLight),
+                        const SizedBox(width: 6),
                         Text(
-                          '${pole.latitude!.toStringAsFixed(5)}, ${pole.longitude!.toStringAsFixed(5)}',
-                          style:       TextStyle(
-                            fontSize: 12,
+                          pole.latitude != null && pole.longitude != null
+                              ? '${pole.latitude!.toStringAsFixed(6)}, ${pole.longitude!.toStringAsFixed(6)}'
+                              : 'No location coordinates',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
                             color: AppTheme.textSecondary,
                           ),
                         ),
                       ],
                     ),
-                  ],
 
-                  // ── Landmarks ─────────────────────────────────────────
-                  if (pole.landmarks.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: pole.landmarks.map(
-                        (l) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            l,
-                            style:       TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.primary,
+                    // ── Landmarks Tags ────────────────────────────────────
+                    if (pole.landmarks.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: pole.landmarks.map(
+                          (l) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15), width: 0.8),
+                            ),
+                            child: Text(
+                              l,
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.primary,
+                              ),
                             ),
                           ),
-                        ),
-                      ).toList(),
-                    ),
-                  ],
-
-                  // ── Footer: complaints count ───────────────────────────
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                            Icon(
-                        Icons.report_problem_rounded,
-                        size: 14,
-                        color: AppTheme.textMuted,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${pole.complaintsCount} complaint(s)',
-                        style:       TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textSecondary,
-                        ),
+                        ).toList(),
                       ),
                     ],
-                  ),
-                ],
+
+                    const Divider(height: 24),
+
+                    // ── Card Footer: complaints count ─────────────────────
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.report_problem_rounded,
+                              size: 14,
+                              color: pole.complaintsCount > 0 ? AppTheme.warning : AppTheme.textMuted,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              '${pole.complaintsCount} active complaints',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: pole.complaintsCount > 0 ? AppTheme.warning : AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Last updated: Just now',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           );

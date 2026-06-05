@@ -18,6 +18,7 @@ import {
 import type { Response } from 'express';
 import { PanchayatAdminService } from './panchayat-admin.service';
 import { ElectricianOpsService } from '../field-ops/field-ops.service';
+import { PlumberOpsService } from '../plumber/plumber-ops.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -38,6 +39,7 @@ export class PanchayatAdminController {
   constructor(
     private readonly service: PanchayatAdminService,
     private readonly electricianOps: ElectricianOpsService,
+    private readonly plumberOps: PlumberOpsService,
   ) {}
 
   /** Extract and validate panchayat_id from the JWT user. */
@@ -264,5 +266,54 @@ export class PanchayatAdminController {
       meta.download_url,
     );
     res.download(abs, `electrician-export-job-${jobId}.zip`);
+  }
+
+  // ── Field plumbers ─────────────────────────────────────────────────────
+  @Get('plumbers')
+  listPlumbers(@Req() req: AuthenticatedRequest) {
+    return this.plumberOps.listPlumbers(this.getPanchayatId(req));
+  }
+
+  @Post('plumbers')
+  createPlumber(
+    @Req() req: AuthenticatedRequest,
+    @Body() body: { email: string; password: string; phone_e164?: string },
+  ) {
+    return this.plumberOps.createPlumberForPanchayat(
+      this.getPanchayatId(req),
+      body,
+    );
+  }
+
+  @Get('plumbers/:id/stats')
+  plumberStats(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+    @Query('preset') preset: string,
+    @Query('date_from') dateFrom?: string,
+    @Query('date_to') dateTo?: string,
+  ) {
+    if (!preset) throw new BadRequestException('preset query required');
+    return this.plumberOps.getPlumberStats(
+      id,
+      this.getPanchayatId(req),
+      preset,
+      dateFrom,
+      dateTo,
+    );
+  }
+
+  /** Assign complaint to a plumber (same panchayat). */
+  @Patch('complaints/:id/assign-plumber')
+  assignPlumber(
+    @Req() req: AuthenticatedRequest,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { plumber_user_id: number },
+  ) {
+    return this.plumberOps.assignPlumber(
+      this.getPanchayatId(req),
+      id,
+      body.plumber_user_id,
+    );
   }
 }

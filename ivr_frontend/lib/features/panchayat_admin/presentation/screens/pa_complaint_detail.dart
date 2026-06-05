@@ -5,6 +5,7 @@ import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
 import '../../../super_admin/data/models/complaint_model.dart';
 import '../../data/panchayat_admin_repository.dart';
+import '../../../plumber/data/plumber_repository.dart';
 
 class PAComplaintDetailScreen extends StatefulWidget {
   final int complaintId;
@@ -25,6 +26,8 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
   ComplaintModel? _complaint;
   List<dynamic> _electricians = [];
   int? _selectedElectricianId;
+  List<dynamic> _plumbers = [];
+  int? _selectedPlumberId;
   bool _submitting = false;
   bool _isPlaying = false;
 
@@ -51,9 +54,13 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
       // 2. Fetch electricians list for dropdown assignment
       final electricians = await _repo.listElectricians();
 
+      // 3. Fetch plumbers list
+      final plumbers = await PlumberRepository().listPlumbers();
+
       setState(() {
         _complaint = complaint;
         _electricians = electricians;
+        _plumbers = plumbers;
         _loading = false;
       });
     } catch (e) {
@@ -64,32 +71,80 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     }
   }
 
-  Future<void> _assignTask() async {
-    if (_selectedElectricianId == null || _complaint == null) return;
+  bool _isWaterComplaint(ComplaintModel c) {
+    final type = (c.complaintType ?? '').toLowerCase();
+    final desc = (c.description ?? '').toLowerCase();
+    return type.contains('water') ||
+        type.contains('leak') ||
+        type.contains('plumb') ||
+        type.contains('pipe') ||
+        type.contains('valve') ||
+        type.contains('tank') ||
+        type.contains('borewell') ||
+        type.contains('pump') ||
+        desc.contains('water') ||
+        desc.contains('leak') ||
+        desc.contains('plumb') ||
+        desc.contains('pipe');
+  }
 
-    setState(() => _submitting = true);
-    try {
-      await _repo.assignElectrician(_complaint!.id, _selectedElectricianId!);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Electrician assigned successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+  Future<void> _assignTask() async {
+    if (_complaint == null) return;
+    final isWater = _isWaterComplaint(_complaint!);
+
+    if (isWater) {
+      if (_selectedPlumberId == null) return;
+      setState(() => _submitting = true);
+      try {
+        // Mock plumber assignment response
+        await Future<void>.delayed(const Duration(milliseconds: 300));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Plumber assigned successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        await _loadData();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to assign plumber: $e'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _submitting = false);
       }
-      await _loadData();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to assign task: $e'),
-            backgroundColor: AppTheme.error,
-          ),
-        );
+    } else {
+      if (_selectedElectricianId == null) return;
+      setState(() => _submitting = true);
+      try {
+        await _repo.assignElectrician(_complaint!.id, _selectedElectricianId!);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Electrician assigned successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        await _loadData();
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to assign task: $e'),
+              backgroundColor: AppTheme.error,
+            ),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _submitting = false);
       }
-    } finally {
-      if (mounted) setState(() => _submitting = false);
     }
   }
 
@@ -345,12 +400,18 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
   }
 
   Widget _buildAudioPlayerCard(ComplaintModel complaint) {
+    final barHeights = [
+      20, 25, 45, 30, 15, 35, 60, 40, 25, 30, 55, 65, 40, 20, 35, 50, 45, 15, 25, 30,
+      40, 60, 70, 50, 30, 20, 35, 45, 30, 15, 25, 40, 55, 60, 45, 25, 30, 35, 20, 15,
+      25, 40, 50, 35, 20, 30, 45, 55, 40, 25, 15, 30, 35, 20
+    ];
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.stroke),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.stroke, width: 1.2),
         boxShadow: AppTheme.softShadow,
       ),
       child: Column(
@@ -361,11 +422,14 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                 onTap: () {
                   setState(() => _isPlaying = !_isPlaying);
                 },
+                borderRadius: BorderRadius.circular(30),
                 child: Container(
                   width: 56,
                   height: 56,
                   decoration: BoxDecoration(
-                    color: _isPlaying ? AppTheme.primary : AppTheme.accent,
+                    gradient: _isPlaying
+                        ? AppTheme.primaryGradient
+                        : AppTheme.accentGradient,
                     shape: BoxShape.circle,
                     boxShadow: AppTheme.softShadow,
                   ),
@@ -382,16 +446,21 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Recorded Call #${complaint.voiceCallId ?? complaint.id}',
+                      'Recorded Call Summary #${complaint.voiceCallId ?? complaint.id}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
-                      _isPlaying ? '0:14 / 2:14' : '0:00 / 2:14',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                      _isPlaying ? '0:47 / 2:14' : '0:00 / 2:14',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppTheme.textMuted,
+                      ),
                     ),
                   ],
                 ),
@@ -409,31 +478,31 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
             ],
           ),
           const SizedBox(height: 20),
-          // Waveform image matching the Stitch design
           Container(
             height: 80,
             width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              image: const DecorationImage(
-                image: NetworkImage(
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCyTmkJmm01d2l3ZikDGoxyHmwrgrFVK_SB40dzYCcvjVBzK--OJkQyyWvjLb_7iYox9rK8dPTnetZTyq2O8PU5m8SdBk3JgISQ0beoRW7FMaTXcU-UKK1C77g5qw-tk_NzGB-kX6hP_MuimS6uHjGKGprKvvdVvJanB4iCLMuNDdN5oxfm6rqKu8bC31Fjt8oQPSlAIfSEHu4LBAjWtEIZBhGbqTh9GPtq1dUTwV3arucRR0dYRvICaC7_jo35EjPLkV9cO7yUbMU',
-                ),
-                fit: BoxFit.cover,
-                opacity: 0.65,
-              ),
+              color: AppTheme.bgSurface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.stroke, width: 0.8),
             ),
-            child: _isPlaying
-                ? Align(
-                    alignment: Alignment.centerLeft,
-                    child: FractionallySizedBox(
-                      widthFactor: 0.25,
-                      child: Container(
-                        color: AppTheme.accent.withValues(alpha: 0.25),
-                      ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(barHeights.length, (i) {
+                final isPlayed = _isPlaying && (i / barHeights.length < 0.35);
+                return Expanded(
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 1.5),
+                    height: barHeights[i].toDouble(),
+                    decoration: BoxDecoration(
+                      color: isPlayed ? AppTheme.primary : AppTheme.textMuted.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(2),
                     ),
-                  )
-                : null,
+                  ),
+                );
+              }),
+            ),
           ),
         ],
       ),
@@ -451,10 +520,11 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-        border: Border.all(color: AppTheme.stroke),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.stroke, width: 1.2),
         boxShadow: AppTheme.softShadow,
       ),
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -468,7 +538,7 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                     Icon(Icons.description_outlined, color: AppTheme.textPrimary, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Call Transcript',
+                      'Interactive Call Transcript',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -477,9 +547,21 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                     ),
                   ],
                 ),
-                Text(
-                  'AI Transcription Accuracy: 98%',
-                  style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accent.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppTheme.accent.withValues(alpha: 0.2)),
+                  ),
+                  child: Text(
+                    'AI Transcription: 98% Accuracy',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.accent,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -487,21 +569,37 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
           const Divider(height: 1),
           LayoutBuilder(
             builder: (context, constraints) {
-              final isTwoCol = constraints.maxWidth > 550;
+              final isTwoCol = constraints.maxWidth > 600;
 
               final leftCol = Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'TAMIL (ORIGINAL)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.accent,
-                        letterSpacing: 0.6,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'TA',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.primary),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'TAMIL (ORIGINAL)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -522,14 +620,30 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'ENGLISH (TRANSLATION)',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textMuted,
-                        letterSpacing: 0.6,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppTheme.accent.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            'EN',
+                            style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppTheme.accent),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'ENGLISH (TRANSLATION)',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textMuted,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     Text(
@@ -551,7 +665,7 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                     Expanded(
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border(right: BorderSide(color: AppTheme.stroke)),
+                          border: Border(right: BorderSide(color: AppTheme.stroke, width: 1)),
                         ),
                         child: leftCol,
                       ),
@@ -579,6 +693,30 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     final emotion = complaint.callerEmotion ?? 'Frustrated';
     final urgency = complaint.urgencyLevel ?? 'High';
 
+    Color emotionColor = AppTheme.warning;
+    IconData emotionIcon = Icons.mood_rounded;
+    final emLower = emotion.toLowerCase();
+    if (emLower.contains('angr') || emLower.contains('frust')) {
+      emotionColor = AppTheme.error;
+      emotionIcon = Icons.sentiment_very_dissatisfied_rounded;
+    } else if (emLower.contains('neutral') || emLower.contains('calm')) {
+      emotionColor = AppTheme.info;
+      emotionIcon = Icons.sentiment_neutral_rounded;
+    } else if (emLower.contains('happ') || emLower.contains('thank')) {
+      emotionColor = AppTheme.accent;
+      emotionIcon = Icons.sentiment_satisfied_alt_rounded;
+    }
+
+    Color urgencyColor = AppTheme.info;
+    final urgLower = urgency.toLowerCase();
+    if (urgLower.contains('high') || urgLower.contains('crit')) {
+      urgencyColor = AppTheme.error;
+    } else if (urgLower.contains('med')) {
+      urgencyColor = AppTheme.warning;
+    } else {
+      urgencyColor = AppTheme.accent;
+    }
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 500;
@@ -589,23 +727,24 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                border: Border.all(color: AppTheme.stroke),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.stroke, width: 1.2),
                 boxShadow: AppTheme.softShadow,
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: AppTheme.error.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: emotionColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: emotionColor.withValues(alpha: 0.15), width: 1),
                     ),
                     child: Icon(
-                      Icons.sentiment_very_dissatisfied_rounded,
-                      color: AppTheme.error,
-                      size: 26,
+                      emotionIcon,
+                      color: emotionColor,
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -615,15 +754,15 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                       children: [
                         Text(
                           'Caller Emotion',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           emotion,
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.error,
+                            color: emotionColor,
                           ),
                         ),
                       ],
@@ -640,23 +779,24 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(AppTheme.radiusLg),
-                border: Border.all(color: AppTheme.stroke),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.stroke, width: 1.2),
                 boxShadow: AppTheme.softShadow,
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
-                      color: AppTheme.accent.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: urgencyColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: urgencyColor.withValues(alpha: 0.15), width: 1),
                     ),
                     child: Icon(
                       Icons.priority_high_rounded,
-                      color: AppTheme.accent,
-                      size: 26,
+                      color: urgencyColor,
+                      size: 28,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -665,16 +805,16 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'AI Urgency Score',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                          'AI Urgency Priority',
+                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 4),
                         Text(
                           '$urgency Priority',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: AppTheme.accent,
+                            color: urgencyColor,
                           ),
                         ),
                       ],
@@ -889,6 +1029,7 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
   }
 
   Widget _buildAdminActionsCard(ComplaintModel complaint) {
+    final isWater = _isWaterComplaint(complaint);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -910,30 +1051,52 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            'Assign Electrician',
+            isWater ? 'Assign Plumber' : 'Assign Electrician',
             style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
           ),
           const SizedBox(height: 8),
-          DropdownButtonFormField<int>(
-            initialValue: _selectedElectricianId,
-            hint: const Text('Select field agent...'),
-            decoration: InputDecoration(
-              fillColor: AppTheme.bgSurface,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          if (isWater)
+            DropdownButtonFormField<int>(
+              initialValue: _selectedPlumberId,
+              hint: const Text('Select plumber...'),
+              decoration: InputDecoration(
+                fillColor: AppTheme.bgSurface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              items: _plumbers.map((e) {
+                final map = Map<String, dynamic>.from(e as Map);
+                final id = map['id'] as int;
+                final email = map['email']?.toString() ?? 'Plumber #$id';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(email.split('@').first),
+                );
+              }).toList(),
+              onChanged: (v) {
+                setState(() => _selectedPlumberId = v);
+              },
+            )
+          else
+            DropdownButtonFormField<int>(
+              initialValue: _selectedElectricianId,
+              hint: const Text('Select field agent...'),
+              decoration: InputDecoration(
+                fillColor: AppTheme.bgSurface,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              items: _electricians.map((e) {
+                final map = Map<String, dynamic>.from(e as Map);
+                final id = map['id'] as int;
+                final email = map['email']?.toString() ?? 'Agent #$id';
+                return DropdownMenuItem<int>(
+                  value: id,
+                  child: Text(email.split('@').first),
+                );
+              }).toList(),
+              onChanged: (v) {
+                setState(() => _selectedElectricianId = v);
+              },
             ),
-            items: _electricians.map((e) {
-              final map = Map<String, dynamic>.from(e as Map);
-              final id = map['id'] as int;
-              final email = map['email']?.toString() ?? 'Agent #$id';
-              return DropdownMenuItem<int>(
-                value: id,
-                child: Text(email.split('@').first),
-              );
-            }).toList(),
-            onChanged: (v) {
-              setState(() => _selectedElectricianId = v);
-            },
-          ),
           const SizedBox(height: 16),
           Row(
             children: [
@@ -941,7 +1104,9 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                 child: _submitting
                     ? const Center(child: CircularProgressIndicator())
                     : ElevatedButton.icon(
-                        onPressed: _selectedElectricianId == null ? null : _assignTask,
+                        onPressed: isWater
+                            ? (_selectedPlumberId == null ? null : _assignTask)
+                            : (_selectedElectricianId == null ? null : _assignTask),
                         icon: const Icon(Icons.send_rounded, size: 16),
                         label: const Text('Assign Task'),
                         style: ElevatedButton.styleFrom(

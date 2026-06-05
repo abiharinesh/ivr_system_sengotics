@@ -27,6 +27,7 @@ import '../features/reports/presentation/report_generation_screen.dart';
 import '../features/super_admin/presentation/screens/super_admin_pole_management.dart';
 import '../features/super_admin/presentation/screens/agent_management.dart';
 import '../features/super_admin/presentation/screens/electrician_management.dart';
+import '../features/super_admin/presentation/screens/plumber_management.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
@@ -35,6 +36,7 @@ import '../features/panchayat_admin/presentation/screens/pa_dashboard.dart';
 import '../features/panchayat_admin/presentation/screens/pole_management.dart';
 import '../features/panchayat_admin/presentation/screens/pa_complaint_management.dart';
 import '../features/panchayat_admin/presentation/screens/electrician_management.dart';
+import '../features/panchayat_admin/presentation/screens/plumber_management.dart';
 import '../features/panchayat_admin/presentation/screens/pa_complaint_detail.dart';
 
 import '../features/agent/presentation/screens/agent_dashboard_screen.dart';
@@ -267,8 +269,16 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const SuperAdminElectricianManagement(),
           ),
           GoRoute(
+            path: '/superadmin/plumbers',
+            builder: (context, state) => const SuperAdminPlumberManagement(),
+          ),
+          GoRoute(
             path: '/admin/electricians',
             builder: (context, state) => const PanchayatElectricianManagement(),
+          ),
+          GoRoute(
+            path: '/admin/plumbers',
+            builder: (context, state) => const PanchayatPlumberManagement(),
           ),
           GoRoute(
             path: '/fieldops/agents',
@@ -439,6 +449,9 @@ String _getTitle(String location) {
     case '/superadmin/electricians':
     case '/admin/electricians':
       return 'Field electricians';
+    case '/superadmin/plumbers':
+    case '/admin/plumbers':
+      return 'Field plumbers';
     case '/fieldops/agents':
       return 'Field agents';
     case '/ai-settings':

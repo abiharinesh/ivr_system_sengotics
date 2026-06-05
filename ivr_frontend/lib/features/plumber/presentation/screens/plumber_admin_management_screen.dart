@@ -5,8 +5,7 @@ import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
 import '../../../../core/api/api_exceptions.dart';
 import '../../../../core/widgets/list_screen_shell.dart';
-import '../../../panchayat_admin/data/panchayat_admin_repository.dart';
-import '../../../super_admin/data/super_admin_repository.dart';
+import '../../data/plumber_repository.dart';
 
 const _presetIds = <String>[
   'THIS_MONTH',
@@ -22,9 +21,8 @@ const _presetLabels = <String>[
   'Last 12 mo',
 ];
 
-/// Admin-side electrician operations (super admin + panchayat admin).
-class ElectricianAdminManagementScreen extends StatefulWidget {
-  const ElectricianAdminManagementScreen({
+class PlumberAdminManagementScreen extends StatefulWidget {
+  const PlumberAdminManagementScreen({
     super.key,
     required this.forSuperAdmin,
   });
@@ -32,14 +30,13 @@ class ElectricianAdminManagementScreen extends StatefulWidget {
   final bool forSuperAdmin;
 
   @override
-  State<ElectricianAdminManagementScreen> createState() =>
-      _ElectricianAdminManagementScreenState();
+  State<PlumberAdminManagementScreen> createState() =>
+      _PlumberAdminManagementScreenState();
 }
 
-class _ElectricianAdminManagementScreenState
-    extends State<ElectricianAdminManagementScreen> {
-  final _pa = PanchayatAdminRepository();
-  final _sa = SuperAdminRepository();
+class _PlumberAdminManagementScreenState
+    extends State<PlumberAdminManagementScreen> {
+  final _pr = PlumberRepository();
 
   List<dynamic> _rows = [];
   bool _loading = true;
@@ -59,10 +56,7 @@ class _ElectricianAdminManagementScreenState
       _error = null;
     });
     try {
-      final list =
-          widget.forSuperAdmin
-              ? await _sa.listElectricians()
-              : await _pa.listElectricians();
+      final list = await _pr.listPlumbers();
       setState(() {
         _rows = list;
         _loading = false;
@@ -80,76 +74,29 @@ class _ElectricianAdminManagementScreenState
     }
   }
 
-  Future<Map<String, dynamic>> _fetchStats(int electricianId) {
-    return widget.forSuperAdmin
-        ? _sa.getElectricianStats(
-          electricianId: electricianId,
-          preset: _exportPreset,
-        )
-        : _pa.getElectricianStats(
-          electricianId: electricianId,
-          preset: _exportPreset,
-        );
+  Future<Map<String, dynamic>> _fetchStats(int plumberId) {
+    return _pr.getPlumberStats(
+      plumberId: plumberId,
+      preset: _exportPreset,
+    );
   }
 
-  Future<void> _addElectrician() async {
+  Future<void> _addPlumber() async {
     final emailC = TextEditingController();
     final passC = TextEditingController();
     final phoneC = TextEditingController();
-    int? panchayatId;
-    List<DropdownMenuItem<int>>? pItems;
 
-    if (widget.forSuperAdmin) {
-      try {
-        final ps = await _sa.listPanchayats();
-        pItems =
-            ps
-                .map((x) => DropdownMenuItem(value: x.id, child: Text(x.name)))
-                .toList();
-        if (ps.isNotEmpty) panchayatId = ps.first.id;
-        if (ps.isEmpty) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('No panchayats found. Create one first.'),
-              ),
-            );
-          }
-          return;
-        }
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not load panchayats')),
-          );
-        }
-        return;
-      }
-    }
-
-    if (!mounted) return;
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setSt) {
             return AlertDialog(
-              title: const Text('New electrician'),
+              title: const Text('New Plumber'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (pItems != null && pItems.isNotEmpty) ...[
-                      DropdownButtonFormField<int>(
-                        initialValue: panchayatId,
-                        decoration: const InputDecoration(
-                          labelText: 'Panchayat',
-                        ),
-                        items: pItems,
-                        onChanged: (v) => setSt(() => panchayatId = v),
-                      ),
-                      const SizedBox(height: 12),
-                    ],
                     TextField(
                       controller: emailC,
                       decoration: const InputDecoration(labelText: 'Email'),
@@ -190,33 +137,19 @@ class _ElectricianAdminManagementScreenState
         );
       },
     );
+
     if (ok != true || !mounted) return;
-    if (widget.forSuperAdmin && (panchayatId == null)) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Select a panchayat')));
-      return;
-    }
     final phone = phoneC.text.trim();
     try {
-      if (widget.forSuperAdmin) {
-        await _sa.createElectrician(
-          panchayatId: panchayatId!,
-          email: emailC.text.trim(),
-          password: passC.text,
-          phoneE164: phone.isEmpty ? null : phone,
-        );
-      } else {
-        await _pa.createElectrician(
-          email: emailC.text.trim(),
-          password: passC.text,
-          phoneE164: phone.isEmpty ? null : phone,
-        );
-      }
+      await _pr.createPlumber(
+        email: emailC.text.trim(),
+        password: passC.text,
+        phoneE164: phone.isEmpty ? null : phone,
+      );
       if (mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('Electrician created')));
+        ).showSnackBar(const SnackBar(content: Text('Plumber created successfully.')));
       }
       await _reload();
     } on ApiException catch (e) {
@@ -228,29 +161,20 @@ class _ElectricianAdminManagementScreenState
     }
   }
 
-  Future<void> _runExport(int electricianUserId) async {
+  Future<void> _runExport(int plumberUserId) async {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Starting export...')));
     try {
-      final started =
-          widget.forSuperAdmin
-              ? await _sa.startExportResolved(
-                electricianUserId: electricianUserId,
-                preset: _exportPreset,
-              )
-              : await _pa.startExportResolved(
-                electricianUserId: electricianUserId,
-                preset: _exportPreset,
-              );
+      final started = await _pr.startExportResolved(
+        plumberUserId: plumberUserId,
+        preset: _exportPreset,
+      );
       final jobId = started['job_id'] as int;
       while (mounted) {
         await Future<void>.delayed(const Duration(milliseconds: 900));
-        final job =
-            widget.forSuperAdmin
-                ? await _sa.getExportJob(jobId)
-                : await _pa.getExportJob(jobId);
+        final job = await _pr.getExportJob(jobId);
         final st = job['status']?.toString() ?? '';
         if (st == 'failed') {
           final msg = job['error_message']?.toString() ?? 'Export failed';
@@ -262,11 +186,8 @@ class _ElectricianAdminManagementScreenState
           return;
         }
         if (st == 'ready') {
-          final bytes =
-              widget.forSuperAdmin
-                  ? await _sa.downloadExportZip(jobId)
-                  : await _pa.downloadExportZip(jobId);
-          final name = 'electrician-export-$jobId.zip';
+          final bytes = await _pr.downloadExportZip(jobId);
+          final name = 'plumber-export-$jobId.zip';
           await Share.shareXFiles([
             XFile.fromData(bytes, mimeType: 'application/zip', name: name),
           ]);
@@ -296,12 +217,12 @@ class _ElectricianAdminManagementScreenState
   @override
   Widget build(BuildContext context) {
     return ListScreenShell(
-      title: 'Field electricians',
+      title: 'Field Plumbers',
       subtitle:
           widget.forSuperAdmin
               ? 'All panchayats · analytics & ZIP export'
               : 'Your panchayat · analytics & ZIP export',
-      countLabel: '${_rows.length} electrician(s)',
+      countLabel: '${_rows.length} plumber(s)',
       action: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -312,9 +233,9 @@ class _ElectricianAdminManagementScreenState
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
-            onPressed: _addElectrician,
+            onPressed: _addPlumber,
             icon: const Icon(Icons.person_add_rounded, size: 18),
-            label: const Text('Add'),
+            label: const Text('Add Plumber'),
           ),
         ],
       ),
@@ -345,7 +266,7 @@ class _ElectricianAdminManagementScreenState
   Widget _buildBody() {
     if (_loading) {
       return const AppLoadingState(
-        message: 'Loading electricians...',
+        message: 'Loading plumbers...',
         style: AppLoadingStyle.list,
       );
     }
@@ -359,7 +280,7 @@ class _ElectricianAdminManagementScreenState
     }
     if (_rows.isEmpty) {
       return const Center(
-        child: Text('No electricians yet. Tap Add to create one.'),
+        child: Text('No plumbers registered. Tap Add to create one.'),
       );
     }
     return LayoutBuilder(

@@ -19,6 +19,7 @@ import { TenderModule } from './tender/tender.module';
 import { ZoneModule } from './zone/zone.module';
 import { ReportsModule } from './reports/reports.module';
 import { WaterSupplyModule } from './water-supply/water-supply.module';
+import { PlumberModule } from './plumber/plumber.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { WaterSupplyModule } from './water-supply/water-supply.module';
     ZoneModule,
     ReportsModule,
     WaterSupplyModule,
+    PlumberModule,
   ],
   controllers: [AppController],
   providers: [

@@ -3,6 +3,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
 import '../../data/water_repository.dart';
+import '../../../../features/plumber/data/plumber_repository.dart';
 
 class PipelineGridScreen extends StatefulWidget {
   const PipelineGridScreen({super.key});
@@ -418,6 +419,34 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
           _detailsRow('Diameter:', '${_selectedAsset!['diameter_mm']} mm'),
           _detailsRow('Material:', '${_selectedAsset!['material']}'),
           _detailsRow('Status:', isLeak ? 'CRITICAL LEAK ALERT' : 'Normal Operational', color: isLeak ? AppTheme.error : AppTheme.accent),
+          if (isLeak) ...[
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.error.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppTheme.error.withValues(alpha: 0.2), width: 0.8),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'AI Alert: Pipeline leak detected! Flow rate dropped to 2.1 LPS.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.error,
+                        height: 1.3,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       );
     }
@@ -513,39 +542,80 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Assign Plumber Staff'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+        title: Row(
           children: [
-            ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: const Text('Magesh Plumber'),
-              subtitle: const Text('Workload: 1 active ticket | SLA: 98%'),
-              trailing: ElevatedButton(
-                child: const Text('Assign'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Leak assigned successfully to Magesh Plumber.')),
-                  );
-                },
-              ),
-            ),
-            ListTile(
-              leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: const Text('Karthik Senior Plumber'),
-              subtitle: const Text('Workload: 0 active tickets | SLA: 100%'),
-              trailing: ElevatedButton(
-                child: const Text('Assign'),
-                onPressed: () {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Leak assigned successfully to Karthik Plumber.')),
-                  );
-                },
-              ),
-            ),
+            Icon(Icons.plumbing_rounded, color: AppTheme.primary),
+            const SizedBox(width: 8),
+            const Text('Assign Plumber Staff'),
           ],
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        content: FutureBuilder<List<dynamic>>(
+          future: PlumberRepository().listPlumbers(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return const SizedBox(
+                height: 100,
+                child: Center(child: CircularProgressIndicator()),
+              );
+            }
+            if (snapshot.hasError) {
+              return Text('Error: ${snapshot.error}', style: TextStyle(color: AppTheme.error));
+            }
+            final list = snapshot.data ?? [];
+            if (list.isEmpty) {
+              return const Text('No plumbers found.');
+            }
+            return SizedBox(
+              width: 380,
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: list.length,
+                separatorBuilder: (_, __) => const Divider(height: 1),
+                itemBuilder: (context, idx) {
+                  final map = Map<String, dynamic>.from(list[idx] as Map);
+                  final id = map['id'] as int;
+                  final email = map['email']?.toString() ?? 'Plumber #$id';
+                  final phone = map['phone_e164']?.toString() ?? 'No WhatsApp';
+                  final name = email.split('@').first;
+                  return ListTile(
+                    contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    leading: CircleAvatar(
+                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                      child: Icon(Icons.person, color: AppTheme.primary, size: 20),
+                    ),
+                    title: Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(phone, style: TextStyle(color: AppTheme.textMuted)),
+                    ),
+                    trailing: FilledButton(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      child: const Text('Assign', style: TextStyle(fontSize: 12)),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Leak assigned successfully to $name.',
+                            ),
+                            backgroundColor: AppTheme.accent,
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         ),
       ),
     );

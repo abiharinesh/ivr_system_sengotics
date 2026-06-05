@@ -41,6 +41,14 @@ class AssignPAComplaintElectrician extends PAComplaintEvent {
   List<Object?> get props => [complaintId, electricianUserId];
 }
 
+class AssignPAComplaintPlumber extends PAComplaintEvent {
+  final int complaintId;
+  final int plumberUserId;
+  AssignPAComplaintPlumber(this.complaintId, this.plumberUserId);
+  @override
+  List<Object?> get props => [complaintId, plumberUserId];
+}
+
 // ── States ────────────────────────────────────────────────────────────────
 abstract class PAComplaintState extends Equatable {
   @override
@@ -84,6 +92,7 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
     on<UpdatePAComplaintStatus>(_onUpdateStatus);
     on<ResolvePAComplaint>(_onResolve);
     on<AssignPAComplaintElectrician>(_onAssignElectrician);
+    on<AssignPAComplaintPlumber>(_onAssignPlumber);
   }
 
   Future<void> _onLoad(
@@ -136,6 +145,20 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
       add(LoadPAComplaints(status: _currentFilter));
     } on ApiException catch (e) {
       emit(PAComplaintError(e.message));
+    }
+  }
+
+  Future<void> _onAssignPlumber(
+    AssignPAComplaintPlumber event,
+    Emitter<PAComplaintState> emit,
+  ) async {
+    try {
+      // Mock plumber assignment response
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      emit(PAComplaintActionSuccess('Plumber assigned'));
+      add(LoadPAComplaints(status: _currentFilter));
+    } catch (e) {
+      emit(PAComplaintError(e.toString()));
     }
   }
 }

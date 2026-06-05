@@ -18,6 +18,7 @@ import {
 import type { Response } from 'express';
 import { SuperAdminService } from './super-admin.service';
 import { ElectricianOpsService } from '../field-ops/field-ops.service';
+import { PlumberOpsService } from '../plumber/plumber-ops.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -67,6 +68,7 @@ export class SuperAdminController {
   constructor(
     private readonly superAdminService: SuperAdminService,
     private readonly electricianOps: ElectricianOpsService,
+    private readonly plumberOps: PlumberOpsService,
     private readonly documentTemplateSettings: DocumentTemplateSettingsService,
     private readonly tenders: TenderService,
     private readonly vendors: VendorService,
@@ -443,6 +445,64 @@ export class SuperAdminController {
       meta.download_url,
     );
     res.download(abs, `electrician-export-job-${jobId}.zip`);
+  }
+
+  // ── Plumbers (global) ──────────────────────────────────────────────────
+  @Get('plumbers')
+  listPlumbers(@Query('panchayat_id') pid?: string) {
+    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+    return this.plumberOps.listAllPlumbers(
+      isNaN(panchayatId as number) ? undefined : panchayatId,
+    );
+  }
+
+  @Post('plumbers')
+  createPlumberGlobal(
+    @Body()
+    body: {
+      panchayat_id: number;
+      email: string;
+      password: string;
+      phone_e164?: string;
+    },
+  ) {
+    return this.plumberOps.createPlumberForPanchayat(
+      body.panchayat_id,
+      {
+        email: body.email,
+        password: body.password,
+        phone_e164: body.phone_e164,
+      },
+    );
+  }
+
+  @Get('plumbers/:id/stats')
+  plumberStats(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('preset') preset: string,
+    @Query('date_from') dateFrom?: string,
+    @Query('date_to') dateTo?: string,
+  ) {
+    if (!preset) throw new BadRequestException('preset query required');
+    return this.plumberOps.getPlumberStats(
+      id,
+      null,
+      preset,
+      dateFrom,
+      dateTo,
+    );
+  }
+
+  @Patch('complaints/:id/assign-plumber')
+  assignPlumberSa(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { plumber_user_id: number; panchayat_id: number },
+  ) {
+    return this.plumberOps.assignPlumber(
+      body.panchayat_id,
+      id,
+      body.plumber_user_id,
+    );
   }
 
   // ── Global Scoping & Support Resolvers ───────────────────────────────────

@@ -6,6 +6,7 @@ import { AuthModule } from '../auth/auth.module';
 import { ElectricianOpsModule } from '../field-ops/field-ops.module';
 import { PanchayatAdminModule } from '../panchayat-admin/panchayat-admin.module';
 import { TenderModule } from '../tender/tender.module';
+import { PlumberModule } from '../plumber/plumber.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { TenderModule } from '../tender/tender.module';
     ElectricianOpsModule,
     PanchayatAdminModule,
     TenderModule,
+    PlumberModule,
   ],
   providers: [SuperAdminService],
   controllers: [SuperAdminController],
