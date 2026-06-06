@@ -260,29 +260,43 @@ class _MapOverviewState extends State<MapOverview> {
     // Calculate center
     final center = _initialCenter(validPoles);
 
-    final markers =
+    final Set<gmap.Marker> markers =
         validPoles.map((p) {
           final status = _statusForPole(p);
           final markerIcon =
               widget.markerIconBuilder?.call(p, status) ??
               _defaultMarkerForStatus(status);
 
-          return gmap.Marker(
-            markerId: gmap.MarkerId('pole_${p.id}'),
-            position: gmap.LatLng(p.latitude!, p.longitude!),
-            infoWindow:
-                widget.showInfoWindow
-                    ? gmap.InfoWindow(
-                      title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
-                      snippet:
-                          'Pending: ${p.pendingComplaints}, '
-                          'Processing: ${p.inProgressComplaints}, '
-                          'Manual: ${p.manualReviewComplaints}',
-                    )
-                    : gmap.InfoWindow.noText,
-            icon: markerIcon,
-            onTap: () => widget.onPoleTap?.call(p),
-          );
+          final markerId = gmap.MarkerId('pole_${p.id}');
+          final position = gmap.LatLng(p.latitude!, p.longitude!);
+          final infoWindow = widget.showInfoWindow
+              ? gmap.InfoWindow(
+                  title: 'Pole: ${p.poleNumber ?? 'Unknown'}',
+                  snippet:
+                      'Pending: ${p.pendingComplaints}, '
+                      'Processing: ${p.inProgressComplaints}, '
+                      'Manual: ${p.manualReviewComplaints}',
+                )
+              : gmap.InfoWindow.noText;
+          final onTap = () => widget.onPoleTap?.call(p);
+
+          if (googleMapsMarkerType == gmap.GoogleMapMarkerType.advancedMarker) {
+            return gmap.AdvancedMarker(
+              markerId: markerId,
+              position: position,
+              infoWindow: infoWindow,
+              icon: markerIcon,
+              onTap: onTap,
+            );
+          } else {
+            return gmap.Marker(
+              markerId: markerId,
+              position: position,
+              infoWindow: infoWindow,
+              icon: markerIcon,
+              onTap: onTap,
+            );
+          }
         }).toSet();
 
 
