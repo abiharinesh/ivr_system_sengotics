@@ -42,7 +42,7 @@ class MapOverview extends StatefulWidget {
     this.showInfoWindow = true,
     this.focusFaultPolesFirst = false,
     this.markerIconBuilder,
-    this.usePngMarkers = false,
+    this.usePngMarkers = kIsWeb,
     this.mapStyle,
     this.faultMarkerAsset = 'assets/map_markers/fault_red.png',
     this.activeMarkerAsset = 'assets/map_markers/active_green.png',
