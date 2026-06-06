@@ -279,7 +279,7 @@ class PADashboard extends StatelessWidget {
       builder: (context, constraints) {
         final w = constraints.maxWidth;
         final crossAxisCount = w > 1100 ? 4 : (w > 600 ? 2 : 1);
-        final ratio = w > 1100 ? 1.7 : (w > 600 ? 1.9 : 2.5);
+        final ratio = w > 1100 ? 1.7 : (w > 600 ? 1.9 : (w < 350 ? 1.45 : 2.2));
 
         return GridView.count(
           crossAxisCount: crossAxisCount,
@@ -300,9 +300,13 @@ class PADashboard extends StatelessWidget {
                 children: [
                   Icon(Icons.trending_up_rounded, size: 14, color: AppTheme.error),
                   SizedBox(width: 4),
-                  Text(
-                    '+12% this week',
-                    style: TextStyle(fontSize: 11, color: AppTheme.error, fontWeight: FontWeight.w600),
+                  Expanded(
+                    child: Text(
+                      '+12% this week',
+                      style: TextStyle(fontSize: 11, color: AppTheme.error, fontWeight: FontWeight.w600),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ],
               ),
@@ -319,9 +323,13 @@ class PADashboard extends StatelessWidget {
                 children: [
                   Icon(Icons.check_circle_outline_rounded, size: 14, color: AppTheme.accent),
                   const SizedBox(width: 4),
-                  Text(
-                    'Electricians and Plumbers',
-                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  Expanded(
+                    child: Text(
+                      'Electricians and Plumbers',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ],
               ),
@@ -366,9 +374,13 @@ class PADashboard extends StatelessWidget {
                 children: [
                   Icon(Icons.event_outlined, size: 14, color: AppTheme.textMuted),
                   const SizedBox(width: 4),
-                  Text(
-                    '2 closing tomorrow',
-                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  Expanded(
+                    child: Text(
+                      '2 closing tomorrow',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                      overflow: TextOverflow.ellipsis,
+                      maxLines: 1,
+                    ),
                   ),
                 ],
               ),
@@ -877,7 +889,7 @@ class _KpiCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(AppTheme.radiusMd),

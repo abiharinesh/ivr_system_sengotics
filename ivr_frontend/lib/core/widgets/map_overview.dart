@@ -162,52 +162,56 @@ class _MapOverviewState extends State<MapOverview> {
     required List<PoleModel> validPoles,
     required bool animate,
   }) async {
-    final controller = _mapController;
-    if (controller == null || validPoles.isEmpty) return;
-
-    final targetPoles = _preferredCameraPoles(validPoles);
-    if (targetPoles.isEmpty) return;
-
-    if (targetPoles.length == 1) {
-      final pole = targetPoles.first;
-      final update = gmap.CameraUpdate.newLatLngZoom(
-        gmap.LatLng(pole.latitude!, pole.longitude!),
-        15,
-      );
-      if (animate) {
-        await controller.animateCamera(update);
-      } else {
-        await controller.moveCamera(update);
-      }
-      return;
-    }
-
-    final latitudes = targetPoles.map((pole) => pole.latitude!).toList();
-    final longitudes = targetPoles.map((pole) => pole.longitude!).toList();
-    final bounds = gmap.LatLngBounds(
-      southwest: gmap.LatLng(
-        latitudes.reduce((a, b) => a < b ? a : b),
-        longitudes.reduce((a, b) => a < b ? a : b),
-      ),
-      northeast: gmap.LatLng(
-        latitudes.reduce((a, b) => a > b ? a : b),
-        longitudes.reduce((a, b) => a > b ? a : b),
-      ),
-    );
     try {
-      final update = gmap.CameraUpdate.newLatLngBounds(bounds, 50);
-      if (animate) {
-        await controller.animateCamera(update);
-      } else {
-        await controller.moveCamera(update);
+      final controller = _mapController;
+      if (controller == null || validPoles.isEmpty) return;
+
+      final targetPoles = _preferredCameraPoles(validPoles);
+      if (targetPoles.isEmpty) return;
+
+      if (targetPoles.length == 1) {
+        final pole = targetPoles.first;
+        final update = gmap.CameraUpdate.newLatLngZoom(
+          gmap.LatLng(pole.latitude!, pole.longitude!),
+          15,
+        );
+        if (animate) {
+          await controller.animateCamera(update);
+        } else {
+          await controller.moveCamera(update);
+        }
+        return;
       }
-    } catch (_) {
-      final fallback = gmap.CameraUpdate.newLatLngZoom(_centroidOf(targetPoles), 13);
-      if (animate) {
-        await controller.animateCamera(fallback);
-      } else {
-        await controller.moveCamera(fallback);
+
+      final latitudes = targetPoles.map((pole) => pole.latitude!).toList();
+      final longitudes = targetPoles.map((pole) => pole.longitude!).toList();
+      final bounds = gmap.LatLngBounds(
+        southwest: gmap.LatLng(
+          latitudes.reduce((a, b) => a < b ? a : b),
+          longitudes.reduce((a, b) => a < b ? a : b),
+        ),
+        northeast: gmap.LatLng(
+          latitudes.reduce((a, b) => a > b ? a : b),
+          longitudes.reduce((a, b) => a > b ? a : b),
+        ),
+      );
+      try {
+        final update = gmap.CameraUpdate.newLatLngBounds(bounds, 50);
+        if (animate) {
+          await controller.animateCamera(update);
+        } else {
+          await controller.moveCamera(update);
+        }
+      } catch (_) {
+        final fallback = gmap.CameraUpdate.newLatLngZoom(_centroidOf(targetPoles), 13);
+        if (animate) {
+          await controller.animateCamera(fallback);
+        } else {
+          await controller.moveCamera(fallback);
+        }
       }
+    } catch (e) {
+      debugPrint('Error moving camera to preferred poles: $e');
     }
   }
 
@@ -309,10 +313,13 @@ class _MapOverviewState extends State<MapOverview> {
                   style: effectiveMapStyle,
                   onMapCreated: (controller) {
                     _mapController = controller;
-                    _moveCameraToPreferredPoles(
-                      validPoles: validPoles,
-                      animate: false,
-                    );
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      if (!mounted) return;
+                      _moveCameraToPreferredPoles(
+                        validPoles: validPoles,
+                        animate: false,
+                      );
+                    });
                   },
                   markers: markers,
                   mapType: gmap.MapType.normal,
