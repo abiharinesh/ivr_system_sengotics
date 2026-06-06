@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../data/super_admin_repository.dart';
 
@@ -84,7 +85,31 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
   }
 
   Future<void> _onLoad(LoadProviders event, Emitter<SettingsState> emit) async {
-    emit(SettingsLoading());
+    final cachedStt = ApiClient.instance.getCached('/api/superadmin/settings/stt');
+    final cachedLlm = ApiClient.instance.getCached('/api/superadmin/settings/llm');
+    final hasCache = cachedStt != null && cachedLlm != null;
+
+    if (hasCache) {
+      emit(
+        SettingsLoaded(
+          sttProvider: cachedStt['provider'] as String? ?? 'gemini',
+          availableSttProviders:
+              (cachedStt['available_providers'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ['gemini', 'groq', 'rapidapi', 'google-speech'],
+          llmProvider: cachedLlm['provider'] as String? ?? 'gemini',
+          availableLlmProviders:
+              (cachedLlm['available_providers'] as List?)
+                  ?.map((e) => e.toString())
+                  .toList() ??
+              ['gemini', 'groq'],
+        ),
+      );
+    } else {
+      emit(SettingsLoading());
+    }
+
     try {
       final sttData = await _repo.getSttProvider();
       final llmData = await _repo.getLlmProvider();
@@ -106,7 +131,9 @@ class SettingsBloc extends Bloc<SettingsEvent, SettingsState> {
         ),
       );
     } on ApiException catch (e) {
-      emit(SettingsError(e.message));
+      if (!hasCache) {
+        emit(SettingsError(e.message));
+      }
     }
   }
 

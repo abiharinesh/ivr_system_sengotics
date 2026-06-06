@@ -3,9 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../../super_admin/data/models/complaint_model.dart';
 import '../../data/panchayat_admin_repository.dart';
 import '../../../plumber/data/plumber_repository.dart';
+
 
 class PAComplaintDetailScreen extends StatefulWidget {
   final int complaintId;
@@ -198,23 +200,151 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    if (_loading) {
-      return widget.embedMode
-          ? const Center(child: AppLoadingState(message: 'Loading details...', compact: true))
-          : Scaffold(
-              backgroundColor: AppTheme.bgDark,
-              body: const AppLoadingState(message: 'Loading complaint details...'),
-            );
+  Widget _buildLoadingDashboard(BuildContext context) {
+    final padding = widget.embedMode ? 16.0 : (MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0);
+    final w = MediaQuery.sizeOf(context).width;
+    final isDesktop = w >= (widget.embedMode ? 850 : 1024);
+
+    final loadingHeader = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text('Panchayats', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right, size: 14, color: AppTheme.textMuted),
+            const SizedBox(width: 4),
+            const AppShimmer.rectangular(width: 100, height: 12),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            const AppShimmer.rectangular(width: 300, height: 26),
+            const Spacer(),
+            AppShimmer.rounded(width: 120, height: 32),
+          ],
+        )
+      ],
+    );
+
+    final leftColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading call audio...', style: AppLoadingStyle.detail),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading transcript...', style: AppLoadingStyle.detail),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 150,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading AI insights...', style: AppLoadingStyle.detail),
+        ),
+      ],
+    );
+
+    final rightColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 250,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading GIS location...', style: AppLoadingStyle.detail),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading timeline history...', style: AppLoadingStyle.detail),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 180,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+          ),
+          child: const AppLoadingState(message: 'Loading actions...', style: AppLoadingStyle.detail),
+        ),
+      ],
+    );
+
+    final Widget bodyContent = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.embedMode) ...[
+          loadingHeader,
+          const SizedBox(height: 24),
+        ],
+        if (isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 7, child: leftColumn),
+              const SizedBox(width: 24),
+              Expanded(flex: 5, child: rightColumn),
+            ],
+          )
+        else
+          Column(
+            children: [leftColumn, const SizedBox(height: 24), rightColumn],
+          ),
+      ],
+    );
+
+    if (widget.embedMode) {
+      return SingleChildScrollView(
+        padding: EdgeInsets.all(padding),
+        child: bodyContent,
+      );
     }
 
-    if (_error != null || _complaint == null) {
+    return Scaffold(
+      backgroundColor: AppTheme.bgDark,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(padding),
+        child: bodyContent,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_error != null) {
       return widget.embedMode
           ? Center(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Text(_error ?? 'Failed to load details.', style: TextStyle(color: AppTheme.textSecondary)),
+                child: Text(_error!, style: TextStyle(color: AppTheme.textSecondary)),
               ),
             )
           : Scaffold(
@@ -226,7 +356,7 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                     const Icon(Icons.error_outline_rounded, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
                     Text(
-                      _error ?? 'Complaint details could not be loaded.',
+                      _error!,
                       style: TextStyle(color: AppTheme.textSecondary),
                     ),
                     const SizedBox(height: 24),
@@ -239,6 +369,10 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                 ),
               ),
             );
+    }
+
+    if (_loading || _complaint == null) {
+      return _buildLoadingDashboard(context);
     }
 
     final complaint = _complaint!;

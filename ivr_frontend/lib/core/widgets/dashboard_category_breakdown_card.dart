@@ -3,11 +3,18 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../models/dashboard_insights_model.dart';
 
+import 'app_shimmer.dart';
+
 /// Top complaint types with counts and progress vs max bucket.
 class DashboardCategoryBreakdownCard extends StatelessWidget {
   final List<CategoryCount> categories;
+  final bool isLoading;
 
-  const DashboardCategoryBreakdownCard({super.key, required this.categories});
+  const DashboardCategoryBreakdownCard({
+    super.key,
+    required this.categories,
+    this.isLoading = false,
+  });
 
   static const _palette = [
     Color(0xFF3B82F6),
@@ -22,6 +29,50 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppTheme.bgCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.stroke),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'By Category',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 24),
+              ...List.generate(4, (i) {
+                final widths = [110.0, 150.0, 90.0, 130.0];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          AppShimmer.rectangular(width: widths[i], height: 12),
+                          const AppShimmer.rectangular(width: 20, height: 12),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      const AppShimmer.rectangular(width: double.infinity, height: 6),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+      );
+    }
+
     final maxCount = categories.isEmpty
         ? 1
         : categories.map((c) => c.count).reduce((a, b) => a > b ? a : b);
@@ -44,8 +95,8 @@ class DashboardCategoryBreakdownCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (categories.isEmpty)
-                    Padding(
-                padding: EdgeInsets.symmetric(vertical: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 24),
                 child: Center(
                   child: Text(
                     'No complaints yet',

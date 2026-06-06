@@ -3,9 +3,15 @@ import '../../../core/api/api_client.dart';
 class WaterRepository {
   final ApiClient _api = ApiClient.instance;
 
-  Future<List<Map<String, dynamic>>> getPipelines(int panchayatId) async {
+  List<Map<String, dynamic>>? getCachedPipelines(int panchayatId) {
+    final cached = _api.getCached('/api/water-supply/pipelines', queryParams: {'panchayat_id': panchayatId});
+    if (cached == null) return null;
+    return List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
+  }
+
+  Future<List<Map<String, dynamic>>> getPipelines(int panchayatId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/pipelines', queryParams: {'panchayat_id': panchayatId});
+      final data = await _api.get('/api/water-supply/pipelines', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
       return List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
     } catch (e) {
       return [
@@ -60,9 +66,15 @@ class WaterRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getTanks(int panchayatId) async {
+  List<Map<String, dynamic>>? getCachedTanks(int panchayatId) {
+    final cached = _api.getCached('/api/water-supply/tanks', queryParams: {'panchayat_id': panchayatId});
+    if (cached == null) return null;
+    return List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
+  }
+
+  Future<List<Map<String, dynamic>>> getTanks(int panchayatId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/tanks', queryParams: {'panchayat_id': panchayatId});
+      final data = await _api.get('/api/water-supply/tanks', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
       return List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
     } catch (e) {
       return [
@@ -103,9 +115,15 @@ class WaterRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getValves(int panchayatId) async {
+  List<Map<String, dynamic>>? getCachedValves(int panchayatId) {
+    final cached = _api.getCached('/api/water-supply/valves', queryParams: {'panchayat_id': panchayatId});
+    if (cached == null) return null;
+    return List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
+  }
+
+  Future<List<Map<String, dynamic>>> getValves(int panchayatId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/valves', queryParams: {'panchayat_id': panchayatId});
+      final data = await _api.get('/api/water-supply/valves', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
       return List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
     } catch (e) {
       return [
@@ -134,9 +152,15 @@ class WaterRepository {
     }
   }
 
-  Future<List<Map<String, dynamic>>> getFlowLogs(int panchayatId) async {
+  List<Map<String, dynamic>>? getCachedFlowLogs(int panchayatId) {
+    final cached = _api.getCached('/api/water-supply/flow-logs', queryParams: {'panchayat_id': panchayatId});
+    if (cached == null) return null;
+    return List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
+  }
+
+  Future<List<Map<String, dynamic>>> getFlowLogs(int panchayatId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/flow-logs', queryParams: {'panchayat_id': panchayatId});
+      final data = await _api.get('/api/water-supply/flow-logs', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
       return List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
     } catch (e) {
       final now = DateTime.now();

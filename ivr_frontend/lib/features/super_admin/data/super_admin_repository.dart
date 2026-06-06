@@ -12,8 +12,14 @@ class SuperAdminRepository {
   final ApiClient _api = ApiClient.instance;
 
   // ── Panchayats ──────────────────────────────────────────────────────────
-  Future<List<PanchayatModel>> listPanchayats() async {
-    final data = await _api.get(ApiConfig.saPanchayats);
+  List<PanchayatModel>? getCachedPanchayats() {
+    final cached = _api.getCached(ApiConfig.saPanchayats);
+    if (cached == null) return null;
+    return (cached as List).map((j) => PanchayatModel.fromJson(j)).toList();
+  }
+
+  Future<List<PanchayatModel>> listPanchayats({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.saPanchayats, forceRefresh: forceRefresh);
     return (data as List).map((j) => PanchayatModel.fromJson(j)).toList();
   }
 
@@ -40,8 +46,14 @@ class SuperAdminRepository {
   }
 
   // ── Users ───────────────────────────────────────────────────────────────
-  Future<List<UserModel>> listUsers() async {
-    final data = await _api.get(ApiConfig.saUsers);
+  List<UserModel>? getCachedUsers() {
+    final cached = _api.getCached(ApiConfig.saUsers);
+    if (cached == null) return null;
+    return (cached as List).map((j) => UserModel.fromJson(j)).toList();
+  }
+
+  Future<List<UserModel>> listUsers({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.saUsers, forceRefresh: forceRefresh);
     return (data as List).map((j) => UserModel.fromJson(j)).toList();
   }
 
@@ -60,14 +72,27 @@ class SuperAdminRepository {
   }
 
   // ── Complaints ──────────────────────────────────────────────────────────
+  List<ComplaintModel>? getCachedComplaints({
+    String? status,
+    int? panchayatId,
+  }) {
+    final params = <String, dynamic>{};
+    if (status != null) params['status'] = status;
+    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    final cached = _api.getCached(ApiConfig.saComplaints, queryParams: params.isEmpty ? null : params);
+    if (cached == null) return null;
+    return (cached as List).map((j) => ComplaintModel.fromJson(j)).toList();
+  }
+
   Future<List<ComplaintModel>> listComplaints({
     String? status,
     int? panchayatId,
+    bool forceRefresh = false,
   }) async {
     final params = <String, dynamic>{};
     if (status != null) params['status'] = status;
     if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
-    final data = await _api.get(ApiConfig.saComplaints, queryParams: params);
+    final data = await _api.get(ApiConfig.saComplaints, queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return (data as List).map((j) => ComplaintModel.fromJson(j)).toList();
   }
 
@@ -115,10 +140,17 @@ class SuperAdminRepository {
   }
 
   // ── Poles ───────────────────────────────────────────────────────────────
-  Future<List<dynamic>> listPoles({int? panchayatId}) async {
+  List<dynamic>? getCachedPoles({int? panchayatId}) {
     final params = <String, dynamic>{};
     if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
-    final data = await _api.get(ApiConfig.saPoles, queryParams: params);
+    final cached = _api.getCached(ApiConfig.saPoles, queryParams: params.isEmpty ? null : params);
+    return cached as List?;
+  }
+
+  Future<List<dynamic>> listPoles({int? panchayatId, bool forceRefresh = false}) async {
+    final params = <String, dynamic>{};
+    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    final data = await _api.get(ApiConfig.saPoles, queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return data as List;
   }
 
@@ -140,13 +172,25 @@ class SuperAdminRepository {
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────
-  Future<StatsModel> getStats() async {
-    final data = await _api.get(ApiConfig.saStats);
+  StatsModel? getCachedStats() {
+    final cached = _api.getCached(ApiConfig.saStats);
+    if (cached == null) return null;
+    return StatsModel.fromJson(cached);
+  }
+
+  Future<StatsModel> getStats({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.saStats, forceRefresh: forceRefresh);
     return StatsModel.fromJson(data);
   }
 
-  Future<DashboardInsights> getDashboardInsights() async {
-    final data = await _api.get(ApiConfig.saDashboardInsights);
+  DashboardInsights? getCachedDashboardInsights() {
+    final cached = _api.getCached(ApiConfig.saDashboardInsights);
+    if (cached == null) return null;
+    return DashboardInsights.fromJson(Map<String, dynamic>.from(cached as Map));
+  }
+
+  Future<DashboardInsights> getDashboardInsights({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.saDashboardInsights, forceRefresh: forceRefresh);
     return DashboardInsights.fromJson(Map<String, dynamic>.from(data as Map));
   }
 

@@ -3,16 +3,72 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../models/dashboard_insights_model.dart';
 
+import 'app_shimmer.dart';
+
 /// Mon–Sun bar chart: primary = current week, light = last week (UTC weeks from API).
 class DashboardResolutionTrendCard extends StatelessWidget {
   final ResolutionTrend trend;
+  final bool isLoading;
 
-  const DashboardResolutionTrendCard({super.key, required this.trend});
+  const DashboardResolutionTrendCard({
+    super.key,
+    required this.trend,
+    this.isLoading = false,
+  });
 
   static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppTheme.bgCard,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.stroke),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Complaint Resolution Trend',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 190,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: List.generate(7, (i) {
+                    final hBase = 25.0 + ((i + 2) * 22) % 110;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            AppShimmer.rectangular(
+                              width: double.infinity,
+                              height: hBase,
+                            ),
+                            const SizedBox(height: 6),
+                            const AppShimmer.rectangular(width: 25, height: 10),
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final base = trend.currentWeek;
     final overlay = trend.lastWeek;
     final maxVal = [
@@ -43,13 +99,13 @@ class DashboardResolutionTrendCard extends StatelessWidget {
                         'Complaint Resolution Trend',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                       ),
-                      SizedBox(height: 10),
+                      const SizedBox(height: 10),
                       Wrap(
                         spacing: 12,
                         runSpacing: 6,
                         children: [
                           _LegendDot('Current Week', AppTheme.primary),
-                          _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                          const _LegendDot('Last Week', Color(0xFFBFDBFE)),
                         ],
                       ),
                     ],
@@ -64,8 +120,8 @@ class DashboardResolutionTrendCard extends StatelessWidget {
                       ),
                     ),
                     _LegendDot('Current Week', AppTheme.primary),
-                    SizedBox(width: 12),
-                    _LegendDot('Last Week', Color(0xFFBFDBFE)),
+                    const SizedBox(width: 12),
+                    const _LegendDot('Last Week', Color(0xFFBFDBFE)),
                   ],
                 );
               },

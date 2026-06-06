@@ -82,12 +82,19 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     LoadPanchayats event,
     Emitter<PanchayatState> emit,
   ) async {
-    emit(PanchayatLoading());
+    final cached = _repo.getCachedPanchayats();
+    if (cached != null) {
+      emit(PanchayatLoaded(cached));
+    } else {
+      emit(PanchayatLoading());
+    }
     try {
-      final data = await _repo.listPanchayats();
+      final data = await _repo.listPanchayats(forceRefresh: cached == null);
       emit(PanchayatLoaded(data));
     } on ApiException catch (e) {
-      emit(PanchayatError(e.message));
+      if (cached == null) {
+        emit(PanchayatError(e.message));
+      }
     }
   }
 

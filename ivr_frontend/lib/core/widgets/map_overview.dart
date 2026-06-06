@@ -58,7 +58,7 @@ class _MapOverviewState extends State<MapOverview> {
   gmap.BitmapDescriptor? _faultPngMarker;
   gmap.BitmapDescriptor? _activePngMarker;
   gmap.BitmapDescriptor? _inactivePngMarker;
-  String? _lastAppliedStyle;
+
 
   List<PoleModel> get _validPoles =>
       widget.poles.where((p) => p.latitude != null && p.longitude != null).toList();
@@ -108,15 +108,15 @@ class _MapOverviewState extends State<MapOverview> {
 
     try {
       const imageConfig = ImageConfiguration(size: Size(36, 36));
-      final fault = await gmap.BitmapDescriptor.fromAssetImage(
+      final fault = await gmap.BitmapDescriptor.asset(
         imageConfig,
         widget.faultMarkerAsset,
       );
-      final active = await gmap.BitmapDescriptor.fromAssetImage(
+      final active = await gmap.BitmapDescriptor.asset(
         imageConfig,
         widget.activeMarkerAsset,
       );
-      final inactive = await gmap.BitmapDescriptor.fromAssetImage(
+      final inactive = await gmap.BitmapDescriptor.asset(
         imageConfig,
         widget.inactiveMarkerAsset,
       );
@@ -230,10 +230,7 @@ class _MapOverviewState extends State<MapOverview> {
       _loadPngMarkers();
     }
 
-    // Apply map style changes without recreating the map.
-    if (oldWidget.mapStyle != widget.mapStyle && _mapController != null) {
-      _mapController!.setMapStyle(widget.mapStyle);
-    }
+
 
     final shouldRefocus =
         oldWidget.poles != widget.poles ||
@@ -251,10 +248,7 @@ class _MapOverviewState extends State<MapOverview> {
     final themeStyle = context.mapThemeProvider.currentStyleJson;
     final effectiveMapStyle = widget.mapStyle ?? themeStyle;
 
-    if (_lastAppliedStyle != effectiveMapStyle) {
-      _lastAppliedStyle = effectiveMapStyle;
-      _mapController?.setMapStyle(effectiveMapStyle);
-    }
+
 
     // Collect valid locations
     final validPoles = _validPoles;

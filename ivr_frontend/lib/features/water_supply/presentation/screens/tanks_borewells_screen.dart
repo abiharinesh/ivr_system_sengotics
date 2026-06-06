@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../data/water_repository.dart';
+
+
 
 class TanksBorewellsScreen extends StatefulWidget {
   const TanksBorewellsScreen({super.key});
@@ -22,9 +24,16 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    final cached = _repository.getCachedTanks(1);
+    if (cached != null) {
+      _tanks = cached;
+      _isLoading = false;
+      if (mounted) setState(() {});
+    } else {
+      setState(() => _isLoading = true);
+    }
     try {
-      final tanks = await _repository.getTanks(1);
+      final tanks = await _repository.getTanks(1, forceRefresh: cached == null);
       if (mounted) {
         setState(() {
           _tanks = tanks;
@@ -38,15 +47,101 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const AppLoadingState(
-        message: 'Reading storage levels...',
-        style: AppLoadingStyle.dashboard,
-      );
-    }
-
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < 700;
+
+    Widget buildGridContent() {
+      if (_isLoading) {
+        final skeletonList = List.generate(4, (index) => Container(
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  AppShimmer.rounded(width: 42, height: 42),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppShimmer.rectangular(width: 120, height: 16),
+                        SizedBox(height: 6),
+                        AppShimmer.rectangular(width: 80, height: 10),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const Divider(height: 24),
+              const Expanded(
+                child: Row(
+                  children: [
+                    AppShimmer.circular(width: 72, height: 72),
+                    SizedBox(width: 20),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          AppShimmer.rectangular(width: 100, height: 10),
+                          SizedBox(height: 6),
+                          AppShimmer.rectangular(width: 100, height: 10),
+                          SizedBox(height: 6),
+                          AppShimmer.rectangular(width: 80, height: 10),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
+
+        return isMobile
+            ? Column(
+                children: skeletonList.map((s) => Padding(
+                  padding: const EdgeInsets.only(bottom: 20.0),
+                  child: SizedBox(height: 180, child: s),
+                )).toList(),
+              )
+            : GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 1.35,
+                children: skeletonList,
+              );
+      }
+
+      return isMobile
+          ? Column(
+              children: _tanks.map((t) => Padding(
+                    padding: const EdgeInsets.only(bottom: 20.0),
+                    child: _buildTankCard(t),
+                  )).toList(),
+            )
+          : GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: 1.35,
+              ),
+              itemCount: _tanks.length,
+              itemBuilder: (context, index) => _buildTankCard(_tanks[index]),
+            );
+    }
 
     return Scaffold(
       appBar: AppBar(
@@ -79,25 +174,7 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
               const SizedBox(height: 24),
 
               // Tanks & Pumps Grid
-              isMobile
-                  ? Column(
-                      children: _tanks.map((t) => Padding(
-                            padding: const EdgeInsets.only(bottom: 20.0),
-                            child: _buildTankCard(t),
-                          )).toList(),
-                    )
-                  : GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 20,
-                        mainAxisSpacing: 20,
-                        childAspectRatio: 1.35,
-                      ),
-                      itemCount: _tanks.length,
-                      itemBuilder: (context, index) => _buildTankCard(_tanks[index]),
-                    ),
+              buildGridContent(),
             ],
           ),
         ),
@@ -276,7 +353,7 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
                             ),
                           );
                         },
-                        activeColor: AppTheme.primary,
+                        activeThumbColor: AppTheme.primary,
                       ),
                     ],
                   ),

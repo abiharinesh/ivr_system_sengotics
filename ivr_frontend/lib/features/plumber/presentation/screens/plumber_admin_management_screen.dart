@@ -413,7 +413,7 @@ class _PlumberAdminManagementScreenState
         if (snap.hasError) {
           return Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(snap.error.toString(), style: TextStyle(color: AppTheme.error)),
+            child: Text(snap.error.toString(), style: const TextStyle(color: AppTheme.error)),
           );
         }
         final s = snap.data!;

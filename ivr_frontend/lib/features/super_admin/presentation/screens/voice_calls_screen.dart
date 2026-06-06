@@ -28,7 +28,7 @@ class VoiceCallsScreen extends StatelessWidget {
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-              content: Text('Voice campaign creation will be available soon.'),
+              content: const Text('Voice campaign creation will be available soon.'),
               backgroundColor: AppTheme.primary,
             ),
           );

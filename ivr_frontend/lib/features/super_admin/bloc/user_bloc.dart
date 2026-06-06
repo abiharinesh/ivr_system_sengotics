@@ -70,12 +70,19 @@ class UserMgmtBloc extends Bloc<UserMgmtEvent, UserMgmtState> {
   }
 
   Future<void> _onLoad(LoadUsers event, Emitter<UserMgmtState> emit) async {
-    emit(UserMgmtLoading());
+    final cached = _repo.getCachedUsers();
+    if (cached != null) {
+      emit(UserMgmtLoaded(cached));
+    } else {
+      emit(UserMgmtLoading());
+    }
     try {
-      final data = await _repo.listUsers();
+      final data = await _repo.listUsers(forceRefresh: cached == null);
       emit(UserMgmtLoaded(data));
     } on ApiException catch (e) {
-      emit(UserMgmtError(e.message));
+      if (cached == null) {
+        emit(UserMgmtError(e.message));
+      }
     }
   }
 

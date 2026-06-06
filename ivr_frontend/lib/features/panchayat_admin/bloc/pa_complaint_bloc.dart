@@ -99,13 +99,20 @@ class PAComplaintBloc extends Bloc<PAComplaintEvent, PAComplaintState> {
     LoadPAComplaints event,
     Emitter<PAComplaintState> emit,
   ) async {
-    emit(PAComplaintLoading());
     _currentFilter = event.status;
+    final cached = _repo.getCachedComplaints(status: event.status);
+    if (cached != null) {
+      emit(PAComplaintLoaded(cached));
+    } else {
+      emit(PAComplaintLoading());
+    }
     try {
-      final data = await _repo.listComplaints(status: event.status);
+      final data = await _repo.listComplaints(status: event.status, forceRefresh: cached == null);
       emit(PAComplaintLoaded(data));
     } on ApiException catch (e) {
-      emit(PAComplaintError(e.message));
+      if (cached == null) {
+        emit(PAComplaintError(e.message));
+      }
     }
   }
 

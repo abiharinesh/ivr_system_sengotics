@@ -124,8 +124,9 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
               Expanded(
                 child: FutureBuilder<List<Vendor>>(
                   future: _future,
+                  initialData: _repo.getCachedVendors(panchayatId: _panchayatFilter),
                   builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
+                    if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
                       return const AppLoadingState(
                         message: 'Loading vendors...',
                         style: AppLoadingStyle.list,

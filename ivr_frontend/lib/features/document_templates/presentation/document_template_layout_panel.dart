@@ -37,7 +37,7 @@ class DocumentTemplateLayoutPanel extends StatelessWidget {
             ),
             if (showPanchayatHint && entry!.hasGlobal)
                     Padding(
-                padding: EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.only(top: 4),
                 child: Text(
                   'Empty fields inherit platform defaults.',
                   style: TextStyle(fontSize: 11, color: AppTheme.textSecondary),

@@ -212,7 +212,7 @@ class _DocumentTemplatesSettingsScreenState
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-          content: Text('Template design and layout saved'),
+          content: const Text('Template design and layout saved'),
           backgroundColor: AppTheme.accent,
         ),
       );

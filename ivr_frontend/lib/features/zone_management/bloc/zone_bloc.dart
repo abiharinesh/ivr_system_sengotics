@@ -143,12 +143,19 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
   }
 
   Future<void> _onLoadZones(LoadZones event, Emitter<ZoneState> emit) async {
-    emit(ZoneLoading());
+    final cached = _repository.getCachedZones();
+    if (cached != null) {
+      emit(ZonesLoaded(zones: cached));
+    } else {
+      emit(ZoneLoading());
+    }
     try {
-      final zones = await _repository.listZones();
+      final zones = await _repository.listZones(forceRefresh: cached == null);
       emit(ZonesLoaded(zones: zones));
     } catch (e) {
-      emit(ZoneError(message: e.toString()));
+      if (cached == null) {
+        emit(ZoneError(message: e.toString()));
+      }
     }
   }
 

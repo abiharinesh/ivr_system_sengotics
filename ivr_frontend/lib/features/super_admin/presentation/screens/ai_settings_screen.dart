@@ -255,7 +255,7 @@ class AiSettingsScreen extends StatelessWidget {
                         color: AppTheme.accent,
                         size: 16,
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
                         'Active',
                         style: TextStyle(

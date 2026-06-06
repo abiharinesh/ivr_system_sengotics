@@ -10,6 +10,8 @@ import '../../../../core/env_maps_loader.dart';
 import '../../../../core/widgets/empty_state.dart';
 import '../../../../core/widgets/list_screen_shell.dart';
 import '../../bloc/pole_bloc.dart';
+import '../../../../core/models/pole_model.dart';
+
 
 class PoleManagement extends StatefulWidget {
   const PoleManagement({super.key});
@@ -63,14 +65,10 @@ class _PoleManagementState extends State<PoleManagement> {
         }
       },
       builder: (context, state) {
-        if (state is PoleLoading) {
-          return const AppLoadingState(
-            message: 'Loading poles...',
-            style: AppLoadingStyle.list,
-          );
-        }
-        if (state is PoleLoaded) {
-          if (state.poles.isEmpty) {
+        final isLoading = state is PoleLoading;
+        if (state is PoleLoaded || isLoading) {
+          final poles = state is PoleLoaded ? state.poles : const <PoleModel>[];
+          if (poles.isEmpty && !isLoading) {
             return EmptyState(
               icon: Icons.electrical_services_rounded,
               title: 'No Poles',
@@ -82,20 +80,20 @@ class _PoleManagementState extends State<PoleManagement> {
               ),
             );
           }
-          return _buildList(context, state);
+          return _buildList(context, poles, isLoading: isLoading);
         }
         return const SizedBox.shrink();
       },
     );
   }
 
-  Widget _buildList(BuildContext context, PoleLoaded state) {
+  Widget _buildList(BuildContext context, List<PoleModel> poles, {bool isLoading = false}) {
     return ListScreenShell(
       title: 'Pole Management',
       subtitle: 'Track electric pole inventory and issue counts',
-      countLabel: '${state.poles.length} pole(s)',
+      countLabel: isLoading ? 'Loading...' : '${poles.length} pole(s)',
       action: ElevatedButton.icon(
-        onPressed: () => _showCreateDialog(context),
+        onPressed: isLoading ? null : () => _showCreateDialog(context),
         icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Pole'),
       ),
@@ -104,11 +102,44 @@ class _PoleManagementState extends State<PoleManagement> {
           final isWide = constraints.maxWidth > 950;
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
 
+          if (isLoading) {
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(
+                    width: 420,
+                    child: AppLoadingState(
+                      message: 'Loading poles...',
+                      style: AppLoadingStyle.list,
+                    ),
+                  ),
+                  VerticalDivider(width: 1, color: AppTheme.stroke, thickness: 1),
+                  Expanded(
+                    child: Container(
+                      color: AppTheme.bgSurface,
+                      child: const Center(
+                        child: AppLoadingState(
+                          message: 'Loading map...',
+                          style: AppLoadingStyle.list,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            return const AppLoadingState(
+              message: 'Loading poles...',
+              style: AppLoadingStyle.list,
+            );
+          }
+
           if (isWide) {
             final markers = <gmap.Marker>{};
             gmap.LatLng? initialCenter;
 
-            for (final pole in state.poles) {
+            for (final pole in poles) {
               if (pole.latitude != null && pole.longitude != null) {
                 final pos = gmap.LatLng(pole.latitude!, pole.longitude!);
                 initialCenter ??= pos;
@@ -163,9 +194,9 @@ class _PoleManagementState extends State<PoleManagement> {
                   width: 420,
                   child: ListView.builder(
                     padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
-                    itemCount: state.poles.length,
+                    itemCount: poles.length,
                     itemBuilder: (context, index) {
-                      final pole = state.poles[index];
+                      final pole = poles[index];
                       final isSelected = pole.id == _selectedPoleId;
                       return GestureDetector(
                         onTap: () {
@@ -412,8 +443,8 @@ class _PoleManagementState extends State<PoleManagement> {
 
           return ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: hPad),
-            itemCount: state.poles.length,
-            itemBuilder: (context, index) => _buildPoleCard(context, state.poles[index]),
+            itemCount: poles.length,
+            itemBuilder: (context, index) => _buildPoleCard(context, poles[index]),
           );
         },
       ),

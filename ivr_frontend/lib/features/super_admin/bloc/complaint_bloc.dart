@@ -92,17 +92,28 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
     LoadSAComplaints event,
     Emitter<SAComplaintState> emit,
   ) async {
-    emit(SAComplaintLoading());
     _currentFilter = event.status;
     _currentPanchayatFilter = event.panchayatId;
+    final cached = _repo.getCachedComplaints(
+      status: event.status,
+      panchayatId: event.panchayatId,
+    );
+    if (cached != null) {
+      emit(SAComplaintLoaded(cached));
+    } else {
+      emit(SAComplaintLoading());
+    }
     try {
       final data = await _repo.listComplaints(
         status: event.status,
         panchayatId: event.panchayatId,
+        forceRefresh: cached == null,
       );
       emit(SAComplaintLoaded(data));
     } on ApiException catch (e) {
-      emit(SAComplaintError(e.message));
+      if (cached == null) {
+        emit(SAComplaintError(e.message));
+      }
     }
   }
 

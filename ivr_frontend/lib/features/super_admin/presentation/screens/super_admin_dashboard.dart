@@ -2,15 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../core/widgets/app_loading_state.dart';
 import '../../../../core/widgets/dashboard_category_breakdown_card.dart';
 import '../../../../core/widgets/dashboard_recent_activity_card.dart';
 import '../../../../core/widgets/dashboard_resolution_trend_card.dart';
 import '../../../../core/widgets/map_overview.dart';
 import '../../../../core/widgets/stat_card.dart';
 import '../../../../core/models/pole_model.dart';
+import '../../../../core/models/stats_model.dart';
+import '../../../../core/models/dashboard_insights_model.dart';
 import '../../bloc/dashboard_bloc.dart';
 import '../../../../app.dart';
+
+
+import '../../../../core/widgets/app_shimmer.dart';
 
 class SuperAdminDashboard extends StatelessWidget {
   const SuperAdminDashboard({super.key});
@@ -19,12 +23,7 @@ class SuperAdminDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<SADashBloc, SADashState>(
       builder: (context, state) {
-        if (state is SADashLoading) {
-          return const AppLoadingState(
-            message: 'Loading dashboard...',
-            style: AppLoadingStyle.dashboard,
-          );
-        }
+        final isLoading = state is SADashLoading;
         if (state is SADashError) {
           return Center(
             child: Column(
@@ -51,16 +50,28 @@ class SuperAdminDashboard extends StatelessWidget {
             ),
           );
         }
-        if (state is SADashLoaded) {
-          return _buildDashboard(context, state);
+        if (state is SADashLoaded || isLoading) {
+          return _buildDashboard(
+            context,
+            state is SADashLoaded ? state : null,
+            isLoading: isLoading,
+          );
         }
         return const SizedBox.shrink();
       },
     );
   }
 
-  Widget _buildDashboard(BuildContext context, SADashLoaded state) {
-    final stats = state.stats;
+  Widget _buildDashboard(BuildContext context, SADashLoaded? state, {bool isLoading = false}) {
+    final stats = state?.stats ?? const StatsModel(
+      totalComplaints: 0,
+      pendingComplaints: 0,
+      resolvedComplaints: 0,
+      manualReviewComplaints: 0,
+      totalPoles: 0,
+      totalPanchayats: 0,
+      totalAdmins: 0,
+    );
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
 
     // Read user widget customization
@@ -86,11 +97,23 @@ class SuperAdminDashboard extends StatelessWidget {
             builder: (context, constraints) {
               final twoColumn = constraints.maxWidth > 980;
               final firstWidget = firstId == 'resolution_trend'
-                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
-                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
+                  ? DashboardResolutionTrendCard(
+                      trend: state?.insights.resolutionTrend ?? const ResolutionTrend(currentWeek: [], lastWeek: []),
+                      isLoading: isLoading,
+                    )
+                  : DashboardCategoryBreakdownCard(
+                      categories: state?.insights.byCategory ?? const [],
+                      isLoading: isLoading,
+                    );
               final secondWidget = secondId == 'resolution_trend'
-                  ? DashboardResolutionTrendCard(trend: state.insights.resolutionTrend)
-                  : DashboardCategoryBreakdownCard(categories: state.insights.byCategory);
+                  ? DashboardResolutionTrendCard(
+                      trend: state?.insights.resolutionTrend ?? const ResolutionTrend(currentWeek: [], lastWeek: []),
+                      isLoading: isLoading,
+                    )
+                  : DashboardCategoryBreakdownCard(
+                      categories: state?.insights.byCategory ?? const [],
+                      isLoading: isLoading,
+                    );
 
               if (!twoColumn) {
                 return Column(
@@ -134,6 +157,7 @@ class SuperAdminDashboard extends StatelessWidget {
                         icon: Icons.report_problem_rounded,
                         gradient: AppTheme.primaryGradient,
                         delta: '+12%',
+                        isLoading: isLoading,
                       ),
                       StatCard(
                         title: 'Resolved',
@@ -141,6 +165,7 @@ class SuperAdminDashboard extends StatelessWidget {
                         icon: Icons.check_circle_rounded,
                         gradient: AppTheme.accentGradient,
                         delta: '+8%',
+                        isLoading: isLoading,
                       ),
                       StatCard(
                         title: 'Pending',
@@ -149,6 +174,7 @@ class SuperAdminDashboard extends StatelessWidget {
                         gradient: AppTheme.warningGradient,
                         delta: '-3%',
                         positiveDelta: false,
+                        isLoading: isLoading,
                       ),
                       StatCard(
                         title: 'Active Pole Issues',
@@ -161,6 +187,7 @@ class SuperAdminDashboard extends StatelessWidget {
                         gradient: AppTheme.errorGradient,
                         delta: '+5%',
                         positiveDelta: false,
+                        isLoading: isLoading,
                       ),
                     ],
                   );
@@ -170,24 +197,35 @@ class SuperAdminDashboard extends StatelessWidget {
             break;
           case 'map_overview':
             dashboardWidgets.add(
-              _MapDesignCard(totalPoles: state.poles.length, poles: state.poles),
+              _MapDesignCard(
+                totalPoles: state?.poles.length ?? 0,
+                poles: state?.poles ?? const [],
+                isLoading: isLoading,
+              ),
             );
             break;
           case 'resolution_trend':
             dashboardWidgets.add(
-              DashboardResolutionTrendCard(trend: state.insights.resolutionTrend),
+              DashboardResolutionTrendCard(
+                trend: state?.insights.resolutionTrend ?? const ResolutionTrend(currentWeek: [], lastWeek: []),
+                isLoading: isLoading,
+              ),
             );
             break;
           case 'category_breakdown':
             dashboardWidgets.add(
-              DashboardCategoryBreakdownCard(categories: state.insights.byCategory),
+              DashboardCategoryBreakdownCard(
+                categories: state?.insights.byCategory ?? const [],
+                isLoading: isLoading,
+              ),
             );
             break;
           case 'recent_activity':
             dashboardWidgets.add(
               DashboardRecentActivityCard(
-                items: state.insights.recentActivity,
+                items: state?.insights.recentActivity ?? const [],
                 onViewAll: () => context.go('/complaints'),
+                isLoading: isLoading,
               ),
             );
             break;
@@ -207,7 +245,7 @@ class SuperAdminDashboard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (state.warningMessage != null) ...[
+            if (state != null && state.warningMessage != null) ...[
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(
@@ -260,7 +298,12 @@ class SuperAdminDashboard extends StatelessWidget {
 class _MapDesignCard extends StatefulWidget {
   final int totalPoles;
   final List<PoleModel> poles;
-  const _MapDesignCard({required this.totalPoles, required this.poles});
+  final bool isLoading;
+  const _MapDesignCard({
+    required this.totalPoles,
+    required this.poles,
+    this.isLoading = false,
+  });
 
   @override
   State<_MapDesignCard> createState() => _MapDesignCardState();
@@ -361,7 +404,7 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                                 color: AppTheme.textPrimary,
                               ),
                             ),
-                            SizedBox(height: 4),
+                            const SizedBox(height: 4),
                             Text(
                               'Real-time status of electric poles and local infrastructure',
                               style: TextStyle(
@@ -392,18 +435,23 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                     clipBehavior: Clip.hardEdge,
                     children: [
                       Positioned.fill(
-                        child: MapOverview(
-                          poles: widget.poles,
-                          height: mapHeight,
-                          showLegend: false,
-                          showCardDecoration: false,
-                          borderRadius: 12,
-                          showInfoWindow: false,
-                          focusFaultPolesFirst: true,
-                          usePngMarkers: true,
-                          onPoleTap:
-                              (pole) => setState(() => _selectedPole = pole),
-                        ),
+                        child: widget.isLoading
+                            ? const AppShimmer.rectangular(
+                                width: double.infinity,
+                                height: double.infinity,
+                              )
+                            : MapOverview(
+                                poles: widget.poles,
+                                height: mapHeight,
+                                showLegend: false,
+                                showCardDecoration: false,
+                                borderRadius: 12,
+                                showInfoWindow: false,
+                                focusFaultPolesFirst: true,
+                                usePngMarkers: true,
+                                onPoleTap:
+                                    (pole) => setState(() => _selectedPole = pole),
+                              ),
                       ),
                       Positioned(
                         left: veryCompact ? 6 : 16,
@@ -561,26 +609,28 @@ class _MapDesignCardState extends State<_MapDesignCard> {
                               220.0,
                             ),
                           ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgCard.withValues(alpha: 0.9),
-                              borderRadius: BorderRadius.circular(999),
-                            ),
-                            child: Text(
-                              '${widget.totalPoles} assets tracked',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style:       TextStyle(
-                                fontSize: 11,
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w600,
+                        child: widget.isLoading
+                            ? const AppShimmer.rectangular(width: 110, height: 22)
+                            : Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.bgCard.withValues(alpha: 0.9),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '${widget.totalPoles} assets tracked',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: AppTheme.textSecondary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ],

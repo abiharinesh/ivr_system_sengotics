@@ -10,6 +10,8 @@ import '../../../../core/models/pole_model.dart';
 import '../../../super_admin/data/models/complaint_model.dart';
 import '../../bloc/pa_dashboard_bloc.dart';
 import '../../data/panchayat_admin_repository.dart';
+import '../../../../core/models/stats_model.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 
 class PADashboard extends StatelessWidget {
   const PADashboard({super.key});
@@ -18,12 +20,7 @@ class PADashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<PADashBloc, PADashState>(
       builder: (context, state) {
-        if (state is PADashLoading) {
-          return const AppLoadingState(
-            message: 'Loading dashboard...',
-            style: AppLoadingStyle.dashboard,
-          );
-        }
+        final isLoading = state is PADashLoading;
         if (state is PADashError) {
           return Center(
             child: Column(
@@ -49,18 +46,30 @@ class PADashboard extends StatelessWidget {
             ),
           );
         }
-        if (state is PADashLoaded) {
-          return _buildContent(context, state);
+        if (state is PADashLoaded || isLoading) {
+          return _buildContent(
+            context,
+            state is PADashLoaded ? state : null,
+            isLoading: isLoading,
+          );
         }
         return const SizedBox.shrink();
       },
     );
   }
 
-  Widget _buildContent(BuildContext context, PADashLoaded state) {
-    final stats = state.stats;
-    final profile = state.profile;
-    final titlePanchayat = profile.panchayatName ?? 'Alandur Panchayat';
+  Widget _buildContent(BuildContext context, PADashLoaded? state, {bool isLoading = false}) {
+    final stats = state?.stats ?? const StatsModel(
+      totalComplaints: 0,
+      pendingComplaints: 0,
+      resolvedComplaints: 0,
+      manualReviewComplaints: 0,
+      totalPoles: 0,
+      totalPanchayats: 0,
+      totalAdmins: 0,
+    );
+    final profile = state?.profile;
+    final titlePanchayat = profile?.panchayatName ?? 'Alandur Panchayat';
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
     final w = MediaQuery.sizeOf(context).width;
     final isDesktop = w >= 1024;
@@ -77,7 +86,7 @@ class PADashboard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (state.warningMessage != null) ...[
+              if (state != null && state.warningMessage != null) ...[
                 _buildWarningBanner(context),
                 const SizedBox(height: 16),
               ],
@@ -87,7 +96,7 @@ class PADashboard extends StatelessWidget {
               const SizedBox(height: 24),
 
               // KPI Cards Grid
-              _buildKpiGrid(context, stats, state.electricians.length),
+              _buildKpiGrid(context, stats, state?.electricians.length ?? 0, isLoading: isLoading),
               const SizedBox(height: 24),
 
               // Bento Grid Layout
@@ -100,9 +109,9 @@ class PADashboard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildComplaintQueue(context, state.complaints),
+                          _buildComplaintQueue(context, state?.complaints ?? const [], isLoading: isLoading),
                           const SizedBox(height: 24),
-                          _buildGisQuickView(context, state.poles, titlePanchayat),
+                          _buildGisQuickView(context, state?.poles ?? const [], titlePanchayat, isLoading: isLoading),
                         ],
                       ),
                     ),
@@ -114,7 +123,7 @@ class PADashboard extends StatelessWidget {
                         children: [
                           _buildQuickActions(context),
                           const SizedBox(height: 24),
-                          _buildFieldAgents(context, state.electricians),
+                          _buildFieldAgents(context, state?.electricians ?? const [], isLoading: isLoading),
                         ],
                       ),
                     ),
@@ -124,13 +133,13 @@ class PADashboard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _buildComplaintQueue(context, state.complaints),
+                    _buildComplaintQueue(context, state?.complaints ?? const [], isLoading: isLoading),
                     const SizedBox(height: 24),
-                    _buildGisQuickView(context, state.poles, titlePanchayat),
+                    _buildGisQuickView(context, state?.poles ?? const [], titlePanchayat, isLoading: isLoading),
                     const SizedBox(height: 24),
                     _buildQuickActions(context),
                     const SizedBox(height: 24),
-                    _buildFieldAgents(context, state.electricians),
+                    _buildFieldAgents(context, state?.electricians ?? const [], isLoading: isLoading),
                   ],
                 ),
             ],
@@ -182,12 +191,16 @@ class PADashboard extends StatelessWidget {
             const SizedBox(width: 4),
             Icon(Icons.chevron_right, size: 14, color: AppTheme.textMuted),
             const SizedBox(width: 4),
-            Text(
-              panchayatName,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.primary,
+            Expanded(
+              child: Text(
+                panchayatName,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.primary,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -195,7 +208,7 @@ class PADashboard extends StatelessWidget {
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
-            final isMobile = constraints.maxWidth < 600;
+            final isMobile = constraints.maxWidth < 850;
             final headerWidgets = [
               Text(
                 'Admin Overview',
@@ -208,7 +221,9 @@ class PADashboard extends StatelessWidget {
                 ),
               ),
               if (isMobile) const SizedBox(height: 12) else const Spacer(),
-              Row(
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () {
@@ -228,7 +243,6 @@ class PADashboard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: () => context.go('/tenders/new'),
                     icon: const Icon(Icons.assignment_add, size: 18),
@@ -260,7 +274,7 @@ class PADashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildKpiGrid(BuildContext context, dynamic stats, int activeStaffCount) {
+  Widget _buildKpiGrid(BuildContext context, dynamic stats, int activeStaffCount, {bool isLoading = false}) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final w = constraints.maxWidth;
@@ -282,16 +296,17 @@ class PADashboard extends StatelessWidget {
               icon: Icons.warning_amber_rounded,
               iconBg: AppTheme.error.withValues(alpha: 0.1),
               iconColor: AppTheme.error,
-              trendWidget: Row(
+              trendWidget: const Row(
                 children: [
                   Icon(Icons.trending_up_rounded, size: 14, color: AppTheme.error),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(
                     '+12% this week',
                     style: TextStyle(fontSize: 11, color: AppTheme.error, fontWeight: FontWeight.w600),
                   ),
                 ],
               ),
+              isLoading: isLoading,
             ),
             // Card 2: Field Staff Active
             _KpiCard(
@@ -310,6 +325,7 @@ class PADashboard extends StatelessWidget {
                   ),
                 ],
               ),
+              isLoading: isLoading,
             ),
             // Card 3: Water Tank Levels
             _KpiCard(
@@ -337,6 +353,7 @@ class PADashboard extends StatelessWidget {
                   ),
                 ),
               ),
+              isLoading: isLoading,
             ),
             // Card 4: Live Tenders
             _KpiCard(
@@ -355,6 +372,7 @@ class PADashboard extends StatelessWidget {
                   ),
                 ],
               ),
+              isLoading: isLoading,
             ),
           ],
         );
@@ -362,7 +380,7 @@ class PADashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildComplaintQueue(BuildContext context, List<ComplaintModel> complaints) {
+  Widget _buildComplaintQueue(BuildContext context, List<ComplaintModel> complaints, {bool isLoading = false}) {
     return Container(
       height: 500,
       decoration: BoxDecoration(
@@ -379,24 +397,28 @@ class PADashboard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Complaint Queue',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Metropolis',
-                        color: AppTheme.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Complaint Queue',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Metropolis',
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Prioritized AI-processed voice reports',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Prioritized AI-processed voice reports',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -405,7 +427,7 @@ class PADashboard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(99),
                   ),
                   child: Text(
-                    'New: ${complaints.length}',
+                    isLoading ? 'New: ...' : 'New: ${complaints.length}',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
@@ -418,42 +440,47 @@ class PADashboard extends StatelessWidget {
           ),
           const Divider(height: 1),
           Expanded(
-            child: complaints.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.check_circle_outline, size: 40, color: AppTheme.textMuted),
-                          const SizedBox(height: 12),
-                          Text(
-                            'All Clean! No Pending Complaints',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+            child: isLoading
+                ? const AppLoadingState(
+                    message: 'Loading complaints...',
+                    style: AppLoadingStyle.list,
                   )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: complaints.length,
-                    itemBuilder: (context, index) {
-                      final complaint = complaints[index];
-                      return _ComplaintQueueItem(complaint: complaint);
-                    },
-                  ),
+                : (complaints.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 40, color: AppTheme.textMuted),
+                              const SizedBox(height: 12),
+                              Text(
+                                'All Clean! No Pending Complaints',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: complaints.length,
+                        itemBuilder: (context, index) {
+                          final complaint = complaints[index];
+                          return _ComplaintQueueItem(complaint: complaint);
+                        },
+                      )),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildGisQuickView(BuildContext context, List<PoleModel> poles, String panchayatName) {
+  Widget _buildGisQuickView(BuildContext context, List<PoleModel> poles, String panchayatName, {bool isLoading = false}) {
     return Container(
       height: 400,
       decoration: BoxDecoration(
@@ -470,27 +497,31 @@ class PADashboard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Panchayat Asset Map (GIS View)',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Metropolis',
-                        color: AppTheme.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Panchayat Asset Map (GIS View)',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Metropolis',
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Real-time status in $panchayatName',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Real-time status in $panchayatName',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
                 Text(
-                  '${poles.length} assets tracked',
+                  isLoading ? '... assets tracked' : '${poles.length} assets tracked',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -509,48 +540,55 @@ class PADashboard extends StatelessWidget {
               ),
               child: Stack(
                 children: [
-                  MapOverview(
-                    poles: poles,
-                    height: 400,
-                    showLegend: false,
-                    showCardDecoration: false,
-                    borderRadius: 12,
-                    showInfoWindow: true,
-                    focusFaultPolesFirst: true,
-                    usePngMarkers: true,
-                  ),
-                  Positioned(
-                    left: 16,
-                    bottom: 16,
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppTheme.bgCard.withValues(alpha: 0.92),
-                        borderRadius: BorderRadius.circular(10),
-                        boxShadow: AppTheme.softShadow,
-                        border: Border.all(color: AppTheme.stroke.withValues(alpha: 0.5)),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'ASSET STATUS',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: AppTheme.textMuted,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 0.8,
+                  if (isLoading)
+                    const AppShimmer.rectangular(
+                      width: double.infinity,
+                      height: double.infinity,
+                    )
+                  else
+                    MapOverview(
+                      poles: poles,
+                      height: 400,
+                      showLegend: false,
+                      showCardDecoration: false,
+                      borderRadius: 12,
+                      showInfoWindow: true,
+                      focusFaultPolesFirst: true,
+                      usePngMarkers: true,
+                    ),
+                  if (!isLoading)
+                    Positioned(
+                      left: 16,
+                      bottom: 16,
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.bgCard.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(10),
+                          boxShadow: AppTheme.softShadow,
+                          border: Border.all(color: AppTheme.stroke.withValues(alpha: 0.5)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'ASSET STATUS',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: AppTheme.textMuted,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.8,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          _GisLegendRow(label: 'Normal (142)', color: AppTheme.accent),
-                          const SizedBox(height: 6),
-                          _GisLegendRow(label: 'Faulty (08)', color: AppTheme.error),
-                        ],
+                            const SizedBox(height: 8),
+                            _GisLegendRow(label: 'Normal (142)', color: AppTheme.accent),
+                            const SizedBox(height: 6),
+                            const _GisLegendRow(label: 'Faulty (08)', color: AppTheme.error),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -571,7 +609,7 @@ class PADashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Quick Actions',
             style: TextStyle(
               fontSize: 20,
@@ -604,7 +642,7 @@ class PADashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildFieldAgents(BuildContext context, List<dynamic> electricians) {
+  Widget _buildFieldAgents(BuildContext context, List<dynamic> electricians, {bool isLoading = false}) {
     // Alternate South Indian avatars for our technicians
     final avatars = [
       'https://lh3.googleusercontent.com/aida-public/AB6AXuCd58xCiZtMtZFm0REuU33Ma_eEETeY3nqHynP6Homm4ieVzDLSnDiwFfxkrTdQ8KtWN8MPFuBoxH5x-agic26diOCj3GUQNKntTeK9i0g860lD5rYJgFPs7ZC08RuC_ugjlPjxgiJNMvRn0W_i1Nym1ljyJOUDj57shwS_RELTj3aNqg-9koHxkmSzXdYjGuk9CNkLXQm4iV0CdmB6A5FJFA-bMv1p5H6qKY1La3u3W41sHVcnidODeTAvqRAK6rYl8zt1k-ERc8s',
@@ -628,24 +666,28 @@ class PADashboard extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Field Agents',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        fontFamily: 'Metropolis',
-                        color: AppTheme.textPrimary,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Field Agents',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Metropolis',
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Active local responders',
-                      style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                    ),
-                  ],
+                      const SizedBox(height: 2),
+                      Text(
+                        'Active local responders',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -654,7 +696,7 @@ class PADashboard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    '${electricians.length} Active',
+                    isLoading ? '... Active' : '${electricians.length} Active',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -666,7 +708,15 @@ class PADashboard extends StatelessWidget {
             ),
           ),
           const Divider(height: 1),
-          if (electricians.isEmpty)
+          if (isLoading)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: AppLoadingState(
+                message: 'Loading agents...',
+                style: AppLoadingStyle.list,
+              ),
+            )
+          else if (electricians.isEmpty)
             Padding(
               padding: const EdgeInsets.all(24),
               child: Center(
@@ -812,6 +862,7 @@ class _KpiCard extends StatelessWidget {
   final Color iconBg;
   final Color iconColor;
   final Widget trendWidget;
+  final bool isLoading;
 
   const _KpiCard({
     required this.title,
@@ -820,6 +871,7 @@ class _KpiCard extends StatelessWidget {
     required this.iconBg,
     required this.iconColor,
     required this.trendWidget,
+    this.isLoading = false,
   });
 
   @override
@@ -848,27 +900,44 @@ class _KpiCard extends StatelessWidget {
                     color: AppTheme.textMuted,
                   ),
                 ),
-                Text(
-                  value,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w800,
-                    fontFamily: 'Metropolis',
-                    color: AppTheme.textPrimary,
+                if (isLoading) ...[
+                  const SizedBox(height: 8),
+                  const AppShimmer.rectangular(width: 55, height: 32),
+                  const SizedBox(height: 8),
+                  const AppShimmer.rectangular(width: 100, height: 12),
+                ] else ...[
+                  Text(
+                    value,
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Metropolis',
+                      color: AppTheme.textPrimary,
+                    ),
                   ),
-                ),
-                trendWidget,
+                  trendWidget,
+                ],
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: iconBg,
-              borderRadius: BorderRadius.circular(10),
+          if (isLoading)
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppTheme.bgSurface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+            )
+          else
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
         ],
       ),
     );
@@ -993,7 +1062,7 @@ class _ComplaintQueueItemState extends State<_ComplaintQueueItem> {
                       color: AppTheme.error.withValues(alpha: 0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(Icons.mic, color: AppTheme.error, size: 18),
+                    child: const Icon(Icons.mic, color: AppTheme.error, size: 18),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

@@ -36,148 +36,148 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
         }
       },
       builder: (context, state) {
-        if (state is PanchayatLoading) {
-          return const AppLoadingState(
-            message: 'Loading panchayats...',
-            style: AppLoadingStyle.list,
-          );
-        }
-        if (state is PanchayatLoaded) {
-          if (state.panchayats.isEmpty) {
-            return EmptyState(
-              icon: Icons.location_city_rounded,
-              title: 'No Panchayats',
-              subtitle: 'Create your first panchayat to get started',
-              action: ElevatedButton.icon(
-                onPressed: () => _showCreateDialog(context),
-                icon: const Icon(Icons.add),
-                label: const Text('Add Panchayat'),
-              ),
-            );
-          }
-          return _buildList(context, state);
+        final isLoading = state is PanchayatLoading;
+        if (state is PanchayatLoaded || isLoading) {
+          final panchayats = state is PanchayatLoaded ? state.panchayats : const [];
+          return _buildList(context, panchayats, isLoading: isLoading);
         }
         return const SizedBox.shrink();
       },
     );
   }
 
-  Widget _buildList(BuildContext context, PanchayatLoaded state) {
+  Widget _buildList(BuildContext context, List<dynamic> panchayats, {bool isLoading = false}) {
     return ListScreenShell(
       title: 'Panchayat Management',
       subtitle: 'Create and maintain all panchayat entities',
-      countLabel: '${state.panchayats.length} panchayat(s)',
+      countLabel: isLoading ? 'Loading...' : '${panchayats.length} panchayat(s)',
       action: ElevatedButton.icon(
-        onPressed: () => _showCreateDialog(context),
+        onPressed: isLoading ? null : () => _showCreateDialog(context),
         icon: const Icon(Icons.add, size: 18),
         label: const Text('Add Panchayat'),
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
-          return ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: hPad),
-            itemCount: state.panchayats.length,
-            itemBuilder: (context, index) {
-              final p = state.panchayats[index];
-          return Card(
-            margin: const EdgeInsets.only(bottom: 12),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primary.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child:       Icon(
-                          Icons.location_city_rounded,
-                          color: AppTheme.primary,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              p.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+      child: isLoading
+          ? const AppLoadingState(
+              message: 'Loading panchayats...',
+              style: AppLoadingStyle.list,
+            )
+          : (panchayats.isEmpty
+              ? EmptyState(
+                  icon: Icons.location_city_rounded,
+                  title: 'No Panchayats',
+                  subtitle: 'Create your first panchayat to get started',
+                  action: ElevatedButton.icon(
+                    onPressed: () => _showCreateDialog(context),
+                    icon: const Icon(Icons.add),
+                    label: const Text('Add Panchayat'),
+                  ),
+                )
+              : LayoutBuilder(
+                  builder: (context, constraints) {
+                    final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+                    return ListView.builder(
+                      padding: EdgeInsets.symmetric(horizontal: hPad),
+                      itemCount: panchayats.length,
+                      itemBuilder: (context, index) {
+                        final p = panchayats[index];
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          child: Padding(
+                            padding: const EdgeInsets.all(16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: AppTheme.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        Icons.location_city_rounded,
+                                        color: AppTheme.primary,
+                                        size: 20,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            p.name,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          if (p.ivrNumber != null)
+                                            Text(
+                                              'IVR: ${p.ivrNumber}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: AppTheme.textMuted,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuButton<String>(
+                                      onSelected: (action) {
+                                        if (action == 'edit') {
+                                          _showEditDialog(context, p);
+                                        } else if (action == 'delete') {
+                                          _showDeleteDialog(context, p.id, p.name);
+                                        }
+                                      },
+                                      itemBuilder:
+                                          (_) => [
+                                            const PopupMenuItem(
+                                              value: 'edit',
+                                              child: Text('Edit'),
+                                            ),
+                                            const PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text(
+                                                'Delete',
+                                                style: TextStyle(color: AppTheme.error),
+                                              ),
+                                            ),
+                                          ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                const Divider(height: 1),
+                                const SizedBox(height: 12),
+                                Row(
+                                  children: [
+                                    _InfoChip(
+                                      icon: Icons.electrical_services_rounded,
+                                      label: '${p.polesCount} poles',
+                                    ),
+                                    const SizedBox(width: 12),
+                                    _InfoChip(
+                                      icon: Icons.report_problem_rounded,
+                                      label: '${p.complaintsCount} complaints',
+                                    ),
+                                    const SizedBox(width: 12),
+                                    _InfoChip(
+                                      icon: Icons.people_rounded,
+                                      label: '${p.usersCount} admins',
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
-                            if (p.ivrNumber != null)
-                              Text(
-                                'IVR: ${p.ivrNumber}',
-                                style:       TextStyle(
-                                  fontSize: 12,
-                                  color: AppTheme.textMuted,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      PopupMenuButton<String>(
-                        onSelected: (action) {
-                          if (action == 'edit') {
-                            _showEditDialog(context, p);
-                          } else if (action == 'delete') {
-                            _showDeleteDialog(context, p.id, p.name);
-                          }
-                        },
-                        itemBuilder:
-                            (_) => [
-                              const PopupMenuItem(
-                                value: 'edit',
-                                child: Text('Edit'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'delete',
-                                child: Text(
-                                  'Delete',
-                                  style: TextStyle(color: AppTheme.error),
-                                ),
-                              ),
-                            ],
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  const Divider(height: 1),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      _InfoChip(
-                        icon: Icons.electrical_services_rounded,
-                        label: '${p.polesCount} poles',
-                      ),
-                      const SizedBox(width: 12),
-                      _InfoChip(
-                        icon: Icons.report_problem_rounded,
-                        label: '${p.complaintsCount} complaints',
-                      ),
-                      const SizedBox(width: 12),
-                      _InfoChip(
-                        icon: Icons.people_rounded,
-                        label: '${p.usersCount} admins',
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-              );
-            },
-          );
-        },
-      ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                )),
     );
   }
 

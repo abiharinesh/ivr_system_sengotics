@@ -16,7 +16,7 @@ class EditableHtmlController {
     try {
       final iframe = _iframe;
       if (iframe == null) {
-        print('[EditableHtmlController] iframe is null');
+        debugPrint('[EditableHtmlController] iframe is null');
         return null;
       }
 
@@ -25,7 +25,7 @@ class EditableHtmlController {
       final jsIframe = js.JsObject.fromBrowserObject(iframe);
       final contentWindow = jsIframe['contentWindow'];
       if (contentWindow == null || contentWindow is! js.JsObject) {
-        print('[EditableHtmlController] contentWindow is null or not a JsObject');
+        debugPrint('[EditableHtmlController] contentWindow is null or not a JsObject');
         return null;
       }
 
@@ -40,7 +40,7 @@ class EditableHtmlController {
       ]);
 
       if (raw == null || raw is! String || raw.trim().isEmpty) {
-        print('[EditableHtmlController] outerHTML returned: ${raw?.runtimeType}');
+        debugPrint('[EditableHtmlController] outerHTML returned: ${raw?.runtimeType}');
         return null;
       }
 
@@ -52,7 +52,7 @@ class EditableHtmlController {
       );
       return '<!DOCTYPE html>\n$cleaned';
     } catch (e, st) {
-      print('[EditableHtmlController] Error extracting edited HTML: $e\n$st');
+      debugPrint('[EditableHtmlController] Error extracting edited HTML: $e\n$st');
       return null;
     }
   }

@@ -43,11 +43,26 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    final cachedPipelines = _repository.getCachedPipelines(1);
+    final cachedTanks = _repository.getCachedTanks(1);
+    final cachedValves = _repository.getCachedValves(1);
+    
+    final hasCache = cachedPipelines != null && cachedTanks != null && cachedValves != null;
+    
+    if (hasCache) {
+      _pipelines = cachedPipelines;
+      _tanks = cachedTanks;
+      _valves = cachedValves;
+      _isLoading = false;
+      if (mounted) setState(() {});
+    } else {
+      setState(() => _isLoading = true);
+    }
+
     try {
-      final pipelines = await _repository.getPipelines(1);
-      final tanks = await _repository.getTanks(1);
-      final valves = await _repository.getValves(1);
+      final pipelines = await _repository.getPipelines(1, forceRefresh: !hasCache);
+      final tanks = await _repository.getTanks(1, forceRefresh: !hasCache);
+      final valves = await _repository.getValves(1, forceRefresh: !hasCache);
       if (mounted) {
         setState(() {
           _pipelines = pipelines;
@@ -63,19 +78,12 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const AppLoadingState(
-        message: 'Mapping pipeline network (GIS)...',
-        style: AppLoadingStyle.dashboard,
-      );
-    }
-
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < 600;
 
     // Define polylines from pipeline coordinates
     final Set<gmap.Polyline> polylines = {};
-    if (_enableWaterPipelineGrid && _showWaterLines) {
+    if (!_isLoading && _enableWaterPipelineGrid && _showWaterLines) {
       for (final pipeline in _pipelines) {
         final geo = pipeline['path_geojson'] as Map;
         final coords = geo['coordinates'] as List;
@@ -104,7 +112,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     // Define markers for tanks, borewells, valves
     final Set<gmap.Marker> markers = {};
 
-    if (_showOverheadTanks || _showBorewells) {
+    if (!_isLoading && (_showOverheadTanks || _showBorewells)) {
       for (final tank in _tanks) {
         final isTank = tank['type'] == 'overhead_tank';
         if (isTank && !_showOverheadTanks) continue;
@@ -134,7 +142,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
       }
     }
 
-    if (_showValves) {
+    if (!_isLoading && _showValves) {
       for (final valve in _valves) {
         markers.add(
           gmap.Marker(
@@ -160,21 +168,26 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Google Maps
+          // 1. Google Maps or Loader
           Positioned.fill(
-            child: gmap.GoogleMap(
-              mapId: googleMapsMapId,
-              markerType: googleMapsMarkerType,
-              initialCameraPosition: const gmap.CameraPosition(
-                target: center,
-                zoom: 11.5,
-              ),
-              polylines: polylines,
-              markers: markers,
-              mapType: gmap.MapType.normal,
-              myLocationButtonEnabled: false,
-              zoomControlsEnabled: true,
-            ),
+            child: _isLoading
+                ? const AppLoadingState(
+                    message: 'Mapping pipeline network (GIS)...',
+                    style: AppLoadingStyle.dashboard,
+                  )
+                : gmap.GoogleMap(
+                    mapId: googleMapsMapId,
+                    markerType: googleMapsMarkerType,
+                    initialCameraPosition: const gmap.CameraPosition(
+                      target: center,
+                      zoom: 11.5,
+                    ),
+                    polylines: polylines,
+                    markers: markers,
+                    mapType: gmap.MapType.normal,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: true,
+                  ),
           ),
 
           // 2. Floating Header Info
@@ -246,10 +259,10 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                     ],
                   ),
                   const Divider(height: 12),
-                  _switchRow('Electrical Grid', _enableElectricalGrid, (v) {
+                  _switchRow('Electrical Grid', _enableElectricalGrid, _isLoading ? null : (v) {
                     setState(() => _enableElectricalGrid = v);
                   }),
-                  _switchRow('Water Pipeline Grid', _enableWaterPipelineGrid, (v) {
+                  _switchRow('Water Pipeline Grid', _enableWaterPipelineGrid, _isLoading ? null : (v) {
                     setState(() => _enableWaterPipelineGrid = v);
                   }),
                 ],
@@ -284,19 +297,19 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                     ),
                   ),
                   const Divider(height: 10),
-                  _checkRow('Water Lines', _showWaterLines, AppTheme.primary, (v) {
+                  _checkRow('Water Lines', _showWaterLines, AppTheme.primary, _isLoading ? null : (v) {
                     setState(() => _showWaterLines = v ?? true);
                   }),
-                  _checkRow('Water Pipeline', _showWaterPipeline, AppTheme.accent, (v) {
+                  _checkRow('Water Pipeline', _showWaterPipeline, AppTheme.accent, _isLoading ? null : (v) {
                     setState(() => _showWaterPipeline = v ?? true);
                   }),
-                  _checkRow('Overhead Tanks', _showOverheadTanks, Colors.cyan, (v) {
+                  _checkRow('Overhead Tanks', _showOverheadTanks, Colors.cyan, _isLoading ? null : (v) {
                     setState(() => _showOverheadTanks = v ?? true);
                   }),
-                  _checkRow('Borewell Pumps', _showBorewells, Colors.purple, (v) {
+                  _checkRow('Borewell Pumps', _showBorewells, Colors.purple, _isLoading ? null : (v) {
                     setState(() => _showBorewells = v ?? true);
                   }),
-                  _checkRow('Valve Nodes', _showValves, Colors.amber, (v) {
+                  _checkRow('Valve Nodes', _showValves, Colors.amber, _isLoading ? null : (v) {
                     setState(() => _showValves = v ?? true);
                   }),
                 ],
@@ -553,10 +566,10 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: AppTheme.error.withValues(alpha: 0.2), width: 0.8),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(Icons.warning_amber_rounded, color: AppTheme.error, size: 18),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       'AI Alert: Pipeline leak detected! Flow rate dropped to 2.1 LPS.',
@@ -614,7 +627,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     );
   }
 
-  Widget _switchRow(String label, bool value, ValueChanged<bool> onChanged) {
+  Widget _switchRow(String label, bool value, ValueChanged<bool>? onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Row(
@@ -626,7 +639,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
             child: Switch(
               value: value,
               onChanged: onChanged,
-              activeColor: AppTheme.primary,
+              activeThumbColor: AppTheme.primary,
             ),
           )
         ],
@@ -634,7 +647,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     );
   }
 
-  Widget _checkRow(String label, bool value, Color indicatorColor, ValueChanged<bool?> onChanged) {
+  Widget _checkRow(String label, bool value, Color indicatorColor, ValueChanged<bool?>? onChanged) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1.0),
       child: Row(
@@ -687,7 +700,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
               );
             }
             if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}', style: TextStyle(color: AppTheme.error));
+              return Text('Error: ${snapshot.error}', style: const TextStyle(color: AppTheme.error));
             }
             final list = snapshot.data ?? [];
             if (list.isEmpty) {

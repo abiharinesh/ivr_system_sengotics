@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../config/api_config.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/api/api_exceptions.dart';
 import '../../../../core/offline/field_outbox.dart';
 import '../../../../core/offline/network_status.dart';
@@ -119,61 +119,77 @@ class _AgentPoleDetailScreenState extends State<AgentPoleDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const AppLoadingState(
-        message: 'Loading details...',
-        style: AppLoadingStyle.detail,
+    final isLoading = _loading || _pole == null;
+    final p = _pole ?? {};
+    final imgUrl = isLoading ? '' : ApiConfig.fileUrl(p['image_url'] as String?);
+
+    final titleWidget = isLoading
+        ? const AppShimmer.rectangular(width: 120, height: 22)
+        : Text(
+            'Pole #${p['id']}',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+          );
+
+    final subtitleWidget = isLoading
+        ? const AppShimmer.rectangular(width: 180, height: 14)
+        : Text(
+            'No. ${p['pole_number'] ?? '—'} · Keypad ${p['keypad_id'] ?? '—'}',
+            style: TextStyle(color: AppTheme.textMuted),
+          );
+
+    final geoWidget = isLoading
+        ? const Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: AppShimmer.rectangular(width: 220, height: 12),
+          )
+        : (p['image_latitude'] != null
+            ? Text(
+                'Last geo: ${p['image_latitude']}, ${p['image_longitude']}',
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              )
+            : const SizedBox.shrink());
+
+    Widget buildImageArea() {
+      if (isLoading) {
+        return const AppShimmer.rectangular(width: double.infinity, height: 220);
+      }
+      if (imgUrl.isNotEmpty) {
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(imgUrl, height: 220, fit: BoxFit.cover),
+        );
+      }
+      return Container(
+        height: 160,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppTheme.bgSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.stroke),
+        ),
+        child: const Text('No reference photo yet'),
       );
     }
-    if (_pole == null) {
-      return Center(child: Text(_error ?? 'Not found'));
-    }
-    final p = _pole!;
-    final imgUrl = ApiConfig.fileUrl(p['image_url'] as String?);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(
-            'Pole #${p['id']}',
-            style:       TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
-          ),
+          titleWidget,
           const SizedBox(height: 8),
-          Text(
-            'No. ${p['pole_number'] ?? '—'} · Keypad ${p['keypad_id'] ?? '—'}',
-            style:       TextStyle(color: AppTheme.textMuted),
-          ),
-          if (p['image_latitude'] != null)
-            Text(
-              'Last geo: ${p['image_latitude']}, ${p['image_longitude']}',
-              style:       TextStyle(fontSize: 12, color: AppTheme.textMuted),
-            ),
+          subtitleWidget,
+          const SizedBox(height: 4),
+          geoWidget,
           const SizedBox(height: 20),
-          if (imgUrl.isNotEmpty)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.network(imgUrl, height: 220, fit: BoxFit.cover),
-            )
-          else
-            Container(
-              height: 160,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: AppTheme.bgSurface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.stroke),
-              ),
-              child: const Text('No reference photo yet'),
-            ),
+          buildImageArea(),
           if (_error != null) ...[
             const SizedBox(height: 12),
             Text(_error!, style: TextStyle(color: Colors.red.shade800)),
           ],
           const SizedBox(height: 20),
           FilledButton.icon(
-            onPressed: _uploading ? null : _captureAndUpload,
+            onPressed: (isLoading || _uploading) ? null : _captureAndUpload,
             icon: _uploading
                 ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.photo_camera),

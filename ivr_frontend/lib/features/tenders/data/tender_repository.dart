@@ -15,13 +15,26 @@ class TenderRepository {
   String get _base => isSuperAdmin ? '/api/superadmin' : '/api/admin';
 
   // ── Vendors ─────────────────────────────────────────────────────────
-  Future<List<Vendor>> listVendors({bool? active, int? panchayatId}) async {
+  List<Vendor>? getCachedVendors({bool? active, int? panchayatId}) {
+    final params = <String, dynamic>{
+      if (active != null) 'active': active.toString(),
+      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+    };
+    final cached = _api.getCached('$_base/vendors',
+        queryParams: params.isEmpty ? null : params);
+    if (cached == null) return null;
+    return ((cached) as List)
+        .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<Vendor>> listVendors({bool? active, int? panchayatId, bool forceRefresh = false}) async {
     final params = <String, dynamic>{
       if (active != null) 'active': active.toString(),
       if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
     };
     final res = await _api.get('$_base/vendors',
-        queryParams: params.isEmpty ? null : params);
+        queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return ((res ?? []) as List)
         .map((e) => Vendor.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -54,13 +67,26 @@ class TenderRepository {
   }
 
   // ── Tenders ─────────────────────────────────────────────────────────
-  Future<List<TenderSummary>> listTenders({String? status, int? panchayatId}) async {
+  List<TenderSummary>? getCachedTenders({String? status, int? panchayatId}) {
+    final params = <String, dynamic>{
+      if (status != null) 'status': status,
+      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+    };
+    final cached = _api.getCached('$_base/tenders',
+        queryParams: params.isEmpty ? null : params);
+    if (cached == null) return null;
+    return ((cached) as List)
+        .map((e) => TenderSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<TenderSummary>> listTenders({String? status, int? panchayatId, bool forceRefresh = false}) async {
     final params = <String, dynamic>{
       if (status != null) 'status': status,
       if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
     };
     final res = await _api.get('$_base/tenders',
-        queryParams: params.isEmpty ? null : params);
+        queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return ((res ?? []) as List)
         .map((e) => TenderSummary.fromJson(e as Map<String, dynamic>))
         .toList();

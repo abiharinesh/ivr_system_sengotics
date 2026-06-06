@@ -1,11 +1,14 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../data/models/tender_models.dart';
 
 class TenderKpiSection extends StatelessWidget {
   final List<TenderSummary> tenders;
-  const TenderKpiSection({super.key, required this.tenders});
+  final bool isLoading;
+  const TenderKpiSection({super.key, required this.tenders, this.isLoading = false});
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +82,7 @@ class TenderKpiSection extends StatelessWidget {
               icon: Icons.assignment_turned_in_outlined,
               accentColor: const Color(0xFF0F766E), // Teal
               rightWidget: _buildMicroBarChart(const Color(0xFF0F766E)),
+              isLoading: isLoading,
             ),
             // KPI Card 2: Total Budget / Awarded Value
             _buildKpiCard(
@@ -89,6 +93,7 @@ class TenderKpiSection extends StatelessWidget {
               icon: Icons.account_balance_wallet_outlined,
               accentColor: const Color(0xFF3B82F6), // Blue
               rightWidget: _buildMicroGauge(0.68, const Color(0xFF3B82F6)),
+              isLoading: isLoading,
             ),
             // KPI Card 3: Awaiting Award
             _buildKpiCard(
@@ -99,6 +104,7 @@ class TenderKpiSection extends StatelessWidget {
               icon: Icons.workspace_premium_outlined,
               accentColor: const Color(0xFFF59E0B), // Amber
               rightWidget: _buildMicroSparkline(const Color(0xFFF59E0B)),
+              isLoading: isLoading,
             ),
             // KPI Card 4: Verification Progress
             _buildKpiCard(
@@ -113,6 +119,7 @@ class TenderKpiSection extends StatelessWidget {
                 verificationRatio,
                 const Color(0xFF10B981),
               ),
+              isLoading: isLoading,
             ),
           ],
         );
@@ -128,6 +135,7 @@ class TenderKpiSection extends StatelessWidget {
     required IconData icon,
     required Color accentColor,
     required Widget rightWidget,
+    bool isLoading = false,
   }) {
     return Card(
       elevation: 0,
@@ -164,33 +172,43 @@ class TenderKpiSection extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      color: Color(0xFF0F172A),
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  isLoading
+                      ? const AppShimmer.rectangular(width: 80, height: 20)
+                      : Text(
+                          value,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: -0.5,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                   const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      color: accentColor.withValues(alpha: 0.8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  isLoading
+                      ? const AppShimmer.rectangular(width: 100, height: 10)
+                      : Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: accentColor.withValues(alpha: 0.8),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            SizedBox(width: 54, height: 54, child: rightWidget),
+            SizedBox(
+              width: 54,
+              height: 54,
+              child: isLoading
+                  ? const AppShimmer.circular(width: 54, height: 54)
+                  : rightWidget,
+            ),
           ],
         ),
       ),

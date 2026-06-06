@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
@@ -49,69 +50,110 @@ class SADashError extends SADashState {
 // BLoC
 class SADashBloc extends Bloc<SADashEvent, SADashState> {
   final SuperAdminRepository _repo;
+  Timer? _pollingTimer;
 
   SADashBloc({SuperAdminRepository? repo})
     : _repo = repo ?? SuperAdminRepository(),
       super(SADashInitial()) {
     on<LoadSADashboard>(_onLoad);
+    _startPolling();
+  }
+
+  void _startPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = Timer.periodic(const Duration(seconds: 10), (timer) {
+      add(LoadSADashboard());
+    });
+  }
+
+  @override
+  Future<void> close() {
+    _pollingTimer?.cancel();
+    return super.close();
   }
 
   Future<void> _onLoad(LoadSADashboard event, Emitter<SADashState> emit) async {
-    emit(SADashLoading());
+    final bool isAlreadyLoaded = state is SADashLoaded;
+    
+    StatsModel? cachedStats;
+    List<PoleModel>? cachedPoles;
+    DashboardInsights? cachedInsights;
+    bool hasCache = false;
+
+    if (!isAlreadyLoaded) {
+      cachedStats = _repo.getCachedStats();
+      final rawCachedPoles = _repo.getCachedPoles();
+      cachedPoles = rawCachedPoles?.map((p) => PoleModel.fromJson(p)).toList();
+      cachedInsights = _repo.getCachedDashboardInsights();
+
+      hasCache = cachedStats != null && cachedPoles != null && cachedInsights != null;
+
+      if (hasCache) {
+        emit(
+          SADashLoaded(
+            stats: cachedStats,
+            poles: cachedPoles,
+            insights: cachedInsights,
+          ),
+        );
+      } else {
+        emit(SADashLoading());
+      }
+    }
+
     final errors = <String>[];
     StatsModel? stats;
     List<PoleModel>? poles;
     DashboardInsights? insights;
 
     try {
-      stats = await _repo.getStats();
+      stats = await _repo.getStats(forceRefresh: isAlreadyLoaded || !hasCache);
     } on ApiException catch (e) {
       errors.add('Stats unavailable: ${e.message}');
     }
 
     try {
-      final rawPoles = await _repo.listPoles();
+      final rawPoles = await _repo.listPoles(forceRefresh: isAlreadyLoaded || !hasCache);
       poles = rawPoles.map((p) => PoleModel.fromJson(p)).toList();
     } on ApiException catch (e) {
       errors.add('Poles unavailable: ${e.message}');
     }
 
     try {
-      insights = await _repo.getDashboardInsights();
+      insights = await _repo.getDashboardInsights(forceRefresh: isAlreadyLoaded || !hasCache);
     } on ApiException catch (e) {
       errors.add('Dashboard insights unavailable: ${e.message}');
     }
 
     if (stats == null && poles == null && insights == null) {
-      emit(SADashError(errors.join('\n')));
+      if (!isAlreadyLoaded && !hasCache) {
+        emit(SADashError(errors.join('\n')));
+      }
       return;
     }
 
+    final currentLoaded = state is SADashLoaded ? state as SADashLoaded : null;
     emit(
       SADashLoaded(
-        stats: stats ??
-            const StatsModel(
-              totalComplaints: 0,
-              pendingComplaints: 0,
-              resolvedComplaints: 0,
-              manualReviewComplaints: 0,
-              totalPoles: 0,
-              totalPanchayats: 0,
-              totalAdmins: 0,
-            ),
-        poles: poles ?? const [],
-        insights:
-            insights ??
-            const DashboardInsights(
-              resolutionTrend: ResolutionTrend(
-                currentWeek: [0, 0, 0, 0, 0, 0, 0],
-                lastWeek: [0, 0, 0, 0, 0, 0, 0],
-              ),
-              byCategory: [],
-              recentActivity: [],
-            ),
-        warningMessage:
-            errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
+        stats: stats ?? currentLoaded?.stats ?? cachedStats ?? const StatsModel(
+          totalComplaints: 0,
+          pendingComplaints: 0,
+          resolvedComplaints: 0,
+          manualReviewComplaints: 0,
+          totalPoles: 0,
+          totalPanchayats: 0,
+          totalAdmins: 0,
+        ),
+        poles: poles ?? currentLoaded?.poles ?? cachedPoles ?? const [],
+        insights: insights ?? currentLoaded?.insights ?? cachedInsights ?? const DashboardInsights(
+          resolutionTrend: ResolutionTrend(
+            currentWeek: [0, 0, 0, 0, 0, 0, 0],
+            lastWeek: [0, 0, 0, 0, 0, 0, 0],
+          ),
+          byCategory: [],
+          recentActivity: [],
+        ),
+        warningMessage: errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
       ),
     );
   }

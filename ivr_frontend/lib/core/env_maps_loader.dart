@@ -52,7 +52,13 @@ String? get googleMapsMapId {
 
 /// Helper to get the correct MarkerType based on the map ID availability.
 gmap.GoogleMapMarkerType get googleMapsMarkerType {
+  if (kIsWeb) {
+    // Advanced markers on web crash with legacy BitmapDescriptor.defaultMarkerWithHue
+    // and custom assets, so we fall back to standard markers on Web.
+    return gmap.GoogleMapMarkerType.marker;
+  }
   return googleMapsMapId != null
       ? gmap.GoogleMapMarkerType.advancedMarker
       : gmap.GoogleMapMarkerType.marker;
 }
+

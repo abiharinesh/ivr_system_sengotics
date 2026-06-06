@@ -53,13 +53,6 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const AppLoadingState(
-        message: 'Loading poles...',
-        style: AppLoadingStyle.list,
-      );
-    }
-
     if (_error != null) {
       return Center(
         child: Column(
@@ -113,29 +106,35 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
     return ListScreenShell(
       title: 'Pole Management (All Panchayats)',
       subtitle: 'Search and audit electric poles across every panchayat',
-      countLabel:
-          '$visibleCount of $totalPoles pole(s) shown • '
-          '$withLocation with coordinates • '
-          '${panchayatIds.length} panchayat(s) • '
-          '$totalComplaints complaint(s)',
+      countLabel: _loading
+          ? 'Loading...'
+          : '$visibleCount of $totalPoles pole(s) shown • '
+            '$withLocation with coordinates • '
+            '${panchayatIds.length} panchayat(s) • '
+            '$totalComplaints complaint(s)',
       action: Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
           OutlinedButton.icon(
-            onPressed: _saving ? null : _loadPoles,
+            onPressed: (_saving || _loading) ? null : _loadPoles,
             icon: const Icon(Icons.refresh, size: 18),
             label: const Text('Refresh'),
           ),
           ElevatedButton.icon(
-            onPressed: _saving ? null : () => _showPoleDialog(),
+            onPressed: (_saving || _loading) ? null : () => _showPoleDialog(),
             icon: const Icon(Icons.add, size: 18),
             label: const Text('Add Pole'),
           ),
         ],
       ),
       filters: _buildFilters(panchayatIds),
-      child: LayoutBuilder(
+      child: _loading
+          ? const AppLoadingState(
+              message: 'Loading poles...',
+              style: AppLoadingStyle.list,
+            )
+          : LayoutBuilder(
         builder: (context, constraints) {
           final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
           return ListView.builder(
@@ -645,7 +644,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-            content: Text('Pole deleted successfully'),
+            content: const Text('Pole deleted successfully'),
             backgroundColor: AppTheme.accent,
           ),
         );

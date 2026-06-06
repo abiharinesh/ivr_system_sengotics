@@ -79,12 +79,19 @@ class PoleBloc extends Bloc<PoleEvent, PoleState> {
   }
 
   Future<void> _onLoad(LoadPoles event, Emitter<PoleState> emit) async {
-    emit(PoleLoading());
+    final cached = _repo.getCachedPoles();
+    if (cached != null) {
+      emit(PoleLoaded(cached));
+    } else {
+      emit(PoleLoading());
+    }
     try {
-      final data = await _repo.listPoles();
+      final data = await _repo.listPoles(forceRefresh: cached == null);
       emit(PoleLoaded(data));
     } on ApiException catch (e) {
-      emit(PoleError(e.message));
+      if (cached == null) {
+        emit(PoleError(e.message));
+      }
     }
   }
 

@@ -78,14 +78,12 @@ class _TenderListScreenState extends State<TenderListScreen> {
       ),
       child: FutureBuilder<List<TenderSummary>>(
         future: _future,
+        initialData: _repo.getCachedTenders(
+          status: _statusFilter,
+          panchayatId: _panchayatFilter,
+        ),
         builder: (context, snap) {
-          if (snap.connectionState == ConnectionState.waiting) {
-            return const AppLoadingState(
-              message: 'Loading tenders...',
-              skeletonLines: 5,
-              style: AppLoadingStyle.list,
-            );
-          }
+          final isLoading = snap.connectionState == ConnectionState.waiting && !snap.hasData;
           if (snap.hasError) {
             return AppErrorState(
               message: userFacingMessage(snap.error!),
@@ -120,23 +118,23 @@ class _TenderListScreenState extends State<TenderListScreen> {
                 ),
                 children: [
                   // 1. KPI statistics Section
-                  TenderKpiSection(tenders: allTenders),
+                  TenderKpiSection(tenders: allTenders, isLoading: isLoading),
                   const SizedBox(height: 20),
 
                   // 2. Search & Filter Control Bar
                   TenderFilterBar(
                     searchQuery: _searchQuery,
-                    onSearchChanged: (val) {
+                    onSearchChanged: isLoading ? (_) {} : (val) {
                       setState(() => _searchQuery = val);
                     },
                     statusFilter: _statusFilter,
-                    onStatusChanged: (val) {
+                    onStatusChanged: isLoading ? (_) {} : (val) {
                       setState(() => _statusFilter = val);
                       _reload();
                     },
                     panchayatFilter: _panchayatFilter,
                     onPanchayatChanged:
-                        widget.isSuperAdmin
+                        widget.isSuperAdmin && !isLoading
                             ? (val) {
                               setState(() => _panchayatFilter = val);
                               _reload();
@@ -144,14 +142,23 @@ class _TenderListScreenState extends State<TenderListScreen> {
                             : null,
                     panchayats: _panchayats,
                     isGridView: _isGridView,
-                    onViewToggle: () {
+                    onViewToggle: isLoading ? () {} : () {
                       setState(() => _isGridView = !_isGridView);
                     },
                   ),
                   const SizedBox(height: 20),
 
                   // 3. Grid or List of Tenders
-                  if (filteredTenders.isEmpty)
+                  if (isLoading)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: AppLoadingState(
+                        message: 'Loading tenders...',
+                        skeletonLines: 5,
+                        style: AppLoadingStyle.list,
+                      ),
+                    )
+                  else if (filteredTenders.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 40),
                       child: AppEmptyState(

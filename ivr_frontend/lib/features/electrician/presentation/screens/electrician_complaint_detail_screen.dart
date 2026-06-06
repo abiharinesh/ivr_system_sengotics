@@ -3,7 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../config/api_config.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/api/api_exceptions.dart';
 import '../../../../core/offline/field_outbox.dart';
 import '../../../../core/offline/network_status.dart';
@@ -196,33 +196,41 @@ class _ElectricianComplaintDetailScreenState extends State<ElectricianComplaintD
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const AppLoadingState(
-        message: 'Loading details...',
-        style: AppLoadingStyle.detail,
-      );
-    }
-    if (_c == null) {
-      return Center(child: Text(_error ?? 'Not found'));
-    }
-    final c = _c!;
-    final st = c['status']?.toString() ?? '';
-    final pole = c['pole'] as Map<String, dynamic>?;
-    final lat = (pole?['latitude'] as num?)?.toDouble();
-    final lng = (pole?['longitude'] as num?)?.toDouble();
+    final isLoading = _loading || _c == null;
+    final c = _c;
+    final st = isLoading ? '' : c!['status']?.toString() ?? '';
+    final pole = isLoading ? null : c!['pole'] as Map<String, dynamic>?;
+    final lat = isLoading ? null : (pole?['latitude'] as num?)?.toDouble();
+    final lng = isLoading ? null : (pole?['longitude'] as num?)?.toDouble();
     final poleImg = pole != null ? ApiConfig.fileUrl(pole['image_url'] as String?) : '';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            'Complaint #${c['id']}',
-            style:       TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
-          ),
-          Text('Status: $st', style:       TextStyle(color: AppTheme.textMuted)),
-          if (pole != null) ...[
+    final titleWidget = isLoading
+        ? const AppShimmer.rectangular(width: 140, height: 22)
+        : Text(
+            'Complaint #${c!['id']}',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
+          );
+
+    final statusWidget = isLoading
+        ? const AppShimmer.rectangular(width: 100, height: 14)
+        : Text('Status: $st', style: TextStyle(color: AppTheme.textMuted));
+
+    Widget buildPoleArea() {
+      if (isLoading) {
+        return const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 12),
+            AppShimmer.rectangular(width: 160, height: 14),
+            SizedBox(height: 8),
+            AppShimmer.rectangular(width: double.infinity, height: 180),
+          ],
+        );
+      }
+      if (pole != null) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
             const SizedBox(height: 12),
             Text('Pole #${pole['id']} · ${pole['keypad_id'] ?? '—'}'),
             if (poleImg.isNotEmpty)
@@ -240,18 +248,47 @@ class _ElectricianComplaintDetailScreenState extends State<ElectricianComplaintD
                 label: const Text('Get directions'),
               ),
           ],
-          if ((c['description'] as String?)?.isNotEmpty ?? false)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(c['description'] as String),
-            ),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    Widget buildDescriptionArea() {
+      if (isLoading) {
+        return const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: 12),
+            AppShimmer.rectangular(width: double.infinity, height: 40),
+          ],
+        );
+      }
+      if ((c!['description'] as String?)?.isNotEmpty ?? false) {
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(c['description'] as String),
+        );
+      }
+      return const SizedBox.shrink();
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          titleWidget,
+          const SizedBox(height: 4),
+          statusWidget,
+          buildPoleArea(),
+          buildDescriptionArea(),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: Text(_error!, style: TextStyle(color: Colors.red.shade800)),
             ),
           const SizedBox(height: 12),
-          if (st == 'assigned') ...[
+          if (!isLoading && st == 'assigned') ...[
             FilledButton.icon(
               onPressed: _busy ? null : _accept,
               icon: const Icon(Icons.play_arrow),
@@ -263,7 +300,7 @@ class _ElectricianComplaintDetailScreenState extends State<ElectricianComplaintD
               label: const Text('Cannot attend'),
             ),
           ],
-          if (st == 'in_progress') ...[
+          if (!isLoading && st == 'in_progress') ...[
             TextField(
               controller: _note,
               decoration: const InputDecoration(
@@ -286,7 +323,7 @@ class _ElectricianComplaintDetailScreenState extends State<ElectricianComplaintD
               label: const Text('Release job'),
             ),
           ],
-          if (st == 'resolved_pending_confirmation')
+          if (!isLoading && st == 'resolved_pending_confirmation')
             const Card(
               child: Padding(
                 padding: EdgeInsets.all(16),

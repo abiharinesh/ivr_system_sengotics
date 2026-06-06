@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
-import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../data/water_repository.dart';
+
+
 
 class WaterFlowLogsScreen extends StatefulWidget {
   const WaterFlowLogsScreen({super.key});
@@ -22,9 +24,16 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
   }
 
   Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+    final cached = _repository.getCachedFlowLogs(1);
+    if (cached != null) {
+      _logs = cached;
+      _isLoading = false;
+      if (mounted) setState(() {});
+    } else {
+      setState(() => _isLoading = true);
+    }
     try {
-      final logs = await _repository.getFlowLogs(1);
+      final logs = await _repository.getFlowLogs(1, forceRefresh: cached == null);
       if (mounted) {
         setState(() {
           _logs = logs;
@@ -38,13 +47,6 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const AppLoadingState(
-        message: 'Loading telemetry logs...',
-        style: AppLoadingStyle.dashboard,
-      );
-    }
-
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < 600;
 
@@ -68,20 +70,20 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
               isMobile
                   ? Column(
                       children: [
-                        _buildKpiCard('Average Flow Rate', '${avgFlow.toStringAsFixed(1)} LPS', Icons.speed_rounded, Colors.cyan),
+                        _buildKpiCard('Average Flow Rate', '${avgFlow.toStringAsFixed(1)} LPS', Icons.speed_rounded, Colors.cyan, isLoading: _isLoading),
                         const SizedBox(height: 16),
-                        _buildKpiCard('Average Pressure', '${avgPressure.toStringAsFixed(2)} bar', Icons.av_timer_rounded, Colors.purple),
+                        _buildKpiCard('Average Pressure', '${avgPressure.toStringAsFixed(2)} bar', Icons.av_timer_rounded, Colors.purple, isLoading: _isLoading),
                         const SizedBox(height: 16),
-                        _buildKpiCard('Low Pressure Warnings', '$lowPressureAlerts logs', Icons.warning_amber_rounded, AppTheme.warning),
+                        _buildKpiCard('Low Pressure Warnings', '$lowPressureAlerts logs', Icons.warning_amber_rounded, AppTheme.warning, isLoading: _isLoading),
                       ],
                     )
                   : Row(
                       children: [
-                        Expanded(child: _buildKpiCard('Average Flow Rate', '${avgFlow.toStringAsFixed(1)} LPS', Icons.speed_rounded, Colors.cyan)),
+                        Expanded(child: _buildKpiCard('Average Flow Rate', '${avgFlow.toStringAsFixed(1)} LPS', Icons.speed_rounded, Colors.cyan, isLoading: _isLoading)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildKpiCard('Average Pressure', '${avgPressure.toStringAsFixed(2)} bar', Icons.av_timer_rounded, Colors.purple)),
+                        Expanded(child: _buildKpiCard('Average Pressure', '${avgPressure.toStringAsFixed(2)} bar', Icons.av_timer_rounded, Colors.purple, isLoading: _isLoading)),
                         const SizedBox(width: 16),
-                        Expanded(child: _buildKpiCard('Low Pressure Warnings', '$lowPressureAlerts alerts', Icons.warning_amber_rounded, AppTheme.warning)),
+                        Expanded(child: _buildKpiCard('Low Pressure Warnings', '$lowPressureAlerts alerts', Icons.warning_amber_rounded, AppTheme.warning, isLoading: _isLoading)),
                       ],
                     ),
               const SizedBox(height: 32),
@@ -124,36 +126,45 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
                       DataColumn(label: Text('Pressure (bar)')),
                       DataColumn(label: Text('Telemetry State')),
                     ],
-                    rows: _logs.map((log) {
-                      final timeStr = DateTime.parse(log['logged_at'] as String).toLocal().toString().substring(11, 16);
-                      final double press = log['pressure_bar'] as double;
-                      final isLow = press < 2.0;
+                    rows: _isLoading
+                        ? List.generate(5, (index) => const DataRow(
+                            cells: [
+                              DataCell(AppShimmer.rectangular(width: 50, height: 12)),
+                              DataCell(AppShimmer.rectangular(width: 60, height: 12)),
+                              DataCell(AppShimmer.rectangular(width: 60, height: 12)),
+                              DataCell(AppShimmer.rectangular(width: 70, height: 12)),
+                            ],
+                          ))
+                        : _logs.map((log) {
+                            final timeStr = DateTime.parse(log['logged_at'] as String).toLocal().toString().substring(11, 16);
+                            final double press = log['pressure_bar'] as double;
+                            final isLow = press < 2.0;
 
-                      return DataRow(
-                        cells: [
-                          DataCell(Text(timeStr)),
-                          DataCell(Text('${log['flow_rate_lps']} LPS')),
-                          DataCell(Text('${log['pressure_bar']} bar')),
-                          DataCell(
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: (isLow ? AppTheme.error : AppTheme.accent).withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                isLow ? 'CRITICAL DROP' : 'STABLE',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w800,
-                                  color: isLow ? AppTheme.error : AppTheme.accent,
+                            return DataRow(
+                              cells: [
+                                DataCell(Text(timeStr)),
+                                DataCell(Text('${log['flow_rate_lps']} LPS')),
+                                DataCell(Text('${log['pressure_bar']} bar')),
+                                DataCell(
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: (isLow ? AppTheme.error : AppTheme.accent).withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      isLow ? 'CRITICAL DROP' : 'STABLE',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w800,
+                                        color: isLow ? AppTheme.error : AppTheme.accent,
+                                      ),
+                                    ),
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }).toList(),
+                              ],
+                            );
+                          }).toList(),
                   ),
                 ),
               ),
@@ -164,7 +175,7 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
     );
   }
 
-  Widget _buildKpiCard(String title, String val, IconData icon, Color color) {
+  Widget _buildKpiCard(String title, String val, IconData icon, Color color, {bool isLoading = false}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -197,14 +208,16 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
                   ),
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  val,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: AppTheme.textPrimary,
-                  ),
-                ),
+                isLoading
+                    ? const AppShimmer.rectangular(width: 80, height: 18)
+                    : Text(
+                        val,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
               ],
             ),
           )

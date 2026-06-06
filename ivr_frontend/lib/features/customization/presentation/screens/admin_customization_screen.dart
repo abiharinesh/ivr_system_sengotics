@@ -287,7 +287,7 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
                       _provider.saveSettings();
                       ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                          content: Text('Settings saved successfully'),
+                          content: const Text('Settings saved successfully'),
                           backgroundColor: AppTheme.accent,
                         ),
                       );

@@ -6,9 +6,16 @@ import '../../config/api_config.dart';
 import '../storage/secure_storage.dart';
 import 'api_exceptions.dart';
 
+class CacheEntry {
+  final dynamic data;
+  final DateTime timestamp;
+  CacheEntry(this.data, this.timestamp);
+}
+
 class ApiClient {
   late final Dio _dio;
   static ApiClient? _instance;
+  final Map<String, CacheEntry> _cache = {};
 
   ApiClient._() {
     _dio = Dio(
@@ -43,12 +50,45 @@ class ApiClient {
 
   Dio get dio => _dio;
 
+  String _getCacheKey(String path, Map<String, dynamic>? queryParams) {
+    if (queryParams == null || queryParams.isEmpty) {
+      return path;
+    }
+    final sortedKeys = queryParams.keys.toList()..sort();
+    final queryStr = sortedKeys.map((k) => '$k=${queryParams[k]}').join('&');
+    return '$path?$queryStr';
+  }
+
+  /// Expose synchronous cache retrieval for fast screen builds
+  dynamic getCached(String path, {Map<String, dynamic>? queryParams, Duration maxAge = const Duration(minutes: 5)}) {
+    final key = _getCacheKey(path, queryParams);
+    final entry = _cache[key];
+    if (entry != null && DateTime.now().difference(entry.timestamp) < maxAge) {
+      return entry.data;
+    }
+    return null;
+  }
+
+  /// Manually clear cache (e.g. on mutation or manual refresh)
+  void clearCache() {
+    _cache.clear();
+  }
+
   // GET
-  Future<dynamic> get(String path, {Map<String, dynamic>? queryParams}) async {
+  Future<dynamic> get(String path, {Map<String, dynamic>? queryParams, bool forceRefresh = false}) async {
+    final key = _getCacheKey(path, queryParams);
+    if (!forceRefresh && _cache.containsKey(key)) {
+      final entry = _cache[key]!;
+      if (DateTime.now().difference(entry.timestamp) < const Duration(minutes: 5)) {
+        return entry.data;
+      }
+    }
+
     const maxAttempts = 2;
     for (var attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         final response = await _dio.get(path, queryParameters: queryParams);
+        _cache[key] = CacheEntry(response.data, DateTime.now());
         return response.data;
       } on DioException catch (e) {
         final shouldRetry = _shouldRetry(e) && attempt < maxAttempts;
@@ -64,6 +104,7 @@ class ApiClient {
   // POST
   Future<dynamic> post(String path, {dynamic data}) async {
     try {
+      clearCache();
       final response = await _dio.post(path, data: data);
       return response.data;
     } on DioException catch (e) {
@@ -74,6 +115,7 @@ class ApiClient {
   /// POST expecting HTML body (template preview).
   Future<String> postHtml(String path, {dynamic data}) async {
     try {
+      clearCache();
       final response = await _dio.post<String>(
         path,
         data: data,
@@ -91,6 +133,7 @@ class ApiClient {
   // PUT
   Future<dynamic> put(String path, {dynamic data}) async {
     try {
+      clearCache();
       final response = await _dio.put(path, data: data);
       return response.data;
     } on DioException catch (e) {
@@ -101,6 +144,7 @@ class ApiClient {
   // PATCH
   Future<dynamic> patch(String path, {dynamic data}) async {
     try {
+      clearCache();
       final response = await _dio.patch(path, data: data);
       return response.data;
     } on DioException catch (e) {
@@ -178,6 +222,7 @@ class ApiClient {
   /// Multipart POST (e.g. image + geotag fields).
   Future<dynamic> postMultipart(String path, FormData formData) async {
     try {
+      clearCache();
       final response = await _dio.post(
         path,
         data: formData,
@@ -196,6 +241,7 @@ class ApiClient {
   // DELETE
   Future<dynamic> delete(String path) async {
     try {
+      clearCache();
       final response = await _dio.delete(path);
       return response.data;
     } on DioException catch (e) {

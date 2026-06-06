@@ -10,7 +10,9 @@ import '../../../../config/api_config.dart';
 import '../../../../core/api/api_exceptions.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_state.dart';
+import '../../../../core/widgets/app_shimmer.dart';
 import '../../../../core/widgets/app_status_badge.dart';
+
 import '../../../../core/widgets/pdf_preview_surface.dart';
 import '../../../../core/widgets/html_preview_surface.dart';
 import '../../../../core/widgets/editable_html_surface.dart';
@@ -787,9 +789,9 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                 const Spacer(),
                 InkWell(
                   onTap: () => _downloadZip(context, d),
-                  child: Row(
+                  child: const Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: const [
+                    children: [
                       Icon(Icons.download, size: 14, color: Color(0xFF0F766E)),
                       SizedBox(width: 4),
                       Text(
@@ -982,8 +984,8 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: const [
+                const Row(
+                  children: [
                     Icon(
                       Icons.map_outlined,
                       color: Color(0xFF0F172A),
@@ -1554,8 +1556,8 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(Icons.history, color: Color(0xFF0F172A), size: 20),
                 SizedBox(width: 8),
                 Text(
@@ -1832,30 +1834,186 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     );
   }
 
+  Widget _buildLoadingDashboard(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    final isDesktop = w >= 960;
+
+    // Header Breadcrumbs
+    final breadcrumbs = Row(
+      children: [
+        GestureDetector(
+          onTap:
+              () => context.go(
+                widget.isSuperAdmin ? '/superadmin/tenders' : '/tenders',
+              ),
+          child: const Text(
+            'Tendering',
+            style: TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 13,
+              decoration: TextDecoration.underline,
+            ),
+          ),
+        ),
+        const Text(
+          '  >  ',
+          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+        ),
+        const Text(
+          'Active Tenders',
+          style: TextStyle(color: Color(0xFF64748B), fontSize: 13),
+        ),
+      ],
+    );
+
+    const titleWidget = AppShimmer.rectangular(width: 280, height: 28);
+    const subtitleWidget = AppShimmer.rectangular(width: 200, height: 14);
+
+    final headerRow = isDesktop
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    breadcrumbs,
+                    const SizedBox(height: 8),
+                    titleWidget,
+                    const SizedBox(height: 6),
+                    subtitleWidget,
+                  ],
+                ),
+              ),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              breadcrumbs,
+              const SizedBox(height: 8),
+              titleWidget,
+              const SizedBox(height: 6),
+              subtitleWidget,
+            ],
+          );
+
+    final leftColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 300,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          ),
+          child: const AppLoadingState(
+            message: 'Loading comparison...',
+            style: AppLoadingStyle.detail,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 200,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          ),
+          child: const AppLoadingState(
+            message: 'Loading details...',
+            style: AppLoadingStyle.detail,
+          ),
+        ),
+      ],
+    );
+
+    final rightColumn = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          height: 250,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          ),
+          child: const AppLoadingState(
+            message: 'Loading templates...',
+            style: AppLoadingStyle.detail,
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          height: 250,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          ),
+          child: const AppLoadingState(
+            message: 'Loading log...',
+            style: AppLoadingStyle.detail,
+          ),
+        ),
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        headerRow,
+        const SizedBox(height: 24),
+        // Stepper Shimmer
+        Container(
+          height: 100,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+          ),
+          child: const Center(child: AppShimmer.rectangular(width: 400, height: 40)),
+        ),
+        const SizedBox(height: 24),
+        if (isDesktop)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 7, child: leftColumn),
+              const SizedBox(width: 24),
+              Expanded(flex: 5, child: rightColumn),
+            ],
+          )
+        else
+          Column(
+            children: [leftColumn, const SizedBox(height: 24), rightColumn],
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<TenderDetail>(
       future: _future,
       builder: (context, snap) {
-        if (snap.connectionState == ConnectionState.waiting) {
-          return const AppLoadingState(
-            message: 'Loading tender details...',
-            style: AppLoadingStyle.detail,
-          );
-        }
-        if (snap.hasError) {
+        final isLoading = snap.connectionState == ConnectionState.waiting;
+        if (snap.hasError && !isLoading) {
           return AppErrorState(
             message: userFacingMessage(snap.error!),
             onRetry: _reload,
           );
         }
-        final d = snap.data!;
+        final d = snap.data;
         return Scaffold(
           backgroundColor: const Color(0xFFF8FAFC),
-          floatingActionButton: _buildFAB(context, d),
+          floatingActionButton: (isLoading || d == null) ? null : _buildFAB(context, d),
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: _buildDashboard(context, d),
+            child: (isLoading || d == null)
+                ? _buildLoadingDashboard(context)
+                : _buildDashboard(context, d),
           ),
         );
       },
@@ -3062,11 +3220,9 @@ class _InviteVendorsDialogState extends State<_InviteVendorsDialog> {
 class _DocsTab extends StatefulWidget {
   final TenderDetail detail;
   final TenderRepository repo;
-  final String? panchayatName;
   const _DocsTab({
     required this.detail,
     required this.repo,
-    this.panchayatName,
   });
 
   int get tenderId => detail.summary.id;
@@ -3231,7 +3387,7 @@ class _DocsTabState extends State<_DocsTab> {
   }
 
   String _structuredDocName(TenderDocumentSummary doc) {
-    final safePanchayat = (widget.panchayatName ?? 'panchayat')
+    final safePanchayat = (widget.detail.summary.panchayatName ?? 'panchayat')
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'-+'), '-')
@@ -3299,7 +3455,7 @@ class _DocsTabState extends State<_DocsTab> {
     TenderDocumentSummary doc,
     String format,
   ) async {
-    print(
+    debugPrint(
       '[_downloadDocInFormat] Downloading doc ${doc.id} in format: $format',
     );
     try {
@@ -3308,9 +3464,9 @@ class _DocsTabState extends State<_DocsTab> {
         doc.id,
         format: format,
       );
-      print('[_downloadDocInFormat] Download succeeded');
+      debugPrint('[_downloadDocInFormat] Download succeeded');
     } catch (e) {
-      print('[_downloadDocInFormat] Download failed: $e');
+      debugPrint('[_downloadDocInFormat] Download failed: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Download failed: ${userFacingMessage(e)}')),

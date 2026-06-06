@@ -18,19 +18,37 @@ class PanchayatAdminRepository {
   }
 
   // ── Stats ───────────────────────────────────────────────────────────────
-  Future<StatsModel> getStats() async {
-    final data = await _api.get(ApiConfig.paStats);
+  StatsModel? getCachedStats() {
+    final cached = _api.getCached(ApiConfig.paStats);
+    if (cached == null) return null;
+    return StatsModel.fromJson(cached);
+  }
+
+  Future<StatsModel> getStats({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.paStats, forceRefresh: forceRefresh);
     return StatsModel.fromJson(data);
   }
 
-  Future<DashboardInsights> getDashboardInsights() async {
-    final data = await _api.get(ApiConfig.paDashboardInsights);
+  DashboardInsights? getCachedDashboardInsights() {
+    final cached = _api.getCached(ApiConfig.paDashboardInsights);
+    if (cached == null) return null;
+    return DashboardInsights.fromJson(Map<String, dynamic>.from(cached as Map));
+  }
+
+  Future<DashboardInsights> getDashboardInsights({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.paDashboardInsights, forceRefresh: forceRefresh);
     return DashboardInsights.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
   // ── Poles ───────────────────────────────────────────────────────────────
-  Future<List<PoleModel>> listPoles() async {
-    final data = await _api.get(ApiConfig.paPoles);
+  List<PoleModel>? getCachedPoles() {
+    final cached = _api.getCached(ApiConfig.paPoles);
+    if (cached == null) return null;
+    return (cached as List).map((j) => PoleModel.fromJson(j)).toList();
+  }
+
+  Future<List<PoleModel>> listPoles({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.paPoles, forceRefresh: forceRefresh);
     return (data as List).map((j) => PoleModel.fromJson(j)).toList();
   }
 
@@ -49,10 +67,18 @@ class PanchayatAdminRepository {
   }
 
   // ── Complaints ──────────────────────────────────────────────────────────
-  Future<List<ComplaintModel>> listComplaints({String? status}) async {
+  List<ComplaintModel>? getCachedComplaints({String? status}) {
     final params = <String, dynamic>{};
     if (status != null) params['status'] = status;
-    final data = await _api.get(ApiConfig.paComplaints, queryParams: params);
+    final cached = _api.getCached(ApiConfig.paComplaints, queryParams: params.isEmpty ? null : params);
+    if (cached == null) return null;
+    return (cached as List).map((j) => ComplaintModel.fromJson(j)).toList();
+  }
+
+  Future<List<ComplaintModel>> listComplaints({String? status, bool forceRefresh = false}) async {
+    final params = <String, dynamic>{};
+    if (status != null) params['status'] = status;
+    final data = await _api.get(ApiConfig.paComplaints, queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return (data as List).map((j) => ComplaintModel.fromJson(j)).toList();
   }
 
