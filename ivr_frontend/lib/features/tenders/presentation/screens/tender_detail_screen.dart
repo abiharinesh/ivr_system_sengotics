@@ -1338,17 +1338,15 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
             const SizedBox(height: 20),
             LayoutBuilder(
               builder: (context, constraints) {
-                final double width = constraints.maxWidth;
-                final int columns = width > 240 ? 2 : 1;
                 return GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   itemCount: templates.length,
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: columns,
+                  gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                    maxCrossAxisExtent: 180,
                     crossAxisSpacing: 12,
                     mainAxisSpacing: 12,
-                    childAspectRatio: 1.25,
+                    mainAxisExtent: 145,
                   ),
                   itemBuilder: (context, i) {
                     final tpl = templates[i];

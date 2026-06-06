@@ -265,8 +265,10 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
               const SizedBox(height: 28),
 
               // ── Bottom actions ──
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
+              Wrap(
+                alignment: WrapAlignment.end,
+                spacing: 12,
+                runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () {
@@ -281,7 +283,6 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
                     icon: const Icon(Icons.restore_rounded, size: 16),
                     label: const Text('Reset All to Defaults'),
                   ),
-                  const SizedBox(width: 12),
                   ElevatedButton.icon(
                     onPressed: () {
                       _provider.saveSettings();
@@ -407,12 +408,12 @@ class _ThemeModeSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
       children: [
         _ModeChip('Light', 'light', Icons.light_mode_rounded, current, onChanged),
-        const SizedBox(width: 8),
         _ModeChip('Dark', 'dark', Icons.dark_mode_rounded, current, onChanged),
-        const SizedBox(width: 8),
         _ModeChip('System', 'system', Icons.settings_brightness_rounded, current, onChanged),
       ],
     );
@@ -534,7 +535,10 @@ class _ColorPreviewBar extends StatelessWidget {
         color: AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(10),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           // Button preview
           Container(
@@ -552,7 +556,6 @@ class _ColorPreviewBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
           // Badge preview
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -569,7 +572,6 @@ class _ColorPreviewBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 10),
           // Text preview
           Text(
             'Primary Text',

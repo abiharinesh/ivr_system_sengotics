@@ -65,13 +65,15 @@ class TenderKpiSection extends StatelessWidget {
           crossAxisCount = 2;
         }
 
-        return GridView.count(
+        return GridView(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          crossAxisCount: crossAxisCount,
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.55,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            mainAxisExtent: 110,
+          ),
           children: [
             // KPI Card 1: Active Tenders
             _buildKpiCard(

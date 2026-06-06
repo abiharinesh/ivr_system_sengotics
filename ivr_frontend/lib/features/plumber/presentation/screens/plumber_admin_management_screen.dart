@@ -223,15 +223,15 @@ class _PlumberAdminManagementScreenState
               ? 'All panchayats · analytics & ZIP export'
               : 'Your panchayat · analytics & ZIP export',
       countLabel: '${_rows.length} plumber(s)',
-      action: Row(
-        mainAxisSize: MainAxisSize.min,
+      action: Wrap(
+        spacing: 8,
+        runSpacing: 8,
         children: [
           OutlinedButton.icon(
             onPressed: _loading ? null : _reload,
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text('Refresh'),
           ),
-          const SizedBox(width: 8),
           FilledButton.icon(
             onPressed: _addPlumber,
             icon: const Icon(Icons.person_add_rounded, size: 18),

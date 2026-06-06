@@ -54,24 +54,28 @@ class _AppViewState extends State<_AppView> {
 
     return ListenableBuilder(
       listenable: Listenable.merge([_mapThemeProvider, _adminCustomizationProvider]),
-      builder: (context, _) => _CustomizationScope(
-        provider: _adminCustomizationProvider,
-        child: _MapThemeScope(
-          provider: _mapThemeProvider,
-          child: MaterialApp.router(
-            title: 'Ooraatchi: Integrated GIS-Map & E-Tendering System',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.buildTheme(_adminCustomizationProvider.settings),
-            themeMode: _adminCustomizationProvider.settings.themeMode == 'dark'
-                ? ThemeMode.dark
-                : (_adminCustomizationProvider.settings.themeMode == 'system'
-                    ? ThemeMode.system
-                    : ThemeMode.light),
-            routerConfig: router,
-            builder: (context, child) => OfflineSyncHost(child: child),
+      builder: (context, _) {
+        final theme = AppTheme.buildTheme(_adminCustomizationProvider.settings);
+        return _CustomizationScope(
+          provider: _adminCustomizationProvider,
+          child: _MapThemeScope(
+            provider: _mapThemeProvider,
+            child: MaterialApp.router(
+              title: 'Ooraatchi: Integrated GIS-Map & E-Tendering System',
+              debugShowCheckedModeBanner: false,
+              theme: theme,
+              darkTheme: theme,
+              themeMode: _adminCustomizationProvider.settings.themeMode == 'dark'
+                  ? ThemeMode.dark
+                  : (_adminCustomizationProvider.settings.themeMode == 'system'
+                      ? ThemeMode.system
+                      : ThemeMode.light),
+              routerConfig: router,
+              builder: (context, child) => OfflineSyncHost(child: child),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -141,13 +141,13 @@ class SuperAdminDashboard extends StatelessWidget {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final w = constraints.maxWidth;
-                  final crossAxisCount = w > 900 ? 4 : 2;
-                  final isMobile = w < 600;
+                  final crossAxisCount = w > 900 ? 4 : (w > 480 ? 2 : 1);
+                  final ratio = w > 900 ? 1.85 : (w > 480 ? 1.45 : 2.2);
                   return GridView.count(
                     crossAxisCount: crossAxisCount,
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: isMobile ? 1.45 : 1.85,
+                    childAspectRatio: ratio,
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     children: [

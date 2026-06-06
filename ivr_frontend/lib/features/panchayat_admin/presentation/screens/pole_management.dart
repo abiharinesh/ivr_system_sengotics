@@ -135,58 +135,90 @@ class _PoleManagementState extends State<PoleManagement> {
             );
           }
 
-          if (isWide) {
-            final markers = <gmap.Marker>{};
-            gmap.LatLng? initialCenter;
+          final markers = <gmap.Marker>{};
+          gmap.LatLng? initialCenter;
 
-            for (final pole in poles) {
-              if (pole.latitude != null && pole.longitude != null) {
-                final pos = gmap.LatLng(pole.latitude!, pole.longitude!);
-                initialCenter ??= pos;
+          for (final pole in poles) {
+            if (pole.latitude != null && pole.longitude != null) {
+              final pos = gmap.LatLng(pole.latitude!, pole.longitude!);
+              initialCenter ??= pos;
 
-                final color = pole.complaintsCount > 0
-                    ? gmap.BitmapDescriptor.hueOrange
-                    : gmap.BitmapDescriptor.hueGreen;
+              final color = pole.complaintsCount > 0
+                  ? gmap.BitmapDescriptor.hueOrange
+                  : gmap.BitmapDescriptor.hueGreen;
 
-                final isSelected = pole.id == _selectedPoleId;
+              final isSelected = pole.id == _selectedPoleId;
+              final markerId = gmap.MarkerId('pole_${pole.id}');
+              final icon = gmap.BitmapDescriptor.defaultMarkerWithHue(
+                isSelected ? gmap.BitmapDescriptor.hueBlue : color,
+              );
+              final infoWindow = gmap.InfoWindow(
+                title: pole.poleNumber ?? 'Pole #${pole.id}',
+                snippet: '${pole.complaintsCount} active complaints',
+              );
+              final onTap = () {
+                setState(() {
+                  _selectedPoleId = pole.id;
+                });
+              };
 
+              if (googleMapsMarkerType == gmap.GoogleMapMarkerType.advancedMarker) {
+                markers.add(
+                  gmap.AdvancedMarker(
+                    markerId: markerId,
+                    position: pos,
+                    icon: icon,
+                    infoWindow: infoWindow,
+                    onTap: onTap,
+                  ),
+                );
+              } else {
                 markers.add(
                   gmap.Marker(
-                    markerId: gmap.MarkerId('pole_${pole.id}'),
+                    markerId: markerId,
                     position: pos,
-                    icon: gmap.BitmapDescriptor.defaultMarkerWithHue(
-                      isSelected ? gmap.BitmapDescriptor.hueBlue : color,
-                    ),
-                    infoWindow: gmap.InfoWindow(
-                      title: pole.poleNumber ?? 'Pole #${pole.id}',
-                      snippet: '${pole.complaintsCount} active complaints',
-                    ),
-                    onTap: () {
-                      setState(() {
-                        _selectedPoleId = pole.id;
-                      });
-                    },
+                    icon: icon,
+                    infoWindow: infoWindow,
+                    onTap: onTap,
                   ),
                 );
               }
             }
+          }
 
-            if (_quickTappedLocation != null) {
+          if (_quickTappedLocation != null) {
+            const markerId = gmap.MarkerId('quick_tapped_loc');
+            final pos = _quickTappedLocation!;
+            final icon = gmap.BitmapDescriptor.defaultMarkerWithHue(gmap.BitmapDescriptor.hueCyan);
+            const infoWindow = gmap.InfoWindow(
+              title: 'New Pole Location',
+              snippet: 'Fill in details in the form to save',
+            );
+
+            if (googleMapsMarkerType == gmap.GoogleMapMarkerType.advancedMarker) {
+              markers.add(
+                gmap.AdvancedMarker(
+                  markerId: markerId,
+                  position: pos,
+                  icon: icon,
+                  infoWindow: infoWindow,
+                ),
+              );
+            } else {
               markers.add(
                 gmap.Marker(
-                  markerId: const gmap.MarkerId('quick_tapped_loc'),
-                  position: _quickTappedLocation!,
-                  icon: gmap.BitmapDescriptor.defaultMarkerWithHue(gmap.BitmapDescriptor.hueCyan),
-                  infoWindow: const gmap.InfoWindow(
-                    title: 'New Pole Location',
-                    snippet: 'Fill in details in the form to save',
-                  ),
+                  markerId: markerId,
+                  position: pos,
+                  icon: icon,
+                  infoWindow: infoWindow,
                 ),
               );
             }
+          }
 
-            final mapUnavailableOnWeb = kIsWeb && !isMapsJsReady;
+          final mapUnavailableOnWeb = kIsWeb && !isMapsJsReady;
 
+          if (isWide) {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -228,223 +260,56 @@ class _PoleManagementState extends State<PoleManagement> {
                 ),
                 VerticalDivider(width: 1, color: AppTheme.stroke, thickness: 1),
                 Expanded(
-                  child: Stack(
-                    children: [
-                      Positioned.fill(
-                        child: mapUnavailableOnWeb
-                            ? Container(
-                                color: AppTheme.bgSurface,
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.all(24),
-                                child: Text(
-                                  mapsWebUnavailableMessage,
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(color: AppTheme.textSecondary),
-                                ),
-                              )
-                            : gmap.GoogleMap(
-                                mapId: googleMapsMapId,
-                                markerType: googleMapsMarkerType,
-                                initialCameraPosition: gmap.CameraPosition(
-                                  target: initialCenter ?? const gmap.LatLng(12.9716, 77.5946),
-                                  zoom: initialCenter == null ? 5.0 : 16.0,
-                                ),
-                                onMapCreated: (controller) {
-                                  _mapController = controller;
-                                },
-                                markers: markers,
-                                onTap: (point) {
-                                  setState(() {
-                                    _quickTappedLocation = point;
-                                    _quickLatC.text = point.latitude.toStringAsFixed(6);
-                                    _quickLngC.text = point.longitude.toStringAsFixed(6);
-                                    _showQuickAddOverlay = true;
-                                  });
-                                  if (_mapController != null) {
-                                    _mapController!.animateCamera(
-                                      gmap.CameraUpdate.newLatLng(point),
-                                    );
-                                  }
-                                },
-                                myLocationButtonEnabled: false,
-                                zoomControlsEnabled: true,
-                              ),
-                      ),
-                      if (!_showQuickAddOverlay)
-                        Positioned(
-                          top: 16,
-                          right: 16,
-                          child: FloatingActionButton.extended(
-                            onPressed: () {
-                              setState(() {
-                                _showQuickAddOverlay = true;
-                              });
-                            },
-                            icon: const Icon(Icons.add_location_alt_rounded),
-                            label: const Text('Quick Add Pole'),
-                            backgroundColor: AppTheme.primary,
-                          ),
-                        ),
-                      if (_showQuickAddOverlay)
-                        Positioned(
-                          top: 16,
-                          right: 16,
-                          bottom: 16,
-                          child: Container(
-                            width: 320,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppTheme.bgCard,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppTheme.stroke, width: 1.5),
-                              boxShadow: AppTheme.softShadow,
-                            ),
-                            child: SingleChildScrollView(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Quick Add Pole',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.textPrimary,
-                                        ),
-                                      ),
-                                      IconButton(
-                                        icon: const Icon(Icons.close, size: 20),
-                                        onPressed: () {
-                                          setState(() {
-                                            _showQuickAddOverlay = false;
-                                            _quickTappedLocation = null;
-                                          });
-                                        },
-                                      ),
-                                    ],
-                                  ),
-                                  const Divider(),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Tip: Tap anywhere on the map to set coordinate fields automatically.',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: AppTheme.textMuted,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _quickPoleNumC,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Pole Number',
-                                      hintText: 'e.g. PL-102',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _quickKeypadC,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Keypad ID',
-                                      hintText: 'e.g. 5',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _quickLatC,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Lat',
-                                          ),
-                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _quickLngC,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Lng',
-                                          ),
-                                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  TextFormField(
-                                    controller: _quickLandmarksC,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Landmarks (comma-sep)',
-                                      hintText: 'e.g. near school',
-                                    ),
-                                  ),
-                                  const SizedBox(height: 20),
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: () {
-                                        if (_quickPoleNumC.text.isEmpty) {
-                                          ScaffoldMessenger.of(context).showSnackBar(
-                                            const SnackBar(content: Text('Please enter a pole number')),
-                                          );
-                                          return;
-                                        }
-                                        final data = <String, dynamic>{
-                                          'pole_number': _quickPoleNumC.text.trim(),
-                                        };
-                                        if (_quickKeypadC.text.isNotEmpty) {
-                                          data['keypad_id'] = _quickKeypadC.text.trim();
-                                        }
-                                        final lat = double.tryParse(_quickLatC.text);
-                                        final lng = double.tryParse(_quickLngC.text);
-                                        if (lat != null) data['latitude'] = lat;
-                                        if (lng != null) data['longitude'] = lng;
-
-                                        if (_quickLandmarksC.text.isNotEmpty) {
-                                          data['landmarks'] = _quickLandmarksC.text
-                                              .split(',')
-                                              .map((e) => e.trim())
-                                              .where((e) => e.isNotEmpty)
-                                              .toList();
-                                        }
-
-                                        context.read<PoleBloc>().add(CreatePole(data));
-
-                                        _quickPoleNumC.clear();
-                                        _quickKeypadC.clear();
-                                        _quickLatC.clear();
-                                        _quickLngC.clear();
-                                        _quickLandmarksC.clear();
-                                        setState(() {
-                                          _showQuickAddOverlay = false;
-                                          _quickTappedLocation = null;
-                                        });
-                                      },
-                                      child: const Text('Create Pole'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  child: _buildMapSection(initialCenter, markers, mapUnavailableOnWeb),
                 ),
               ],
             );
           }
 
-          return ListView.builder(
-            padding: EdgeInsets.symmetric(horizontal: hPad),
-            itemCount: poles.length,
-            itemBuilder: (context, index) => _buildPoleCard(context, poles[index]),
+          // Mobile View - Stacks map at the top and pole list at the bottom
+          return Column(
+            children: [
+              SizedBox(
+                height: 280,
+                child: _buildMapSection(initialCenter, markers, mapUnavailableOnWeb),
+              ),
+              Divider(height: 1, color: AppTheme.stroke),
+              Expanded(
+                child: ListView.builder(
+                  padding: EdgeInsets.symmetric(horizontal: hPad, vertical: 8),
+                  itemCount: poles.length,
+                  itemBuilder: (context, index) {
+                    final pole = poles[index];
+                    final isSelected = pole.id == _selectedPoleId;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          _selectedPoleId = pole.id;
+                        });
+                        if (pole.latitude != null && pole.longitude != null && _mapController != null) {
+                          _mapController!.animateCamera(
+                            gmap.CameraUpdate.newLatLngZoom(
+                              gmap.LatLng(pole.latitude!, pole.longitude!),
+                              17.0,
+                            ),
+                          );
+                        }
+                      },
+                      child: Container(
+                        decoration: isSelected
+                            ? BoxDecoration(
+                                border: Border.all(color: AppTheme.primary, width: 2),
+                                borderRadius: BorderRadius.circular(16),
+                              )
+                            : null,
+                        margin: const EdgeInsets.only(bottom: 2),
+                        child: _buildPoleCard(context, pole),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -695,6 +560,221 @@ class _PoleManagementState extends State<PoleManagement> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildMapSection(
+    gmap.LatLng? initialCenter,
+    Set<gmap.Marker> markers,
+    bool mapUnavailableOnWeb,
+  ) {
+    return Stack(
+      children: [
+        Positioned.fill(
+          child: mapUnavailableOnWeb
+              ? Container(
+                  color: AppTheme.bgSurface,
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    mapsWebUnavailableMessage,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: AppTheme.textSecondary),
+                  ),
+                )
+              : gmap.GoogleMap(
+                  mapId: googleMapsMapId,
+                  markerType: googleMapsMarkerType,
+                  initialCameraPosition: gmap.CameraPosition(
+                    target: initialCenter ?? const gmap.LatLng(12.9716, 77.5946),
+                    zoom: initialCenter == null ? 5.0 : 16.0,
+                  ),
+                  onMapCreated: (controller) {
+                    _mapController = controller;
+                  },
+                  markers: markers,
+                  onTap: (point) {
+                    setState(() {
+                      _quickTappedLocation = point;
+                      _quickLatC.text = point.latitude.toStringAsFixed(6);
+                      _quickLngC.text = point.longitude.toStringAsFixed(6);
+                      _showQuickAddOverlay = true;
+                    });
+                    if (_mapController != null) {
+                      _mapController!.animateCamera(
+                        gmap.CameraUpdate.newLatLng(point),
+                      );
+                    }
+                  },
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: true,
+                ),
+        ),
+        if (!_showQuickAddOverlay)
+          Positioned(
+            top: 16,
+            right: 16,
+            child: FloatingActionButton.extended(
+              onPressed: () {
+                setState(() {
+                  _showQuickAddOverlay = true;
+                });
+              },
+              icon: const Icon(Icons.add_location_alt_rounded),
+              label: const Text('Quick Add Pole'),
+              backgroundColor: AppTheme.primary,
+            ),
+          ),
+        if (_showQuickAddOverlay)
+          Positioned(
+            top: 16,
+            right: 16,
+            bottom: 16,
+            child: Container(
+              width: 300,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppTheme.bgCard,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.stroke, width: 1.5),
+                boxShadow: AppTheme.softShadow,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Quick Add Pole',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 20),
+                          onPressed: () {
+                            setState(() {
+                              _showQuickAddOverlay = false;
+                              _quickTappedLocation = null;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tip: Tap anywhere on the map to set coordinate fields automatically.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: AppTheme.textMuted,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _quickPoleNumC,
+                      decoration: const InputDecoration(
+                        labelText: 'Pole Number',
+                        hintText: 'e.g. PL-102',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _quickKeypadC,
+                      decoration: const InputDecoration(
+                        labelText: 'Keypad ID',
+                        hintText: 'e.g. 5',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _quickLatC,
+                            decoration: const InputDecoration(
+                              labelText: 'Lat',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _quickLngC,
+                            decoration: const InputDecoration(
+                              labelText: 'Lng',
+                            ),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _quickLandmarksC,
+                      decoration: const InputDecoration(
+                        labelText: 'Landmarks (comma-sep)',
+                        hintText: 'e.g. near school',
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_quickPoleNumC.text.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Please enter a pole number')),
+                            );
+                            return;
+                          }
+                          final data = <String, dynamic>{
+                            'pole_number': _quickPoleNumC.text.trim(),
+                          };
+                          if (_quickKeypadC.text.isNotEmpty) {
+                            data['keypad_id'] = _quickKeypadC.text.trim();
+                          }
+                          final lat = double.tryParse(_quickLatC.text);
+                          final lng = double.tryParse(_quickLngC.text);
+                          if (lat != null) data['latitude'] = lat;
+                          if (lng != null) data['longitude'] = lng;
+
+                          if (_quickLandmarksC.text.isNotEmpty) {
+                            data['landmarks'] = _quickLandmarksC.text
+                                .split(',')
+                                .map((e) => e.trim())
+                                .where((e) => e.isNotEmpty)
+                                .toList();
+                          }
+
+                          context.read<PoleBloc>().add(CreatePole(data));
+
+                          _quickPoleNumC.clear();
+                          _quickKeypadC.clear();
+                          _quickLatC.clear();
+                          _quickLngC.clear();
+                          _quickLandmarksC.clear();
+                          setState(() {
+                            _showQuickAddOverlay = false;
+                            _quickTappedLocation = null;
+                          });
+                        },
+                        child: const Text('Create Pole'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 

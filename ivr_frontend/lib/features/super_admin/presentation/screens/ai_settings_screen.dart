@@ -185,100 +185,138 @@ class AiSettingsScreen extends StatelessWidget {
                     ]
                     : AppTheme.softShadow,
           ),
-          child: Row(
-            children: [
-              // Provider Icon
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: gradientColors),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Center(
-                  child: Text(
-                    iconText,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-
-              // Provider Info
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style:       TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style:       TextStyle(
-                        fontSize: 13,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Active Indicator
-              if (isActive)
+          child: LayoutBuilder(
+            builder: (context, cardConstraints) {
+              final isNarrow = cardConstraints.maxWidth < 450;
+              final content = [
+                // Provider Icon
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: AppTheme.accent.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: AppTheme.accent.withValues(alpha: 0.4),
+                    gradient: LinearGradient(colors: gradientColors),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      iconText,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                  child:       Row(
-                    mainAxisSize: MainAxisSize.min,
+                ),
+                if (!isNarrow) const SizedBox(width: 16) else const SizedBox(height: 12),
+
+                // Provider Info
+                if (isNarrow)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.check_circle,
-                        color: AppTheme.accent,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 4),
                       Text(
-                        'Active',
+                        label,
                         style: TextStyle(
-                          color: AppTheme.accent,
-                          fontSize: 12,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
+                          color: AppTheme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppTheme.textSecondary,
                         ),
                       ),
                     ],
+                  )
+                else
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          label,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppTheme.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              else
-                OutlinedButton(
-                  onPressed: () {
-                    context.read<SettingsBloc>().add(
-                      isStt
-                          ? SetSttProvider(provider)
-                          : SetLlmProvider(provider),
-                    );
-                  },
-                  child: const Text('Activate'),
-                ),
-            ],
+                if (!isNarrow) const SizedBox(width: 16) else const SizedBox(height: 16),
+
+                // Active Indicator / Button
+                if (isActive)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: AppTheme.accent.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.check_circle,
+                          color: AppTheme.accent,
+                          size: 16,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Active',
+                          style: TextStyle(
+                            color: AppTheme.accent,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  OutlinedButton(
+                    onPressed: () {
+                      context.read<SettingsBloc>().add(
+                        isStt
+                            ? SetSttProvider(provider)
+                            : SetLlmProvider(provider),
+                      );
+                    },
+                    child: const Text('Activate'),
+                  ),
+              ];
+
+              if (isNarrow) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: content,
+                );
+              }
+
+              return Row(
+                children: content,
+              );
+            },
           ),
         ),
       ),

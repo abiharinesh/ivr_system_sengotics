@@ -687,18 +687,25 @@ class _PreviewInfoBar extends StatelessWidget {
               ],
             ),
           ),
-          TextButton(
-            onPressed: onDismiss,
-            child: const Text('Dismiss'),
-          ),
-          const SizedBox(width: 4),
-          ElevatedButton.icon(
-            onPressed: onAddToZone,
-            icon: const Icon(Icons.add, size: 16),
-            label: const Text('Add as Zone'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            ),
+          const SizedBox(width: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              TextButton(
+                onPressed: onDismiss,
+                child: const Text('Dismiss'),
+              ),
+              ElevatedButton.icon(
+                onPressed: onAddToZone,
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add as Zone'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                ),
+              ),
+            ],
           ),
         ],
       ),

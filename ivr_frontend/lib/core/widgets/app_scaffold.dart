@@ -58,6 +58,12 @@ class _AppScaffoldState extends State<AppScaffold> {
     return ListenableBuilder(
       listenable: customization,
       builder: (context, _) {
+        final themeKey = ValueKey(
+          '${customization.settings.themeMode}_'
+          '${customization.settings.primaryColorValue}_'
+          '${customization.settings.accentColorValue}',
+        );
+
         if (isMobile) {
           return Scaffold(
             appBar: AppBar(
@@ -71,7 +77,10 @@ class _AppScaffoldState extends State<AppScaffold> {
               ],
             ),
             drawer: _buildDrawer(context),
-            body: widget.body,
+            body: KeyedSubtree(
+              key: themeKey,
+              child: widget.body,
+            ),
             floatingActionButton: widget.floatingActionButton,
           );
         }
@@ -83,7 +92,15 @@ class _AppScaffoldState extends State<AppScaffold> {
               _buildSidebar(context),
               Expanded(
                 child: Column(
-                  children: [_buildTopBar(context), Expanded(child: widget.body)],
+                  children: [
+                    _buildTopBar(context),
+                    Expanded(
+                      child: KeyedSubtree(
+                        key: themeKey,
+                        child: widget.body,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

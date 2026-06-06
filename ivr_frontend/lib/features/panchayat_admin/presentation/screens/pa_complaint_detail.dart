@@ -460,7 +460,10 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 4,
+          runSpacing: 4,
           children: [
             InkWell(
               onTap: () => context.go('/complaints'),
@@ -469,16 +472,12 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                 style: TextStyle(fontSize: 12, color: AppTheme.textMuted, decoration: TextDecoration.underline),
               ),
             ),
-            const SizedBox(width: 4),
             Icon(Icons.chevron_right, size: 14, color: AppTheme.textMuted),
-            const SizedBox(width: 4),
             Text(
               complaint.panchayat?.name ?? 'Alandur Panchayat',
               style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
             ),
-            const SizedBox(width: 4),
             Icon(Icons.chevron_right, size: 14, color: AppTheme.textMuted),
-            const SizedBox(width: 4),
             Text(
               'Complaint #${complaint.id}',
               style: TextStyle(
@@ -683,10 +682,14 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 12,
+              runSpacing: 8,
               children: [
                 Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.description_outlined, color: AppTheme.textPrimary, size: 20),
                     const SizedBox(width: 8),
@@ -873,120 +876,120 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 500;
-        final insights = [
-          Expanded(
-            flex: isMobile ? 0 : 1,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.stroke, width: 1.2),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: emotionColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: emotionColor.withValues(alpha: 0.15), width: 1),
-                    ),
-                    child: Icon(
-                      emotionIcon,
-                      color: emotionColor,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Caller Emotion',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          emotion,
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: emotionColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
+        final card1 = Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+            boxShadow: AppTheme.softShadow,
           ),
-          if (isMobile) const SizedBox(height: 16) else const SizedBox(width: 24),
-          Expanded(
-            flex: isMobile ? 0 : 1,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.stroke, width: 1.2),
-                boxShadow: AppTheme.softShadow,
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: emotionColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: emotionColor.withValues(alpha: 0.15), width: 1),
+                ),
+                child: Icon(
+                  emotionIcon,
+                  color: emotionColor,
+                  size: 28,
+                ),
               ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: urgencyColor.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: urgencyColor.withValues(alpha: 0.15), width: 1),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Caller Emotion',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
                     ),
-                    child: Icon(
-                      Icons.priority_high_rounded,
-                      color: urgencyColor,
-                      size: 28,
+                    const SizedBox(height: 4),
+                    Text(
+                      emotion,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: emotionColor,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'AI Urgency Priority',
-                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          '$urgency Priority',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: urgencyColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
-        ];
+        );
+
+        final card2 = Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppTheme.stroke, width: 1.2),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: urgencyColor.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: urgencyColor.withValues(alpha: 0.15), width: 1),
+                ),
+                child: Icon(
+                  Icons.priority_high_rounded,
+                  color: urgencyColor,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'AI Urgency Priority',
+                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '$urgency Priority',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: urgencyColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
 
         if (isMobile) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: insights,
+            children: [
+              card1,
+              const SizedBox(height: 16),
+              card2,
+            ],
           );
         }
         return Row(
-          children: insights,
+          children: [
+            Expanded(child: card1),
+            const SizedBox(width: 24),
+            Expanded(child: card2),
+          ],
         );
       },
     );
@@ -1251,86 +1254,102 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
               },
             ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _submitting
-                    ? const Center(child: CircularProgressIndicator())
-                    : ElevatedButton.icon(
-                        onPressed: isWater
-                            ? (_selectedPlumberId == null ? null : _assignTask)
-                            : (_selectedElectricianId == null ? null : _assignTask),
-                        icon: const Icon(Icons.send_rounded, size: 16),
-                        label: const Text('Assign Task'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.accent,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                          ),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final useVerticalButtons = constraints.maxWidth < 450;
+              final assignButton = _submitting
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton.icon(
+                      onPressed: isWater
+                          ? (_selectedPlumberId == null ? null : _assignTask)
+                          : (_selectedElectricianId == null ? null : _assignTask),
+                      icon: const Icon(Icons.send_rounded, size: 16),
+                      label: const Text('Assign Task'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.accent,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                         ),
                       ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _submitting
-                      ? null
-                      : () {
-                          // Show menu to update status
-                          showModalBottomSheet<void>(
-                            context: context,
-                            builder: (ctx) => SafeArea(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  ListTile(
-                                    leading: const Icon(Icons.schedule_rounded),
-                                    title: const Text('Mark Pending'),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      _updateStatus('pending');
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.engineering_rounded),
-                                    title: const Text('Mark In Progress'),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      _updateStatus('in_progress');
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.check_circle_rounded),
-                                    title: const Text('Mark Resolved'),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      _updateStatus('resolved');
-                                    },
-                                  ),
-                                  ListTile(
-                                    leading: const Icon(Icons.cancel_rounded, color: Colors.red),
-                                    title: const Text('Mark Rejected', style: TextStyle(color: Colors.red)),
-                                    onTap: () {
-                                      Navigator.pop(ctx);
-                                      _updateStatus('rejected');
-                                    },
-                                  ),
-                                ],
-                              ),
+                    );
+
+              final updateStatusButton = OutlinedButton(
+                onPressed: _submitting
+                    ? null
+                    : () {
+                        // Show menu to update status
+                        showModalBottomSheet<void>(
+                          context: context,
+                          builder: (ctx) => SafeArea(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ListTile(
+                                  leading: const Icon(Icons.schedule_rounded),
+                                  title: const Text('Mark Pending'),
+                                  onTap: () {
+                                    Navigator.pop(ctx);
+                                    _updateStatus('pending');
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.engineering_rounded),
+                                  title: const Text('Mark In Progress'),
+                                  onTap: () {
+                                    Navigator.pop(ctx);
+                                    _updateStatus('in_progress');
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.check_circle_rounded),
+                                  title: const Text('Mark Resolved'),
+                                  onTap: () {
+                                    Navigator.pop(ctx);
+                                    _updateStatus('resolved');
+                                  },
+                                ),
+                                ListTile(
+                                  leading: const Icon(Icons.cancel_rounded, color: Colors.red),
+                                  title: const Text('Mark Rejected', style: TextStyle(color: Colors.red)),
+                                  onTap: () {
+                                    Navigator.pop(ctx);
+                                    _updateStatus('rejected');
+                                  },
+                                ),
+                              ],
                             ),
-                          );
-                        },
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                    ),
+                          ),
+                        );
+                      },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                   ),
-                  child: const Text('Update Status'),
                 ),
-              ),
-            ],
+                child: const Text('Update Status'),
+              );
+
+              if (useVerticalButtons) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(width: double.infinity, child: assignButton),
+                    const SizedBox(height: 12),
+                    SizedBox(width: double.infinity, child: updateStatusButton),
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(child: assignButton),
+                  const SizedBox(width: 12),
+                  Expanded(child: updateStatusButton),
+                ],
+              );
+            },
           ),
         ],
       ),
