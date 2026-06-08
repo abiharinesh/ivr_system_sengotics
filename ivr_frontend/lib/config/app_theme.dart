@@ -387,7 +387,7 @@ class AppTheme {
     );
   }
 
-  static ThemeData buildTheme(AdminCustomizationSettings settings) {
+  static void applyThemeSettings(AdminCustomizationSettings settings) {
     final isDark = settings.themeMode == 'dark' ||
         (settings.themeMode == 'system' &&
             WidgetsBinding.instance.platformDispatcher.platformBrightness == Brightness.dark);
@@ -395,7 +395,7 @@ class AppTheme {
     primaryLight = primary.withAlpha(210);
     primaryDark = primary;
     accent = settings.accentColor;
-    
+
     bgDark = isDark ? const Color(0xFF0F172A) : const Color(0xFFF6F8FC);
     bgCard = isDark ? const Color(0xFF1E293B) : Colors.white;
     bgSurface = isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9);
@@ -405,7 +405,10 @@ class AppTheme {
     textPrimary = isDark ? const Color(0xFFF8FAFC) : const Color(0xFF0F172A);
     textSecondary = isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569);
     textMuted = isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B);
+  }
 
+  static ThemeData buildTheme(AdminCustomizationSettings settings) {
+    applyThemeSettings(settings);
     return DynamicThemeBuilder.buildTheme(settings);
   }
 }

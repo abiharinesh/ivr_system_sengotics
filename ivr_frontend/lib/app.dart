@@ -55,7 +55,39 @@ class _AppViewState extends State<_AppView> {
     return ListenableBuilder(
       listenable: Listenable.merge([_mapThemeProvider, _adminCustomizationProvider]),
       builder: (context, _) {
-        final theme = AppTheme.buildTheme(_adminCustomizationProvider.settings);
+        final settings = _adminCustomizationProvider.settings;
+        final selectedThemeMode = settings.themeMode == 'dark'
+            ? ThemeMode.dark
+            : (settings.themeMode == 'system' ? ThemeMode.system : ThemeMode.light);
+
+        final lightSettings = AdminCustomizationSettings(
+          themeMode: 'light',
+          primaryColorValue: settings.primaryColorValue,
+          accentColorValue: settings.accentColorValue,
+          fontFamily: settings.fontFamily,
+          fontScaleFactor: settings.fontScaleFactor,
+          mapThemeId: settings.mapThemeId,
+          sidebarCompact: settings.sidebarCompact,
+          sidebarColorValue: settings.sidebarColorValue,
+          widgetConfigs: settings.widgetConfigs,
+        );
+
+        final darkSettings = AdminCustomizationSettings(
+          themeMode: 'dark',
+          primaryColorValue: settings.primaryColorValue,
+          accentColorValue: settings.accentColorValue,
+          fontFamily: settings.fontFamily,
+          fontScaleFactor: settings.fontScaleFactor,
+          mapThemeId: settings.mapThemeId,
+          sidebarCompact: settings.sidebarCompact,
+          sidebarColorValue: settings.sidebarColorValue,
+          widgetConfigs: settings.widgetConfigs,
+        );
+
+        final lightTheme = AppTheme.buildTheme(lightSettings);
+        final darkTheme = AppTheme.buildTheme(darkSettings);
+        AppTheme.applyThemeSettings(settings);
+
         return _CustomizationScope(
           provider: _adminCustomizationProvider,
           child: _MapThemeScope(
@@ -63,13 +95,9 @@ class _AppViewState extends State<_AppView> {
             child: MaterialApp.router(
               title: 'Ooraatchi: Integrated GIS-Map & E-Tendering System',
               debugShowCheckedModeBanner: false,
-              theme: theme,
-              darkTheme: theme,
-              themeMode: _adminCustomizationProvider.settings.themeMode == 'dark'
-                  ? ThemeMode.dark
-                  : (_adminCustomizationProvider.settings.themeMode == 'system'
-                      ? ThemeMode.system
-                      : ThemeMode.light),
+              theme: lightTheme,
+              darkTheme: darkTheme,
+              themeMode: selectedThemeMode,
               routerConfig: router,
               builder: (context, child) => OfflineSyncHost(child: child),
             ),

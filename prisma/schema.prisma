@@ -586,3 +586,24 @@ model WaterFlowLog {
   @@index([logged_at])
   @@map("water_flow_logs")
 }
+
+model CapturedAsset {
+  id           Int      @id @default(autoincrement())
+  type         String   // household_tap, public_tap, main_pipeline
+  material     String   // PVC, HDPE, Cast Iron
+  diameter_mm  Float
+  latitude     Float
+  longitude    Float
+  photo_url    String?
+  status       String   @default("pending_approval") // pending_approval, approved, rejected
+  comment      String?
+  agent_name   String
+  device_model String?
+  altitude     Float?
+  precision    Float?
+  submitted_at DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@map("captured_assets")
+}
+

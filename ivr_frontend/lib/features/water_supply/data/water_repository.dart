@@ -185,4 +185,29 @@ class WaterRepository {
       // Offline fallback
     }
   }
+
+  Future<List<Map<String, dynamic>>> getCapturedAssets() async {
+    try {
+      final data = await _api.get('/api/water-supply/captured-assets');
+      return List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<Map<String, dynamic>> submitCapturedAsset(Map<String, dynamic> asset) async {
+    final response = await _api.post('/api/water-supply/captured-assets', data: asset);
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> approveCapturedAsset(int id, String comment) async {
+    final response = await _api.post('/api/water-supply/captured-assets/$id/approve', data: {'comment': comment});
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> rejectCapturedAsset(int id, String comment) async {
+    final response = await _api.post('/api/water-supply/captured-assets/$id/reject', data: {'comment': comment});
+    return Map<String, dynamic>.from(response as Map);
+  }
 }
+

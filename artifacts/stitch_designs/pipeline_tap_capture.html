@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, viewport-fit=cover" name="viewport"/>
+<title>Ooraatchi GIS Field Agent</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Metropolis:wght@400;600;700;800&amp;family=Public+Sans:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2d3133",
+                        "error": "#ba1a1a",
+                        "inverse-primary": "#c6c6c6",
+                        "on-primary-fixed-variant": "#474747",
+                        "surface": "#f7f9fb",
+                        "on-tertiary-fixed-variant": "#3a485c",
+                        "outline-variant": "#c6c6cd",
+                        "on-primary-container": "#848484",
+                        "error-container": "#ffdad6",
+                        "on-primary-fixed": "#1b1b1b",
+                        "surface-bright": "#f7f9fb",
+                        "secondary-container": "#9af1c6",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "background": "#f7f9fb",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-tint": "#5e5e5e",
+                        "tertiary-fixed": "#d5e3fd",
+                        "primary-fixed": "#e2e2e2",
+                        "tertiary": "#000000",
+                        "on-secondary": "#ffffff",
+                        "on-surface": "#191c1e",
+                        "on-secondary-fixed": "#002114",
+                        "on-tertiary-fixed": "#0d1c2f",
+                        "tertiary-fixed-dim": "#b9c7e0",
+                        "secondary-fixed": "#9df4c9",
+                        "on-surface-variant": "#45464d",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#191c1e",
+                        "surface-dim": "#d8dadc",
+                        "secondary": "#006c4a",
+                        "secondary-fixed-dim": "#81d8ae",
+                        "on-error-container": "#93000a",
+                        "tertiary-container": "#0d1c2f",
+                        "surface-container-lowest": "#ffffff",
+                        "outline": "#76777d",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-secondary-container": "#0b714e",
+                        "surface-container-low": "#f2f4f6",
+                        "primary": "#000000",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-container": "#1b1b1b",
+                        "on-secondary-fixed-variant": "#005237",
+                        "surface-container": "#eceef0",
+                        "primary-fixed-dim": "#c6c6c6",
+                        "on-tertiary-container": "#76859b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "64px",
+                        "base": "8px",
+                        "margin-mobile": "20px",
+                        "gutter": "24px",
+                        "container-max": "1280px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Metropolis", "sans-serif"],
+                        "display-lg-mobile": ["Metropolis", "sans-serif"],
+                        "body-md": ["Public Sans", "sans-serif"],
+                        "body-lg": ["Public Sans", "sans-serif"],
+                        "label-md": ["Public Sans", "sans-serif"],
+                        "display-lg": ["Metropolis", "sans-serif"],
+                        "headline-lg": ["Metropolis", "sans-serif"],
+                        "caption": ["Public Sans", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg-mobile": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "caption": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "headline-md-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-sm": ["11px", {"lineHeight": "16px", "fontWeight": "500"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(198, 198, 205, 0.3);
+        }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24">
+<!-- Top Navigation Anchor -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface/80 backdrop-blur-md shadow-sm flex justify-between items-center px-margin-mobile h-16">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary font-bold">satellite_alt</span>
+<h1 class="font-headline-md text-headline-md-mobile font-bold text-primary">Ooraatchi GIS</h1>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant">signal_cellular_alt</span>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-secondary-container text-[20px] filled-icon">person</span>
+</div>
+</div>
+</header>
+<main class="pt-16 px-4 space-y-6 max-w-md mx-auto">
+<!-- GIS Map Section -->
+<section class="mt-4 relative rounded-3xl overflow-hidden aspect-video shadow-lg border border-outline-variant/30">
+<div class="absolute inset-0 bg-surface-container-highest" data-location="Rural Tamil Nadu" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC6EpekZGNQhM4UKCzu8ijbI0BbUldcKdQoYryv_2_Q9W_tXscqP88hFyPTzU6VgIeLM2Z8gPsicfPO5Bh-3B7C01mp4wpOB1HIs2UonuN9-8O-N2L4teOwQ3fJQgs3oBN-PIsoOF_hQStECGFVOnaY-YBy7cjIAZiYJ4T1lfpybo3nxAaTbI0_oudsuzapDLtpYvYAgPgkw_VD4R6tTnC4KYpILHsYU0QOhrvezoi6vBhOXayMvCA9XHD0hmEXsqwh9BWeFzkYYIQ'); background-size: cover; background-position: center;">
+<!-- Mock Map Overlays -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" viewbox="0 0 400 225">
+<path d="M50 150 L150 100 L250 120 L350 80" fill="none" opacity="0.8" stroke="#006c4a" stroke-dasharray="8 4" stroke-width="3"></path>
+<circle class="animate-pulse" cx="250" cy="120" fill="#006c4a" r="8"></circle>
+</svg>
+</div>
+<!-- Map Controls -->
+<div class="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-none">
+<div class="pointer-events-auto bg-surface-container-lowest/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-sm flex items-center gap-2 border border-outline-variant/20">
+<div class="w-2 h-2 rounded-full bg-secondary animate-pulse"></div>
+<span class="text-caption font-label-md text-on-surface">GPS Accuracy: ±0.4m</span>
+</div>
+<div class="pointer-events-auto flex flex-col gap-2">
+<button class="w-10 h-10 bg-surface-container-lowest shadow-sm rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-on-surface-variant">layers</span>
+</button>
+<button class="w-10 h-10 bg-surface-container-lowest shadow-sm rounded-xl flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-secondary filled-icon">my_location</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Capture Asset Form Section -->
+<section class="space-y-4">
+<div class="flex items-center justify-between">
+<h2 class="font-headline-md text-headline-md-mobile text-primary">Capture Asset</h2>
+<div class="flex items-center gap-1">
+<span class="w-6 h-1 rounded-full bg-secondary"></span>
+<span class="w-3 h-1 rounded-full bg-outline-variant"></span>
+<span class="w-3 h-1 rounded-full bg-outline-variant"></span>
+</div>
+</div>
+<div class="glass-card rounded-3xl p-5 space-y-6">
+<!-- Step 1: Connection Type -->
+<div class="space-y-3">
+<label class="font-label-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">hub</span> Step 1: Connection Type
+                    </label>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-secondary-container text-on-secondary-container border border-secondary/20 transition-all">
+<span class="material-symbols-outlined mb-1">home</span>
+<span class="text-caption font-label-md">Household</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low text-on-surface-variant border border-outline-variant/20 hover:bg-surface-variant/50 transition-all">
+<span class="material-symbols-outlined mb-1">faucet</span>
+<span class="text-caption font-label-md">Public Tap</span>
+</button>
+<button class="flex flex-col items-center justify-center p-3 rounded-2xl bg-surface-container-low text-on-surface-variant border border-outline-variant/20 hover:bg-surface-variant/50 transition-all">
+<span class="material-symbols-outlined mb-1">water_orp</span>
+<span class="text-caption font-label-md">Main Pipe</span>
+</button>
+</div>
+</div>
+<!-- Step 2: Technical Specs -->
+<div class="space-y-4">
+<label class="font-label-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">settings_input_component</span> Step 2: Technical Specs
+                    </label>
+<div class="grid grid-cols-2 gap-4">
+<div class="space-y-1">
+<span class="text-caption text-on-surface-variant ml-1">Material</span>
+<div class="relative">
+<select class="w-full bg-surface-container-lowest border-outline-variant/30 rounded-xl py-2.5 px-3 text-body-md focus:ring-secondary focus:border-secondary transition-all appearance-none">
+<option>PVC</option>
+<option>HDPE</option>
+<option>Cast Iron</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+</div>
+</div>
+<div class="space-y-1">
+<span class="text-caption text-on-surface-variant ml-1">Diameter (mm)</span>
+<input class="w-full bg-surface-container-lowest border-outline-variant/30 rounded-xl py-2.5 px-3 text-body-md focus:ring-secondary focus:border-secondary transition-all" placeholder="e.g. 110" type="number"/>
+</div>
+</div>
+</div>
+<!-- Step 3: Location -->
+<div class="space-y-3">
+<label class="font-label-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">location_on</span> Step 3: Location
+                    </label>
+<div class="bg-surface-container-lowest border border-outline-variant/20 rounded-xl p-3 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-secondary/10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-[20px]">explore</span>
+</div>
+<div>
+<p class="text-caption text-on-surface-variant">Coordinates</p>
+<p class="font-label-md text-on-surface">11.0168° N, 76.9558° E</p>
+</div>
+</div>
+<button class="text-secondary font-label-md hover:underline">Refresh</button>
+</div>
+</div>
+<!-- Step 4: Evidence -->
+<div class="space-y-3">
+<label class="font-label-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">photo_camera</span> Step 4: Evidence
+                    </label>
+<div class="relative rounded-2xl overflow-hidden aspect-[16/9] bg-surface-container-highest border border-outline-variant/30">
+<img alt="Camera Preview" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvhQTbTKLRB7ZD4TapCpa-1mzAaS88hzUG26KkpQmgEYbC1Imi7to5SkWT2ULf3tKG6CDTF5nYByLIrLPq0pPzVProxvRgdd4oGdtySLgXf3dsBpMe2cXtNHTJjqLEeiydDOli_--dT6lqjtnA9Qk4RnPYZuXxjrFBG9rq7p5jqSGYJ8pvTWR2cG2AKC5mxKameLJ1lgCk3aj5TMsR3iu1VLXCC_TTdb7Ldbdb2hTD3vJlYPYTTpemijV7WQVxTb9aUCHWCq8DHbA"/>
+<div class="absolute inset-0 bg-black/10 flex items-center justify-center">
+<div class="w-20 h-20 border-2 border-white/50 rounded-full flex items-center justify-center">
+<div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full border border-white"></div>
+</div>
+</div>
+<button class="absolute bottom-4 right-4 bg-secondary text-on-primary px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 font-label-md active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[20px]">photo_camera</span>
+                            Capture Photo
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Sync Status Panel -->
+<section class="bg-surface-container-low rounded-3xl p-4 flex items-center justify-between border border-outline-variant/20 shadow-sm">
+<div class="flex items-center gap-4">
+<div class="relative">
+<span class="material-symbols-outlined text-on-surface-variant text-[32px]">cloud_sync</span>
+<span class="absolute -top-1 -right-1 w-5 h-5 bg-error text-on-primary text-[10px] flex items-center justify-center rounded-full font-bold">2</span>
+</div>
+<div>
+<h3 class="font-label-md text-on-surface">2 Items Pending Sync</h3>
+<p class="text-caption text-on-surface-variant">Last synced 14 mins ago</p>
+</div>
+</div>
+<button class="bg-secondary text-on-primary px-5 py-2.5 rounded-xl font-label-md flex items-center gap-2 shadow-md hover:bg-on-secondary-fixed-variant active:scale-95 transition-all">
+<span class="material-symbols-outlined text-[20px]">sync</span>
+                Sync Now
+            </button>
+</section>
+</main>
+<!-- Bottom Navigation Shell -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 bg-surface/90 dark:bg-surface-container-low/90 backdrop-blur-md border-t border-outline-variant/30 shadow-lg">
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant/20 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">map</span>
+<span class="font-label-md text-label-md">Map</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-xl px-4 py-1 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined filled-icon">sync_saved_locally</span>
+<span class="font-label-md text-label-md">Sync</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant px-4 py-1 hover:bg-surface-variant/20 transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple ripple-like effect for primary buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('click', function(e) {
+                let ripple = document.createElement('div');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 600);
+            });
+        });
+    </script>
+</body></html>

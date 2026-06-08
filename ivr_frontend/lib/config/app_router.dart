@@ -59,6 +59,8 @@ import '../features/tenders/presentation/screens/vendor_bidding_portal_screen.da
 import '../features/water_supply/presentation/screens/pipeline_grid_screen.dart';
 import '../features/water_supply/presentation/screens/tanks_borewells_screen.dart';
 import '../features/water_supply/presentation/screens/water_flow_logs_screen.dart';
+import '../features/agent/presentation/screens/agent_pipeline_tap_capture_screen.dart';
+import '../features/water_supply/presentation/screens/infrastructure_approval_screen.dart';
 
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
@@ -155,6 +157,10 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/agent/poles/add',
             builder: (context, state) => const AgentAddPoleScreen(),
+          ),
+          GoRoute(
+            path: '/agent/pipeline-tap-capture',
+            builder: (context, state) => const AgentPipelineTapCaptureScreen(),
           ),
           GoRoute(
             path: '/agent/poles/:id',
@@ -420,6 +426,10 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/water/flow-logs',
             builder: (context, state) => const WaterFlowLogsScreen(),
           ),
+          GoRoute(
+            path: '/water/approvals',
+            builder: (context, state) => const InfrastructureApprovalScreen(),
+          ),
         ],
       ),
     ],
@@ -491,6 +501,10 @@ String _getTitle(String location) {
       return 'Tanks & Borewells';
     case '/water/flow-logs':
       return 'Water Flow Logs';
+    case '/agent/pipeline-tap-capture':
+      return 'Agent — Pipeline & Tap Capture';
+    case '/water/approvals':
+      return 'Infrastructure Approvals';
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';

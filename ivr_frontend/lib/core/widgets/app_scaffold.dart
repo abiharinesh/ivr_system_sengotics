@@ -409,6 +409,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/agent'),
         _NavSpec(icon: Icons.list_alt_rounded, label: 'Poles', route: '/agent/poles'),
         _NavSpec(icon: Icons.add_location_alt_rounded, label: 'New pole', route: '/agent/poles/add'),
+        _NavSpec(icon: Icons.water_drop_rounded, label: 'Pipeline & Tap Capture', route: '/agent/pipeline-tap-capture'),
       ];
     }
     if (widget.userRole == 'electrician') {
@@ -505,6 +506,7 @@ class _AppScaffoldState extends State<AppScaffold> {
       _NavSpec(icon: Icons.grid_on_rounded, label: 'Pipeline Grid', route: '/water/pipeline-grid'),
       _NavSpec(icon: Icons.opacity_rounded, label: 'Tanks & Borewells', route: '/water/tanks'),
       _NavSpec(icon: Icons.history_edu_rounded, label: 'Water Flow Logs', route: '/water/flow-logs'),
+      _NavSpec(icon: Icons.approval_rounded, label: 'Infra Approvals', route: '/water/approvals'),
     ];
   }
 

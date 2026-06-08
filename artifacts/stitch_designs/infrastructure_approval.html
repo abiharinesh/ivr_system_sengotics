@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Metropolis:wght@400;600;700;800&amp;family=Public+Sans:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .font-metropolis { font-family: 'Metropolis', sans-serif; }
+        .font-publicSans { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #c6c6cd; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #76777d; }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#000000",
+                        "on-secondary": "#ffffff",
+                        "primary-fixed": "#e2e2e2",
+                        "on-tertiary-container": "#76859b",
+                        "tertiary-container": "#0d1c2f",
+                        "on-primary-container": "#848484",
+                        "surface-container-high": "#e6e8ea",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#d5e3fd",
+                        "on-surface": "#191c1e",
+                        "surface": "#f7f9fb",
+                        "secondary-fixed-dim": "#81d8ae",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-container": "#0b714e",
+                        "primary-container": "#1b1b1b",
+                        "outline-variant": "#c6c6cd",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#1b1b1b",
+                        "secondary-container": "#9af1c6",
+                        "on-background": "#191c1e",
+                        "surface-bright": "#f7f9fb",
+                        "on-primary-fixed-variant": "#474747",
+                        "on-tertiary-fixed": "#0d1c2f",
+                        "secondary": "#006c4a",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d8dadc",
+                        "tertiary-fixed-dim": "#b9c7e0",
+                        "surface-container-highest": "#e0e3e5",
+                        "tertiary": "#000000",
+                        "inverse-on-surface": "#eff1f3",
+                        "background": "#f7f9fb",
+                        "on-surface-variant": "#45464d",
+                        "surface-container": "#eceef0",
+                        "primary-fixed-dim": "#c6c6c6",
+                        "surface-tint": "#5e5e5e",
+                        "on-error": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed-variant": "#3a485c",
+                        "inverse-primary": "#c6c6c6",
+                        "error": "#ba1a1a",
+                        "outline": "#76777d",
+                        "on-secondary-fixed": "#002114",
+                        "on-secondary-fixed-variant": "#005237",
+                        "secondary-fixed": "#9df4c9"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "base": "8px",
+                        "container-max": "1280px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["publicSans"],
+                        "caption": ["publicSans"],
+                        "body-lg": ["publicSans"],
+                        "headline-md": ["metropolis"],
+                        "display-lg": ["metropolis"],
+                        "headline-lg": ["metropolis"],
+                        "label-md": ["publicSans"]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-surface text-on-surface font-body-md selection:bg-secondary-container">
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 w-full z-50 bg-surface/80 dark:bg-surface-container-highest/80 backdrop-blur-md border-b border-outline-variant/30 shadow-sm">
+<div class="flex justify-between items-center h-16 px-margin-desktop max-w-container-max mx-auto">
+<div class="flex items-center gap-8">
+<span class="font-metropolis text-headline-md font-bold text-primary">Ooraatchi GIS</span>
+<nav class="hidden md:flex gap-6">
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors font-publicSans text-body-md" href="#">Dashboard</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors font-publicSans text-body-md" href="#">Map View</a>
+<a class="text-primary font-bold border-b-2 border-primary pb-1 font-publicSans text-body-md" href="#">Complaints</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors font-publicSans text-body-md" href="#">Analytics</a>
+<a class="text-on-surface-variant pb-1 hover:text-primary transition-colors font-publicSans text-body-md" href="#">Assets</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-all active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-all active:scale-95">
+<span class="material-symbols-outlined text-on-surface-variant">settings</span>
+</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Administrator Profile" data-alt="A professional headshot of a middle-aged South Asian male administrator wearing formal office attire. He is smiling warmly against a blurred office background, symbolizing leadership and government administration. The lighting is soft and professional, emphasizing a modern corporate aesthetic with high-fidelity detail and a neutral color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlh-ApIt6kvvTKWos02R1px3DbL0FeRpKkag2l3y37Ch0c6VPBKyRDKmUG4StOb3sOToI1NCMTzP9_L76rX-cymzjiE_C7dhb5FKWLb-cRShz3RIEoVZ1QMOpJcNS5AeHQ1zmDKy_se2uhcymS_4wmciMOMyJ9JNOZWUYnqkRHN4IVb3TKl8rrkUIoHDclusD7xSD6n6mtCSunnuKclA59sHONolgTSAChgeHbV37YRkkTnFjFo0RogucSUSLUTXMTljUuKr7fDoM"/>
+</div>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-12 px-margin-desktop max-w-container-max mx-auto flex flex-col gap-8">
+<!-- Metrics Section -->
+<section class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+<!-- Pending Approvals -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="font-publicSans text-label-md text-on-surface-variant uppercase tracking-wider">Pending Approvals</span>
+<span class="material-symbols-outlined text-amber-500">pending_actions</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-metropolis text-display-lg text-primary">24</span>
+<span class="font-publicSans text-caption text-amber-600 font-bold">+12% vs last week</span>
+</div>
+</div>
+<!-- Approved -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="font-publicSans text-label-md text-on-surface-variant uppercase tracking-wider">Approved Today</span>
+<span class="material-symbols-outlined text-secondary">check_circle</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-metropolis text-display-lg text-secondary">142</span>
+<span class="font-publicSans text-caption text-secondary font-bold">98% Success rate</span>
+</div>
+</div>
+<!-- Rejected -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/30 shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="font-publicSans text-label-md text-on-surface-variant uppercase tracking-wider">Rejected</span>
+<span class="material-symbols-outlined text-outline">cancel</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-metropolis text-display-lg text-on-surface-variant">08</span>
+<span class="font-publicSans text-caption text-on-surface-variant">Data mismatch</span>
+</div>
+</div>
+<!-- Sync Status -->
+<div class="bg-secondary-container/20 p-6 rounded-xl border border-secondary/20 shadow-sm flex flex-col gap-2">
+<div class="flex justify-between items-start">
+<span class="font-publicSans text-label-md text-on-secondary-container uppercase tracking-wider">Sync Status</span>
+<span class="material-symbols-outlined text-on-secondary-container" style="font-variation-settings: 'FILL' 1;">sync</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-metropolis text-headline-lg text-on-secondary-container">Active</span>
+<span class="font-publicSans text-caption text-on-secondary-container">Last sync: 2m ago</span>
+</div>
+</div>
+</section>
+<!-- Main Workspace: Split Screen -->
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-gutter h-[800px]">
+<!-- Left Column: Scrollable List -->
+<div class="lg:col-span-4 flex flex-col gap-4 h-full">
+<div class="flex items-center justify-between px-2">
+<h2 class="font-metropolis text-headline-md text-primary">Inbound Queue</h2>
+<span class="bg-surface-container-high px-3 py-1 rounded-full text-label-md text-on-surface-variant">24 Items</span>
+</div>
+<div class="flex-1 overflow-y-auto pr-2 flex flex-col gap-3">
+<!-- Ticket Card Active -->
+<div class="bg-white p-4 rounded-xl border-l-4 border-primary shadow-sm hover:translate-y-[-2px] transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-metropolis font-bold text-body-lg text-primary leading-tight">New Household Tap - Ward 3</h3>
+<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded font-bold uppercase">High</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span class="text-label-md font-publicSans">Ramesh Kumar (Field Agent)</span>
+</div>
+<div class="flex items-center justify-between mt-2">
+<span class="text-caption text-outline font-publicSans">Submitted: Oct 24, 2024</span>
+<span class="material-symbols-outlined text-secondary text-[20px]">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Ticket Card -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30 hover:bg-white hover:shadow-sm hover:translate-y-[-2px] transition-all cursor-pointer group">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-metropolis font-bold text-body-lg text-primary leading-tight">HDPE Pipe Segment - Ward 1</h3>
+<span class="bg-surface-container-high text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-bold uppercase">Medium</span>
+</div>
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span class="text-label-md font-publicSans">Sivakumar P.</span>
+</div>
+<div class="flex items-center justify-between mt-2">
+<span class="text-caption text-outline font-publicSans">Submitted: Oct 23, 2024</span>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary text-[20px] transition-colors">chevron_right</span>
+</div>
+</div>
+</div>
+<!-- Repeated Ticket Cards for Visual Polish -->
+<div class="bg-surface-container-low p-4 rounded-xl border border-outline-variant/30 hover:bg-white hover:shadow-sm transition-all cursor-pointer">
+<div class="flex justify-between items-start mb-2">
+<h3 class="font-metropolis font-bold text-body-lg text-primary leading-tight">Solar Streetlight Installation</h3>
+<span class="bg-surface-container-high text-on-surface-variant text-[10px] px-2 py-0.5 rounded font-bold uppercase">Normal</span>
+</div>
+<div class="flex flex-col gap-1 text-on-surface-variant">
+<div class="flex items-center gap-2"><span class="material-symbols-outlined text-[18px]">person</span><span class="text-label-md">Anitha Selvan</span></div>
+<div class="flex items-center justify-between mt-2"><span class="text-caption text-outline">Oct 23, 2024</span><span class="material-symbols-outlined text-[20px]">chevron_right</span></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Details Workspace -->
+<div class="lg:col-span-8 flex flex-col gap-gutter bg-white rounded-2xl border border-outline-variant/30 p-6 overflow-hidden shadow-sm relative">
+<div class="flex justify-between items-center">
+<div>
+<h1 class="font-metropolis text-headline-lg text-primary">New Household Tap - Ward 3</h1>
+<p class="font-publicSans text-body-md text-on-surface-variant">Ticket ID: #GIS-24-9021 • Location: Ooraatchi North-East Quadrant</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-surface-container-high text-on-surface px-4 py-2 rounded-xl text-label-md font-bold flex items-center gap-2 hover:bg-surface-variant transition-all">
+<span class="material-symbols-outlined text-[18px]">share</span> Share
+                        </button>
+</div>
+</div>
+<!-- GIS Map Preview -->
+<div class="relative h-64 w-full rounded-xl overflow-hidden border border-outline-variant/30 group">
+<img alt="Satellite view of a local village" class="w-full h-full object-cover" data-alt="A high-resolution satellite imagery map of a rural village landscape in Southern India. The map features detailed terrain, clearly defined property boundaries in digital overlay, and a bright neon-cyan highlight indicating a specific infrastructure asset coordinate. The visual style is technical, crisp, and professional, mimicking a high-end GIS interface with soft atmospheric depth." data-location="Madurai" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWeBUP9RD0JGOjUOkAfkkE5z-LItMlN69EYT9PlHimZjNNFVqbPf6vYv9oN4q9i-nB4b9TgfZ66MXSuDWpvnvEx1aUHgzvoMwTIe_Q91WHl1V1T7op6Yyb-6M1o1NpAGldO8Uz-2MECqbxDbhP14b-hUjvJi3OKLcz9Expu-i3rwKiU6FWO6yXE4IYi7_Db3Z7g31DcRgjCrIxgQ3XN1r023vaZkz9zl3joERSy346ub_LZDZ2qSKD8ZwcOqWHFsgHhUWzVIq9Wp4"/>
+<div class="absolute inset-0 bg-primary/5 pointer-events-none"></div>
+<div class="absolute top-4 left-4 flex flex-col gap-2">
+<button class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-primary">add</span>
+</button>
+<button class="w-10 h-10 bg-white rounded-lg shadow-sm flex items-center justify-center hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined text-primary">remove</span>
+</button>
+</div>
+<div class="absolute bottom-4 right-4 bg-white/90 backdrop-blur px-3 py-1.5 rounded-lg border border-outline-variant/30 shadow-sm">
+<span class="font-publicSans text-caption text-primary font-bold">10.7905° N, 78.7047° E</span>
+</div>
+</div>
+<!-- Verification Proofs -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- EXIF Card -->
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/30 flex flex-col gap-4">
+<div class="flex items-center gap-2 text-primary">
+<span class="material-symbols-outlined text-[20px]">info</span>
+<span class="font-metropolis font-bold text-body-md uppercase tracking-tight">EXIF Metadata</span>
+</div>
+<div class="grid grid-cols-2 gap-y-3">
+<div class="flex flex-col">
+<span class="text-caption text-on-surface-variant font-publicSans">Device</span>
+<span class="text-label-md font-bold text-primary">Samsung Tab Active</span>
+</div>
+<div class="flex flex-col">
+<span class="text-caption text-on-surface-variant font-publicSans">Altitude</span>
+<span class="text-label-md font-bold text-primary">12.4m AMSL</span>
+</div>
+<div class="flex flex-col">
+<span class="text-caption text-on-surface-variant font-publicSans">Precision</span>
+<span class="text-label-md font-bold text-secondary">±0.4m (Galileo)</span>
+</div>
+<div class="flex flex-col">
+<span class="text-caption text-on-surface-variant font-publicSans">Timestamp</span>
+<span class="text-label-md font-bold text-primary">10:42:12 AM</span>
+</div>
+</div>
+</div>
+<!-- Image Proof Card -->
+<div class="bg-surface-container-low p-5 rounded-xl border border-outline-variant/30 flex flex-col gap-3">
+<div class="flex items-center justify-between text-primary">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[20px]">image</span>
+<span class="font-metropolis font-bold text-body-md uppercase tracking-tight">Field Proof</span>
+</div>
+<span class="material-symbols-outlined text-secondary cursor-pointer hover:scale-110 transition-transform">zoom_in</span>
+</div>
+<div class="h-32 w-full rounded-lg overflow-hidden border border-outline-variant/50">
+<img alt="Installed household tap proof" class="w-full h-full object-cover" data-alt="A crisp, close-up photograph of a newly installed commercial-grade water tap assembly against a clean concrete wall in a village setting. The image is captured in bright morning daylight, showing the texture of the metal and the damp earth below. The composition is centered, highlighting the quality of the infrastructure, with a professional documentary aesthetic and high contrast." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCwmLHeSSmaMUaPkLUpX1mwv6GsDRxUcWTbyL3kSKZcIBZjyksO4KrFTVuFG8aTW0ltaK6tMYxKVeJ5tA5DnMwD4jJBeLQub42xQH4nVSkSF7iPhBOrIhwt4Phto5R97AvYMatShy0r_6MTd9g4evSAUGAxVKIiZouJNnQIAWIaAB81cCmRn_AMciFOwBesnAo4yA527TCfT1GLJ4wd9iYvI1dSdEp1m4M9DDB8xrtBxYMKe03J1IoMJUsf4Jjb5l-MjTvNVpZ2BeM"/>
+</div>
+</div>
+</div>
+<!-- Action Console -->
+<div class="mt-auto border-t border-outline-variant/30 pt-6 flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<label class="font-publicSans text-label-md font-semibold text-on-surface-variant" for="review-notes">Review Notes &amp; Field Feedback</label>
+<textarea class="w-full bg-surface-container-low border-outline-variant/50 rounded-xl font-publicSans text-body-md p-4 focus:ring-secondary focus:border-secondary transition-all" id="review-notes" placeholder="Enter comments for the field agent or internal logs..." rows="3"></textarea>
+</div>
+<div class="flex gap-4 justify-end">
+<button class="px-8 py-3 rounded-xl border-2 border-error text-error font-metropolis font-bold hover:bg-error/5 transition-all active:scale-95">
+                            Reject Submission
+                        </button>
+<button class="px-8 py-3 rounded-xl bg-secondary text-on-secondary font-metropolis font-bold shadow-lg hover:translate-y-[-2px] transition-all active:scale-100 active:shadow-none">
+                            Approve Infrastructure
+                        </button>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="w-full py-8 bg-surface-dim mt-12 border-t border-outline-variant/20">
+<div class="flex flex-col md:flex-row justify-between items-center px-margin-desktop max-w-container-max mx-auto gap-4">
+<div class="flex flex-col gap-1">
+<span class="font-metropolis text-body-md font-bold text-on-surface">Ooraatchi GIS</span>
+<span class="font-publicSans text-caption text-on-surface-variant">© 2024 Tamil Nadu e-Governance Agency. All Rights Reserved.</span>
+</div>
+<div class="flex gap-8">
+<a class="font-publicSans text-caption text-on-surface-variant hover:underline transition-all" href="#">Privacy Policy</a>
+<a class="font-publicSans text-caption text-on-surface-variant hover:underline transition-all" href="#">Terms of Service</a>
+<a class="font-publicSans text-caption text-on-surface-variant hover:underline transition-all" href="#">GIS Standards</a>
+</div>
+</div>
+</footer>
+<script>
+        // Simple Micro-interaction for Ticket Selection
+        document.querySelectorAll('.cursor-pointer').forEach(card => {
+            card.addEventListener('click', function() {
+                // Remove active styling from all
+                document.querySelectorAll('.cursor-pointer').forEach(c => {
+                    c.classList.remove('border-l-4', 'border-primary', 'bg-white', 'shadow-sm');
+                    c.classList.add('bg-surface-container-low', 'border-outline-variant/30');
+                });
+                // Add to current
+                this.classList.remove('bg-surface-container-low', 'border-outline-variant/30');
+                this.classList.add('border-l-4', 'border-primary', 'bg-white', 'shadow-sm');
+            });
+        });
+
+        // Simulating the action buttons
+        const approveBtn = document.querySelector('button.bg-secondary');
+        approveBtn.addEventListener('click', () => {
+            approveBtn.innerHTML = '<span class="material-symbols-outlined animate-spin">refresh</span> Processing...';
+            setTimeout(() => {
+                approveBtn.innerHTML = '<span class="material-symbols-outlined">check</span> Approved';
+                approveBtn.classList.replace('bg-secondary', 'bg-secondary-container');
+                approveBtn.classList.add('text-on-secondary-container');
+            }, 1200);
+        });
+    </script>
+</body></html>

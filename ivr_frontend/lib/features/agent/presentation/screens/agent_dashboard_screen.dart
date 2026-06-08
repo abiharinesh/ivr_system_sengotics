@@ -7,6 +7,7 @@ import '../../../../core/widgets/app_card.dart';
 import '../../../../core/widgets/app_error_state.dart';
 import '../../../../core/widgets/app_loading_state.dart';
 import '../../data/agent_repository.dart';
+import '../../../water_supply/data/water_sync_coordinator.dart';
 
 class AgentDashboardScreen extends StatefulWidget {
   const AgentDashboardScreen({super.key});
@@ -17,6 +18,7 @@ class AgentDashboardScreen extends StatefulWidget {
 
 class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
   final _repo = AgentRepository();
+  final _syncRepo = WaterSyncCoordinator();
 
   int _poleCount = 0;
   bool _loading = true;
@@ -26,6 +28,17 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
   void initState() {
     super.initState();
     _load();
+    _syncRepo.addListener(_onSyncChange);
+  }
+
+  @override
+  void dispose() {
+    _syncRepo.removeListener(_onSyncChange);
+    super.dispose();
+  }
+
+  void _onSyncChange() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _load() async {
@@ -124,7 +137,7 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
                             ),
                             Text(
                               '$_poleCount',
-                              style:       TextStyle(
+                              style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w700,
                                 color: AppTheme.textPrimary,
@@ -151,6 +164,69 @@ class _AgentDashboardScreenState extends State<AgentDashboardScreen> {
                           onPressed: () => context.go('/agent/poles/add'),
                           icon: const Icon(Icons.add_location_alt_rounded, size: 18),
                           label: const Text('Add pole'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            AppCard(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.accentGradient,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.water_drop_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Water Grid connections',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: AppTheme.textMuted,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            Text(
+                              '${_syncRepo.pendingSyncCount} Pending Sync',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w700,
+                                color: _syncRepo.pendingSyncCount > 0
+                                    ? AppTheme.warning
+                                    : AppTheme.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () => context.go('/agent/pipeline-tap-capture'),
+                          icon: const Icon(Icons.add_circle_outline_rounded, size: 18),
+                          label: const Text('Capture pipeline/tap'),
                         ),
                       ),
                     ],

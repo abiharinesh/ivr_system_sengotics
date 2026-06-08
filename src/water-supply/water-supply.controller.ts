@@ -58,4 +58,45 @@ export class WaterSupplyController {
   async triggerLeak(@Param('id', ParseIntPipe) id: number) {
     return this.waterSupplyService.simulateLeak(id);
   }
+
+  @Get('captured-assets')
+  async getCapturedAssets() {
+    return this.waterSupplyService.findCapturedAssets();
+  }
+
+  @Post('captured-assets')
+  async createCapturedAsset(
+    @Body()
+    body: {
+      type: string;
+      material: string;
+      diameter_mm: number;
+      latitude: number;
+      longitude: number;
+      photo_url?: string;
+      agent_name: string;
+      device_model?: string;
+      altitude?: number;
+      precision?: number;
+    },
+  ) {
+    return this.waterSupplyService.createCapturedAsset(body);
+  }
+
+  @Post('captured-assets/:id/approve')
+  async approveCapturedAsset(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { comment: string },
+  ) {
+    return this.waterSupplyService.approveCapturedAsset(id, body.comment);
+  }
+
+  @Post('captured-assets/:id/reject')
+  async rejectCapturedAsset(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { comment: string },
+  ) {
+    return this.waterSupplyService.rejectCapturedAsset(id, body.comment);
+  }
 }
+

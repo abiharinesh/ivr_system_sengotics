@@ -127,4 +127,101 @@ export class WaterSupplyService {
       message: `Leak simulated on pipeline #${pipelineId}`,
     };
   }
+
+  async findCapturedAssets() {
+    return this.prisma.capturedAsset.findMany({
+      orderBy: { submitted_at: 'desc' },
+    });
+  }
+
+  async createCapturedAsset(dto: {
+    type: string;
+    material: string;
+    diameter_mm: number;
+    latitude: number;
+    longitude: number;
+    photo_url?: string;
+    agent_name: string;
+    device_model?: string;
+    altitude?: number;
+    precision?: number;
+  }) {
+    return this.prisma.capturedAsset.create({
+      data: {
+        type: dto.type,
+        material: dto.material,
+        diameter_mm: dto.diameter_mm,
+        latitude: dto.latitude,
+        longitude: dto.longitude,
+        photo_url: dto.photo_url,
+        agent_name: dto.agent_name,
+        device_model: dto.device_model,
+        altitude: dto.altitude,
+        precision: dto.precision,
+        status: 'pending_approval',
+      },
+    });
+  }
+
+  async approveCapturedAsset(id: number, comment: string) {
+    const asset = await this.prisma.capturedAsset.findUnique({
+      where: { id },
+    });
+    if (!asset) {
+      throw new NotFoundException(`Captured asset #${id} not found`);
+    }
+
+    const updated = await this.prisma.capturedAsset.update({
+      where: { id },
+      data: {
+        status: 'approved',
+        comment,
+      },
+    });
+
+    if (asset.type === 'main_pipeline') {
+      const panchayat = await this.prisma.panchayat.findFirst();
+      const panchayatId = panchayat ? panchayat.id : 1;
+
+      const pathGeojson = {
+        type: 'LineString',
+        coordinates: [
+          [asset.longitude - 0.001, asset.latitude - 0.001],
+          [asset.longitude, asset.latitude],
+          [asset.longitude + 0.001, asset.latitude + 0.001],
+        ],
+      };
+
+      await this.prisma.waterPipeline.create({
+        data: {
+          name: `${asset.material} Main Line (${asset.diameter_mm}mm)`,
+          panchayat_id: panchayatId,
+          diameter_mm: asset.diameter_mm,
+          material: asset.material,
+          status: 'active',
+          path_geojson: pathGeojson,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  async rejectCapturedAsset(id: number, comment: string) {
+    const asset = await this.prisma.capturedAsset.findUnique({
+      where: { id },
+    });
+    if (!asset) {
+      throw new NotFoundException(`Captured asset #${id} not found`);
+    }
+
+    return this.prisma.capturedAsset.update({
+      where: { id },
+      data: {
+        status: 'rejected',
+        comment,
+      },
+    });
+  }
 }
+
