@@ -145,7 +145,10 @@ export class PanchayatAdminService {
       include: {
         pole: true,
         voice_call: true,
+        pipeline: true,
+        tank: true,
         assigned_electrician: { select: { id: true, email: true } },
+        assigned_plumber: { select: { id: true, email: true } },
       },
       orderBy: { created_at: 'desc' },
     });

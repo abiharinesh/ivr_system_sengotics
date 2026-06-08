@@ -8,14 +8,9 @@ const projectId = '8452091723434700175';
 
 const screensToGenerate = [
   {
-    name: 'pipeline_tap_capture',
-    deviceType: 'MOBILE',
-    prompt: 'Field Agent Pipeline & Tap Capture Mobile Screen for Ooraatchi GIS platform. Designed for field agents capturing data on mobile viewports. It features: 1. A top interactive map component displaying current location coordinates, accuracy indicator, and pipeline paths. 2. A multi-step form to record new pipeline layouts or household tap connections, including connection type selector (Household, Public Tap, Main Pipeline), pipe material (PVC, HDPE, Cast Iron), diameter (in mm), GPS coordinates (auto-filled), and photo upload section with camera preview. 3. Sync status panel tracking captured items that are pending sync (offline-first capability) with clean action to "Sync connection". 4. Standard corporate modern Slate/Navy visual design with Emerald Green accents, using Metropolis and Public Sans.'
-  },
-  {
-    name: 'infrastructure_approval',
+    name: 'complaints',
     deviceType: 'DESKTOP',
-    prompt: 'Panchayat Admin Infrastructure Approval Workspace for Ooraatchi GIS platform. Designed for desktop review of field-captured data. It features: 1. A top metrics dashboard displaying Pending approvals, Approved count, Rejected count, and Sync status. 2. A split map and details layout. The left column lists pending approval tickets (e.g. "New Household Tap - Ward 3", "HDPE Pipe Segment - Ward 1") with details (date, agent name, urgency status). 3. The right column displays the selected ticket\'s detail panel, including: (a) Leaflet/GIS map preview highlighting the geo-tagged coordinates of the proposed pipeline/tap, (b) EXIF metadata card showing device model, altitude, precision, timestamp, (c) Image verification proof card displaying the photo uploaded by the agent, (d) Approval/Rejection controls with status text comments input and "Approve Infrastructure" and "Reject" buttons. Corporate modern slate theme with Emerald Green for approvals and warning amber for pending items.'
+    prompt: 'Premium Panchayat Admin Complaint Management Screen. The design is modern, smooth, and extremely detailed. It features a split layout. The left column is a complaints list with search, filters (All, Pending, In Progress, Resolved, Rejected), and rich status badges. Each item card has a glassmorphic border, a colored indicator line, urgency tag, caller emotion tag, and date. The right section is a bento grid workspace for the selected complaint: 1. A premium audio player card with custom gradients, interactive play/pause controls, and an animated sound waveform. 2. A side-by-side transcript card displaying original native Tamil text (left) and English translation (right) with clean typography. 3. An AI insights card containing caller emotion analysis (frustrated/calm), confidence scores, and automatically parsed category. 4. A precise GIS location map card showing coordinates, landmarks, and nearest pole details. 5. Administrative control card with smooth dropdown menus to assign technicians (electricians/plumbers) and update status. Visual theme uses deep slate navy and soft white surfaces, vibrant primary blues, emerald green for resolved items, and amber warnings.'
   }
 ];
 

@@ -264,7 +264,65 @@ class _PAComplaintManagementState extends State<PAComplaintManagement> {
 bool _canAssignElectrician(String status) =>
     status == 'pending' || status == 'reassign_required';
 
-class _PAComplaintCard extends StatelessWidget {
+class _PulsingDot extends StatefulWidget {
+  final Color color;
+  const _PulsingDot({required this.color});
+
+  @override
+  State<_PulsingDot> createState() => _PulsingDotState();
+}
+
+class _PulsingDotState extends State<_PulsingDot> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 10 + (_controller.value * 14),
+              height: 10 + (_controller.value * 14),
+              decoration: BoxDecoration(
+                color: widget.color.withValues(alpha: 1.0 - _controller.value),
+                shape: BoxShape.circle,
+              ),
+            ),
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: widget.color,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PAComplaintCard extends StatefulWidget {
   final ComplaintModel complaint;
   final bool isSelected;
   final VoidCallback? onTap;
@@ -274,6 +332,13 @@ class _PAComplaintCard extends StatelessWidget {
     this.isSelected = false,
     this.onTap,
   });
+
+  @override
+  State<_PAComplaintCard> createState() => _PAComplaintCardState();
+}
+
+class _PAComplaintCardState extends State<_PAComplaintCard> {
+  bool _isHovered = false;
 
   Color _statusColor(String status) {
     switch (status) {
@@ -297,17 +362,39 @@ class _PAComplaintCard extends StatelessWidget {
     }
   }
 
+  bool _isWaterComplaint(ComplaintModel c) {
+    final type = (c.complaintType ?? '').toLowerCase();
+    final desc = (c.description ?? '').toLowerCase();
+    return type.contains('water') ||
+        type.contains('leak') ||
+        type.contains('plumb') ||
+        type.contains('pipe') ||
+        type.contains('valve') ||
+        type.contains('tank') ||
+        type.contains('borewell') ||
+        type.contains('pump') ||
+        desc.contains('water') ||
+        desc.contains('leak') ||
+        desc.contains('plumb') ||
+        desc.contains('pipe');
+  }
+
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('MMM d, yyyy – h:mm a').format(complaint.createdAt);
+    final complaint = widget.complaint;
+    final isSelected = widget.isSelected;
+    final dateStr = DateFormat('MMM d – h:mm a').format(complaint.createdAt);
     final sColor = _statusColor(complaint.status);
+    final isWater = _isWaterComplaint(complaint);
 
     // Get color for urgency
     Color? urgencyColor;
+    bool showPulse = false;
     if (complaint.urgencyLevel != null) {
       final ul = complaint.urgencyLevel!.toLowerCase();
       if (ul.contains('high') || ul.contains('crit')) {
         urgencyColor = AppTheme.error;
+        showPulse = true;
       } else if (ul.contains('med')) {
         urgencyColor = AppTheme.warning;
       } else {
@@ -315,235 +402,330 @@ class _PAComplaintCard extends StatelessWidget {
       }
     }
 
+    if (complaint.status == 'pending') {
+      showPulse = true;
+    }
+
     // Get color for emotion
     Color? emotionColor;
+    IconData emotionIcon = Icons.mood_rounded;
     if (complaint.callerEmotion != null) {
       final em = complaint.callerEmotion!.toLowerCase();
       if (em.contains('angr') || em.contains('frust')) {
         emotionColor = AppTheme.error;
+        emotionIcon = Icons.sentiment_very_dissatisfied_rounded;
       } else if (em.contains('neutral') || em.contains('calm')) {
         emotionColor = AppTheme.info;
-      } else if (em.contains('happ') || em.contains('thank')) {
+        emotionIcon = Icons.sentiment_neutral_rounded;
+      } else {
         emotionColor = AppTheme.accent;
+        emotionIcon = Icons.sentiment_satisfied_alt_rounded;
       }
     }
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isSelected ? AppTheme.primary : AppTheme.stroke,
-          width: isSelected ? 2.0 : 1.2,
-        ),
-        boxShadow: isSelected
-            ? [
-                BoxShadow(
-                  color: AppTheme.primary.withValues(alpha: 0.15),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                )
-              ]
-            : AppTheme.softShadow,
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap ?? () => context.go('/complaints/${complaint.id}'),
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(color: sColor, width: 6),
-            ),
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: AppTheme.durationFast,
+        margin: const EdgeInsets.only(bottom: 16),
+        transform: Matrix4.translationValues(0, _isHovered ? -4 : 0, 0),
+        decoration: BoxDecoration(
+          color: AppTheme.bgCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primary
+                : (_isHovered ? AppTheme.strokeStrong : AppTheme.stroke),
+            width: isSelected ? 2.2 : 1.2,
           ),
-          padding: const EdgeInsets.all(18),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    '#${complaint.id}',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.textPrimary,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  StatusBadge(status: complaint.status),
-                  const Spacer(),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: AppTheme.textMuted, size: 20),
-                    tooltip: 'Complaint actions',
-                    onSelected: (action) async {
-                      if (action == 'resolve') {
-                        _showResolveDialog(context);
-                      } else if (action == 'assign_electrician') {
-                        final id = await showAssignElectricianDialog(
-                          context: context,
-                          complaint: complaint,
-                          isSuperAdmin: false,
-                        );
-                        if (id != null && context.mounted) {
-                          context.read<PAComplaintBloc>().add(
-                            AssignPAComplaintElectrician(complaint.id, id),
-                          );
-                        }
-                      } else if (action == 'assign_plumber') {
-                        final id = await showAssignPlumberDialog(
-                          context: context,
-                          complaint: complaint,
-                        );
-                        if (id != null && context.mounted) {
-                          context.read<PAComplaintBloc>().add(
-                            AssignPAComplaintPlumber(complaint.id, id),
-                          );
-                        }
-                      } else {
-                        context.read<PAComplaintBloc>().add(
-                          UpdatePAComplaintStatus(complaint.id, action),
-                        );
-                      }
-                    },
-                    itemBuilder: (_) => [
-                      if (_canAssignElectrician(complaint.status))
-                        const PopupMenuItem(
-                          value: 'assign_electrician',
-                          child: Row(
-                            children: [
-                              Icon(Icons.engineering_rounded, size: 16),
-                              SizedBox(width: 8),
-                              Text('Assign electrician'),
-                            ],
-                          ),
-                        ),
-                      if (_canAssignElectrician(complaint.status))
-                        const PopupMenuItem(
-                          value: 'assign_plumber',
-                          child: Row(
-                            children: [
-                              Icon(Icons.plumbing_rounded, size: 16),
-                              SizedBox(width: 8),
-                              Text('Assign plumber'),
-                            ],
-                          ),
-                        ),
-                      const PopupMenuItem(
-                        value: 'pending',
-                        child: Text('Mark Pending'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'in_progress',
-                        child: Text('Mark In Progress'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'resolved',
-                        child: Text('Mark Resolved'),
-                      ),
-                      const PopupMenuItem(
-                        value: 'rejected',
-                        child: Text('Mark Rejected'),
-                      ),
-                      if (complaint.status == 'manual_review')
-                        const PopupMenuItem(
-                          value: 'resolve',
-                          child: Text('Assign Pole & Resolve'),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              if (complaint.description != null)
-                Text(
-                  complaint.description!,
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              const SizedBox(height: 14),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  if (complaint.pole != null)
-                    _infoItem(
-                      Icons.electrical_services_rounded,
-                      'Pole ${complaint.pole!.poleNumber ?? '#${complaint.pole!.id}'}',
-                    ),
-                  if (complaint.complaintType != null)
-                    _infoItem(
-                      Icons.category_rounded,
-                      complaint.complaintType!,
-                      bgColor: AppTheme.primary.withValues(alpha: 0.08),
-                      textColor: AppTheme.primary,
-                    ),
-                  if (complaint.callerLanguage != null)
-                    _infoItem(Icons.translate_rounded, complaint.callerLanguage!),
-                  if (complaint.callerEmotion != null)
-                    _infoItem(
-                      Icons.mood_rounded,
-                      complaint.callerEmotion!,
-                      bgColor: emotionColor?.withValues(alpha: 0.08),
-                      textColor: emotionColor,
-                    ),
-                  if (complaint.urgencyLevel != null)
-                    _infoItem(
-                      Icons.priority_high_rounded,
-                      'Urgency: ${complaint.urgencyLevel!}',
-                      bgColor: urgencyColor?.withValues(alpha: 0.08),
-                      textColor: urgencyColor,
-                    ),
-                  _infoItem(Icons.access_time_rounded, dateStr),
-                ],
-              ),
-              if (complaint.voiceCall?.transcriptEnglish != null) ...[
-                const SizedBox(height: 12),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.primary.withValues(alpha: 0.18),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  )
+                ]
+              : (_isHovered
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      )
+                    ]
+                  : AppTheme.softShadow),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: widget.onTap ?? () => context.go('/complaints/${complaint.id}'),
+          borderRadius: BorderRadius.circular(20),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Left dynamic gradient border strip
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  width: 8,
                   decoration: BoxDecoration(
-                    color: AppTheme.bgSurface,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppTheme.stroke, width: 0.8),
+                    gradient: LinearGradient(
+                      colors: [sColor, sColor.withValues(alpha: 0.4)],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.record_voice_over_rounded, size: 12, color: AppTheme.textMuted),
-                          const SizedBox(width: 6),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top ID & Badges row
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppTheme.bgSurface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppTheme.stroke, width: 0.8),
+                              ),
+                              child: Text(
+                                '#${complaint.id}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontFamily: 'monospace',
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            if (showPulse)
+                              _PulsingDot(color: urgencyColor ?? AppTheme.warning),
+                            const SizedBox(width: 6),
+                            StatusBadge(status: complaint.status),
+                            const Spacer(),
+                            PopupMenuButton<String>(
+                              icon: Icon(Icons.more_vert_rounded, color: AppTheme.textMuted, size: 20),
+                              tooltip: 'Quick actions',
+                              onSelected: (action) async {
+                                if (action == 'resolve') {
+                                  _showResolveDialog(context);
+                                } else if (action == 'assign_electrician') {
+                                  final id = await showAssignElectricianDialog(
+                                    context: context,
+                                    complaint: complaint,
+                                    isSuperAdmin: false,
+                                  );
+                                  if (id != null && context.mounted) {
+                                    context.read<PAComplaintBloc>().add(
+                                      AssignPAComplaintElectrician(complaint.id, id),
+                                    );
+                                  }
+                                } else if (action == 'assign_plumber') {
+                                  final id = await showAssignPlumberDialog(
+                                    context: context,
+                                    complaint: complaint,
+                                  );
+                                  if (id != null && context.mounted) {
+                                    context.read<PAComplaintBloc>().add(
+                                      AssignPAComplaintPlumber(complaint.id, id),
+                                    );
+                                  }
+                                } else {
+                                  context.read<PAComplaintBloc>().add(
+                                    UpdatePAComplaintStatus(complaint.id, action),
+                                  );
+                                }
+                              },
+                              itemBuilder: (_) => [
+                                if (_canAssignElectrician(complaint.status))
+                                  const PopupMenuItem(
+                                    value: 'assign_electrician',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.engineering_rounded, size: 16),
+                                        SizedBox(width: 8),
+                                        Text('Assign electrician'),
+                                      ],
+                                    ),
+                                  ),
+                                if (_canAssignElectrician(complaint.status))
+                                  const PopupMenuItem(
+                                    value: 'assign_plumber',
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.plumbing_rounded, size: 16),
+                                        SizedBox(width: 8),
+                                        Text('Assign plumber'),
+                                      ],
+                                    ),
+                                  ),
+                                const PopupMenuItem(
+                                  value: 'pending',
+                                  child: Text('Mark Pending'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'in_progress',
+                                  child: Text('Mark In Progress'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'resolved',
+                                  child: Text('Mark Resolved'),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'rejected',
+                                  child: Text('Mark Rejected'),
+                                ),
+                                if (complaint.status == 'manual_review')
+                                  const PopupMenuItem(
+                                    value: 'resolve',
+                                    child: Text('Assign Pole & Resolve'),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Description
+                        if (complaint.description != null)
                           Text(
-                            'AI ENGLISH TRANSCRIPT SUMMARY',
+                            complaint.description!,
                             style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textMuted,
-                              letterSpacing: 0.5,
+                              color: AppTheme.textSecondary,
+                              fontSize: 14,
+                              height: 1.45,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        const SizedBox(height: 14),
+                        // Category & asset type badge
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 6,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: isWater
+                                    ? AppTheme.info.withValues(alpha: 0.08)
+                                    : const Color(0xFF8B5CF6).withValues(alpha: 0.08),
+                                border: Border.all(
+                                  color: isWater
+                                      ? AppTheme.info.withValues(alpha: 0.25)
+                                      : const Color(0xFF8B5CF6).withValues(alpha: 0.25),
+                                  width: 0.8,
+                                ),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    isWater ? Icons.opacity_rounded : Icons.flash_on_rounded,
+                                    size: 11,
+                                    color: isWater ? AppTheme.info : const Color(0xFF8B5CF6),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isWater ? 'WATER SUPPLY' : 'ELECTRICITY',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w800,
+                                      color: isWater ? AppTheme.info : const Color(0xFF8B5CF6),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (complaint.pole != null)
+                              _infoItem(
+                                Icons.electrical_services_rounded,
+                                'Pole ${complaint.pole!.poleNumber ?? '#${complaint.pole!.id}'}',
+                              ),
+                            if (complaint.complaintType != null)
+                              _infoItem(
+                                Icons.category_rounded,
+                                complaint.complaintType!,
+                                bgColor: AppTheme.primary.withValues(alpha: 0.08),
+                                textColor: AppTheme.primary,
+                              ),
+                            if (complaint.callerEmotion != null)
+                              _infoItem(
+                                emotionIcon,
+                                complaint.callerEmotion!,
+                                bgColor: emotionColor?.withValues(alpha: 0.08),
+                                textColor: emotionColor,
+                              ),
+                            if (complaint.urgencyLevel != null)
+                              _infoItem(
+                                Icons.priority_high_rounded,
+                                'Urgency: ${complaint.urgencyLevel!}',
+                                bgColor: urgencyColor?.withValues(alpha: 0.08),
+                                textColor: urgencyColor,
+                              ),
+                            _infoItem(Icons.access_time_rounded, dateStr),
+                          ],
+                        ),
+                        // Speech Bubble summary preview
+                        if (complaint.voiceCall?.transcriptEnglish != null) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgSurface.withValues(alpha: 0.6),
+                              borderRadius: const BorderRadius.only(
+                                topRight: Radius.circular(16),
+                                bottomRight: Radius.circular(16),
+                                bottomLeft: Radius.circular(16),
+                              ),
+                              border: Border.all(color: AppTheme.stroke, width: 0.8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(Icons.auto_awesome, size: 12, color: AppTheme.primaryLight),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'AI SUMMARY',
+                                      style: TextStyle(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppTheme.primaryLight,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  complaint.voiceCall!.transcriptEnglish!,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    color: AppTheme.textSecondary,
+                                    height: 1.4,
+                                    fontStyle: FontStyle.italic,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        complaint.voiceCall!.transcriptEnglish!,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.textSecondary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ],
-            ],
+            ),
           ),
         ),
       ),
@@ -557,14 +739,14 @@ class _PAComplaintCard extends StatelessWidget {
         color: bgColor ?? AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: textColor?.withValues(alpha: 0.2) ?? AppTheme.stroke,
+          color: textColor?.withValues(alpha: 0.15) ?? AppTheme.stroke,
           width: 0.8,
         ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: textColor ?? AppTheme.textMuted),
+          Icon(icon, size: 12, color: textColor ?? AppTheme.textMuted),
           const SizedBox(width: 6),
           Flexible(
             child: Text(
@@ -598,7 +780,7 @@ class _PAComplaintCard extends StatelessWidget {
       );
       if (!context.mounted || selected == null) return;
       context.read<PAComplaintBloc>().add(
-        ResolvePAComplaint(complaint.id, selected.id),
+        ResolvePAComplaint(widget.complaint.id, selected.id),
       );
     } catch (err) {
       if (!context.mounted) return;
