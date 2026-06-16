@@ -54,6 +54,21 @@ export class WaterSupplyController {
     };
   }
 
+  @Post('pipelines')
+  async createPipeline(
+    @Body()
+    body: {
+      name?: string;
+      panchayat_id: number;
+      path_geojson: any;
+      diameter_mm?: number;
+      material?: string;
+      status?: string;
+    },
+  ) {
+    return this.waterSupplyService.createPipeline(body);
+  }
+
   @Post('pipelines/:id/leak')
   async triggerLeak(@Param('id', ParseIntPipe) id: number) {
     return this.waterSupplyService.simulateLeak(id);

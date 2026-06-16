@@ -5,6 +5,7 @@ import '../../config/app_theme.dart';
 import '../env_maps_loader.dart';
 import '../map/map_theme_provider.dart';
 import '../models/pole_model.dart';
+import '../../features/water_supply/data/water_repository.dart';
 import '../../app.dart';
 
 enum PoleMarkerStatus { active, inactive, fault }
@@ -58,6 +59,28 @@ class _MapOverviewState extends State<MapOverview> {
   gmap.BitmapDescriptor? _faultPngMarker;
   gmap.BitmapDescriptor? _activePngMarker;
   gmap.BitmapDescriptor? _inactivePngMarker;
+
+  final WaterRepository _waterRepository = WaterRepository();
+  List<Map<String, dynamic>> _pipelines = [];
+  List<Map<String, dynamic>> _taps = [];
+  Future<void> _loadWaterAssets() async {
+    try {
+      final pipelines = await _waterRepository.getPipelines(1);
+      final capturedAssets = await _waterRepository.getCapturedAssets();
+      final taps = capturedAssets.where((asset) =>
+        asset['type'] == 'household_tap' || asset['type'] == 'public_tap'
+      ).toList();
+
+      if (mounted) {
+        setState(() {
+          _pipelines = pipelines;
+          _taps = taps;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading water assets for MapOverview: $e');
+    }
+  }
 
 
   List<PoleModel> get _validPoles =>
@@ -219,6 +242,7 @@ class _MapOverviewState extends State<MapOverview> {
   void initState() {
     super.initState();
     _loadPngMarkers();
+    _loadWaterAssets();
   }
 
   @override
@@ -299,7 +323,80 @@ class _MapOverviewState extends State<MapOverview> {
           }
         }).toSet();
 
+    // Add tap markers
+    for (final tap in _taps) {
+      final isHousehold = tap['type'] == 'household_tap';
+      final status = tap['status'] as String; // approved, pending_approval, rejected
+      
+      double hue = gmap.BitmapDescriptor.hueCyan;
+      if (status == 'pending_approval') {
+        hue = gmap.BitmapDescriptor.hueYellow;
+      } else if (status == 'rejected') {
+        hue = gmap.BitmapDescriptor.hueRed;
+      } else {
+        hue = isHousehold ? gmap.BitmapDescriptor.hueCyan : gmap.BitmapDescriptor.hueBlue;
+      }
 
+      final markerId = gmap.MarkerId('tap_${tap['id']}');
+      final position = gmap.LatLng(tap['latitude'] as double, tap['longitude'] as double);
+      
+      final infoWindow = gmap.InfoWindow(
+        title: '${isHousehold ? "Household Tap" : "Public Tap"} #${tap['id']}',
+        snippet: 'Status: ${status.toUpperCase()} | Material: ${tap['material']} (${tap['diameter_mm']}mm)',
+      );
+
+      if (googleMapsMarkerType == gmap.GoogleMapMarkerType.advancedMarker) {
+        markers.add(
+          gmap.AdvancedMarker(
+            markerId: markerId,
+            position: position,
+            infoWindow: infoWindow,
+            icon: gmap.BitmapDescriptor.defaultMarkerWithHue(hue),
+          ),
+        );
+      } else {
+        markers.add(
+          gmap.Marker(
+            markerId: markerId,
+            position: position,
+            infoWindow: infoWindow,
+            icon: gmap.BitmapDescriptor.defaultMarkerWithHue(hue),
+          ),
+        );
+      }
+    }
+
+    final Set<gmap.Polyline> polylines = {};
+    for (final pipeline in _pipelines) {
+      final geo = pipeline['path_geojson'] as Map;
+      final coords = geo['coordinates'] as List;
+      if (coords.isEmpty) continue;
+      final points = coords.map((c) => gmap.LatLng(c[1] as double, c[0] as double)).toList();
+
+      final isLeak = pipeline['status'] == 'leak_alert';
+      polylines.add(
+        gmap.Polyline(
+          polylineId: gmap.PolylineId('pipe_${pipeline['id']}'),
+          points: points,
+          color: isLeak ? AppTheme.error : AppTheme.primary,
+          width: isLeak ? 6 : 4,
+          patterns: isLeak ? [gmap.PatternItem.dash(20), gmap.PatternItem.gap(10)] : [],
+          consumeTapEvents: true,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Pipeline: ${pipeline['name'] ?? 'Segment ' + pipeline['id'].toString()}\n'
+                  'Material: ${pipeline['material']} | Status: ${pipeline['status']}',
+                ),
+                backgroundColor: isLeak ? AppTheme.error : AppTheme.primary,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          },
+        ),
+      );
+    }
 
     final mapUnavailableOnWeb = kIsWeb && !isMapsJsReady;
 
@@ -336,6 +433,7 @@ class _MapOverviewState extends State<MapOverview> {
                     });
                   },
                   markers: markers,
+                  polylines: polylines,
                   mapType: gmap.MapType.normal,
                   myLocationButtonEnabled: false,
                   zoomControlsEnabled: false,

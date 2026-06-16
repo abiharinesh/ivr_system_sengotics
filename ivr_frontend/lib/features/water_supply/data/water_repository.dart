@@ -209,5 +209,10 @@ class WaterRepository {
     final response = await _api.post('/api/water-supply/captured-assets/$id/reject', data: {'comment': comment});
     return Map<String, dynamic>.from(response as Map);
   }
+
+  Future<Map<String, dynamic>> createPipeline(Map<String, dynamic> pipeline) async {
+    final response = await _api.post('/api/water-supply/pipelines', data: pipeline);
+    return Map<String, dynamic>.from(response as Map);
+  }
 }
 

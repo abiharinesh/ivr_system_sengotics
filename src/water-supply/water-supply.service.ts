@@ -12,6 +12,26 @@ export class WaterSupplyService {
     });
   }
 
+  async createPipeline(dto: {
+    name?: string;
+    panchayat_id: number;
+    path_geojson: any;
+    diameter_mm?: number;
+    material?: string;
+    status?: string;
+  }) {
+    return this.prisma.waterPipeline.create({
+      data: {
+        name: dto.name,
+        panchayat_id: dto.panchayat_id,
+        path_geojson: dto.path_geojson,
+        diameter_mm: dto.diameter_mm,
+        material: dto.material,
+        status: dto.status || 'active',
+      },
+    });
+  }
+
   async findTanks(panchayatId: number) {
     return this.prisma.waterTankBorewell.findMany({
       where: { panchayat_id: panchayatId },

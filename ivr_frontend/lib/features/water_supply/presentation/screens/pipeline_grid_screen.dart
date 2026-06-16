@@ -21,6 +21,10 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   List<Map<String, dynamic>> _tanks = [];
   List<Map<String, dynamic>> _valves = [];
 
+  // Drawing Mode Controls
+  bool _isDrawingMode = false;
+  final List<gmap.LatLng> _newPipelinePoints = [];
+
   // Toggle Filters
   bool _showWaterLines = true;
   bool _showWaterPipeline = true;
@@ -109,8 +113,32 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
       }
     }
 
+    if (_isDrawingMode && _newPipelinePoints.isNotEmpty) {
+      polylines.add(
+        gmap.Polyline(
+          polylineId: const gmap.PolylineId('new_pipeline_preview'),
+          points: _newPipelinePoints,
+          color: AppTheme.accent,
+          width: 5,
+        ),
+      );
+    }
+
     // Define markers for tanks, borewells, valves
     final Set<gmap.Marker> markers = {};
+
+    if (_isDrawingMode) {
+      for (int i = 0; i < _newPipelinePoints.length; i++) {
+        markers.add(
+          gmap.Marker(
+            markerId: gmap.MarkerId('new_pipe_point_$i'),
+            position: _newPipelinePoints[i],
+            icon: gmap.BitmapDescriptor.defaultMarkerWithHue(gmap.BitmapDescriptor.hueCyan),
+            infoWindow: gmap.InfoWindow(title: 'Point ${i + 1}'),
+          ),
+        );
+      }
+    }
 
     if (!_isLoading && (_showOverheadTanks || _showBorewells)) {
       for (final tank in _tanks) {
@@ -187,19 +215,93 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                     mapType: gmap.MapType.normal,
                     myLocationButtonEnabled: false,
                     zoomControlsEnabled: true,
+                    onTap: _isDrawingMode
+                        ? (latLng) {
+                            setState(() {
+                              _newPipelinePoints.add(latLng);
+                            });
+                          }
+                        : null,
                   ),
           ),
 
+          if (_isDrawingMode)
+            Positioned(
+              top: 20,
+              left: 20,
+              right: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgCard.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.accent, width: 1.5),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.edit_road_rounded, color: AppTheme.accent),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'DRAWING PIPELINE PATH',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.accent,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _newPipelinePoints.isEmpty
+                                ? 'Tap points on the map to define the pipeline route'
+                                : 'Added ${_newPipelinePoints.length} point(s)',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _isDrawingMode = false;
+                          _newPipelinePoints.clear();
+                        });
+                      },
+                      child: const Text('Cancel'),
+                    ),
+                    const SizedBox(width: 8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(backgroundColor: AppTheme.accent),
+                      onPressed: _newPipelinePoints.length < 2
+                          ? null
+                          : () => _showPipelineSaveDialog(context),
+                      child: const Text('Save Path'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           // 2. Floating Header Info
-          Positioned(
-            top: 20,
-            left: 20,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.stroke),
+          if (!_isDrawingMode)
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgCard.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.stroke),
                 boxShadow: AppTheme.softShadow,
               ),
               child: Column(
@@ -228,94 +330,115 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
           ),
 
           // 3. Map Control Overlay (Top Right)
-          Positioned(
-            top: 20,
-            right: 20,
-            child: Container(
-              width: 220,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.stroke),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Map Control',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
+          if (!_isDrawingMode)
+            Positioned(
+              top: 20,
+              right: 20,
+              child: Container(
+                width: 220,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgCard.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.stroke),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Map Control',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
                         ),
+                        const Spacer(),
+                        Icon(Icons.layers, size: 16, color: AppTheme.textMuted),
+                      ],
+                    ),
+                    const Divider(height: 12),
+                    _switchRow('Electrical Grid', _enableElectricalGrid, _isLoading ? null : (v) {
+                      setState(() => _enableElectricalGrid = v);
+                    }),
+                    _switchRow('Water Pipeline Grid', _enableWaterPipelineGrid, _isLoading ? null : (v) {
+                      setState(() => _enableWaterPipelineGrid = v);
+                    }),
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppTheme.primary,
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        icon: const Icon(Icons.edit_road_rounded, size: 16),
+                        label: const Text('Add Pipeline', style: TextStyle(fontSize: 12)),
+                        onPressed: _isLoading ? null : () {
+                          setState(() {
+                            _isDrawingMode = true;
+                            _newPipelinePoints.clear();
+                            _selectedAsset = null;
+                          });
+                        },
                       ),
-                      const Spacer(),
-                      Icon(Icons.layers, size: 16, color: AppTheme.textMuted),
-                    ],
-                  ),
-                  const Divider(height: 12),
-                  _switchRow('Electrical Grid', _enableElectricalGrid, _isLoading ? null : (v) {
-                    setState(() => _enableElectricalGrid = v);
-                  }),
-                  _switchRow('Water Pipeline Grid', _enableWaterPipelineGrid, _isLoading ? null : (v) {
-                    setState(() => _enableWaterPipelineGrid = v);
-                  }),
-                ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
           // 4. Legend Overlay (Bottom Left)
-          Positioned(
-            bottom: 20,
-            left: 20,
-            child: Container(
-              width: 220,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.bgCard.withValues(alpha: 0.95),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.stroke),
-                boxShadow: AppTheme.softShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Legend Filter',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.textMuted,
-                      letterSpacing: 0.5,
+          if (!_isDrawingMode)
+            Positioned(
+              bottom: 20,
+              left: 20,
+              child: Container(
+                width: 220,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.bgCard.withValues(alpha: 0.95),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.stroke),
+                  boxShadow: AppTheme.softShadow,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Legend Filter',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppTheme.textMuted,
+                        letterSpacing: 0.5,
+                      ),
                     ),
-                  ),
-                  const Divider(height: 10),
-                  _checkRow('Water Lines', _showWaterLines, AppTheme.primary, _isLoading ? null : (v) {
-                    setState(() => _showWaterLines = v ?? true);
-                  }),
-                  _checkRow('Water Pipeline', _showWaterPipeline, AppTheme.accent, _isLoading ? null : (v) {
-                    setState(() => _showWaterPipeline = v ?? true);
-                  }),
-                  _checkRow('Overhead Tanks', _showOverheadTanks, Colors.cyan, _isLoading ? null : (v) {
-                    setState(() => _showOverheadTanks = v ?? true);
-                  }),
-                  _checkRow('Borewell Pumps', _showBorewells, Colors.purple, _isLoading ? null : (v) {
-                    setState(() => _showBorewells = v ?? true);
-                  }),
-                  _checkRow('Valve Nodes', _showValves, Colors.amber, _isLoading ? null : (v) {
-                    setState(() => _showValves = v ?? true);
-                  }),
-                ],
+                    const Divider(height: 10),
+                    _checkRow('Water Lines', _showWaterLines, AppTheme.primary, _isLoading ? null : (v) {
+                      setState(() => _showWaterLines = v ?? true);
+                    }),
+                    _checkRow('Water Pipeline', _showWaterPipeline, AppTheme.accent, _isLoading ? null : (v) {
+                      setState(() => _showWaterPipeline = v ?? true);
+                    }),
+                    _checkRow('Overhead Tanks', _showOverheadTanks, Colors.cyan, _isLoading ? null : (v) {
+                      setState(() => _showOverheadTanks = v ?? true);
+                    }),
+                    _checkRow('Borewell Pumps', _showBorewells, Colors.purple, _isLoading ? null : (v) {
+                      setState(() => _showBorewells = v ?? true);
+                    }),
+                    _checkRow('Valve Nodes', _showValves, Colors.amber, _isLoading ? null : (v) {
+                      setState(() => _showValves = v ?? true);
+                    }),
+                  ],
+                ),
               ),
             ),
-          ),
 
           // 5. Selected Asset Info Panel (Bottom Right / Centered on Mobile)
           if (_selectedAsset != null)
@@ -760,4 +883,127 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
       ),
     );
   }
+
+  void _showPipelineSaveDialog(BuildContext context) {
+    final nameController = TextEditingController();
+    final diameterController = TextEditingController(text: '110');
+    String selectedMaterial = 'PVC';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.add_road_rounded, color: AppTheme.primary),
+              const SizedBox(width: 8),
+              const Text('Save New Pipeline'),
+            ],
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextFormField(
+                  controller: nameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Pipeline Name',
+                    hintText: 'e.g. Annur Sector 4 Main Line',
+                  ),
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  value: selectedMaterial,
+                  decoration: const InputDecoration(
+                    labelText: 'Pipe Material',
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'PVC', child: Text('PVC (Polyvinyl Chloride)')),
+                    DropdownMenuItem(value: 'HDPE', child: Text('HDPE (High Density Polyethylene)')),
+                    DropdownMenuItem(value: 'Cast Iron', child: Text('Cast Iron (Metallic)')),
+                  ],
+                  onChanged: (val) {
+                    if (val != null) {
+                      setDialogState(() => selectedMaterial = val);
+                    }
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: diameterController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Pipe Diameter (mm)',
+                    suffixText: 'mm',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final diameter = double.tryParse(diameterController.text.trim()) ?? 110.0;
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Please enter a pipeline name.')),
+                  );
+                  return;
+                }
+
+                final pathGeojson = {
+                  'type': 'LineString',
+                  'coordinates': _newPipelinePoints.map((p) => [p.longitude, p.latitude]).toList(),
+                };
+
+                Navigator.pop(context);
+                
+                setState(() => _isLoading = true);
+                try {
+                  await _repository.createPipeline({
+                    'name': name,
+                    'panchayat_id': 1,
+                    'path_geojson': pathGeojson,
+                    'diameter_mm': diameter,
+                    'material': selectedMaterial,
+                    'status': 'active',
+                  });
+
+                  setState(() {
+                    _isDrawingMode = false;
+                    _newPipelinePoints.clear();
+                  });
+
+                  _loadData();
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Pipeline added successfully.'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                } catch (e) {
+                  setState(() => _isLoading = false);
+                  ScaffoldMessenger.of(this.context).showSnackBar(
+                    SnackBar(
+                      content: Text('Failed to save pipeline: $e'),
+                      backgroundColor: AppTheme.error,
+                    ),
+                  );
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
