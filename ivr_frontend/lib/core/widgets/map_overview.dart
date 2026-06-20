@@ -7,6 +7,7 @@ import '../map/map_theme_provider.dart';
 import '../models/pole_model.dart';
 import '../../features/water_supply/data/water_repository.dart';
 import '../../app.dart';
+import '../storage/secure_storage.dart';
 
 enum PoleMarkerStatus { active, inactive, fault }
 
@@ -30,6 +31,7 @@ class MapOverview extends StatefulWidget {
   final String faultMarkerAsset;
   final String activeMarkerAsset;
   final String inactiveMarkerAsset;
+  final int? panchayatId;
 
   const MapOverview({
     super.key,
@@ -48,6 +50,7 @@ class MapOverview extends StatefulWidget {
     this.faultMarkerAsset = 'assets/map_markers/fault_red.png',
     this.activeMarkerAsset = 'assets/map_markers/active_green.png',
     this.inactiveMarkerAsset = 'assets/map_markers/inactive_yellow.png',
+    this.panchayatId,
   });
 
   @override
@@ -65,7 +68,8 @@ class _MapOverviewState extends State<MapOverview> {
   List<Map<String, dynamic>> _taps = [];
   Future<void> _loadWaterAssets() async {
     try {
-      final pipelines = await _waterRepository.getPipelines(1);
+      final int pid = widget.panchayatId ?? await SecureStorageService.getPanchayatId() ?? 27;
+      final pipelines = await _waterRepository.getPipelines(pid);
       final capturedAssets = await _waterRepository.getCapturedAssets();
       final taps = capturedAssets.where((asset) =>
         asset['type'] == 'household_tap' || asset['type'] == 'public_tap'

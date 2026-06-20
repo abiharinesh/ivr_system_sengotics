@@ -9,6 +9,8 @@ import '../../../../core/env_maps_loader.dart';
 import '../../data/water_repository.dart';
 import '../../../../features/plumber/data/plumber_repository.dart';
 
+import '../../../../core/storage/secure_storage.dart';
+
 class PipelineGridScreen extends StatefulWidget {
   const PipelineGridScreen({super.key});
 
@@ -20,6 +22,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   final WaterRepository _repository = WaterRepository();
   gmap.GoogleMapController? _mapController;
   bool _isLoading = true;
+  int _panchayatId = 27; // Default fallback to 27 (Thayanur)
 
   List<Map<String, dynamic>> _pipelines = [];
   List<Map<String, dynamic>> _tanks = [];
@@ -47,13 +50,21 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    final savedId = await SecureStorageService.getPanchayatId();
+    if (savedId != null) {
+      _panchayatId = savedId;
+    }
+    await _loadData();
   }
 
   Future<void> _loadData() async {
-    final cachedPipelines = _repository.getCachedPipelines(1);
-    final cachedTanks = _repository.getCachedTanks(1);
-    final cachedValves = _repository.getCachedValves(1);
+    final cachedPipelines = _repository.getCachedPipelines(_panchayatId);
+    final cachedTanks = _repository.getCachedTanks(_panchayatId);
+    final cachedValves = _repository.getCachedValves(_panchayatId);
     
     final hasCache = cachedPipelines != null && cachedTanks != null && cachedValves != null;
     
@@ -68,9 +79,9 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
     }
 
     try {
-      final pipelines = await _repository.getPipelines(1, forceRefresh: !hasCache);
-      final tanks = await _repository.getTanks(1, forceRefresh: !hasCache);
-      final valves = await _repository.getValves(1, forceRefresh: !hasCache);
+      final pipelines = await _repository.getPipelines(_panchayatId, forceRefresh: !hasCache);
+      final tanks = await _repository.getTanks(_panchayatId, forceRefresh: !hasCache);
+      final valves = await _repository.getValves(_panchayatId, forceRefresh: !hasCache);
       if (mounted) {
         setState(() {
           _pipelines = pipelines;
@@ -2263,7 +2274,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                 try {
                   await _repository.createPipeline({
                     'name': name,
-                    'panchayat_id': 1,
+                    'panchayat_id': _panchayatId,
                     'path_geojson': pathGeojson,
                     'diameter_mm': diameter,
                     'material': selectedMaterial,

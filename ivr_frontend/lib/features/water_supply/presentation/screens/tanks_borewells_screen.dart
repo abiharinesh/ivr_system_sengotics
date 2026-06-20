@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../data/water_repository.dart';
-
-
+import '../../../../core/storage/secure_storage.dart';
 
 class TanksBorewellsScreen extends StatefulWidget {
   const TanksBorewellsScreen({super.key});
@@ -16,15 +15,24 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
   final WaterRepository _repository = WaterRepository();
   bool _isLoading = true;
   List<Map<String, dynamic>> _tanks = [];
+  int _panchayatId = 27; // Default fallback to 27 (Thayanur)
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    final savedId = await SecureStorageService.getPanchayatId();
+    if (savedId != null) {
+      _panchayatId = savedId;
+    }
+    await _loadData();
   }
 
   Future<void> _loadData() async {
-    final cached = _repository.getCachedTanks(1);
+    final cached = _repository.getCachedTanks(_panchayatId);
     if (cached != null) {
       _tanks = cached;
       _isLoading = false;
@@ -33,7 +41,7 @@ class _TanksBorewellsScreenState extends State<TanksBorewellsScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final tanks = await _repository.getTanks(1, forceRefresh: cached == null);
+      final tanks = await _repository.getTanks(_panchayatId, forceRefresh: cached == null);
       if (mounted) {
         setState(() {
           _tanks = tanks;

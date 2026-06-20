@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_shimmer.dart';
 import '../../data/water_repository.dart';
-
-
+import '../../../../core/storage/secure_storage.dart';
 
 class WaterFlowLogsScreen extends StatefulWidget {
   const WaterFlowLogsScreen({super.key});
@@ -16,15 +15,24 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
   final WaterRepository _repository = WaterRepository();
   bool _isLoading = true;
   List<Map<String, dynamic>> _logs = [];
+  int _panchayatId = 27; // Default fallback to 27 (Thayanur)
 
   @override
   void initState() {
     super.initState();
-    _loadData();
+    _initAndLoad();
+  }
+
+  Future<void> _initAndLoad() async {
+    final savedId = await SecureStorageService.getPanchayatId();
+    if (savedId != null) {
+      _panchayatId = savedId;
+    }
+    await _loadData();
   }
 
   Future<void> _loadData() async {
-    final cached = _repository.getCachedFlowLogs(1);
+    final cached = _repository.getCachedFlowLogs(_panchayatId);
     if (cached != null) {
       _logs = cached;
       _isLoading = false;
@@ -33,7 +41,7 @@ class _WaterFlowLogsScreenState extends State<WaterFlowLogsScreen> {
       setState(() => _isLoading = true);
     }
     try {
-      final logs = await _repository.getFlowLogs(1, forceRefresh: cached == null);
+      final logs = await _repository.getFlowLogs(_panchayatId, forceRefresh: cached == null);
       if (mounted) {
         setState(() {
           _logs = logs;
