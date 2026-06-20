@@ -214,5 +214,23 @@ class WaterRepository {
     final response = await _api.post('/api/water-supply/pipelines', data: pipeline);
     return Map<String, dynamic>.from(response as Map);
   }
+
+  Future<void> deletePipeline(int id) async {
+    try {
+      await _api.delete('/api/water-supply/pipelines/$id');
+    } catch (_) {
+      // Offline fallback — silently fail
+    }
+  }
+
+  Future<Map<String, dynamic>> updatePipeline(int id, Map<String, dynamic> data) async {
+    final response = await _api.patch('/api/water-supply/pipelines/$id', data: data);
+    return Map<String, dynamic>.from(response as Map);
+  }
+
+  Future<Map<String, dynamic>> toggleValve(int id, String status) async {
+    final response = await _api.patch('/api/water-supply/valves/$id/toggle', data: {'status': status});
+    return Map<String, dynamic>.from(response as Map);
+  }
 }
 

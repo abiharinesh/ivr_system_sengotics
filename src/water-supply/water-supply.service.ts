@@ -243,5 +243,71 @@ export class WaterSupplyService {
       },
     });
   }
+
+  async deletePipeline(id: number) {
+    const pipeline = await this.prisma.waterPipeline.findUnique({
+      where: { id },
+    });
+    if (!pipeline) {
+      throw new NotFoundException(`Pipeline #${id} not found`);
+    }
+
+    // Delete related complaints first
+    await this.prisma.complaint.deleteMany({
+      where: { pipeline_id: id },
+    });
+
+    // Delete related flow logs
+    await this.prisma.waterFlowLog.deleteMany({
+      where: { pipeline_id: id },
+    });
+
+    return this.prisma.waterPipeline.delete({
+      where: { id },
+    });
+  }
+
+  async updatePipeline(
+    id: number,
+    dto: {
+      name?: string;
+      path_geojson?: any;
+      diameter_mm?: number;
+      material?: string;
+      status?: string;
+    },
+  ) {
+    const pipeline = await this.prisma.waterPipeline.findUnique({
+      where: { id },
+    });
+    if (!pipeline) {
+      throw new NotFoundException(`Pipeline #${id} not found`);
+    }
+
+    return this.prisma.waterPipeline.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.path_geojson !== undefined && { path_geojson: dto.path_geojson }),
+        ...(dto.diameter_mm !== undefined && { diameter_mm: dto.diameter_mm }),
+        ...(dto.material !== undefined && { material: dto.material }),
+        ...(dto.status !== undefined && { status: dto.status }),
+      },
+    });
+  }
+
+  async toggleValve(id: number, status: string) {
+    const valve = await this.prisma.waterValve.findUnique({
+      where: { id },
+    });
+    if (!valve) {
+      throw new NotFoundException(`Valve #${id} not found`);
+    }
+
+    return this.prisma.waterValve.update({
+      where: { id },
+      data: { status },
+    });
+  }
 }
 

@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Delete,
+  Patch,
   Body,
   Query,
   Param,
@@ -104,6 +106,34 @@ export class WaterSupplyController {
     @Body() body: { comment: string },
   ) {
     return this.waterSupplyService.approveCapturedAsset(id, body.comment);
+  }
+
+  @Delete('pipelines/:id')
+  async deletePipeline(@Param('id', ParseIntPipe) id: number) {
+    return this.waterSupplyService.deletePipeline(id);
+  }
+
+  @Patch('pipelines/:id')
+  async updatePipeline(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      name?: string;
+      path_geojson?: any;
+      diameter_mm?: number;
+      material?: string;
+      status?: string;
+    },
+  ) {
+    return this.waterSupplyService.updatePipeline(id, body);
+  }
+
+  @Patch('valves/:id/toggle')
+  async toggleValve(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { status: string },
+  ) {
+    return this.waterSupplyService.toggleValve(id, body.status);
   }
 
   @Post('captured-assets/:id/reject')

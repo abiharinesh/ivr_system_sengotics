@@ -35,6 +35,7 @@ dependencies:
   google_maps_flutter_web: ^0.6.0
   flutter_dotenv: ^5.2.1
   share_plus: ^10.1.4
+  pointer_interceptor: ^0.10.1
 
   web: any
 dev_dependencies:
