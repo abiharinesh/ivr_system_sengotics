@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import '../../../core/models/panchayat_model.dart';
+import '../../super_admin/data/super_admin_repository.dart';
 import '../data/models/zone_model.dart';
 import '../data/zone_repository.dart';
 
@@ -11,6 +13,14 @@ abstract class ZoneEvent extends Equatable {
 }
 
 class LoadZones extends ZoneEvent {}
+
+class SelectPanchayat extends ZoneEvent {
+  final int? panchayatId;
+  SelectPanchayat(this.panchayatId);
+
+  @override
+  List<Object?> get props => [panchayatId];
+}
 
 class CreateZone extends ZoneEvent {
   final String name;
@@ -94,25 +104,39 @@ class ZonesLoaded extends ZoneState {
   final List<ZoneModel> zones;
   final List<PlaceBoundaryResult> placeResults;
   final bool isSearching;
+  final List<PanchayatModel> panchayats;
+  final int? selectedPanchayatId;
 
   ZonesLoaded({
     required this.zones,
     this.placeResults = const [],
     this.isSearching = false,
+    this.panchayats = const [],
+    this.selectedPanchayatId,
   });
 
   @override
-  List<Object?> get props => [zones, placeResults, isSearching];
+  List<Object?> get props => [
+        zones,
+        placeResults,
+        isSearching,
+        panchayats,
+        selectedPanchayatId,
+      ];
 
   ZonesLoaded copyWith({
     List<ZoneModel>? zones,
     List<PlaceBoundaryResult>? placeResults,
     bool? isSearching,
+    List<PanchayatModel>? panchayats,
+    int? selectedPanchayatId,
   }) {
     return ZonesLoaded(
       zones: zones ?? this.zones,
       placeResults: placeResults ?? this.placeResults,
       isSearching: isSearching ?? this.isSearching,
+      panchayats: panchayats ?? this.panchayats,
+      selectedPanchayatId: selectedPanchayatId ?? this.selectedPanchayatId,
     );
   }
 }
@@ -130,11 +154,15 @@ class ZoneError extends ZoneState {
 
 class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
   final ZoneRepository _repository;
+  final bool isSuperAdmin;
+  int? selectedPanchayatId;
+  List<PanchayatModel> panchayats = [];
 
-  ZoneBloc({bool isSuperAdmin = false})
+  ZoneBloc({this.isSuperAdmin = false})
       : _repository = ZoneRepository(isSuperAdmin: isSuperAdmin),
         super(ZoneInitial()) {
     on<LoadZones>(_onLoadZones);
+    on<SelectPanchayat>(_onSelectPanchayat);
     on<CreateZone>(_onCreateZone);
     on<UpdateZone>(_onUpdateZone);
     on<DeleteZone>(_onDeleteZone);
@@ -143,15 +171,45 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
   }
 
   Future<void> _onLoadZones(LoadZones event, Emitter<ZoneState> emit) async {
-    final cached = _repository.getCachedZones();
+    final currentState = state;
+    List<PlaceBoundaryResult> existingPlaceResults = const [];
+    bool existingIsSearching = false;
+    if (currentState is ZonesLoaded) {
+      existingPlaceResults = currentState.placeResults;
+      existingIsSearching = currentState.isSearching;
+    }
+
+    if (isSuperAdmin && panchayats.isEmpty) {
+      try {
+        panchayats = await SuperAdminRepository().listPanchayats();
+      } catch (_) {}
+    }
+
+    final cached = _repository.getCachedZones(panchayatId: selectedPanchayatId);
     if (cached != null) {
-      emit(ZonesLoaded(zones: cached));
+      emit(ZonesLoaded(
+        zones: cached,
+        panchayats: panchayats,
+        selectedPanchayatId: selectedPanchayatId,
+        placeResults: existingPlaceResults,
+        isSearching: existingIsSearching,
+      ));
     } else {
       emit(ZoneLoading());
     }
+
     try {
-      final zones = await _repository.listZones(forceRefresh: cached == null);
-      emit(ZonesLoaded(zones: zones));
+      final zones = await _repository.listZones(
+        panchayatId: selectedPanchayatId,
+        forceRefresh: cached == null,
+      );
+      emit(ZonesLoaded(
+        zones: zones,
+        panchayats: panchayats,
+        selectedPanchayatId: selectedPanchayatId,
+        placeResults: existingPlaceResults,
+        isSearching: existingIsSearching,
+      ));
     } catch (e) {
       if (cached == null) {
         emit(ZoneError(message: e.toString()));
@@ -159,15 +217,25 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
     }
   }
 
+  void _onSelectPanchayat(SelectPanchayat event, Emitter<ZoneState> emit) {
+    selectedPanchayatId = event.panchayatId;
+    add(LoadZones());
+  }
+
   Future<void> _onCreateZone(CreateZone event, Emitter<ZoneState> emit) async {
     try {
+      final pId = event.panchayatId ?? selectedPanchayatId;
+      if (isSuperAdmin && pId == null) {
+        emit(ZoneError(message: 'Please select a Panchayat before creating a zone.'));
+        return;
+      }
       await _repository.createZone(
         name: event.name,
         boundaryGeojson: event.boundaryGeojson,
         color: event.color,
         opacity: event.opacity,
         places: event.places,
-        panchayatId: event.panchayatId,
+        panchayatId: pId,
       );
       add(LoadZones());
     } catch (e) {
@@ -177,6 +245,14 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
 
   Future<void> _onUpdateZone(UpdateZone event, Emitter<ZoneState> emit) async {
     try {
+      int? pId = event.panchayatId;
+      if (isSuperAdmin && pId == null) {
+        final currentState = state;
+        if (currentState is ZonesLoaded) {
+          final matched = currentState.zones.firstWhere((z) => z.id == event.zoneId);
+          pId = matched.panchayatId;
+        }
+      }
       await _repository.updateZone(
         zoneId: event.zoneId,
         name: event.name,
@@ -185,7 +261,7 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
         opacity: event.opacity,
         places: event.places,
         isActive: event.isActive,
-        panchayatId: event.panchayatId,
+        panchayatId: pId,
       );
       add(LoadZones());
     } catch (e) {
@@ -195,7 +271,15 @@ class ZoneBloc extends Bloc<ZoneEvent, ZoneState> {
 
   Future<void> _onDeleteZone(DeleteZone event, Emitter<ZoneState> emit) async {
     try {
-      await _repository.deleteZone(event.zoneId, panchayatId: event.panchayatId);
+      int? pId = event.panchayatId;
+      if (isSuperAdmin && pId == null) {
+        final currentState = state;
+        if (currentState is ZonesLoaded) {
+          final matched = currentState.zones.firstWhere((z) => z.id == event.zoneId);
+          pId = matched.panchayatId;
+        }
+      }
+      await _repository.deleteZone(event.zoneId, panchayatId: pId);
       add(LoadZones());
     } catch (e) {
       emit(ZoneError(message: 'Failed to delete zone: $e'));

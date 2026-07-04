@@ -105,8 +105,61 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
             child: ListView(
               padding: const EdgeInsets.all(14),
               children: [
+                // ── Panchayat Selection (Super Admin only) ──
+                if (context.read<ZoneBloc>().isSuperAdmin) ...[
+                  Text(
+                    'SELECT PANCHAYAT',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: AppTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  BlocBuilder<ZoneBloc, ZoneState>(
+                    builder: (context, state) {
+                      if (state is! ZonesLoaded) {
+                        return const SizedBox(
+                          height: 48,
+                          child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                        );
+                      }
+                      return DropdownButtonFormField<int?>(
+                        initialValue: state.selectedPanchayatId,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: AppTheme.stroke),
+                          ),
+                          filled: true,
+                          fillColor: AppTheme.bgSurface,
+                        ),
+                        dropdownColor: AppTheme.bgCard,
+                        style: TextStyle(color: AppTheme.textPrimary, fontSize: 13),
+                        hint: const Text('All Panchayats', style: TextStyle(fontSize: 13)),
+                        items: [
+                          const DropdownMenuItem<int?>(
+                            value: null,
+                            child: Text('All Panchayats', style: TextStyle(fontSize: 13)),
+                          ),
+                          ...state.panchayats.map((p) => DropdownMenuItem<int?>(
+                            value: p.id,
+                            child: Text(p.name, style: const TextStyle(fontSize: 13)),
+                          )),
+                        ],
+                        onChanged: (val) {
+                          context.read<ZoneBloc>().add(SelectPanchayat(val));
+                        },
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 18),
+                ],
+
                 // ── Place Search ──
-                      Text(
+                Text(
                   'SEARCH PLACE',
                   style: TextStyle(
                     fontSize: 10,
@@ -119,12 +172,22 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                 PlaceSearchWidget(
                   onSearch: (query) async {
                     final repo = context.read<ZoneBloc>();
+                    final state = repo.state;
+                    if (repo.isSuperAdmin && state is ZonesLoaded && state.selectedPanchayatId == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Please select a Panchayat first'),
+                          backgroundColor: AppTheme.warning,
+                        ),
+                      );
+                      return [];
+                    }
                     repo.add(LookupPlaceBoundary(placeName: query));
                     // Wait for results via BLoC state
                     await Future.delayed(const Duration(milliseconds: 1500));
-                    final state = repo.state;
-                    if (state is ZonesLoaded) {
-                      return state.placeResults;
+                    final nextState = repo.state;
+                    if (nextState is ZonesLoaded) {
+                      return nextState.placeResults;
                     }
                     return [];
                   },
@@ -133,7 +196,7 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                 const SizedBox(height: 18),
 
                 // ── Drawing Mode ──
-                      Text(
+                Text(
                   'DRAW ZONE',
                   style: TextStyle(
                     fontSize: 10,
@@ -146,7 +209,20 @@ class _ZoneSidebarState extends State<ZoneSidebar> {
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
-                    onPressed: widget.onStartDraw,
+                    onPressed: () {
+                      final repo = context.read<ZoneBloc>();
+                      final state = repo.state;
+                      if (repo.isSuperAdmin && state is ZonesLoaded && state.selectedPanchayatId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Please select a Panchayat first'),
+                            backgroundColor: AppTheme.warning,
+                          ),
+                        );
+                        return;
+                      }
+                      widget.onStartDraw();
+                    },
                     icon: Icon(
                       widget.isDrawing
                           ? Icons.check_rounded

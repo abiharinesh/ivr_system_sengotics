@@ -205,10 +205,14 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/zone-management',
-            builder: (context, state) => BlocProvider(
-              create: (_) => ZoneBloc()..add(LoadZones()),
-              child: const ZoneManagementScreen(),
-            ),
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin = authState is Authenticated && authState.user.isSuperAdmin;
+              return BlocProvider(
+                create: (_) => ZoneBloc(isSuperAdmin: isSuperAdmin)..add(LoadZones()),
+                child: const ZoneManagementScreen(),
+              );
+            },
           ),
           GoRoute(
             path: '/settings/customization',
