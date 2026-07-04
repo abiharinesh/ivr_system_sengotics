@@ -53,6 +53,7 @@ class UserModel extends Equatable {
   bool get isAgent => role == 'agent';
   bool get isElectrician => role == 'electrician';
   bool get isPlumber => role == 'plumber';
+  bool get isCitizen => role == 'citizen';
 
   /// Panchayat-scoped field roles share the same panchayat_id as admins.
   bool get isFieldStaff => isAgent || isElectrician || isPlumber;

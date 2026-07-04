@@ -8,6 +8,8 @@ import '../features/zone_management/presentation/zone_management_screen.dart';
 import '../features/customization/presentation/screens/admin_customization_screen.dart';
 import '../features/auth/bloc/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
+import '../features/citizen/presentation/screens/citizen_register_screen.dart';
+import '../features/citizen/presentation/screens/citizen_dashboard_screen.dart';
 
 import '../features/super_admin/bloc/dashboard_bloc.dart';
 import '../features/super_admin/bloc/panchayat_bloc.dart';
@@ -74,6 +76,7 @@ String _homeForRole(Authenticated auth) {
   if (u.isAgent) return '/agent';
   if (u.isElectrician) return '/electrician';
   if (u.isPlumber) return '/plumber';
+  if (u.isCitizen) return '/citizen';
   return '/dashboard';
 }
 
@@ -88,6 +91,7 @@ GoRouter createRouter(AuthBloc authBloc) {
 
       // Public no-auth routes (tender link + field session upload).
       if (loc.startsWith('/public/')) return null;
+      if (loc == '/register-citizen') return null;
 
       if (authState is! Authenticated) {
         return isLoginRoute ? null : '/login';
@@ -103,14 +107,29 @@ GoRouter createRouter(AuthBloc authBloc) {
         if (u.isPlumber && !loc.startsWith('/plumber')) return '/plumber';
       }
 
+      if (u.isCitizen) {
+        if (!loc.startsWith('/citizen')) return '/citizen';
+      }
+
       if ((u.isSuperAdmin || u.isPanchayatAdmin) &&
-          (loc.startsWith('/agent') || loc.startsWith('/electrician') || loc.startsWith('/plumber'))) {
+          (loc.startsWith('/agent') ||
+              loc.startsWith('/electrician') ||
+              loc.startsWith('/plumber') ||
+              loc.startsWith('/citizen'))) {
         return '/dashboard';
       }
       return null;
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/register-citizen',
+        builder: (context, state) => const CitizenRegisterScreen(),
+      ),
+      GoRoute(
+        path: '/citizen',
+        builder: (context, state) => const CitizenDashboardScreen(),
+      ),
       // Public seller and field-staff routes (no auth shell).
       GoRoute(
         path: '/public/open/:token',

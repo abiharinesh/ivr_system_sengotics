@@ -20,6 +20,7 @@ import { ZoneModule } from './zone/zone.module';
 import { ReportsModule } from './reports/reports.module';
 import { WaterSupplyModule } from './water-supply/water-supply.module';
 import { PlumberModule } from './plumber/plumber.module';
+import { CitizenModule } from './citizen/citizen.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { PlumberModule } from './plumber/plumber.module';
     ReportsModule,
     WaterSupplyModule,
     PlumberModule,
+    CitizenModule,
   ],
   controllers: [AppController],
   providers: [

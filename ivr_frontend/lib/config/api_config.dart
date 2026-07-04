@@ -73,6 +73,12 @@ class ApiConfig {
   // Auth
   static const String login = '/api/auth/login';
 
+  // Citizen
+  static const String citizenRegister = '/api/citizen/register';
+  static const String citizenPanchayats = '/api/citizen/panchayats';
+  static const String citizenPoles = '/api/citizen/poles';
+  static const String citizenComplaints = '/api/citizen/complaints';
+
   // Super Admin
   static const String saPanchayats = '/api/superadmin/panchayats';
   static const String saUsers = '/api/superadmin/users';
