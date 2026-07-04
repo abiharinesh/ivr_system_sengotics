@@ -46,6 +46,9 @@ import '../features/agent/presentation/screens/agent_add_pole_screen.dart';
 import '../features/electrician/presentation/screens/electrician_dashboard_screen.dart';
 import '../features/electrician/presentation/screens/electrician_jobs_screen.dart';
 import '../features/electrician/presentation/screens/electrician_complaint_detail_screen.dart';
+import '../features/plumber/presentation/screens/plumber_dashboard_screen.dart';
+import '../features/plumber/presentation/screens/plumber_jobs_screen.dart';
+import '../features/plumber/presentation/screens/plumber_complaint_detail_screen.dart';
 
 import '../features/tenders/presentation/screens/tender_list_screen.dart';
 import '../features/tenders/presentation/screens/tender_create_screen.dart';
@@ -70,6 +73,7 @@ String _homeForRole(Authenticated auth) {
   if (u.isSuperAdmin || u.isPanchayatAdmin) return '/dashboard';
   if (u.isAgent) return '/agent';
   if (u.isElectrician) return '/electrician';
+  if (u.isPlumber) return '/plumber';
   return '/dashboard';
 }
 
@@ -93,12 +97,14 @@ GoRouter createRouter(AuthBloc authBloc) {
       if (isLoginRoute) return _homeForRole(authed);
 
       final u = authed.user;
-      if (u.isAgent || u.isElectrician) {
+      if (u.isAgent || u.isElectrician || u.isPlumber) {
         if (u.isAgent && !loc.startsWith('/agent')) return '/agent';
         if (u.isElectrician && !loc.startsWith('/electrician')) return '/electrician';
+        if (u.isPlumber && !loc.startsWith('/plumber')) return '/plumber';
       }
 
-      if ((u.isSuperAdmin || u.isPanchayatAdmin) && (loc.startsWith('/agent') || loc.startsWith('/electrician'))) {
+      if ((u.isSuperAdmin || u.isPanchayatAdmin) &&
+          (loc.startsWith('/agent') || loc.startsWith('/electrician') || loc.startsWith('/plumber'))) {
         return '/dashboard';
       }
       return null;
@@ -184,6 +190,23 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final id = int.parse(state.pathParameters['id']!);
               return ElectricianComplaintDetailScreen(complaintId: id);
+            },
+          ),
+          GoRoute(
+            path: '/plumber',
+            builder: (context, state) => const PlumberDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/plumber/jobs',
+            builder: (context, state) => PlumberJobsScreen(
+              initialSearch: state.uri.queryParameters['q'] ?? '',
+            ),
+          ),
+          GoRoute(
+            path: '/plumber/jobs/:id',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return PlumberComplaintDetailScreen(complaintId: id);
             },
           ),
           // Dashboard
@@ -452,6 +475,10 @@ String _getTitle(String location) {
       return 'Electrician — Home';
     case '/electrician/jobs':
       return 'Electrician — Jobs';
+    case '/plumber':
+      return 'Plumber — Home';
+    case '/plumber/jobs':
+      return 'Plumber — Jobs';
     case '/dashboard':
       return 'Dashboard';
     case '/panchayats':
@@ -512,7 +539,7 @@ String _getTitle(String location) {
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
-      if (location.startsWith('/electrician/jobs/')) return 'Complaint';
+      if (location.startsWith('/electrician/jobs/') || location.startsWith('/plumber/jobs/')) return 'Complaint';
       return 'Ooraatchi';
   }
 }

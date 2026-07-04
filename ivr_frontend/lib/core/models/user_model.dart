@@ -52,9 +52,10 @@ class UserModel extends Equatable {
   bool get isPanchayatAdmin => role == 'panchayat_admin';
   bool get isAgent => role == 'agent';
   bool get isElectrician => role == 'electrician';
+  bool get isPlumber => role == 'plumber';
 
   /// Panchayat-scoped field roles share the same panchayat_id as admins.
-  bool get isFieldStaff => isAgent || isElectrician;
+  bool get isFieldStaff => isAgent || isElectrician || isPlumber;
 
   @override
   List<Object?> get props => [id, email, role, panchayatId];

@@ -418,6 +418,12 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.electrical_services_rounded, label: 'My jobs', route: '/electrician/jobs'),
       ];
     }
+    if (widget.userRole == 'plumber') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/plumber'),
+        _NavSpec(icon: Icons.plumbing_rounded, label: 'My jobs', route: '/plumber/jobs'),
+      ];
+    }
     if (widget.userRole == 'super_admin') {
       return const [
         _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
@@ -452,7 +458,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   List<_NavSpec> _secondaryNavSpecs() {
-    if (widget.userRole == 'agent' || widget.userRole == 'electrician') {
+    if (widget.userRole == 'agent' || widget.userRole == 'electrician' || widget.userRole == 'plumber') {
       return const [];
     }
     return const [
