@@ -187,6 +187,30 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     return list.first;
   }
 
+  List<TenderDocumentSummary> _allVersionsForTemplate(
+    TenderDetail d,
+    String templateId, {
+    int? vendorId,
+  }) {
+    var matches = d.documents.where((doc) => doc.templateId == templateId);
+    if (templateId == 'quotation' && vendorId != null) {
+      matches = matches.where((doc) => doc.vendorId == vendorId);
+    }
+    final list = matches.toList();
+    list.sort((a, b) => b.version.compareTo(a.version));
+    return list;
+  }
+
+  String? _getVendorName(TenderDetail d, int vendorId) {
+    for (final v in d.invitedVendors) {
+      if (v.id == vendorId) return v.name;
+    }
+    for (final q in d.quotations) {
+      if (q.vendorId == vendorId) return q.submitterName;
+    }
+    return null;
+  }
+
   Future<void> _previewDoc(
     BuildContext context,
     TenderDetail d,
@@ -1208,13 +1232,13 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
     );
   }
 
-  Widget _buildDocumentBadge(String templateId, Color accentColor) {
+  Widget _buildDocumentBadge(String templateId, Color accentColor, {int? version}) {
     final bool isXls = templateId == 'comparative' || templateId == 'form19';
     final String label = isXls ? 'XLS' : 'PDF';
     final IconData iconData =
         isXls ? Icons.grid_on_outlined : Icons.description_outlined;
 
-    return Container(
+    final badgeContent = Container(
       width: 38,
       height: 48,
       decoration: BoxDecoration(
@@ -1261,6 +1285,37 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
         ],
       ),
     );
+
+    if (version != null) {
+      return Stack(
+        clipBehavior: Clip.none,
+        children: [
+          badgeContent,
+          Positioned(
+            top: -4,
+            right: -8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F766E),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white, width: 1),
+              ),
+              child: Text(
+                'v$version',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return badgeContent;
   }
 
   Widget _buildOfficialTemplates(BuildContext context, TenderDetail d) {
@@ -1373,7 +1428,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            _buildDocumentBadge(tpl.id, accentColor),
+                            _buildDocumentBadge(tpl.id, accentColor, version: readyDoc?.version),
                             const SizedBox(height: 8),
                             Text(
                               tpl.label,
@@ -1409,7 +1464,7 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                                   constraints: const BoxConstraints(),
                                   padding: const EdgeInsets.all(4),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: 4),
                                 busy
                                     ? const SizedBox(
                                       width: 16,
@@ -1450,6 +1505,85 @@ class _TenderDetailScreenState extends State<TenderDetailScreen> {
                                       constraints: const BoxConstraints(),
                                       padding: const EdgeInsets.all(4),
                                     ),
+                                if (readyDoc != null && !busy) ...[
+                                  const SizedBox(width: 4),
+                                  PopupMenuButton<String>(
+                                    tooltip: 'More actions',
+                                    icon: const Icon(
+                                      Icons.more_vert_outlined,
+                                      size: 18,
+                                      color: accentColor,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                    onSelected: (action) {
+                                      if (action == 'regenerate') {
+                                        _generate(
+                                          context,
+                                          d,
+                                          tpl.id,
+                                          vendorId: readyDoc.vendorId,
+                                          fieldOverrides: readyDoc.fieldOverrides,
+                                        );
+                                      } else if (action.startsWith('ver:')) {
+                                        final docId = int.tryParse(action.substring(4));
+                                        if (docId != null) {
+                                          final targetDoc = d.documents.firstWhere((doc) => doc.id == docId);
+                                          _previewDoc(context, d, targetDoc);
+                                        }
+                                      }
+                                    },
+                                    itemBuilder: (BuildContext context) {
+                                      final allDocs = _allVersionsForTemplate(
+                                        d,
+                                        tpl.id,
+                                        vendorId: readyDoc.vendorId,
+                                      );
+                                      return [
+                                        const PopupMenuItem<String>(
+                                          value: 'regenerate',
+                                          child: Row(
+                                            children: [
+                                              Icon(Icons.refresh, size: 16, color: accentColor),
+                                              SizedBox(width: 8),
+                                              Text('Regenerate (New Version)'),
+                                            ],
+                                          ),
+                                        ),
+                                        const PopupMenuDivider(),
+                                        ...allDocs.map((doc) {
+                                          final isLatest = doc.id == readyDoc.id;
+                                          final dateStr = doc.generatedAt != null
+                                              ? '${doc.generatedAt!.day}/${doc.generatedAt!.month} ${doc.generatedAt!.hour.toString().padLeft(2, '0')}:${doc.generatedAt!.minute.toString().padLeft(2, '0')}'
+                                              : '';
+                                          final vName = doc.vendorId != null ? _getVendorName(d, doc.vendorId!) : null;
+                                          final label = 'Version ${doc.version}' +
+                                              (vName != null ? ' — $vName' : '') +
+                                              (dateStr.isNotEmpty ? ' ($dateStr)' : '');
+                                          return PopupMenuItem<String>(
+                                            value: 'ver:${doc.id}',
+                                            child: Row(
+                                              children: [
+                                                Icon(
+                                                  isLatest ? Icons.check_circle : Icons.history,
+                                                  size: 16,
+                                                  color: isLatest ? Colors.green : Colors.grey,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  label,
+                                                  style: TextStyle(
+                                                    fontWeight: isLatest ? FontWeight.bold : FontWeight.normal,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        }),
+                                      ];
+                                    },
+                                  ),
+                                ],
                               ],
                             ),
                           ],
@@ -3355,6 +3489,8 @@ class _DocsTabState extends State<_DocsTab> {
     return list.first;
   }
 
+
+
   String? _vendorName(int vendorId) {
     for (final v in widget.detail.invitedVendors) {
       if (v.id == vendorId) return v.name;
@@ -3686,10 +3822,60 @@ class _DocsTabState extends State<_DocsTab> {
           icon: const Icon(Icons.link_outlined, size: 18),
           onPressed: () => _copyDocShareLink(readyDoc),
         ),
+        if (templateDocs.length > 1)
+          PopupMenuButton<TenderDocumentSummary>(
+            tooltip: 'Version history',
+            icon: const Icon(Icons.history_outlined, size: 18),
+            onSelected: (doc) => _previewDoc(doc),
+            itemBuilder: (context) {
+              return templateDocs.map((doc) {
+                final isLatest = doc.id == readyDoc.id;
+                final dateStr = doc.generatedAt != null
+                    ? '${doc.generatedAt!.day}/${doc.generatedAt!.month} ${doc.generatedAt!.hour.toString().padLeft(2, '0')}:${doc.generatedAt!.minute.toString().padLeft(2, '0')}'
+                    : '';
+                final vName = doc.vendorId != null ? _vendorName(doc.vendorId!) : null;
+                final label = 'v${doc.version}' +
+                    (vName != null ? ' — $vName' : '') +
+                    (dateStr.isNotEmpty ? ' ($dateStr)' : '');
+                return PopupMenuItem<TenderDocumentSummary>(
+                  value: doc,
+                  child: Row(
+                    children: [
+                      Icon(
+                        isLatest ? Icons.check_circle : Icons.history,
+                        size: 16,
+                        color: isLatest ? Colors.green : Colors.grey,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: isLatest ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList();
+            },
+          ),
       ],
       FilledButton(
-        onPressed: busy ? null : () => _generate(tpl.id),
-        child: Text(busy ? 'Generating...' : 'Generate'),
+        onPressed:
+            busy
+                ? null
+                : () => readyDoc != null
+                    ? _generate(
+                        tpl.id,
+                        vendorId: readyDoc.vendorId,
+                        fieldOverrides: readyDoc.fieldOverrides,
+                      )
+                    : _generate(tpl.id),
+        child: Text(
+          busy
+              ? (readyDoc != null ? 'Regenerating...' : 'Generating...')
+              : (readyDoc != null ? 'Regenerate' : 'Generate'),
+        ),
       ),
     ];
 
