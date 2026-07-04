@@ -4,7 +4,9 @@ import 'package:equatable/equatable.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/models/stats_model.dart';
 import '../../../core/models/pole_model.dart';
+import '../../../core/models/panchayat_model.dart';
 import '../../../core/models/dashboard_insights_model.dart';
+import '../data/models/complaint_model.dart';
 import '../data/super_admin_repository.dart';
 
 // Events
@@ -29,15 +31,21 @@ class SADashLoaded extends SADashState {
   final StatsModel stats;
   final List<PoleModel> poles;
   final DashboardInsights insights;
+  final List<ComplaintModel> recentComplaints;
+  final List<PanchayatModel> panchayats;
+  final List<dynamic> electricians;
   final String? warningMessage;
   SADashLoaded({
     required this.stats,
     required this.poles,
     required this.insights,
+    this.recentComplaints = const [],
+    this.panchayats = const [],
+    this.electricians = const [],
     this.warningMessage,
   });
   @override
-  List<Object?> get props => [stats, poles, insights, warningMessage];
+  List<Object?> get props => [stats, poles, insights, recentComplaints, panchayats, electricians, warningMessage];
 }
 
 class SADashError extends SADashState {
@@ -105,6 +113,9 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
     StatsModel? stats;
     List<PoleModel>? poles;
     DashboardInsights? insights;
+    List<ComplaintModel>? complaints;
+    List<PanchayatModel>? panchayats;
+    List<dynamic>? electricians;
 
     try {
       stats = await _repo.getStats(forceRefresh: isAlreadyLoaded || !hasCache);
@@ -123,6 +134,25 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
       insights = await _repo.getDashboardInsights(forceRefresh: isAlreadyLoaded || !hasCache);
     } on ApiException catch (e) {
       errors.add('Dashboard insights unavailable: ${e.message}');
+    }
+
+    // Fetch additional data for the redesigned dashboard
+    try {
+      complaints = await _repo.listComplaints(status: 'pending', forceRefresh: isAlreadyLoaded || !hasCache);
+    } on ApiException catch (_) {
+      // Non-critical — dashboard works without complaint queue
+    }
+
+    try {
+      panchayats = await _repo.listPanchayats(forceRefresh: isAlreadyLoaded || !hasCache);
+    } on ApiException catch (_) {
+      // Non-critical
+    }
+
+    try {
+      electricians = await _repo.listElectricians();
+    } on ApiException catch (_) {
+      // Non-critical
     }
 
     if (stats == null && poles == null && insights == null) {
@@ -153,6 +183,9 @@ class SADashBloc extends Bloc<SADashEvent, SADashState> {
           byCategory: [],
           recentActivity: [],
         ),
+        recentComplaints: complaints ?? currentLoaded?.recentComplaints ?? const [],
+        panchayats: panchayats ?? currentLoaded?.panchayats ?? const [],
+        electricians: electricians ?? currentLoaded?.electricians ?? const [],
         warningMessage: errors.isEmpty ? null : 'Some data could not be loaded. Pull to refresh.',
       ),
     );

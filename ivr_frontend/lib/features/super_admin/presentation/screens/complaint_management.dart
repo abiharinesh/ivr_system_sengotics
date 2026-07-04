@@ -199,7 +199,7 @@ class _ComplaintManagementState extends State<ComplaintManagement> {
           return ListView.builder(
             padding: EdgeInsets.symmetric(horizontal: hPad),
             itemCount: filtered.length,
-            itemBuilder: (context, index) => _ComplaintCard(complaint: filtered[index]),
+            itemBuilder: (context, index) => _ModernComplaintCard(complaint: filtered[index]),
           );
         },
       );
@@ -211,86 +211,291 @@ class _ComplaintManagementState extends State<ComplaintManagement> {
 bool _canAssignElectricianSA(String status) =>
     status == 'pending' || status == 'reassign_required';
 
-class _ComplaintCard extends StatelessWidget {
-  final ComplaintModel complaint;
+// ══════════════════════════════════════════════════════════════════════════════
+// MODERN COMPLAINT CARD — Redesigned to match PA style
+// ══════════════════════════════════════════════════════════════════════════════
 
-  const _ComplaintCard({required this.complaint});
+class _ModernComplaintCard extends StatefulWidget {
+  final ComplaintModel complaint;
+  const _ModernComplaintCard({required this.complaint});
+
+  @override
+  State<_ModernComplaintCard> createState() => _ModernComplaintCardState();
+}
+
+class _ModernComplaintCardState extends State<_ModernComplaintCard> {
+  bool _assigning = false;
+
+  String _getTimeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 1) return 'Just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} mins ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return DateFormat('MMM d, h:mm a').format(date);
+  }
+
+  Color _statusDotColor(String status) {
+    switch (status) {
+      case 'resolved':
+        return AppTheme.accent;
+      case 'in_progress':
+        return AppTheme.info;
+      case 'pending':
+      case 'reassign_required':
+        return AppTheme.warning;
+      case 'manual_review':
+        return AppTheme.error;
+      case 'rejected':
+        return AppTheme.error;
+      default:
+        return AppTheme.textMuted;
+    }
+  }
+
+  IconData _complaintIcon(String? type) {
+    if (type == null) return Icons.mic;
+    final lower = type.toLowerCase();
+    if (lower.contains('water') || lower.contains('pipe') || lower.contains('நீர்')) return Icons.water_drop_rounded;
+    if (lower.contains('electric') || lower.contains('light') || lower.contains('மின்')) return Icons.electrical_services_rounded;
+    if (lower.contains('road') || lower.contains('சாலை')) return Icons.add_road_rounded;
+    return Icons.mic;
+  }
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat(
-      'MMM d, yyyy – h:mm a',
-    ).format(complaint.createdAt);
+    final complaint = widget.complaint;
+    final timeStr = _getTimeAgo(complaint.createdAt);
+    final statusColor = _statusDotColor(complaint.status);
+    final iconData = _complaintIcon(complaint.complaintType);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 16),
       elevation: 0,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  '#${complaint.id}',
-                  style:       TextStyle(
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.primaryLight,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        onTap: () {
+          // Could navigate to detail page
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Icon + Title + Status + Actions
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(iconData, color: statusColor, size: 20),
                   ),
-                ),
-                const SizedBox(width: 12),
-                StatusBadge(status: complaint.status),
-                const Spacer(),
-                _buildStatusMenu(context),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (complaint.description != null)
-              Text(
-                complaint.description!,
-                style:       TextStyle(
-                  color: AppTheme.textSecondary,
-                  fontSize: 14,
-                ),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                '${complaint.complaintType ?? 'Voice Complaint'} #${complaint.id}',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.textPrimary,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            StatusBadge(status: complaint.status),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '$timeStr • Pole ${complaint.pole?.poleNumber ?? '#${complaint.pole?.id ?? 'N/A'}'}',
+                          style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _buildActionButtons(context, complaint),
+                ],
               ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                if (complaint.panchayat != null)
-                  _infoItem(
-                    Icons.location_city_rounded,
-                    complaint.panchayat!.name,
-                  ),
-                if (complaint.pole != null)
-                  _infoItem(
-                    Icons.electrical_services_rounded,
-                    'Pole ${complaint.pole!.poleNumber ?? '#${complaint.pole!.id}'}',
-                  ),
-                if (complaint.complaintType != null)
-                  _infoItem(Icons.category_rounded, complaint.complaintType!),
-                if (complaint.callerLanguage != null)
-                  _infoItem(Icons.translate_rounded, complaint.callerLanguage!),
-                if (complaint.callerEmotion != null)
-                  _infoItem(Icons.mood_rounded, complaint.callerEmotion!),
-                if (complaint.urgencyLevel != null)
-                  _infoItem(
-                    Icons.priority_high_rounded,
-                    'Urgency: ${complaint.urgencyLevel!}',
-                  ),
-                _infoItem(Icons.access_time_rounded, dateStr),
-              ],
-            ),
-            if (complaint.voiceCall != null) ...[
-              const SizedBox(height: 12),
-              const Divider(height: 1),
-              const SizedBox(height: 12),
-              if (complaint.voiceCall!.transcriptEnglish != null)
+
+              // Panchayat Tag
+              if (complaint.panchayat != null) ...[
+                const SizedBox(height: 12),
                 Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.location_city_rounded, size: 12, color: AppTheme.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        complaint.panchayat!.name,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              // Metadata chips
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                children: [
+                  if (complaint.callerLanguage != null)
+                    _MetadataChip(
+                      icon: Icons.translate_rounded,
+                      label: complaint.callerLanguage!,
+                    ),
+                  if (complaint.callerEmotion != null)
+                    _MetadataChip(
+                      icon: Icons.mood_rounded,
+                      label: complaint.callerEmotion!,
+                    ),
+                  if (complaint.urgencyLevel != null)
+                    _MetadataChip(
+                      icon: Icons.priority_high_rounded,
+                      label: 'Urgency: ${complaint.urgencyLevel!}',
+                      color: complaint.urgencyLevel == 'high' ? AppTheme.error : null,
+                    ),
+                  if (complaint.assignedElectrician != null)
+                    _MetadataChip(
+                      icon: Icons.engineering_rounded,
+                      label: complaint.assignedElectrician!.email.split('@').first,
+                      color: AppTheme.accent,
+                    ),
+                ],
+              ),
+
+              // Transcript section
+              if (complaint.voiceCall != null) ...[
+                const SizedBox(height: 14),
+                const Divider(height: 1),
+                const SizedBox(height: 14),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isTwoCol = constraints.maxWidth > 500;
+                    final originalText = complaint.voiceCall?.transcript ??
+                        complaint.description ??
+                        'Voice complaint received via IVR.';
+                    final translationText = complaint.voiceCall?.transcriptEnglish ??
+                        complaint.description ??
+                        'Voice complaint received via IVR.';
+
+                    final leftWidget = Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.bgSurface,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.stroke),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.translate, size: 12, color: AppTheme.textMuted),
+                              const SizedBox(width: 4),
+                              Text(
+                                'ORIGINAL TRANSCRIPT',
+                                style: TextStyle(fontSize: 9, color: AppTheme.textMuted, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            originalText,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontStyle: FontStyle.italic,
+                              color: AppTheme.textSecondary,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+
+                    final rightWidget = Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppTheme.accent.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.25)),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.check_circle_outline, size: 12, color: AppTheme.accent),
+                              const SizedBox(width: 4),
+                              Text(
+                                'AI ENGLISH TRANSLATION',
+                                style: TextStyle(fontSize: 9, color: AppTheme.accent, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            translationText,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.accent,
+                            ),
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (isTwoCol) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: leftWidget),
+                          const SizedBox(width: 12),
+                          Expanded(child: rightWidget),
+                        ],
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        leftWidget,
+                        const SizedBox(height: 8),
+                        rightWidget,
+                      ],
+                    );
+                  },
+                ),
+              ] else if (complaint.description != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: AppTheme.bgSurface,
@@ -299,55 +504,77 @@ class _ComplaintCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                            Text(
-                        'Transcript',
+                      Text(
+                        'DESCRIPTION',
                         style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
                           color: AppTheme.textMuted,
+                          letterSpacing: 0.5,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        complaint.voiceCall!.transcriptEnglish!,
-                        style:       TextStyle(
+                        complaint.description!,
+                        style: TextStyle(
                           fontSize: 13,
                           color: AppTheme.textSecondary,
                         ),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
                 ),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _infoItem(IconData icon, String text) {
+  Widget _buildActionButtons(BuildContext context, ComplaintModel complaint) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: AppTheme.textMuted),
-        const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            text,
-            style:       TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
+        if (_canAssignElectricianSA(complaint.status)) ...[
+          if (_assigning)
+            const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            ElevatedButton(
+              onPressed: () => _handleAssign(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                minimumSize: Size.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Assign',
+                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+            ),
+          const SizedBox(width: 4),
+        ],
+        _buildStatusMenu(context, complaint),
       ],
     );
   }
 
-  Widget _buildStatusMenu(BuildContext context) {
+  Widget _buildStatusMenu(BuildContext context, ComplaintModel complaint) {
     return PopupMenuButton<String>(
-      icon:       Icon(Icons.more_vert, color: AppTheme.textMuted),
+      icon: Icon(Icons.more_vert, color: AppTheme.textMuted, size: 20),
+      tooltip: 'Actions',
       onSelected: (action) async {
         if (action == 'resolve') {
-          _showResolveDialog(context);
+          _showResolveWithMap(context, complaint);
         } else if (action == 'assign_electrician') {
           final id = await showAssignElectricianDialog(
             context: context,
@@ -394,11 +621,34 @@ class _ComplaintCard extends StatelessWidget {
     );
   }
 
-  void _showResolveDialog(BuildContext context) {
-    _showResolveWithMap(context);
+  Future<void> _handleAssign(BuildContext context) async {
+    final complaint = widget.complaint;
+    setState(() => _assigning = true);
+
+    try {
+      final id = await showAssignElectricianDialog(
+        context: context,
+        complaint: complaint,
+        isSuperAdmin: true,
+      );
+
+      if (id != null && context.mounted) {
+        context.read<SAComplaintBloc>().add(
+          AssignSAComplaintElectrician(complaint.id, id),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppTheme.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _assigning = false);
+    }
   }
 
-  Future<void> _showResolveWithMap(BuildContext context) async {
+  Future<void> _showResolveWithMap(BuildContext context, ComplaintModel complaint) async {
     try {
       final raw = await SuperAdminRepository().listPoles();
       if (!context.mounted) return;
@@ -423,5 +673,51 @@ class _ComplaintCard extends StatelessWidget {
         SnackBar(content: Text('Failed to load poles: $err')),
       );
     }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// METADATA CHIP — Small informational chip
+// ══════════════════════════════════════════════════════════════════════════════
+
+class _MetadataChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color? color;
+
+  const _MetadataChip({
+    required this.icon,
+    required this.label,
+    this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? AppTheme.textMuted;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: c.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: c),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w500,
+                color: c,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
