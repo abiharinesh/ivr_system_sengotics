@@ -57,4 +57,9 @@ class CitizenRepository {
     );
     return ComplaintModel.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<Map<String, dynamic>> getIvrHistory() async {
+    final data = await _api.get(ApiConfig.publicIvrSync);
+    return Map<String, dynamic>.from(data as Map);
+  }
 }

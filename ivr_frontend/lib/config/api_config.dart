@@ -125,4 +125,14 @@ class ApiConfig {
   static const String saZones = '/api/superadmin/zones';
   static const String saZoneLookup = '/api/superadmin/zones/lookup-boundary';
   static String saZonesForPanchayat(int id) => '/api/superadmin/zones/$id';
+
+  // Public Report & Guest Complaint
+  static String publicPoleByToken(String token) => '/api/public/poles/$token';
+  static String publicGuestComplaint(String token) =>
+      '/api/public/poles/$token/complaints';
+  static String publicTrackComplaint(String token) =>
+      '/api/public/track/$token';
+  static const String publicPanchayatLookup = '/api/public/panchayat-lookup';
+  static const String publicIvrSync = '/api/public/ivr-sync';
+  static String publicQrUrl(int poleId) => '/api/public/qr/$poleId';
 }

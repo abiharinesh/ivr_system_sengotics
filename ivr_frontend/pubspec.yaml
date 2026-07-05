@@ -36,8 +36,10 @@ dependencies:
   flutter_dotenv: ^5.2.1
   share_plus: ^10.1.4
   pointer_interceptor: ^0.10.1
+  qr_flutter: ^4.1.0
 
   web: any
+  flutter_tts: ^4.2.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -13,4 +13,15 @@ export class AuthController {
   async login(@Body() dto: LoginDto) {
     return this.authService.login(dto.email, dto.password);
   }
+
+  @Post('send-otp')
+  async sendOtp(@Body() body: { phone: string }) {
+    return this.authService.sendOtp(body.phone);
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() body: { phone: string; otp: string; panchayat_id?: number }) {
+    return this.authService.verifyOtp(body.phone, body.otp, body.panchayat_id);
+  }
 }
+

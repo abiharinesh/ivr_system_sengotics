@@ -43,11 +43,16 @@ class CitizenLoading extends CitizenState {}
 class CitizenDashboardLoaded extends CitizenState {
   final List<PoleModel> poles;
   final List<ComplaintModel> complaints;
+  final Map<String, dynamic> ivrHistory;
 
-  CitizenDashboardLoaded({required this.poles, required this.complaints});
+  CitizenDashboardLoaded({
+    required this.poles,
+    required this.complaints,
+    this.ivrHistory = const {},
+  });
 
   @override
-  List<Object?> get props => [poles, complaints];
+  List<Object?> get props => [poles, complaints, ivrHistory];
 }
 
 class CitizenComplaintSubmitting extends CitizenState {}
@@ -87,7 +92,17 @@ class CitizenBloc extends Bloc<CitizenEvent, CitizenState> {
     try {
       final poles = await _repo.listPoles();
       final complaints = await _repo.listComplaints();
-      emit(CitizenDashboardLoaded(poles: poles, complaints: complaints));
+      Map<String, dynamic> ivrHistory = {};
+      try {
+        ivrHistory = await _repo.getIvrHistory();
+      } catch (_) {
+        // Fallback for issues fetching history or no phone linked
+      }
+      emit(CitizenDashboardLoaded(
+        poles: poles,
+        complaints: complaints,
+        ivrHistory: ivrHistory,
+      ));
     } on ApiException catch (e) {
       emit(CitizenError(e.message));
     } catch (e) {

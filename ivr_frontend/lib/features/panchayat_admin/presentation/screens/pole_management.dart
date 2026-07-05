@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import '../../../../config/app_theme.dart';
@@ -453,6 +454,8 @@ class _PoleManagementState extends State<PoleManagement> {
                         _showEditDialog(context, pole);
                       } else if (action == 'delete') {
                         _showDeleteDialog(context, pole.id);
+                      } else if (action == 'qr') {
+                        context.go('/poles/${pole.id}/qr-customizer');
                       }
                     },
                     itemBuilder: (_) => [
@@ -463,6 +466,16 @@ class _PoleManagementState extends State<PoleManagement> {
                             Icon(Icons.edit_outlined, size: 16),
                             SizedBox(width: 8),
                             Text('Edit Details'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'qr',
+                        child: Row(
+                          children: [
+                            Icon(Icons.qr_code_2_rounded, size: 16),
+                            SizedBox(width: 8),
+                            Text('Design QR Sticker'),
                           ],
                         ),
                       ),

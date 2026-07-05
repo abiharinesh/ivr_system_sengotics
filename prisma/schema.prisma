@@ -151,6 +151,9 @@ model ElectricPole {
   panchayat_id Int?
   landmarks    String[]                             @default([])
 
+  /** Permanent UUID token for public QR-code stickers. Never expires. */
+  public_report_token  String?  @unique @default(uuid())
+
   image_url           String?
   image_latitude      Float?
   image_longitude     Float?
@@ -189,6 +192,11 @@ model Complaint {
 
   category                String?
   whatsapp_done_ack_at    DateTime?
+
+  /** Phone number for guest (non-registered) complaints. */
+  guest_phone             String?
+  /** UUID token for anonymous complaint tracking (public URL). */
+  guest_tracking_token    String?   @unique
 
   assigned_electrician_id Int?
   assigned_plumber_id     Int?

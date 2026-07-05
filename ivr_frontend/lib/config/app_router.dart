@@ -10,6 +10,8 @@ import '../features/auth/bloc/auth_state.dart';
 import '../features/auth/presentation/login_screen.dart';
 import '../features/citizen/presentation/screens/citizen_register_screen.dart';
 import '../features/citizen/presentation/screens/citizen_dashboard_screen.dart';
+import '../features/citizen/presentation/screens/public_pole_report_screen.dart';
+import '../features/citizen/presentation/screens/complaint_tracking_screen.dart';
 
 import '../features/super_admin/bloc/dashboard_bloc.dart';
 import '../features/super_admin/bloc/panchayat_bloc.dart';
@@ -40,6 +42,7 @@ import '../features/panchayat_admin/presentation/screens/pa_complaint_management
 import '../features/panchayat_admin/presentation/screens/electrician_management.dart';
 import '../features/panchayat_admin/presentation/screens/plumber_management.dart';
 import '../features/panchayat_admin/presentation/screens/pa_complaint_detail.dart';
+import '../features/panchayat_admin/presentation/screens/qr_customizer_screen.dart';
 
 import '../features/agent/presentation/screens/agent_dashboard_screen.dart';
 import '../features/agent/presentation/screens/agent_pole_list_screen.dart';
@@ -153,6 +156,20 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: '/public/field/:token',
         builder: (context, state) =>
             PublicFieldUploadScreen(token: state.pathParameters['token']!),
+      ),
+      // Public QR pole report (zero-auth citizen scan).
+      GoRoute(
+        path: '/public/report/:token',
+        builder: (context, state) => PublicPoleReportScreen(
+          token: state.pathParameters['token']!,
+        ),
+      ),
+      // Public complaint tracking (zero-auth).
+      GoRoute(
+        path: '/public/track/:token',
+        builder: (context, state) => ComplaintTrackingScreen(
+          trackingToken: state.pathParameters['token']!,
+        ),
       ),
       ShellRoute(
         builder: (context, state, child) {
@@ -412,6 +429,13 @@ GoRouter createRouter(AuthBloc authBloc) {
                 create: (_) => PoleBloc()..add(LoadPoles()),
                 child: const PoleManagement(),
               );
+            },
+          ),
+          GoRoute(
+            path: '/poles/:id/qr-customizer',
+            builder: (context, state) {
+              final id = int.parse(state.pathParameters['id']!);
+              return QrCustomizerScreen(poleId: id);
             },
           ),
 

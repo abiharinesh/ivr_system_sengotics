@@ -29,6 +29,7 @@ class _CitizenDashboardView extends StatefulWidget {
 
 class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
   PoleModel? _selectedPole;
+  int _activeTab = 0; // 0: Portal complaints, 1: Synced IVR calls
 
   void _showPoleDetails(PoleModel pole) {
     setState(() {
@@ -111,16 +112,19 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
 
                   List<PoleModel> poles = [];
                   List<ComplaintModel> complaints = [];
+                  Map<String, dynamic> ivrHistory = {};
 
                   if (state is CitizenDashboardLoaded) {
                     poles = state.poles;
                     complaints = state.complaints;
+                    ivrHistory = state.ivrHistory;
                   } else if (state is CitizenComplaintSubmitting || state is CitizenComplaintSubmitSuccess) {
                     // Retain data if loading/submitting in background
                     final bloc = context.read<CitizenBloc>();
                     if (bloc.state is CitizenDashboardLoaded) {
                       poles = (bloc.state as CitizenDashboardLoaded).poles;
                       complaints = (bloc.state as CitizenDashboardLoaded).complaints;
+                      ivrHistory = (bloc.state as CitizenDashboardLoaded).ivrHistory;
                     }
                   }
 
@@ -133,8 +137,8 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
                       context.read<CitizenBloc>().add(LoadCitizenDashboard());
                     },
                     child: isWide
-                        ? _buildWideDashboard(poles, complaints)
-                        : _buildMobileDashboard(poles, complaints),
+                        ? _buildWideDashboard(poles, complaints, ivrHistory)
+                        : _buildMobileDashboard(poles, complaints, ivrHistory),
                   );
                 },
               ),
@@ -229,7 +233,7 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
     );
   }
 
-  Widget _buildWideDashboard(List<PoleModel> poles, List<ComplaintModel> complaints) {
+  Widget _buildWideDashboard(List<PoleModel> poles, List<ComplaintModel> complaints, Map<String, dynamic> ivrHistory) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -287,14 +291,14 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
                     padding: const EdgeInsets.all(24),
                     child: _buildPoleDetailPanel(_selectedPole!),
                   )
-                : _buildComplaintsSideList(complaints),
+                : _buildComplaintsSideList(complaints, ivrHistory),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildMobileDashboard(List<PoleModel> poles, List<ComplaintModel> complaints) {
+  Widget _buildMobileDashboard(List<PoleModel> poles, List<ComplaintModel> complaints, Map<String, dynamic> ivrHistory) {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.all(16),
@@ -322,7 +326,7 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'Recent Complaints',
+                'Recent Activity',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               IconButton(
@@ -334,33 +338,273 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
             ],
           ),
           const SizedBox(height: 12),
-          _buildComplaintsListView(complaints),
+          _buildTabSelector(),
+          const SizedBox(height: 12),
+          _activeTab == 0
+              ? _buildComplaintsListView(complaints)
+              : _buildIvrHistoryView(ivrHistory),
         ],
       ),
     );
   }
 
-  Widget _buildComplaintsSideList(List<ComplaintModel> complaints) {
+  Widget _buildComplaintsSideList(List<ComplaintModel> complaints, Map<String, dynamic> ivrHistory) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(top: 24, left: 24, right: 24, bottom: 8),
-          child: Text(
-            'Panchayat Complaints',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-        ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Text(
-            'Review recent issues reported in your neighborhood.',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 13),
+          padding: const EdgeInsets.only(top: 24, left: 24, right: 24, bottom: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Panchayat Activity',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: () {
+                  context.read<CitizenBloc>().add(LoadCitizenDashboard());
+                },
+              ),
+            ],
           ),
         ),
-        const SizedBox(height: 16),
-        Expanded(child: _buildComplaintsListView(complaints, padding: 24)),
+        _buildTabSelector(),
+        const SizedBox(height: 8),
+        Expanded(
+          child: _activeTab == 0
+              ? _buildComplaintsListView(complaints, padding: 24)
+              : _buildIvrHistoryView(ivrHistory, padding: 24),
+        ),
       ],
+    );
+  }
+
+  Widget _buildTabSelector() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppTheme.bgDark,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _tabButton('Portal Complaints', 0),
+          ),
+          Expanded(
+            child: _tabButton('IVR Call History', 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tabButton(String text, int index) {
+    final active = _activeTab == index;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _activeTab = index;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: active ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: active
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  )
+                ]
+              : null,
+        ),
+        child: Center(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: active ? AppTheme.primary : AppTheme.textSecondary,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIvrHistoryView(Map<String, dynamic> ivrHistory, {double padding = 0}) {
+    final phone = ivrHistory['phone'] as String?;
+    if (phone == null || phone.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: padding == 0 ? 16 : padding, vertical: 24),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.amber.shade50,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.amber.shade200),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.phone_locked_rounded, color: Colors.amber.shade700, size: 40),
+              const SizedBox(height: 12),
+              const Text(
+                'IVR History Not Synced',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'To view and track complaints filed by calling our automated IVR phone helpdesk, make sure you have linked your phone number to your profile.',
+                style: TextStyle(fontSize: 12, height: 1.4, color: Colors.black87),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final transcripts = ivrHistory['voice_transcripts'] as List<dynamic>? ?? [];
+    if (transcripts.isEmpty) {
+      return Padding(
+        padding: EdgeInsets.symmetric(horizontal: padding == 0 ? 16 : padding, vertical: 32),
+        child: Center(
+          child: Column(
+            children: [
+              Icon(Icons.phone_missed_rounded, size: 48, color: AppTheme.textMuted),
+              const SizedBox(height: 12),
+              Text(
+                'No voice complaints found for $phone',
+                style: TextStyle(color: AppTheme.textSecondary, fontWeight: FontWeight.w600, fontSize: 13),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: padding == 0 ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+      padding: EdgeInsets.symmetric(horizontal: padding),
+      itemCount: transcripts.length,
+      itemBuilder: (context, index) {
+        final t = transcripts[index];
+        final status = t['processing_status'] ?? 'pending';
+        final transcriptText = t['transcript'] ?? '(Processing audio transcript...)';
+        final transcriptEn = t['transcript_english'];
+        final dateStr = t['created_at'] != null ? _formatDate(DateTime.parse(t['created_at'])) : '';
+        final complaints = t['complaints'] as List<dynamic>? ?? [];
+
+        Color statusColor = Colors.grey;
+        if (status == 'processed') {
+          statusColor = Colors.green;
+        } else if (status == 'pending') {
+          statusColor = AppTheme.primary;
+        } else if (status == 'failed') {
+          statusColor = AppTheme.error;
+        }
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppTheme.stroke),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              )
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.phone_callback_rounded, color: AppTheme.primary, size: 16),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Voice Call Sync',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      status.toUpperCase(),
+                      style: TextStyle(
+                        color: statusColor,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                transcriptText,
+                style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, height: 1.4),
+              ),
+              if (transcriptEn != null && transcriptEn.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  'Translation: $transcriptEn',
+                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontStyle: FontStyle.italic),
+                ),
+              ],
+              if (complaints.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.green.shade100),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.assignment_turned_in_rounded, color: Colors.green.shade700, size: 14),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          'Complaint #${complaints[0]['id']} matches: ${complaints[0]['complaint_type'] ?? 'Reported Issue'} (${complaints[0]['status']})',
+                          style: TextStyle(color: Colors.green.shade900, fontSize: 11, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Text(
+                'Call Date: $dateStr',
+                style: TextStyle(color: AppTheme.textMuted, fontSize: 11),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -646,7 +890,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
         mainAxisSize: MainAxisSize.min,
         children: [
           DropdownButtonFormField<String>(
-            value: _selectedType,
+            initialValue: _selectedType,
             decoration: const InputDecoration(labelText: 'Grievance Type'),
             items: _types.map((t) {
               return DropdownMenuItem(value: t, child: Text(t));
@@ -661,7 +905,7 @@ class _ComplaintFormState extends State<_ComplaintForm> {
           ),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
-            value: _selectedUrgency,
+            initialValue: _selectedUrgency,
             decoration: const InputDecoration(labelText: 'Urgency Level'),
             items: const [
               DropdownMenuItem(value: 'low', child: Text('Low')),

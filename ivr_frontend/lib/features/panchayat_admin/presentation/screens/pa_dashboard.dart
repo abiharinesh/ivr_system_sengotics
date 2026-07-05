@@ -600,7 +600,7 @@ class PADashboard extends StatelessWidget {
                             const SizedBox(height: 6),
                             _GisLegendRow(label: 'Water Pipelines', color: AppTheme.primary),
                             const SizedBox(height: 6),
-                            _GisLegendRow(label: 'Water Taps', color: Colors.cyan),
+                            const _GisLegendRow(label: 'Water Taps', color: Colors.cyan),
                           ],
                         ),
                       ),

@@ -21,6 +21,7 @@ import { ReportsModule } from './reports/reports.module';
 import { WaterSupplyModule } from './water-supply/water-supply.module';
 import { PlumberModule } from './plumber/plumber.module';
 import { CitizenModule } from './citizen/citizen.module';
+import { PublicReportModule } from './public-report/public-report.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CitizenModule } from './citizen/citizen.module';
     WaterSupplyModule,
     PlumberModule,
     CitizenModule,
+    PublicReportModule,
   ],
   controllers: [AppController],
   providers: [

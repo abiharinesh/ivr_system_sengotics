@@ -502,7 +502,7 @@ class SuperAdminDashboard extends StatelessWidget {
                   ),
                   child: Text(
                     isLoading ? 'Pending: ...' : 'Pending: ${complaints.length}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.error,
