@@ -1,6 +1,7 @@
 import { Client } from 'pg';
 import * as dotenv from 'dotenv';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'crypto';
 
 dotenv.config();
 
@@ -207,10 +208,11 @@ async function main() {
         ];
 
         for (const p of polesData) {
+            const token = randomUUID();
             await client.query(`
-                INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks)
-                VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($4, $3), 4326), $5, $6);
-            `, [p.pole_number, p.keypad_id, p.lat, p.lng, p.panchayat_id, p.landmarks]);
+                INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks, public_report_token)
+                VALUES ($1, $2, $3, $4, ST_SetSRID(ST_MakePoint($4, $3), 4326), $5, $6, $7);
+            `, [p.pole_number, p.keypad_id, p.lat, p.lng, p.panchayat_id, p.landmarks, token]);
         }
 
         // Fetch back poles with their IDs for later mapping

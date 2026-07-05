@@ -4,6 +4,7 @@ require("dotenv/config");
 const client_1 = require("@prisma/client");
 const adapter_pg_1 = require("@prisma/adapter-pg");
 const pg_1 = require("pg");
+const { randomUUID } = require("crypto");
 
 const pool = new pg_1.Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new adapter_pg_1.PrismaPg(pool);
@@ -293,13 +294,15 @@ async function main() {
 
     // Insert all poles with PostGIS geometry + landmarks
     for (const p of polesData) {
+        const token = randomUUID();
         await prisma.$executeRaw`
-            INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks)
+            INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks, public_report_token)
             VALUES (
                 ${p.pole_number}, ${p.keypad_id}, ${p.lat}, ${p.lng},
                 ST_SetSRID(ST_MakePoint(${p.lng}, ${p.lat}), 4326),
                 ${p.panchayat_id},
-                ${p.landmarks}
+                ${p.landmarks},
+                ${token}
             )
         `;
     }
