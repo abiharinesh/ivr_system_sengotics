@@ -1,0 +1,115 @@
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Param,
+  Body,
+  Query,
+  ParseIntPipe,
+} from '@nestjs/common';
+import { PropertyTaxService } from './property-tax.service';
+
+@Controller('property-tax')
+export class PropertyTaxController {
+  constructor(private readonly propertyTaxService: PropertyTaxService) {}
+
+  // ─── Property CRUD ──────────────────────────────────────────────────────────
+
+  /** GET /property-tax/properties?panchayat_id=1 */
+  @Get('properties')
+  async listProperties(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
+    return this.propertyTaxService.listProperties(panchayatId);
+  }
+
+  /** GET /property-tax/properties/:id */
+  @Get('properties/:id')
+  async getProperty(@Param('id', ParseIntPipe) id: number) {
+    return this.propertyTaxService.getPropertyById(id);
+  }
+
+  /** POST /property-tax/properties */
+  @Post('properties')
+  async createProperty(@Body() body: {
+    panchayat_id: number;
+    owner_name: string;
+    owner_phone?: string;
+    door_number?: string;
+    address?: string;
+    property_type?: string;
+    area_sqft: number;
+    latitude?: number;
+    longitude?: number;
+    annual_tax: number;
+  }) {
+    return this.propertyTaxService.createProperty(body);
+  }
+
+  /** PUT /property-tax/properties/:id */
+  @Put('properties/:id')
+  async updateProperty(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: Partial<{
+      owner_name: string;
+      owner_phone: string;
+      address: string;
+      property_type: string;
+      area_sqft: number;
+      annual_tax: number;
+      status: string;
+    }>,
+  ) {
+    return this.propertyTaxService.updateProperty(id, body);
+  }
+
+  // ─── Tax Demands ────────────────────────────────────────────────────────────
+
+  /** POST /property-tax/generate-demands — bulk generate for a financial year */
+  @Post('generate-demands')
+  async generateDemands(@Body() body: {
+    panchayat_id: number;
+    financial_year: string;
+    due_date: string;
+  }) {
+    return this.propertyTaxService.generateTaxDemands(
+      body.panchayat_id,
+      body.financial_year,
+      body.due_date,
+    );
+  }
+
+  // ─── Payments ───────────────────────────────────────────────────────────────
+
+  /** POST /property-tax/payments/:paymentId/pay */
+  @Post('payments/:paymentId/pay')
+  async recordPayment(
+    @Param('paymentId', ParseIntPipe) paymentId: number,
+    @Body() body: {
+      paid_amount: number;
+      payment_method: string;
+      transaction_ref?: string;
+    },
+  ) {
+    return this.propertyTaxService.recordPayment(paymentId, body);
+  }
+
+  // ─── Reports ────────────────────────────────────────────────────────────────
+
+  /** GET /property-tax/defaulters?panchayat_id=1&financial_year=2025-26 */
+  @Get('defaulters')
+  async getDefaulters(
+    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('financial_year') financialYear?: string,
+  ) {
+    return this.propertyTaxService.getDefaulters(panchayatId, financialYear);
+  }
+
+  /** GET /property-tax/revenue-summary?panchayat_id=1&financial_year=2025-26 */
+  @Get('revenue-summary')
+  async getRevenueSummary(
+    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('financial_year') financialYear?: string,
+  ) {
+    return this.propertyTaxService.getRevenueSummary(panchayatId, financialYear);
+  }
+}

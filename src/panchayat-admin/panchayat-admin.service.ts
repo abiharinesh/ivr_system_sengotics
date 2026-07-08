@@ -14,6 +14,7 @@ import {
   type ComplaintResolutionFields,
 } from '../common/dashboard-insights';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { PenaltyService } from '../penalty/penalty.service';
 
 @Injectable()
 export class PanchayatAdminService {
@@ -21,6 +22,7 @@ export class PanchayatAdminService {
   constructor(
     private prisma: PrismaService,
     private readonly whatsApp: WhatsAppService,
+    private readonly penaltyService: PenaltyService,
   ) {}
 
   // ── Profile ────────────────────────────────────────────────────────────
@@ -213,13 +215,23 @@ export class PanchayatAdminService {
         'Access denied — complaint belongs to another panchayat',
       );
 
-    return this.prisma.complaint.update({
+    const updated = await this.prisma.complaint.update({
       where: { id: complaintId },
       data: {
         status,
         ...(status === 'resolved' ? { resolved_at: new Date() } : {}),
       },
     });
+
+    if (status === 'resolved') {
+      try {
+        await this.penaltyService.handleComplaintResolution(complaintId);
+      } catch (err) {
+        this.logger.error(`Error processing resolution penalty for complaint #${complaintId}: ${(err as Error).message}`);
+      }
+    }
+
+    return updated;
   }
 
   /**

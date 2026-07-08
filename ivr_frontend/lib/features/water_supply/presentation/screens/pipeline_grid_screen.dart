@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../../../app.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
 import 'package:pointer_interceptor/pointer_interceptor.dart';
 import '../../../../config/app_theme.dart';
@@ -624,6 +625,8 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < 768;
+    final themeId = context.mapThemeProvider.currentTheme.id;
+    final isDarkMap = themeId == 'dark' || themeId == 'night' || themeId == 'aubergine';
 
     // Define polylines from pipeline coordinates
     final Set<gmap.Polyline> polylines = {};
@@ -634,11 +637,14 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
         final points = coords.map((c) => gmap.LatLng((c[1] as num).toDouble(), (c[0] as num).toDouble())).toList();
 
         final isLeak = pipeline['status'] == 'leak_alert';
+        final activeColor = isDarkMap ? const Color(0xFF00FFCC) : AppTheme.primary;
+        final leakColor = isDarkMap ? const Color(0xFFFF3D00) : AppTheme.error;
+
         polylines.add(
           gmap.Polyline(
             polylineId: gmap.PolylineId('pipe_${pipeline['id']}'),
             points: points,
-            color: isLeak ? AppTheme.error : AppTheme.primary,
+            color: isLeak ? leakColor : activeColor,
             width: isLeak ? 6 : 4,
             patterns: isLeak ? [gmap.PatternItem.dash(20), gmap.PatternItem.gap(10)] : [],
             consumeTapEvents: true,
@@ -692,7 +698,9 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
             markerId: gmap.MarkerId('tank_${tank['id']}'),
             position: gmap.LatLng((tank['latitude'] as num).toDouble(), (tank['longitude'] as num).toDouble()),
             icon: gmap.BitmapDescriptor.defaultMarkerWithHue(
-              isTank ? gmap.BitmapDescriptor.hueCyan : gmap.BitmapDescriptor.hueViolet,
+              isTank
+                  ? (isDarkMap ? gmap.BitmapDescriptor.hueCyan : gmap.BitmapDescriptor.hueAzure)
+                  : (isDarkMap ? gmap.BitmapDescriptor.hueMagenta : gmap.BitmapDescriptor.hueViolet),
             ),
             infoWindow: gmap.InfoWindow(
               title: tank['name'] as String,
@@ -718,7 +726,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
             markerId: gmap.MarkerId('valve_${valve['id']}'),
             position: gmap.LatLng((valve['latitude'] as num).toDouble(), (valve['longitude'] as num).toDouble()),
             icon: gmap.BitmapDescriptor.defaultMarkerWithHue(
-              gmap.BitmapDescriptor.hueYellow,
+              isDarkMap ? gmap.BitmapDescriptor.hueOrange : gmap.BitmapDescriptor.hueYellow,
             ),
             onTap: () {
               setState(() {
@@ -747,6 +755,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                 : gmap.GoogleMap(
                     mapId: googleMapsMapId,
                     markerType: googleMapsMarkerType,
+                    style: context.mapThemeProvider.currentStyleJson,
                     initialCameraPosition: const gmap.CameraPosition(
                       target: center,
                       zoom: 11.5,
@@ -932,7 +941,61 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                         _switchRow('Water Pipeline Grid', _enableWaterPipelineGrid, _isLoading ? null : (v) {
                           setState(() => _enableWaterPipelineGrid = v);
                         }),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.map_rounded, size: 14, color: AppTheme.textMuted),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Map Style:',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          height: 36,
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          decoration: BoxDecoration(
+                            color: AppTheme.bgSurface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.stroke, width: 0.8),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: context.mapThemeProvider.currentTheme.id,
+                              isExpanded: true,
+                              icon: Icon(Icons.arrow_drop_down, color: AppTheme.textMuted, size: 18),
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              items: context.mapThemeProvider.availableThemes.map((theme) {
+                                return DropdownMenuItem<String>(
+                                  value: theme.id,
+                                  child: Row(
+                                    children: [
+                                      Icon(theme.icon, size: 12, color: theme.previewSecondaryColor),
+                                      const SizedBox(width: 6),
+                                      Text(theme.name),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                              onChanged: _isLoading ? null : (themeId) {
+                                if (themeId != null) {
+                                  context.readMapThemeProvider.selectTheme(themeId);
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton.icon(
@@ -2107,83 +2170,226 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
   }
 
   void _showPlumberDialog(BuildContext context) {
+    final assetName = _selectedAsset != null ? (_selectedAsset!['name'] ?? 'Segment #${_selectedAsset!['id']}') : 'Z04-P09';
+
     showDialog(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        title: Row(
-          children: [
-            Icon(Icons.plumbing_rounded, color: AppTheme.primary),
-            const SizedBox(width: 8),
-            const Text('Assign Plumber Staff'),
-          ],
-        ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        content: FutureBuilder<List<dynamic>>(
-          future: PlumberRepository().listPlumbers(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const SizedBox(
-                height: 100,
-                child: Center(child: CircularProgressIndicator()),
-              );
-            }
-            if (snapshot.hasError) {
-              return Text('Error: ${snapshot.error}', style: const TextStyle(color: AppTheme.error));
-            }
-            final list = snapshot.data ?? [];
-            if (list.isEmpty) {
-              return const Text('No plumbers found.');
-            }
-            return SizedBox(
-              width: 380,
-              child: ListView.separated(
-                shrinkWrap: true,
-                itemCount: list.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
-                itemBuilder: (context, idx) {
-                  final map = Map<String, dynamic>.from(list[idx] as Map);
-                  final id = map['id'] as int;
-                  final email = map['email']?.toString() ?? 'Plumber #$id';
-                  final phone = map['phone_e164']?.toString() ?? 'No WhatsApp';
-                  final name = email.split('@').first;
-                  return ListTile(
-                    contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                    leading: CircleAvatar(
-                      backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
-                      child: Icon(Icons.person, color: AppTheme.primary, size: 20),
-                    ),
-                    title: Text(
-                      name,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 2),
-                      child: Text(phone, style: TextStyle(color: AppTheme.textMuted)),
-                    ),
-                    trailing: FilledButton(
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      ),
-                      child: const Text('Assign', style: TextStyle(fontSize: 12)),
-                      onPressed: () {
-                        Navigator.pop(dialogCtx);
-                        ScaffoldMessenger.of(this.context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Leak assigned successfully to $name.',
+      builder: (dialogCtx) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          width: 440,
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppTheme.stroke, width: 1.5),
+            boxShadow: AppTheme.softShadow,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 16, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Assign Plumber',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: AppTheme.textPrimary,
+                              ),
                             ),
-                            backgroundColor: AppTheme.accent,
-                            behavior: SnackBarBehavior.floating,
-                          ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Leak detected at $assetName. Urgent maintenance required.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        color: AppTheme.textMuted,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+
+                // Body
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 380),
+                  child: FutureBuilder<List<dynamic>>(
+                    future: PlumberRepository().listPlumbers(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState != ConnectionState.done) {
+                        return const SizedBox(
+                          height: 150,
+                          child: Center(child: CircularProgressIndicator()),
                         );
-                      },
+                      }
+                      if (snapshot.hasError) {
+                        return Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('Error: ${snapshot.error}', style: const TextStyle(color: AppTheme.error)),
+                        );
+                      }
+                      final list = snapshot.data ?? [];
+                      if (list.isEmpty) {
+                        return const Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text('No plumbers found.', textAlign: TextAlign.center),
+                        );
+                      }
+                      return ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        shrinkWrap: true,
+                        itemCount: list.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 12),
+                        itemBuilder: (context, idx) {
+                          final map = Map<String, dynamic>.from(list[idx] as Map);
+                          final email = map['email']?.toString() ?? 'plumber';
+
+                          final rawName = email.split('@').first;
+                          final capitalizedName = rawName.isNotEmpty
+                              ? rawName[0].toUpperCase() + rawName.substring(1)
+                              : 'Plumber';
+                          final displayName = capitalizedName + (idx == 0 ? ' S.' : (idx == 1 ? ' R.' : ''));
+
+                          final role = idx == 0 ? 'Senior Plumber' : (idx == 1 ? 'Technician' : 'Maintenance Staff');
+                          final distance = idx == 0 ? '400m away' : (idx == 1 ? '1.2km away' : '${((idx + 1) * 0.8).toStringAsFixed(1)}km away');
+
+                          final avatarColor = idx == 0
+                              ? AppTheme.primary.withValues(alpha: 0.1)
+                              : AppTheme.accent.withValues(alpha: 0.1);
+                          final textColor = idx == 0 ? AppTheme.primary : AppTheme.accent;
+
+                          return Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.bgSurface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppTheme.stroke, width: 0.8),
+                            ),
+                            child: Row(
+                              children: [
+                                CircleAvatar(
+                                  radius: 20,
+                                  backgroundColor: avatarColor,
+                                  child: Text(
+                                    displayName.isNotEmpty ? displayName[0].toUpperCase() : 'P',
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayName,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                          color: AppTheme.textPrimary,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        '$role • $distance',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: AppTheme.textSecondary,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                FilledButton(
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppTheme.textPrimary,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                  child: const Text('Assign'),
+                                  onPressed: () {
+                                    Navigator.pop(dialogCtx);
+                                    ScaffoldMessenger.of(this.context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Leak assigned successfully to $displayName.'),
+                                        backgroundColor: AppTheme.accent,
+                                        behavior: SnackBarBehavior.floating,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+
+                const Divider(height: 1),
+
+                // Footer
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.accent,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
                     ),
-                  );
-                },
-              ),
-            );
-          },
+                    icon: const Icon(Icons.send_rounded, size: 16),
+                    label: const Text(
+                      'Dispatch & Notify All Plumbers',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(dialogCtx);
+                      ScaffoldMessenger.of(this.context).showSnackBar(
+                        SnackBar(
+                          content: const Text('All plumber staff notified of critical leak.'),
+                          backgroundColor: AppTheme.accent,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

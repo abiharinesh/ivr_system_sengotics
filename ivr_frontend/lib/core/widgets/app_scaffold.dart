@@ -132,6 +132,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     for (final s in _waterSupplyNavSpecs()) {
       yield s.route;
     }
+    for (final s in _revenueNavSpecs()) {
+      yield s.route;
+    }
     for (final s in _secondaryNavSpecs()) {
       yield s.route;
     }
@@ -200,6 +203,9 @@ class _AppScaffoldState extends State<AppScaffold> {
                 const SizedBox(height: 12),
                 _navLabel('WATER SUPPLY'),
                 ..._getWaterSupplyNavItems(),
+                const SizedBox(height: 12),
+                _navLabel('REVENUE & ASSETS'),
+                ..._getRevenueNavItems(),
                 const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
@@ -393,6 +399,9 @@ class _AppScaffoldState extends State<AppScaffold> {
                 _navLabel('WATER SUPPLY'),
                 ..._getWaterSupplyNavItems(),
                 const SizedBox(height: 12),
+                _navLabel('REVENUE & ASSETS'),
+                ..._getRevenueNavItems(),
+                const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
               ],
@@ -519,6 +528,33 @@ class _AppScaffoldState extends State<AppScaffold> {
   List<Widget> _getWaterSupplyNavItems() {
     final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
     return _waterSupplyNavSpecs()
+        .map((s) => _NavItem(
+              icon: s.icon,
+              label: s.label,
+              route: s.route,
+              isActive: s.route != null && s.route == active,
+              currentRoute: widget.currentRoute,
+            ))
+        .toList();
+  }
+
+  List<_NavSpec> _revenueNavSpecs() {
+    if (widget.userRole == 'agent' || widget.userRole == 'electrician' || widget.userRole == 'plumber') {
+      return const [];
+    }
+    return const [
+      _NavSpec(icon: Icons.currency_rupee_rounded, label: 'Property Tax', route: '/revenue/property-tax'),
+      _NavSpec(icon: Icons.storefront_rounded, label: 'Market Stall Fees', route: '/revenue/markets'),
+      _NavSpec(icon: Icons.domain_rounded, label: 'Community Asset Rental', route: '/revenue/assets'),
+      _NavSpec(icon: Icons.task_rounded, label: 'Certificate Reviews', route: '/revenue/certificates'),
+      _NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
+      _NavSpec(icon: Icons.warning_rounded, label: 'Technician Penalties', route: '/revenue/penalties'),
+    ];
+  }
+
+  List<Widget> _getRevenueNavItems() {
+    final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
+    return _revenueNavSpecs()
         .map((s) => _NavItem(
               icon: s.icon,
               label: s.label,

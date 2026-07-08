@@ -15,6 +15,7 @@ import {
   type ComplaintResolutionFields,
 } from '../common/dashboard-insights';
 import { PanchayatAdminService } from '../panchayat-admin/panchayat-admin.service';
+import { PenaltyService } from '../penalty/penalty.service';
 
 const STAFF_ROLES = ['agent', 'electrician'] as const;
 
@@ -24,6 +25,7 @@ export class SuperAdminService {
   constructor(
     private prisma: PrismaService,
     private readonly panchayatAdmin: PanchayatAdminService,
+    private readonly penaltyService: PenaltyService,
   ) {}
 
   /** Delegate to panchayat-scoped assign (validates electrician + WhatsApp notify). */
@@ -382,13 +384,23 @@ export class SuperAdminService {
     const complaint = await this.prisma.complaint.findUnique({ where: { id } });
     if (!complaint) throw new NotFoundException(`Complaint #${id} not found`);
 
-    return this.prisma.complaint.update({
+    const updated = await this.prisma.complaint.update({
       where: { id },
       data: {
         status,
         ...(status === 'resolved' ? { resolved_at: new Date() } : {}),
       },
     });
+
+    if (status === 'resolved') {
+      try {
+        await this.penaltyService.handleComplaintResolution(id);
+      } catch (err) {
+        this.logger.error(`Error processing resolution penalty for complaint #${id}: ${(err as Error).message}`);
+      }
+    }
+
+    return updated;
   }
 
   /**

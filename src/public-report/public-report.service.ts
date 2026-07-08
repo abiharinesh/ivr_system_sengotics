@@ -2,17 +2,24 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { randomUUID } from 'crypto';
+import { AdCampaignService } from '../ad-campaign/ad-campaign.service';
 
 @Injectable()
 export class PublicReportService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(PublicReportService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly adCampaignService: AdCampaignService,
+  ) {}
 
   // ─── QR / Public Pole Lookup ────────────────────────────────────────────────
 
-  /** Fetch non-sensitive pole info by its permanent QR token. */
+  /** Fetch non-sensitive pole info by its permanent QR token, including active ads. */
   async getPoleByToken(token: string) {
     const pole = await this.prisma.electricPole.findUnique({
       where: { public_report_token: token },
@@ -24,11 +31,38 @@ export class PublicReportService {
         longitude: true,
         landmarks: true,
         public_report_token: true,
+        panchayat_id: true,
         panchayat: { select: { id: true, name: true } },
       },
     });
     if (!pole) throw new NotFoundException('Pole not found or invalid QR code');
-    return pole;
+
+    let activeAd: any = null;
+    if (pole.panchayat_id) {
+      try {
+        activeAd = await this.adCampaignService.getActiveAdForPole(pole.id, pole.panchayat_id);
+        if (activeAd) {
+          // Record impression asynchronously (fire-and-forget/non-blocking)
+          this.adCampaignService.recordImpression(activeAd.id, pole.id).catch(err => {
+            this.logger.error(`Error recording ad impression: ${err.message}`);
+          });
+        }
+      } catch (err) {
+        // Log error but do not fail the request
+        this.logger.error(`Error loading ad for pole: ${(err as Error).message}`);
+      }
+    }
+
+    return {
+      ...pole,
+      active_ad: activeAd ? {
+        id: activeAd.id,
+        title: activeAd.title,
+        description: activeAd.description,
+        image_url: activeAd.image_url,
+        link_url: activeAd.link_url,
+      } : null,
+    };
   }
 
   // ─── Guest Complaint (zero-auth) ───────────────────────────────────────────

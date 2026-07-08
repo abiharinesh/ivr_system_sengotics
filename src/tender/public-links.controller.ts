@@ -8,12 +8,10 @@ import {
   Req,
   UploadedFile,
   UseInterceptors,
-  Headers,
-  Res,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { FileInterceptor } from '@nestjs/platform-express';
-import type { Request, Response } from 'express';
+import type { Request } from 'express';
 import type { UploadedImageFile } from '../common/upload.types';
 import { TenderPublicService } from './public.service';
 
@@ -31,17 +29,8 @@ export class TenderPublicLinksController {
 
   @Get('open/:publicToken')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async readOpen(
-    @Param('publicToken') publicToken: string,
-    @Headers('accept') acceptHeader: string | undefined,
-    @Res() res: Response,
-  ) {
-    const webAppUrl = process.env.WEB_APP_BASE_URL;
-    if (webAppUrl && acceptHeader && acceptHeader.includes('text/html')) {
-      return res.redirect(`${webAppUrl}/public/open/${publicToken}`);
-    }
-    const data = await this.service.readOpen(publicToken);
-    return res.json(data);
+  readOpen(@Param('publicToken') publicToken: string) {
+    return this.service.readOpen(publicToken);
   }
 
   @Post('open/:publicToken/quotations')
@@ -81,17 +70,8 @@ export class TenderPublicLinksController {
 
   @Get('invite/:inviteToken')
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async readInvite(
-    @Param('inviteToken') inviteToken: string,
-    @Headers('accept') acceptHeader: string | undefined,
-    @Res() res: Response,
-  ) {
-    const webAppUrl = process.env.WEB_APP_BASE_URL;
-    if (webAppUrl && acceptHeader && acceptHeader.includes('text/html')) {
-      return res.redirect(`${webAppUrl}/public/invite/${inviteToken}`);
-    }
-    const data = await this.service.readInvite(inviteToken);
-    return res.json(data);
+  readInvite(@Param('inviteToken') inviteToken: string) {
+    return this.service.readInvite(inviteToken);
   }
 
   @Post('invite/:inviteToken/quotation')

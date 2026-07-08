@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -23,6 +24,14 @@ import { PlumberModule } from './plumber/plumber.module';
 import { CitizenModule } from './citizen/citizen.module';
 import { PublicReportModule } from './public-report/public-report.module';
 
+// Revenue Generation Modules
+import { AdCampaignModule } from './ad-campaign/ad-campaign.module';
+import { PenaltyModule } from './penalty/penalty.module';
+import { PropertyTaxModule } from './property-tax/property-tax.module';
+import { CertificateModule } from './certificate/certificate.module';
+import { AssetBookingModule } from './asset-booking/asset-booking.module';
+import { MarketModule } from './market/market.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -35,6 +44,7 @@ import { PublicReportModule } from './public-report/public-report.module';
         limit: 30, // 30 requests per 60s (generous default)
       },
     ]),
+    ScheduleModule.forRoot(),
     PrismaModule,
     StorageModule,
     IvrModule,
@@ -53,6 +63,14 @@ import { PublicReportModule } from './public-report/public-report.module';
     PlumberModule,
     CitizenModule,
     PublicReportModule,
+    
+    // Revenue Generation Modules
+    AdCampaignModule,
+    PenaltyModule,
+    PropertyTaxModule,
+    CertificateModule,
+    AssetBookingModule,
+    MarketModule,
   ],
   controllers: [AppController],
   providers: [

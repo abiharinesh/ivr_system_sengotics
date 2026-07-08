@@ -94,6 +94,17 @@ model Panchayat {
   tenders        Tender[]
   zones          PanchayatZone[]
 
+  // Revenue module relations
+  ad_campaigns         AdCampaign[]
+  penalty_rules        PenaltyRule[]
+  properties           Property[]
+  certificate_requests CertificateRequest[]
+  panchayat_assets     PanchayatAsset[]
+  market_days          MarketDay[]
+  market_vendors       MarketVendor[]
+  water_connections    WaterConnection[]
+  pole_leases          PoleLeaseAgreement[]
+
   @@map("panchayats")
 }
 
@@ -138,6 +149,9 @@ model User {
   field_sessions_created   FieldVerificationSession[] @relation("FieldSessionCreator")
   tender_audit_events      TenderAuditLog[]           @relation("TenderAuditActor")
 
+  // Revenue module relations
+  penalties              UserPenalty[]
+
   @@map("users")
 }
 
@@ -169,6 +183,7 @@ model ElectricPole {
   field_uploads_matched     FieldVerificationUpload[]   @relation("FieldUploadMatched")
   field_uploads_manual      FieldVerificationUpload[]   @relation("FieldUploadManual")
   tender_checklist_items    TenderFieldChecklistItem[]
+  pole_leases              PoleLeaseAgreement[]
 
   @@unique([panchayat_id, keypad_id])
   @@map("electric_poles")
@@ -221,6 +236,7 @@ model Complaint {
   assigned_plumber     User?       @relation("AssignedPlumber", fields: [assigned_plumber_id], references: [id])
 
   tender_line_items   TenderLineItem[]
+  penalties           UserPenalty[]
 
   @@map("complaints")
 }
@@ -613,5 +629,328 @@ model CapturedAsset {
   updated_at   DateTime @updatedAt
 
   @@map("captured_assets")
+}
+
+// =====================================================================
+//  REVENUE GENERATION MODULES
+// =====================================================================
+
+/** QR code ad campaign — shown when citizens scan pole QR codes. */
+model AdCampaign {
+  id               Int       @id @default(autoincrement())
+  panchayat_id     Int
+  advertiser_name  String
+  advertiser_phone String?
+  title            String
+  description      String?
+  image_url        String?
+  link_url         String?
+  campaign_type    String    @default("standard") // basic, standard, premium
+  target_zone_ids  Int[]     @default([])
+  target_pole_ids  Int[]     @default([])
+  amount_paid      Decimal   @db.Decimal(12, 2)
+  starts_at        DateTime
+  ends_at          DateTime
+  is_active        Boolean   @default(true)
+  total_impressions Int      @default(0)
+  total_clicks     Int       @default(0)
+  created_at       DateTime  @default(now())
+  updated_at       DateTime  @updatedAt
+
+  panchayat   Panchayat      @relation(fields: [panchayat_id], references: [id])
+  impressions AdImpression[]
+
+  @@index([panchayat_id, is_active])
+  @@map("ad_campaigns")
+}
+
+/** Tracks each QR scan impression and click for ad campaigns. */
+model AdImpression {
+  id          BigInt   @id @default(autoincrement())
+  campaign_id Int
+  pole_id     Int?
+  device_ip   String?
+  scanned_at  DateTime @default(now())
+  clicked     Boolean  @default(false)
+
+  campaign AdCampaign @relation(fields: [campaign_id], references: [id], onDelete: Cascade)
+
+  @@index([campaign_id, scanned_at])
+  @@map("ad_impressions")
+}
+
+/** SLA rules per panchayat defining deadlines and penalty rates for workers. */
+model PenaltyRule {
+  id             Int      @id @default(autoincrement())
+  panchayat_id   Int
+  role           String   // plumber, electrician
+  urgency_level  String   // low, medium, high, critical
+  deadline_hours Int
+  penalty_amount Decimal  @db.Decimal(12, 2)
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  panchayat Panchayat @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+
+  @@unique([panchayat_id, role, urgency_level])
+  @@map("penalty_rules")
+}
+
+/** Record of a penalty applied to a worker for SLA violation. */
+model UserPenalty {
+  id             Int      @id @default(autoincrement())
+  user_id        Int
+  complaint_id   Int
+  amount         Decimal  @db.Decimal(12, 2)
+  reason         String
+  hours_delayed  Float
+  status         String   @default("pending") // pending, waived, deducted
+  waived_reason  String?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  user      User      @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  complaint Complaint @relation(fields: [complaint_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([complaint_id])
+  @@map("user_penalties")
+}
+
+/** Registered property for house/property tax collection. */
+model Property {
+  id             Int      @id @default(autoincrement())
+  panchayat_id   Int
+  owner_name     String
+  owner_phone    String?
+  door_number    String?
+  address        String?
+  property_type  String   @default("residential") // residential, commercial, vacant_land, industrial
+  area_sqft      Float
+  latitude       Float?
+  longitude      Float?
+  annual_tax     Decimal  @db.Decimal(12, 2)
+  status         String   @default("active") // active, demolished, exempted
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  panchayat    Panchayat    @relation(fields: [panchayat_id], references: [id])
+  tax_payments TaxPayment[]
+
+  @@unique([panchayat_id, door_number])
+  @@index([panchayat_id])
+  @@map("properties")
+}
+
+/** Individual tax payment record per financial year. */
+model TaxPayment {
+  id              Int       @id @default(autoincrement())
+  property_id     Int
+  financial_year  String    // "2025-26"
+  demand_amount   Decimal   @db.Decimal(12, 2)
+  penalty_amount  Decimal   @default(0) @db.Decimal(12, 2)
+  paid_amount     Decimal   @default(0) @db.Decimal(12, 2)
+  payment_method  String?   // upi, razorpay, cash, bank_transfer
+  transaction_ref String?
+  paid_at         DateTime?
+  receipt_url     String?
+  status          String    @default("unpaid") // unpaid, partial, paid, overdue
+  due_date        DateTime
+  created_at      DateTime  @default(now())
+
+  property Property @relation(fields: [property_id], references: [id])
+
+  @@index([property_id, financial_year])
+  @@map("tax_payments")
+}
+
+/** Certificate or permit application from citizens. */
+model CertificateRequest {
+  id                Int       @id @default(autoincrement())
+  panchayat_id      Int
+  certificate_type  String    // birth, death, income, residence, trade_license, building_permit
+  applicant_name    String
+  applicant_phone   String?
+  applicant_email   String?
+  application_data  Json?
+  fee_amount        Decimal   @db.Decimal(10, 2)
+  payment_status    String    @default("unpaid") // unpaid, paid
+  payment_ref       String?
+  review_status     String    @default("pending") // pending, approved, rejected
+  reviewer_notes    String?
+  certificate_url   String?
+  certificate_qr    String?   @unique
+  applied_at        DateTime  @default(now())
+  reviewed_at       DateTime?
+  issued_at         DateTime?
+
+  panchayat Panchayat @relation(fields: [panchayat_id], references: [id])
+
+  @@index([panchayat_id, certificate_type])
+  @@map("certificate_requests")
+}
+
+/** Panchayat-owned rentable asset (hall, ground, equipment). */
+model PanchayatAsset {
+  id             Int      @id @default(autoincrement())
+  panchayat_id   Int
+  name           String
+  asset_type     String   // hall, ground, equipment, vehicle
+  description    String?
+  daily_rate     Decimal  @db.Decimal(10, 2)
+  hourly_rate    Decimal? @db.Decimal(10, 2)
+  deposit_amount Decimal  @default(0) @db.Decimal(10, 2)
+  max_capacity   Int?
+  image_url      String?
+  is_available   Boolean  @default(true)
+  created_at     DateTime @default(now())
+
+  panchayat Panchayat     @relation(fields: [panchayat_id], references: [id])
+  bookings  AssetBooking[]
+
+  @@index([panchayat_id])
+  @@map("panchayat_assets")
+}
+
+/** Booking record for a panchayat asset. */
+model AssetBooking {
+  id               Int       @id @default(autoincrement())
+  asset_id         Int
+  booked_by_name   String
+  booked_by_phone  String
+  event_type       String?
+  start_date       DateTime
+  end_date         DateTime
+  total_amount     Decimal   @db.Decimal(10, 2)
+  deposit_paid     Decimal   @default(0) @db.Decimal(10, 2)
+  balance_amount   Decimal   @default(0) @db.Decimal(10, 2)
+  payment_ref      String?
+  booking_status   String    @default("pending") // pending, confirmed, cancelled, completed
+  booking_token    String    @unique @default(uuid())
+  cancelled_at     DateTime?
+  cancellation_fee Decimal?  @db.Decimal(10, 2)
+  created_at       DateTime  @default(now())
+
+  asset PanchayatAsset @relation(fields: [asset_id], references: [id])
+
+  @@index([asset_id, start_date, end_date])
+  @@map("asset_bookings")
+}
+
+/** Weekly/daily market definition. */
+model MarketDay {
+  id           Int      @id @default(autoincrement())
+  panchayat_id Int
+  name         String
+  location     String?
+  day_of_week  Int      // 0=Sun, 1=Mon, etc.
+  daily_fee    Decimal  @db.Decimal(8, 2)
+  is_active    Boolean  @default(true)
+
+  panchayat       Panchayat              @relation(fields: [panchayat_id], references: [id])
+  vendor_payments MarketVendorPayment[]
+
+  @@map("market_days")
+}
+
+/** Registered market vendor with QR-based identification. */
+model MarketVendor {
+  id            Int      @id @default(autoincrement())
+  panchayat_id  Int
+  vendor_name   String
+  vendor_phone  String
+  business_type String?
+  photo_url     String?
+  vendor_token  String   @unique @default(uuid())
+  is_active     Boolean  @default(true)
+  registered_at DateTime @default(now())
+
+  panchayat Panchayat              @relation(fields: [panchayat_id], references: [id])
+  payments  MarketVendorPayment[]
+
+  @@unique([panchayat_id, vendor_phone])
+  @@map("market_vendors")
+}
+
+/** Individual daily fee payment from a market vendor. */
+model MarketVendorPayment {
+  id             Int      @id @default(autoincrement())
+  vendor_id      Int
+  market_day_id  Int
+  amount_paid    Decimal  @db.Decimal(8, 2)
+  payment_method String   @default("cash")
+  collected_by   String?
+  paid_at        DateTime @default(now())
+
+  vendor     MarketVendor @relation(fields: [vendor_id], references: [id])
+  market_day MarketDay    @relation(fields: [market_day_id], references: [id])
+
+  @@index([market_day_id, paid_at])
+  @@map("market_vendor_payments")
+}
+
+/** Water connection for billing and metered charge collection. */
+model WaterConnection {
+  id                Int      @id @default(autoincrement())
+  panchayat_id      Int
+  connection_number String   @unique
+  owner_name        String
+  owner_phone       String?
+  connection_type   String   @default("domestic") // domestic, commercial, agricultural
+  monthly_rate      Decimal  @db.Decimal(10, 2)
+  is_metered        Boolean  @default(false)
+  meter_reading     Float?
+  status            String   @default("active") // active, disconnected, temporary_stop
+  connected_at      DateTime @default(now())
+
+  panchayat Panchayat   @relation(fields: [panchayat_id], references: [id])
+  bills     WaterBill[]
+
+  @@index([panchayat_id])
+  @@map("water_connections")
+}
+
+/** Monthly water bill for a connection. */
+model WaterBill {
+  id              Int       @id @default(autoincrement())
+  connection_id   Int
+  bill_month      String    // "2025-07"
+  units_consumed  Float?
+  bill_amount     Decimal   @db.Decimal(10, 2)
+  penalty_amount  Decimal   @default(0) @db.Decimal(10, 2)
+  paid_amount     Decimal   @default(0) @db.Decimal(10, 2)
+  payment_method  String?
+  transaction_ref String?
+  paid_at         DateTime?
+  status          String    @default("unpaid")
+  due_date        DateTime
+  created_at      DateTime  @default(now())
+
+  connection WaterConnection @relation(fields: [connection_id], references: [id])
+
+  @@unique([connection_id, bill_month])
+  @@map("water_bills")
+}
+
+/** Lease agreement for mounting equipment on streetlight poles. */
+model PoleLeaseAgreement {
+  id              Int       @id @default(autoincrement())
+  pole_id         Int
+  panchayat_id    Int
+  lessee_name     String
+  equipment_type  String    // 5g_antenna, wifi, cctv, sensor, signage
+  monthly_rent    Decimal   @db.Decimal(10, 2)
+  agreement_start DateTime
+  agreement_end   DateTime
+  status          String    @default("active") // active, expired, terminated
+  agreement_doc   String?
+  created_at      DateTime  @default(now())
+
+  pole      ElectricPole @relation(fields: [pole_id], references: [id])
+  panchayat Panchayat    @relation(fields: [panchayat_id], references: [id])
+
+  @@index([panchayat_id])
+  @@map("pole_lease_agreements")
 }
 

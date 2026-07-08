@@ -6,9 +6,10 @@ import { AuthModule } from '../auth/auth.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 import { ElectricianOpsModule } from '../field-ops/field-ops.module';
 import { PlumberModule } from '../plumber/plumber.module';
+import { PenaltyModule } from '../penalty/penalty.module';
 
 @Module({
-  imports: [PrismaModule, AuthModule, WhatsAppModule, ElectricianOpsModule, PlumberModule],
+  imports: [PrismaModule, AuthModule, WhatsAppModule, ElectricianOpsModule, PlumberModule, PenaltyModule],
   providers: [PanchayatAdminService],
   controllers: [PanchayatAdminController],
   exports: [PanchayatAdminService],

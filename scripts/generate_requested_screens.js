@@ -8,9 +8,9 @@ const projectId = '8452091723434700175';
 
 const screensToGenerate = [
   {
-    name: 'complaints',
+    name: 'pipeline_grid',
     deviceType: 'DESKTOP',
-    prompt: 'Premium Panchayat Admin Complaint Management Screen. The design is modern, smooth, and extremely detailed. It features a split layout. The left column is a complaints list with search, filters (All, Pending, In Progress, Resolved, Rejected), and rich status badges. Each item card has a glassmorphic border, a colored indicator line, urgency tag, caller emotion tag, and date. The right section is a bento grid workspace for the selected complaint: 1. A premium audio player card with custom gradients, interactive play/pause controls, and an animated sound waveform. 2. A side-by-side transcript card displaying original native Tamil text (left) and English translation (right) with clean typography. 3. An AI insights card containing caller emotion analysis (frustrated/calm), confidence scores, and automatically parsed category. 4. A precise GIS location map card showing coordinates, landmarks, and nearest pole details. 5. Administrative control card with smooth dropdown menus to assign technicians (electricians/plumbers) and update status. Visual theme uses deep slate navy and soft white surfaces, vibrant primary blues, emerald green for resolved items, and amber warnings.'
+    prompt: 'Panchayat Admin Water Pipeline Grid and Leak Monitor Screen. Central View: A large, interactive GIS satellite map rendering water pipeline paths (GeoJSON LineString) and water supply tanks (overhead reservoirs, borewell pumps). Use a dark-themed map base for high contrast with the emerald green and slate blue brand colors. Show a "Leak Alert" pulse animation on a specific section of the map. Right Side Panel (Data-Dense): Section 1: "Pipeline Inventory" list. Section 2: "Real-time Telemetry" charts showing flow rate in LPS and water pressure in bars. Prominent "Assign Plumber" dialog open for section Z04-P09 with Karthik S. and Ananya R. details. Ultra-modern neon accents, dark premium glassmorphic HUD cards.'
   }
 ];
 

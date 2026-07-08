@@ -70,6 +70,13 @@ import '../features/water_supply/presentation/screens/water_flow_logs_screen.dar
 import '../features/agent/presentation/screens/agent_pipeline_tap_capture_screen.dart';
 import '../features/water_supply/presentation/screens/infrastructure_approval_screen.dart';
 
+import '../features/reports/presentation/ad_campaign_screen.dart';
+import '../features/reports/presentation/penalty_management_screen.dart';
+import '../features/reports/presentation/property_tax_screen.dart';
+import '../features/reports/presentation/certificate_review_screen.dart';
+import '../features/reports/presentation/asset_booking_screen.dart';
+import '../features/reports/presentation/market_fees_screen.dart';
+
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
 
@@ -500,6 +507,32 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/water/approvals',
             builder: (context, state) => const InfrastructureApprovalScreen(),
           ),
+          
+          // Revenue Generation Routes
+          GoRoute(
+            path: '/revenue/ads',
+            builder: (context, state) => const AdCampaignScreen(),
+          ),
+          GoRoute(
+            path: '/revenue/penalties',
+            builder: (context, state) => const PenaltyManagementScreen(),
+          ),
+          GoRoute(
+            path: '/revenue/property-tax',
+            builder: (context, state) => const PropertyTaxScreen(),
+          ),
+          GoRoute(
+            path: '/revenue/certificates',
+            builder: (context, state) => const CertificateReviewScreen(),
+          ),
+          GoRoute(
+            path: '/revenue/assets',
+            builder: (context, state) => const AssetBookingScreen(),
+          ),
+          GoRoute(
+            path: '/revenue/markets',
+            builder: (context, state) => const MarketFeesScreen(),
+          ),
         ],
       ),
     ],
@@ -579,6 +612,18 @@ String _getTitle(String location) {
       return 'Agent — Pipeline & Tap Capture';
     case '/water/approvals':
       return 'Infrastructure Approvals';
+    case '/revenue/ads':
+      return 'Ad Campaigns';
+    case '/revenue/penalties':
+      return 'Technician Penalties';
+    case '/revenue/property-tax':
+      return 'Property Tax Collection';
+    case '/revenue/certificates':
+      return 'Certificate Reviews';
+    case '/revenue/assets':
+      return 'Community Asset Rental';
+    case '/revenue/markets':
+      return 'Market Stall Fees';
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
