@@ -20,17 +20,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: {
-    sub: number;
-    email: string;
-    role: string;
-    panchayat_id: number | null;
-  }) {
+  async validate(payload: any) {
     return {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
       panchayat_id: payload.panchayat_id,
+      tenant_id: payload.tenant_id,
+      user_type: payload.user_type,
+      employee_id: payload.employee_id,
+      access_scope: payload.access_scope,
     };
   }
 }

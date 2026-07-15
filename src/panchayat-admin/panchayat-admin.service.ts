@@ -15,6 +15,7 @@ import {
 } from '../common/dashboard-insights';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
 import { PenaltyService } from '../penalty/penalty.service';
+import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
 
 @Injectable()
 export class PanchayatAdminService {
@@ -23,7 +24,19 @@ export class PanchayatAdminService {
     private prisma: PrismaService,
     private readonly whatsApp: WhatsAppService,
     private readonly penaltyService: PenaltyService,
+    private readonly hierarchyService: BranchHierarchyService,
   ) {}
+
+  private async getBranchIdsScope(
+    tenantId: string,
+    panchayatId: number,
+    accessScope: string,
+  ): Promise<number[]> {
+    if (accessScope === 'child_branches') {
+      return this.hierarchyService.getDescendantBranchIds(tenantId, panchayatId);
+    }
+    return [panchayatId];
+  }
 
   // ── Profile ────────────────────────────────────────────────────────────
 
@@ -76,9 +89,10 @@ export class PanchayatAdminService {
     return pole;
   }
 
-  async listPoles(panchayatId: number) {
+  async listPoles(panchayatId: number, tenantId = 'default', accessScope = 'own_branch') {
+    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
     return this.prisma.electricPole.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { panchayat_id: { in: branchIds } },
       include: {
         _count: { select: { complaints: true } },
         complaints: { select: { status: true } },
@@ -141,9 +155,10 @@ export class PanchayatAdminService {
 
   // ── Complaint Management (scoped to their panchayat) ──────────────────
 
-  async listComplaints(panchayatId: number, status?: string) {
+  async listComplaints(panchayatId: number, tenantId = 'default', accessScope = 'own_branch', status?: string) {
+    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
     return this.prisma.complaint.findMany({
-      where: { panchayat_id: panchayatId, ...(status && { status }) },
+      where: { panchayat_id: { in: branchIds }, ...(status && { status }) },
       include: {
         pole: true,
         voice_call: true,
@@ -473,7 +488,7 @@ export class PanchayatAdminService {
 
   // ── Stats (scoped to their panchayat) ─────────────────────────────────
 
-  async getDashboardInsights(panchayatId: number) {
+  async getDashboardInsights(panchayatId: number, tenantId = 'default', accessScope = 'own_branch') {
     const now = new Date();
     const currentWeekStart = utcMondayWeekStart(now);
     const lastWeekStart = new Date(currentWeekStart);
@@ -481,7 +496,8 @@ export class PanchayatAdminService {
     const currentWeekEnd = new Date(currentWeekStart);
     currentWeekEnd.setUTCDate(currentWeekEnd.getUTCDate() + 7);
 
-    const scope = { panchayat_id: panchayatId };
+    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
+    const scope = { panchayat_id: { in: branchIds } };
     const trendOr = [
       { resolved_at: { gte: lastWeekStart, lt: currentWeekEnd } },
       {
@@ -577,19 +593,20 @@ export class PanchayatAdminService {
     return { resolution_trend, by_category, recent_activity };
   }
 
-  async getStats(panchayatId: number) {
+  async getStats(panchayatId: number, tenantId = 'default', accessScope = 'own_branch') {
+    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
     const [total, pending, resolved, manual_review, poles] = await Promise.all([
-      this.prisma.complaint.count({ where: { panchayat_id: panchayatId } }),
+      this.prisma.complaint.count({ where: { panchayat_id: { in: branchIds } } }),
       this.prisma.complaint.count({
-        where: { panchayat_id: panchayatId, status: 'pending' },
+        where: { panchayat_id: { in: branchIds }, status: 'pending' },
       }),
       this.prisma.complaint.count({
-        where: { panchayat_id: panchayatId, status: 'resolved' },
+        where: { panchayat_id: { in: branchIds }, status: 'resolved' },
       }),
       this.prisma.complaint.count({
-        where: { panchayat_id: panchayatId, status: 'manual_review' },
+        where: { panchayat_id: { in: branchIds }, status: 'manual_review' },
       }),
-      this.prisma.electricPole.count({ where: { panchayat_id: panchayatId } }),
+      this.prisma.electricPole.count({ where: { panchayat_id: { in: branchIds } } }),
     ]);
     return {
       total_complaints: total,

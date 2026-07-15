@@ -89,14 +89,30 @@ export class SuperAdminController {
       ivr_number?: string;
       center_lat?: number;
       center_lng?: number;
+      tenant_id?: string;
+      branch_type?: any;
+      branch_status?: any;
+      branch_code?: string;
+      parent_branch_id?: number;
+      district?: string;
+      taluk?: string;
+      block?: string;
+      village?: string;
+      ward_count?: number;
+      gis_boundary?: any;
+      area_sq_km?: number;
+      contact_phone?: string;
+      contact_email?: string;
+      address?: string;
+      logo_url?: string;
     },
   ) {
     return this.superAdminService.createPanchayat(body);
   }
 
   @Get('panchayats')
-  listPanchayats() {
-    return this.superAdminService.listPanchayats();
+  listPanchayats(@Query('tenant_id') tenantId?: string) {
+    return this.superAdminService.listPanchayats(tenantId ?? 'default');
   }
 
   @Get('panchayats/:id')
@@ -113,6 +129,21 @@ export class SuperAdminController {
       ivr_number?: string;
       center_lat?: number;
       center_lng?: number;
+      branch_type?: any;
+      branch_status?: any;
+      branch_code?: string;
+      parent_branch_id?: number;
+      district?: string;
+      taluk?: string;
+      block?: string;
+      village?: string;
+      ward_count?: number;
+      gis_boundary?: any;
+      area_sq_km?: number;
+      contact_phone?: string;
+      contact_email?: string;
+      address?: string;
+      logo_url?: string;
     },
   ) {
     return this.superAdminService.updatePanchayat(id, body);
@@ -121,6 +152,27 @@ export class SuperAdminController {
   @Delete('panchayats/:id')
   deletePanchayat(@Param('id', ParseIntPipe) id: number) {
     return this.superAdminService.deletePanchayat(id);
+  }
+
+  @Get('panchayats/:id/features')
+  getFeatureConfig(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.getFeatureConfig(id);
+  }
+
+  @Put('panchayats/:id/features')
+  updateFeatureConfig(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    return this.superAdminService.updateFeatureConfig(id, body);
+  }
+
+  @Get('panchayats/:id/lifecycle')
+  getLifecycleEvents(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('tenant_id') tenantId?: string,
+  ) {
+    return this.superAdminService.getLifecycleEvents(tenantId ?? 'default', id);
   }
 
   // ── Pole Management (all panchayats) ─────────────────────────────────────

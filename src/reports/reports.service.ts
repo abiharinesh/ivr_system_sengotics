@@ -1,5 +1,24 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+export class CreateWidgetDto {
+  code: string;
+  title: string;
+  widget_type: string;
+  data_source: string;
+  query_config: any;
+  default_size?: string;
+}
+
+export class CreateSavedReportDto {
+  name: string;
+  report_type: string;
+  format?: string;
+  filters?: any;
+  schedule_cron?: string;
+  email_to?: string[];
+  created_by: number;
+}
 
 function csvEscape(value: string | number | null | undefined): string {
   if (value == null) return '';
@@ -925,5 +944,119 @@ export class ReportsService {
         </body>
         </html>
         `;
+  }
+
+  // ── 8. DASHBOARD WIDGETS CRUD ─────────────────────────────────────────
+  async createWidget(tenantId: string, dto: CreateWidgetDto) {
+    return this.prisma.dashboardWidget.upsert({
+      where: {
+        tenant_id_code: {
+          tenant_id: tenantId,
+          code: dto.code,
+        },
+      },
+      update: {
+        title: dto.title,
+        widget_type: dto.widget_type,
+        data_source: dto.data_source,
+        query_config: dto.query_config as any,
+        default_size: dto.default_size ?? 'medium',
+      },
+      create: {
+        tenant_id: tenantId,
+        code: dto.code,
+        title: dto.title,
+        widget_type: dto.widget_type,
+        data_source: dto.data_source,
+        query_config: dto.query_config as any,
+        default_size: dto.default_size ?? 'medium',
+        is_active: true,
+      },
+    });
+  }
+
+  async getWidgets(tenantId: string) {
+    return this.prisma.dashboardWidget.findMany({
+      where: { tenant_id: tenantId, is_active: true },
+    });
+  }
+
+  // ── 9. ROLE DASHBOARDS CRUD ───────────────────────────────────────────
+  async updateRoleDashboard(tenantId: string, roleName: string, widgetIds: number[], layout?: any) {
+    return this.prisma.roleDashboard.upsert({
+      where: {
+        tenant_id_role_name: {
+          tenant_id: tenantId,
+          role_name: roleName,
+        },
+      },
+      update: {
+        widget_ids: widgetIds,
+        layout: layout ? (layout as any) : null,
+      },
+      create: {
+        tenant_id: tenantId,
+        role_name: roleName,
+        widget_ids: widgetIds,
+        layout: layout ? (layout as any) : null,
+      },
+    });
+  }
+
+  async getRoleDashboard(tenantId: string, roleName: string) {
+    const layout = await this.prisma.roleDashboard.findFirst({
+      where: { tenant_id: tenantId, role_name: roleName },
+    });
+    if (!layout) {
+      return { tenant_id: tenantId, role_name: roleName, widget_ids: [], layout: null };
+    }
+    return layout;
+  }
+
+  // ── 10. SAVED REPORTS CRUD & SCHEDULING ────────────────────────────────
+  async createSavedReport(tenantId: string, branchId: number, dto: CreateSavedReportDto) {
+    return this.prisma.savedReport.create({
+      data: {
+        tenant_id: tenantId,
+        branch_id: branchId,
+        name: dto.name,
+        report_type: dto.report_type,
+        format: dto.format ?? 'pdf',
+        filters: dto.filters ? (dto.filters as any) : null,
+        schedule_cron: dto.schedule_cron ?? null,
+        email_to: dto.email_to ?? [],
+        created_by: dto.created_by,
+      },
+    });
+  }
+
+  async getSavedReports(tenantId: string, branchId: number) {
+    return this.prisma.savedReport.findMany({
+      where: { tenant_id: tenantId, branch_id: branchId },
+    });
+  }
+
+  async triggerReportGeneration(tenantId: string, reportId: number) {
+    const report = await this.prisma.savedReport.findFirst({
+      where: { id: reportId, tenant_id: tenantId },
+    });
+    if (!report) throw new NotFoundException(`Saved report #${reportId} not found.`);
+
+    let payload = '';
+    if (report.format === 'csv') {
+      payload = await this.buildCSV(report.report_type, report.branch_id ?? 1, report.filters || {});
+    } else {
+      payload = await this.buildHTML(report.report_type, report.branch_id ?? 1, report.filters || {});
+    }
+
+    const updated = await this.prisma.savedReport.update({
+      where: { id: reportId },
+      data: { last_generated: new Date() },
+    });
+
+    return {
+      report: updated,
+      payload_preview: payload.substring(0, 150) + '...',
+    };
   }
 }

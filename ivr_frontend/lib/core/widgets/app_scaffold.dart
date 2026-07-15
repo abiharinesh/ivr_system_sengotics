@@ -135,6 +135,9 @@ class _AppScaffoldState extends State<AppScaffold> {
     for (final s in _revenueNavSpecs()) {
       yield s.route;
     }
+    for (final s in _operationsNavSpecs()) {
+      yield s.route;
+    }
     for (final s in _secondaryNavSpecs()) {
       yield s.route;
     }
@@ -206,6 +209,9 @@ class _AppScaffoldState extends State<AppScaffold> {
                 const SizedBox(height: 12),
                 _navLabel('REVENUE & ASSETS'),
                 ..._getRevenueNavItems(),
+                const SizedBox(height: 12),
+                _navLabel('OPERATIONS & PORTAL'),
+                ..._getOperationsNavItems(),
                 const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
@@ -402,6 +408,9 @@ class _AppScaffoldState extends State<AppScaffold> {
                 _navLabel('REVENUE & ASSETS'),
                 ..._getRevenueNavItems(),
                 const SizedBox(height: 12),
+                _navLabel('OPERATIONS & PORTAL'),
+                ..._getOperationsNavItems(),
+                const SizedBox(height: 12),
                 _navLabel('REPORTS & SYSTEM'),
                 ..._getSecondaryNavItems(),
               ],
@@ -565,6 +574,32 @@ class _AppScaffoldState extends State<AppScaffold> {
         .toList();
   }
 
+  List<_NavSpec> _operationsNavSpecs() {
+    if (widget.userRole == 'agent' || widget.userRole == 'electrician' || widget.userRole == 'plumber') {
+      return const [];
+    }
+    return const [
+      _NavSpec(icon: Icons.engineering_outlined, label: 'Contractors', route: '/contractors'),
+      _NavSpec(icon: Icons.checklist_rtl_outlined, label: 'Field Inspections', route: '/inspections'),
+      _NavSpec(icon: Icons.manage_search_rounded, label: 'Universal Search', route: '/search'),
+      _NavSpec(icon: Icons.campaign_outlined, label: 'Citizen Portal', route: '/citizen-portal'),
+      _NavSpec(icon: Icons.account_balance_outlined, label: 'Municipality Modules', route: '/municipality'),
+    ];
+  }
+
+  List<Widget> _getOperationsNavItems() {
+    final active = _activeRouteFor(_allNavRoutes(), widget.currentRoute);
+    return _operationsNavSpecs()
+        .map((s) => _NavItem(
+              icon: s.icon,
+              label: s.label,
+              route: s.route,
+              isActive: s.route != null && s.route == active,
+              currentRoute: widget.currentRoute,
+            ))
+        .toList();
+  }
+
   Widget _navLabel(String label) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
@@ -595,6 +630,13 @@ class _AppScaffoldState extends State<AppScaffold> {
       final route = term.isEmpty
           ? '/electrician/jobs'
           : '/electrician/jobs?q=${Uri.encodeComponent(term)}';
+      context.go(route);
+      return;
+    }
+    // Admins use Universal Search (Phase 9)
+    if (widget.userRole == 'super_admin' || widget.userRole == 'panchayat_admin') {
+      final route =
+          term.isEmpty ? '/search' : '/search?q=${Uri.encodeComponent(term)}';
       context.go(route);
       return;
     }

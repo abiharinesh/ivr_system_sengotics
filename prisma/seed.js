@@ -15,13 +15,18 @@ async function main() {
 
     // ── Clear existing data ──────────────────────────────────────────────
     console.log('🧹 Clearing existing data...');
-    await prisma.complaint.deleteMany();
-    await prisma.electricPole.deleteMany();
-    await prisma.voiceCall.deleteMany();
-    await prisma.ivrPollInput.deleteMany();
-    await prisma.ivrServiceSelection.deleteMany();
-    await prisma.callsMaster.deleteMany();
-    await prisma.panchayat.deleteMany();
+    const tablenames = await prisma.$queryRaw`
+      SELECT tablename FROM pg_tables WHERE schemaname='public'
+    `;
+    for (const { tablename } of tablenames) {
+      if (tablename !== '_prisma_migrations') {
+        try {
+          await prisma.$executeRawUnsafe(`TRUNCATE TABLE "public"."${tablename}" CASCADE;`);
+        } catch (error) {
+          console.log(`Failed to truncate ${tablename}: ${error.message}`);
+        }
+      }
+    }
 
     // ══════════════════════════════════════════════════════════════════════
     //  PANCHAYATS

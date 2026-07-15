@@ -8,6 +8,29 @@ datasource db {
   extensions = [postgis]
 }
 
+// =====================================================================
+//  ENUMS — Branch types & statuses for all TN local bodies
+// =====================================================================
+
+enum BranchType {
+  VILLAGE_PANCHAYAT
+  PANCHAYAT_UNION
+  DISTRICT_PANCHAYAT
+  TOWN_PANCHAYAT
+  MUNICIPALITY
+  MUNICIPAL_CORPORATION
+}
+
+enum BranchStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  UNDER_MAINTENANCE
+  MERGED
+  UPGRADED
+  CLOSED
+}
+
 model CallsMaster {
   call_sid          String    @id
   caller_number     String?
@@ -83,6 +106,51 @@ model Panchayat {
   ivr_number                 String?                 @unique
   document_template_settings Json?
 
+  // ── Multi-tenant ──
+  tenant_id       String    @default("default")
+
+  // ── Branch classification ──
+  branch_type     BranchType  @default(VILLAGE_PANCHAYAT)
+  branch_status   BranchStatus @default(ACTIVE)
+  branch_code     String?     @unique
+  parent_branch_id Int?
+
+  // ── Lifecycle ──
+  effective_from    DateTime  @default(now())
+  effective_until   DateTime?
+  merged_into_id    Int?
+  upgraded_to_id    Int?
+  status_changed_at DateTime?
+  status_changed_by Int?
+  status_reason     String?
+
+  // ── Geography ──
+  district          String?
+  taluk             String?
+  block             String?
+  village           String?
+  ward_count        Int?
+  survey_numbers    String[]  @default([])
+  gis_boundary      Json?
+  area_sq_km        Float?
+
+  // ── Contact & Branding ──
+  contact_phone     String?
+  contact_email     String?
+  address           String?
+  logo_url          String?
+  state_code        String?   @default("TN")
+
+  // ── Soft delete ──
+  is_active         Boolean   @default(true)
+  is_deleted        Boolean   @default(false)
+  deleted_at        DateTime?
+
+  // ── Self-relation: branch hierarchy (District → Union → Village) ──
+  parent_branch     Panchayat?  @relation("BranchHierarchy", fields: [parent_branch_id], references: [id])
+  child_branches    Panchayat[] @relation("BranchHierarchy")
+
+  // ── Existing relations ──
   electric_poles ElectricPole[]
   water_pipelines WaterPipeline[]
   water_tanks     WaterTankBorewell[]
@@ -105,6 +173,17 @@ model Panchayat {
   water_connections    WaterConnection[]
   pole_leases          PoleLeaseAgreement[]
 
+  // ── New platform relations ──
+  feature_config       BranchFeatureConfig?
+  roles                Role[]
+  workflow_templates   WorkflowTemplate[]
+  departments          Department[]
+  employees            Employee[]
+  lifecycle_events     BranchLifecycleEvent[]
+
+  @@index([tenant_id])
+  @@index([tenant_id, branch_type])
+  @@index([parent_branch_id])
   @@map("panchayats")
 }
 
@@ -129,13 +208,33 @@ model PanchayatZone {
 
 model User {
   id            Int        @id @default(autoincrement())
-  email         String     @unique
+  tenant_id     String     @default("default")
+  email         String?
   password_hash String
   role          String     @default("panchayat_admin")
   panchayat_id  Int?
   phone_e164    String?
   created_at    DateTime   @default(now())
+  updated_at    DateTime   @default(now()) @updatedAt
 
+  // ── Identity & Classification ──
+  user_type       String    @default("employee")  // employee, citizen, contractor, system
+  is_active       Boolean   @default(true)
+  is_verified     Boolean   @default(false)
+
+  // ── Login tracking ──
+  last_login_at     DateTime?
+  last_login_ip     String?
+  last_login_device String?
+  failed_attempts   Int       @default(0)
+  locked_until      DateTime?
+
+  // ── Soft delete ──
+  is_deleted      Boolean   @default(false)
+  deleted_at      DateTime?
+  deleted_by      Int?
+
+  // ── Existing relations ──
   panchayat            Panchayat?    @relation(fields: [panchayat_id], references: [id])
   assigned_complaints  Complaint[]   @relation("AssignedElectrician")
   assigned_plumbing_jobs Complaint[] @relation("AssignedPlumber")
@@ -152,6 +251,14 @@ model User {
   // Revenue module relations
   penalties              UserPenalty[]
 
+  // ── New platform relations ──
+  employee        Employee?
+  citizen_profile CitizenProfile?
+  user_roles      UserRole[]
+
+  @@unique([tenant_id, email])
+  @@unique([tenant_id, phone_e164])
+  @@index([tenant_id])
   @@map("users")
 }
 
@@ -954,3 +1061,1194 @@ model PoleLeaseAgreement {
   @@map("pole_lease_agreements")
 }
 
+
+// =====================================================================
+//  PHASE 0 — CORE PLATFORM FOUNDATION
+// =====================================================================
+
+// ─────────────────────────────────────────────────────────────────────
+//  0A. MULTI-TENANCY
+// ─────────────────────────────────────────────────────────────────────
+
+/** Top-level customer/deployment isolation. Every row in the system is scoped to a tenant. */
+model Tenant {
+  id              String    @id          // "tn_govt", "ap_govt", "demo"
+  name            String                 // "Tamil Nadu Government"
+  domain          String?   @unique      // "tn.platform.gov.in"
+  logo_url        String?
+  config          Json?                  // Tenant-wide settings
+  subscription    String    @default("enterprise") // free, starter, professional, enterprise
+  max_branches    Int       @default(100)
+  is_active       Boolean   @default(true)
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  @@map("tenants")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0B. BRANCH FEATURE CONFIG & LIFECYCLE
+// ─────────────────────────────────────────────────────────────────────
+
+/** Feature toggles per branch — Super Admin controls which modules are available. */
+model BranchFeatureConfig {
+  id                    Int      @id @default(autoincrement())
+  panchayat_id          Int      @unique
+
+  // Existing module toggles
+  street_light_mgmt     Boolean  @default(true)
+  water_supply_mgmt     Boolean  @default(false)
+  complaint_mgmt        Boolean  @default(true)
+  tender_mgmt           Boolean  @default(false)
+  certificate_mgmt      Boolean  @default(false)
+  market_mgmt           Boolean  @default(false)
+  asset_booking         Boolean  @default(false)
+  ad_campaign           Boolean  @default(false)
+  penalty_mgmt          Boolean  @default(false)
+  ivr_system            Boolean  @default(false)
+  zone_management       Boolean  @default(true)
+
+  // New municipality modules
+  solid_waste_mgmt      Boolean  @default(false)
+  drainage_mgmt         Boolean  @default(false)
+  road_mgmt             Boolean  @default(false)
+  parks_mgmt            Boolean  @default(false)
+  public_health         Boolean  @default(false)
+  building_permit       Boolean  @default(false)
+  birth_death_reg       Boolean  @default(false)
+  vehicle_fleet_mgmt    Boolean  @default(false)
+  cemetery_mgmt         Boolean  @default(false)
+  encroachment_mgmt     Boolean  @default(false)
+
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  panchayat  Panchayat @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+
+  @@map("branch_feature_configs")
+}
+
+/** Tracks every branch status change — creation, merge, upgrade, close. */
+model BranchLifecycleEvent {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  event_type      String    // "created", "activated", "deactivated", "merged", "upgraded", "closed", "transferred"
+  from_status     String?
+  to_status       String
+  details         Json?     // { merged_from: [3,4], reason: "District reorganization" }
+  effective_date  DateTime
+  performed_by    Int?
+  created_at      DateTime  @default(now())
+
+  branch Panchayat @relation(fields: [branch_id], references: [id])
+
+  @@index([tenant_id, branch_id])
+  @@map("branch_lifecycle_events")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0C. EMPLOYEE & RBAC
+// ─────────────────────────────────────────────────────────────────────
+
+/** Government employee identity — separate from User login. Tracks service history, cadre, designation. */
+model Employee {
+  id                  Int       @id @default(autoincrement())
+  tenant_id           String
+  user_id             Int       @unique
+  employee_code       String                // Auto-generated: "EMP-00042"
+  service_book_number String?               // Government service book reference
+  branch_id           Int                   // Primary posted branch
+  department_id       Int?                  // References Department model
+  designation         String?               // "Municipal Engineer", "AE", "Panchayat Secretary"
+  hierarchy_level     Int?                  // 1=top authority ... higher number = lower rank
+  cadre               String?               // "TNCS", "TNMS", "TNES"
+  access_scope        String    @default("own_branch") // own_branch, child_branches, all_branches
+  date_of_joining     DateTime?
+  date_of_retirement  DateTime?
+  reporting_to_id     Int?                  // Direct supervisor's employee ID
+  pay_level           String?
+  qualification       String?
+  photo_url           String?
+  status              String    @default("active") // active, on_leave, transferred, retired, suspended
+  created_at          DateTime  @default(now())
+  updated_at          DateTime  @updatedAt
+
+  // Soft delete
+  is_deleted          Boolean   @default(false)
+  deleted_at          DateTime?
+
+  user          User       @relation(fields: [user_id], references: [id])
+  branch        Panchayat  @relation(fields: [branch_id], references: [id])
+  department    Department? @relation(fields: [department_id], references: [id])
+  reporting_to  Employee?  @relation("ReportsTo", fields: [reporting_to_id], references: [id])
+  reports       Employee[] @relation("ReportsTo")
+  designations  DesignationHistory[]
+
+  @@unique([tenant_id, employee_code])
+  @@index([tenant_id, branch_id])
+  @@map("employees")
+}
+
+/** Tracks every designation/transfer change for an employee. */
+model DesignationHistory {
+  id              Int       @id @default(autoincrement())
+  employee_id     Int
+  designation     String
+  department      String?
+  branch_id       Int
+  from_date       DateTime
+  to_date         DateTime?
+  order_number    String?               // Government order reference
+  remarks         String?
+
+  employee Employee @relation(fields: [employee_id], references: [id])
+
+  @@index([employee_id])
+  @@map("designation_history")
+}
+
+/** Atomic permission — "complaints.read", "assets.approve". */
+model Permission {
+  id              Int      @id @default(autoincrement())
+  code            String   @unique       // "complaints.read", "assets.approve"
+  module          String                  // "complaints", "assets"
+  action          String                  // "read", "write", "approve", "delete", "export"
+  description     String?
+
+  @@map("permissions")
+}
+
+/** Named group of permissions — "Engineering Full Access". */
+model PermissionGroup {
+  id              Int      @id @default(autoincrement())
+  tenant_id       String
+  name            String                  // "Engineering Full Access"
+  permissions     Json                    // Array of permission codes
+
+  @@unique([tenant_id, name])
+  @@map("permission_groups")
+}
+
+/** Role definition with hierarchy level and inheritance. */
+model Role {
+  id                    Int      @id @default(autoincrement())
+  tenant_id             String
+  branch_id             Int?                 // null = tenant-wide role template
+  name                  String               // "municipal_engineer"
+  display_name          String               // "Municipal Engineer"
+  display_name_ta       String?              // "நகராட்சி பொறியாளர்"
+  department            String?
+  hierarchy_level       Int      @default(5)
+  permission_group_id   Int?
+  inherits_from_role_id Int?                // Role inheritance chain
+  can_approve           Boolean  @default(false)
+  is_system             Boolean  @default(false) // System roles can't be deleted
+  is_active             Boolean  @default(true)
+  created_at            DateTime @default(now())
+
+  branch Panchayat? @relation(fields: [branch_id], references: [id])
+
+  @@unique([tenant_id, branch_id, name])
+  @@map("roles")
+}
+
+/** Links a user to a role at a specific branch. Supports temporary permissions. */
+model UserRole {
+  id              Int       @id @default(autoincrement())
+  user_id         Int
+  role_id         Int
+  branch_id       Int                    // Which branch this role applies to
+  is_temporary    Boolean   @default(false)
+  valid_from      DateTime  @default(now())
+  valid_until     DateTime?              // Temporary permission expiry
+  granted_by      Int?
+  created_at      DateTime  @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@unique([user_id, role_id, branch_id])
+  @@map("user_roles")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0D. MASTER DATA MANAGEMENT + DEPARTMENTS
+// ─────────────────────────────────────────────────────────────────────
+
+/** Configurable data category — no hardcoded enums. */
+model MasterCategory {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  code            String                 // "complaint_category", "asset_type", "department", "ward", "priority"
+  name            String                 // "Complaint Categories"
+  name_ta         String?                // "புகார் வகைகள்"
+  is_system       Boolean  @default(false)
+  is_active       Boolean  @default(true)
+
+  values MasterValue[]
+
+  @@unique([tenant_id, code])
+  @@map("master_categories")
+}
+
+/** Individual value within a master category. Hierarchical via parent_id. */
+model MasterValue {
+  id              Int       @id @default(autoincrement())
+  category_id     Int
+  code            String                 // "electrical_fault", "road_pothole"
+  value           String                 // "Electrical Fault"
+  value_ta        String?                // "மின் பழுது"
+  parent_id       Int?                   // For hierarchical values
+  display_order   Int       @default(0)
+  color           String?                // UI display color
+  icon            String?                // Material icon name
+  is_visible      Boolean  @default(true)
+  is_system       Boolean  @default(false) // System values protected from deletion
+  metadata        Json?                  // Extra data: { "sla_hours": 24 }
+  is_default      Boolean  @default(false)
+  is_active       Boolean  @default(true)
+
+  category MasterCategory @relation(fields: [category_id], references: [id])
+  parent   MasterValue?   @relation("MasterHierarchy", fields: [parent_id], references: [id])
+  children MasterValue[]  @relation("MasterHierarchy")
+
+  @@unique([category_id, code])
+  @@map("master_values")
+}
+
+/** Organizational department within a branch. */
+model Department {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  code            String                 // "engineering", "health", "revenue"
+  name            String                 // "Engineering Department"
+  name_ta         String?                // "பொறியியல் துறை"
+  parent_id       Int?                   // For sub-departments
+  head_employee_id Int?                  // Department head
+  display_order   Int       @default(0)
+  is_active       Boolean  @default(true)
+
+  branch    Panchayat    @relation(fields: [branch_id], references: [id])
+  parent    Department?  @relation("DeptHierarchy", fields: [parent_id], references: [id])
+  children  Department[] @relation("DeptHierarchy")
+  employees Employee[]
+
+  @@unique([tenant_id, branch_id, code])
+  @@map("departments")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0E. NUMBER GENERATION & FINANCIAL YEAR
+// ─────────────────────────────────────────────────────────────────────
+
+/** Central sequence generator — configurable format per entity type. */
+model SequenceConfig {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int?                   // null = tenant-wide
+  entity_type     String                 // "complaint", "work_order", "asset"
+  prefix          String                 // "CMP", "WO", "AST"
+  format          String                 // "{prefix}-{fy}-{seq:6}" → "CMP-2026-000001"
+  current_seq     Int       @default(0)
+  reset_cycle     String?   @default("financial_year") // financial_year, calendar_year, never
+  last_reset_at   DateTime?
+
+  @@unique([tenant_id, branch_id, entity_type])
+  @@map("sequence_configs")
+}
+
+/** Government financial year definition. */
+model FinancialYear {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  code            String                 // "2025-26"
+  label           String                 // "FY 2025-26"
+  starts_at       DateTime               // 2025-04-01
+  ends_at         DateTime               // 2026-03-31
+  is_current      Boolean  @default(false)
+  is_locked       Boolean  @default(false)
+
+  @@unique([tenant_id, code])
+  @@map("financial_years")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0F. WORKING CALENDAR, HOLIDAYS & SLA
+// ─────────────────────────────────────────────────────────────────────
+
+/** Working calendar — supports multiple per tenant (office, emergency 24×7, sanitation shift). */
+model WorkingCalendar {
+  id                  Int      @id @default(autoincrement())
+  tenant_id           String
+  branch_id           Int?                 // null = tenant-wide default
+  name                String               // "Standard Government Calendar", "Emergency 24x7"
+  working_days        Int[]    @default([1,2,3,4,5,6]) // 1=Mon..6=Sat
+  working_hours_start String   @default("09:30")
+  working_hours_end   String   @default("17:45")
+  half_day_hours_end  String?  @default("13:00")
+  is_default          Boolean  @default(false)
+
+  @@index([tenant_id, branch_id])
+  @@map("working_calendars")
+}
+
+/** Holiday definitions — government holidays, state holidays, local holidays. */
+model Holiday {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int?                   // null = tenant-wide
+  date            DateTime  @db.Date
+  name            String                 // "Republic Day"
+  name_ta         String?                // "குடியரசு தினம்"
+  holiday_type    String                 // "national", "state", "local", "restricted", "half_day"
+  is_active       Boolean  @default(true)
+
+  @@unique([tenant_id, branch_id, date])
+  @@map("holidays")
+}
+
+/** SLA policy defining resolution targets per entity type and urgency. */
+model SlaPolicy {
+  id                  Int      @id @default(autoincrement())
+  tenant_id           String
+  branch_id           Int?
+  entity_type         String                // "complaint", "building_permit"
+  category            String?               // "electrical", "plumbing"
+  urgency_level       String?               // "low", "medium", "high", "critical"
+  target_hours        Int                   // Business hours target
+  warning_hours       Int
+  escalation_hours    Int
+  breach_hours        Int
+  escalation_role     String?
+  is_24x7             Boolean  @default(false)
+  is_active           Boolean  @default(true)
+  created_at          DateTime @default(now())
+
+  @@unique([tenant_id, branch_id, entity_type, category, urgency_level])
+  @@map("sla_policies")
+}
+
+/** Live SLA tracker for an individual entity (complaint, permit, etc.). */
+model SlaTracker {
+  id                  Int       @id @default(autoincrement())
+  tenant_id           String
+  entity_type         String
+  entity_id           Int
+  sla_policy_id       Int
+  started_at          DateTime  @default(now())
+  target_at           DateTime
+  warning_at          DateTime
+  escalation_at       DateTime
+  breach_at           DateTime
+  paused_at           DateTime?
+  resumed_at          DateTime?
+  resolved_at         DateTime?
+  total_paused_hours  Float     @default(0)
+  status              String    @default("on_track") // on_track, warning, escalated, breached, resolved
+  delay_reason        String?
+  escalated_to_user_id Int?
+
+  @@index([tenant_id, entity_type, entity_id])
+  @@index([status, target_at])
+  @@map("sla_trackers")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0G. AUDIT TRAIL
+// ─────────────────────────────────────────────────────────────────────
+
+/** Immutable audit log — captures before/after values on every data mutation. */
+model AuditLog {
+  id              BigInt    @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int?
+  user_id         Int?
+  module          String                 // "complaints", "assets"
+  entity_type     String                 // "Complaint", "Asset"
+  entity_id       String                 // "42"
+  action          String                 // "create", "update", "delete", "approve", "login"
+  before_value    Json?
+  after_value     Json?
+  changed_fields  String[]  @default([])
+  device_info     String?
+  ip_address      String?
+  user_agent      String?
+  session_id      String?
+  created_at      DateTime  @default(now())
+
+  @@index([tenant_id, entity_type, entity_id])
+  @@index([tenant_id, user_id, created_at])
+  @@index([tenant_id, module, created_at])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0H. NOTIFICATION ENGINE
+// ─────────────────────────────────────────────────────────────────────
+
+/** Notification template with language support. */
+model NotificationTemplate {
+  id              Int      @id @default(autoincrement())
+  tenant_id       String
+  code            String                 // "complaint_assigned", "sla_warning"
+  channel         String                 // "whatsapp", "sms", "email", "push", "in_app"
+  subject         String?
+  body_template   String                 // "Hi {{name}}, complaint #{{id}} assigned."
+  language        String   @default("en")
+  is_active       Boolean  @default(true)
+
+  @@unique([tenant_id, code, channel, language])
+  @@map("notification_templates")
+}
+
+/** Individual notification with delivery tracking. */
+model Notification {
+  id                  BigInt    @id @default(autoincrement())
+  tenant_id           String
+  recipient_user_id   Int?
+  recipient_phone     String?
+  recipient_email     String?
+  template_code       String
+  channel             String
+  variables           Json?
+  rendered_body       String?
+  status              String   @default("queued") // queued, sending, sent, failed, read
+  retry_count         Int      @default(0)
+  max_retries         Int      @default(3)
+  error_message       String?
+  scheduled_for       DateTime?
+  sent_at             DateTime?
+  read_at             DateTime?
+  created_at          DateTime @default(now())
+
+  @@index([tenant_id, recipient_user_id, status])
+  @@index([status, created_at])
+  @@map("notifications")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0I. DOCUMENT MANAGEMENT SYSTEM
+// ─────────────────────────────────────────────────────────────────────
+
+/** Folder hierarchy for organizing documents. */
+model DocumentFolder {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  name            String
+  parent_id       Int?
+  created_at      DateTime  @default(now())
+
+  parent    DocumentFolder?  @relation("FolderHierarchy", fields: [parent_id], references: [id])
+  children  DocumentFolder[] @relation("FolderHierarchy")
+
+  @@map("document_folders")
+}
+
+/** Document with versioning, tagging, digital signature, and expiry. */
+model Document {
+  id                Int       @id @default(autoincrement())
+  tenant_id         String
+  branch_id         Int
+  folder_id         Int?
+  title             String
+  file_name         String
+  storage_key       String                 // Provider-agnostic (S3, local, etc.)
+  file_url          String?
+  file_size_bytes   BigInt?
+  mime_type         String?
+  version           Int       @default(1)
+  parent_doc_id     Int?                   // Previous version link
+  tags              String[]  @default([])
+  module            String?                // "complaints", "tenders"
+  entity_type       String?
+  entity_id         Int?
+  digital_signature Json?                  // { signer, signed_at, cert_hash }
+  expires_at        DateTime?
+  uploaded_by       Int
+  created_at        DateTime  @default(now())
+
+  // Soft delete
+  is_deleted        Boolean   @default(false)
+  deleted_at        DateTime?
+  deleted_by        Int?
+
+  @@index([tenant_id, branch_id, module])
+  @@index([tenant_id, entity_type, entity_id])
+  @@map("documents")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0J. POLYMORPHIC COMMENTS
+// ─────────────────────────────────────────────────────────────────────
+
+/** Reusable comment system — works across complaints, assets, tenders, inspections. */
+model Comment {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  entity_type     String                 // "complaint", "asset", "work_order", "tender"
+  entity_id       Int
+  user_id         Int
+  body            String
+  attachment_url  String?
+  is_internal     Boolean   @default(true)  // Internal note vs public-facing
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  // Soft delete
+  is_deleted      Boolean   @default(false)
+  deleted_at      DateTime?
+
+  @@index([tenant_id, entity_type, entity_id])
+  @@map("comments")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0K. WORKFLOW ENGINE (with versioning + conditional rules)
+// ─────────────────────────────────────────────────────────────────────
+
+/** Workflow definition for a branch — versioned so in-progress workflows aren't broken. */
+model WorkflowTemplate {
+  id              Int      @id @default(autoincrement())
+  tenant_id       String
+  panchayat_id    Int
+  name            String                 // "complaint_resolution", "work_order_approval"
+  description     String?
+  department      String?
+  version         Int      @default(1)
+  status          String   @default("draft") // draft, published, archived
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  panchayat Panchayat          @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  steps     WorkflowStep[]
+  rules     WorkflowRule[]
+  instances WorkflowInstance[]
+
+  @@unique([panchayat_id, name, version])
+  @@map("workflow_templates")
+}
+
+/** Individual step in a workflow approval chain. */
+model WorkflowStep {
+  id                  Int      @id @default(autoincrement())
+  template_id         Int
+  step_order          Int
+  role_name           String                // "commissioner", "me", "ae", "je"
+  action_type         String                // "review", "approve", "execute", "verify", "notify"
+  is_required         Boolean  @default(true)
+  auto_escalate_hours Int?
+  sla_hours           Int?
+
+  template  WorkflowTemplate     @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  actions   WorkflowStepAction[]
+  rules     WorkflowRule[]
+
+  @@unique([template_id, step_order])
+  @@map("workflow_steps")
+}
+
+/** Conditional routing rules — amount-based, urgency-based, department-based. */
+model WorkflowRule {
+  id              Int       @id @default(autoincrement())
+  template_id     Int
+  step_id         Int
+  condition_field String                 // "estimated_cost", "urgency_level"
+  condition_op    String                 // "gt", "lt", "eq", "in", "between"
+  condition_value Json
+  then_action     String                 // "skip_step", "add_step", "route_to_role"
+  then_value      String?
+  priority        Int       @default(1)
+
+  template WorkflowTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  step     WorkflowStep     @relation(fields: [step_id], references: [id])
+
+  @@map("workflow_rules")
+}
+
+/** A running instance of a workflow for a specific entity (complaint, work order, etc.). */
+model WorkflowInstance {
+  id                 Int       @id @default(autoincrement())
+  tenant_id          String
+  template_id        Int
+  entity_type        String                // "complaint", "work_order", "tender"
+  entity_id          Int
+  current_step_order Int       @default(1)
+  status             String    @default("in_progress") // in_progress, completed, rejected, escalated
+  started_at         DateTime  @default(now())
+  completed_at       DateTime?
+
+  template WorkflowTemplate     @relation(fields: [template_id], references: [id])
+  actions  WorkflowStepAction[]
+
+  @@index([tenant_id, entity_type, entity_id])
+  @@map("workflow_instances")
+}
+
+/** Log of each approval action taken in a workflow. */
+model WorkflowStepAction {
+  id               Int       @id @default(autoincrement())
+  instance_id      Int
+  step_id          Int
+  actor_user_id    Int?
+  action           String                 // "approved", "rejected", "escalated", "returned", "executed"
+  comments         String?
+  acted_at         DateTime  @default(now())
+
+  instance WorkflowInstance @relation(fields: [instance_id], references: [id], onDelete: Cascade)
+  step     WorkflowStep     @relation(fields: [step_id], references: [id])
+
+  @@map("workflow_step_actions")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0L. INTEGRATION FRAMEWORK
+// ─────────────────────────────────────────────────────────────────────
+
+/** External integration config — TANGEDCO, TWAD, DigiLocker, payment gateways. */
+model IntegrationConfig {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  code            String                 // "tangedco", "twad", "digilocker"
+  name            String
+  type            String                 // "rest_api", "webhook", "sftp", "soap"
+  base_url        String?
+  auth_type       String?                // "api_key", "oauth2", "basic"
+  credentials     Json?                  // Encrypted
+  headers         Json?
+  is_active       Boolean  @default(true)
+  created_at      DateTime  @default(now())
+
+  webhooks        IntegrationWebhook[]
+  sync_jobs       IntegrationSyncJob[]
+  logs            IntegrationLog[]
+
+  @@unique([tenant_id, code])
+  @@map("integration_configs")
+}
+
+/** Webhook subscriptions for external integrations. */
+model IntegrationWebhook {
+  id                  Int       @id @default(autoincrement())
+  integration_id      Int
+  event_type          String                // "complaint.created", "asset.updated"
+  target_url          String
+  secret              String?
+  is_active           Boolean  @default(true)
+  retry_count         Int      @default(3)
+
+  integration IntegrationConfig @relation(fields: [integration_id], references: [id])
+
+  @@map("integration_webhooks")
+}
+
+/** Scheduled sync job for data exchange with external systems. */
+model IntegrationSyncJob {
+  id                  Int       @id @default(autoincrement())
+  integration_id      Int
+  direction           String                // "inbound", "outbound"
+  entity_type         String                // "assets", "complaints"
+  cron_expression     String?
+  last_sync_at        DateTime?
+  last_sync_status    String?               // "success", "partial", "failed"
+  is_active           Boolean  @default(true)
+
+  integration IntegrationConfig @relation(fields: [integration_id], references: [id])
+
+  @@map("integration_sync_jobs")
+}
+
+/** Integration API call log — request/response tracking. */
+model IntegrationLog {
+  id                  BigInt    @id @default(autoincrement())
+  integration_id      Int
+  direction           String
+  method              String?
+  url                 String?
+  request_body        Json?
+  response_status     Int?
+  response_body       Json?
+  error_message       String?
+  duration_ms         Int?
+  created_at          DateTime  @default(now())
+
+  integration IntegrationConfig @relation(fields: [integration_id], references: [id])
+
+  @@index([integration_id, created_at])
+  @@map("integration_logs")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0M. CONFIG, LOCALIZATION & SCHEDULING
+// ─────────────────────────────────────────────────────────────────────
+
+/** Key-value configuration per tenant/branch. */
+model AppConfig {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int?
+  config_key      String
+  config_value    Json
+  description     String?
+  updated_by      Int?
+  updated_at      DateTime  @updatedAt
+
+  @@unique([tenant_id, branch_id, config_key])
+  @@map("app_configs")
+}
+
+/** Centralized i18n — all UI strings, statuses, notifications in multiple languages. */
+model LocalizationKey {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  namespace       String                 // "labels", "status", "notification", "error", "report"
+  key             String                 // "complaint.status.pending"
+  en              String                 // "Pending"
+  ta              String?                // "நிலுவையில் உள்ளது"
+  created_at      DateTime  @default(now())
+
+  @@unique([tenant_id, namespace, key])
+  @@map("localization_keys")
+}
+
+/** Data retention rules — enforced by nightly scheduled job. */
+model DataRetentionPolicy {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  entity_type     String                 // "audit_logs", "notifications"
+  retention_days  Int                    // 3650 = 10 years
+  action          String   @default("archive") // "archive", "delete", "anonymize"
+  is_active       Boolean  @default(true)
+
+  @@unique([tenant_id, entity_type])
+  @@map("data_retention_policies")
+}
+
+/** Scheduled background job definitions. */
+model ScheduledJob {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  name            String
+  cron_expression String
+  handler         String
+  config          Json?
+  is_active       Boolean  @default(true)
+  last_run_at     DateTime?
+  next_run_at     DateTime?
+  created_at      DateTime @default(now())
+
+  @@map("scheduled_jobs")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0N. GENERIC ASSET MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────
+
+/** Generic asset — electric poles, water tanks, borewells, transformers, parks, etc. */
+model Asset {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  asset_type_code String                 // References MasterValue code: "electric_pole", "water_tank"
+  asset_uuid      String    @unique @default(uuid()) // Immutable internal ID
+  asset_code      String?                // Human-readable, can change: "SL-MDU-Z3-042"
+  name            String?
+
+  // Location
+  latitude        Float?
+  longitude       Float?
+  zone_id         Int?
+  address         String?
+  landmarks       String[]  @default([])
+
+  // Lifecycle
+  installed_at    DateTime?
+  manufacturer    String?
+  model_number    String?
+  serial_number   String?
+  condition_rating Int?     @default(5)
+  is_operational  Boolean   @default(true)
+  decommissioned_at DateTime?
+
+  // Type-specific data (flexible schema)
+  custom_data     Json?                  // { "wattage": 100, "pole_type": "steel", "height_m": 8.5 }
+
+  notes           String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Soft delete
+  is_deleted      Boolean  @default(false)
+  deleted_at      DateTime?
+
+  images          AssetImage[]
+  maintenance_logs AssetMaintenanceLog[]
+  inspections     AssetInspection[]
+  warranties      AssetWarranty[]
+
+  @@index([tenant_id, branch_id, asset_type_code])
+  @@index([asset_uuid])
+  @@map("assets")
+}
+
+/** Asset photo with enhanced metadata for field verification. */
+model AssetImage {
+  id              Int       @id @default(autoincrement())
+  asset_id        Int
+  storage_key     String
+  image_url       String?
+  image_type      String                 // "installation", "current", "damage", "repair"
+  caption         String?
+
+  // Enhanced metadata
+  file_size_bytes Int?
+  resolution      String?                // "1920x1080"
+  captured_device String?
+  exif_data       Json?
+  gps_lat         Float?
+  gps_lng         Float?
+  gps_accuracy_m  Float?
+
+  captured_at     DateTime?
+  uploaded_by     Int?
+  uploaded_at     DateTime  @default(now())
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([asset_id])
+  @@map("asset_images")
+}
+
+/** Maintenance event for an asset. */
+model AssetMaintenanceLog {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  asset_id        Int
+  maintenance_type String                // "routine", "emergency", "replacement", "upgrade"
+  description     String?
+  contractor_id   Int?
+  performed_by    String?
+  cost            Decimal?  @db.Decimal(12, 2)
+  parts_replaced  Json?
+  before_image_url String?
+  after_image_url  String?
+  work_order_id   Int?
+  performed_at    DateTime  @default(now())
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, asset_id])
+  @@map("asset_maintenance_logs")
+}
+
+/** Field inspection of an asset with GPS lock, checklist, photos, signature. */
+model AssetInspection {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  asset_id        Int
+  inspector_user_id Int
+  inspection_type String
+  checklist       Json?
+  overall_score   Int?
+  gps_lat         Float?
+  gps_lng         Float?
+  gps_locked      Boolean  @default(false)
+  gps_accuracy_m  Float?
+  photos          Json?
+  signature_url   String?
+  remarks         String?
+  inspected_at    DateTime  @default(now())
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@index([tenant_id, asset_id])
+  @@map("asset_inspections")
+}
+
+/** Warranty tracking for an asset. */
+model AssetWarranty {
+  id              Int       @id @default(autoincrement())
+  asset_id        Int
+  warranty_type   String                 // "manufacturer", "contractor", "amc"
+  provider_name   String
+  provider_phone  String?
+  starts_at       DateTime
+  expires_at      DateTime
+  terms           String?
+  document_url    String?
+  is_active       Boolean  @default(true)
+
+  asset Asset @relation(fields: [asset_id], references: [id], onDelete: Cascade)
+
+  @@map("asset_warranties")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0O. CONTRACTOR & WORK ORDER MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────
+
+/** Contractor master — registered contractors for municipal works. */
+model Contractor {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  name            String
+  phone           String
+  email           String?
+  gst_number      String?
+  pan_number      String?
+  registration_number String?
+  category        String[]  @default([]) // ["electrical", "civil", "plumbing"]
+  rating          Float?
+  blacklisted     Boolean  @default(false)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+
+  work_orders     WorkOrder[]
+
+  // Soft delete
+  is_deleted      Boolean  @default(false)
+  deleted_at      DateTime?
+
+  @@index([tenant_id])
+  @@map("contractors")
+}
+
+/** Formal work order issued to a contractor or municipal maintenance team. */
+model WorkOrder {
+  id                  Int       @id @default(autoincrement())
+  tenant_id           String
+  branch_id           Int
+  work_order_number   String?               // Auto-generated via SequenceConfig
+  contractor_id       Int?
+  tender_id           Int?
+  title               String
+  description         String?
+  estimated_cost      Decimal?  @db.Decimal(14, 2)
+  actual_cost         Decimal?  @db.Decimal(14, 2)
+  status              String    @default("draft") // draft, issued, in_progress, completed, verified, paid
+  issued_at           DateTime?
+  start_date          DateTime?
+  expected_completion DateTime?
+  actual_completion   DateTime?
+  completion_cert_url String?
+  measurement_book    Json?                 // [{ desc, qty, unit, rate, amount }]
+  financial_year_code String?               // "2025-26"
+  created_by          Int
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  contractor Contractor? @relation(fields: [contractor_id], references: [id])
+
+  @@index([tenant_id, branch_id])
+  @@map("work_orders")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0P. CITIZEN PORTAL
+// ─────────────────────────────────────────────────────────────────────
+
+/** Citizen profile linked to a user account. */
+model CitizenProfile {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  user_id         Int       @unique
+  full_name       String
+  phone           String
+  email           String?
+  address         String?
+  ward            String?
+  branch_id       Int
+  created_at      DateTime @default(now())
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id, branch_id])
+  @@map("citizen_profiles")
+}
+
+/** Public announcements from a branch to citizens. */
+model Announcement {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  title           String
+  title_ta        String?
+  body            String
+  body_ta         String?
+  category        String?                // "general", "water", "road", "event"
+  is_pinned       Boolean  @default(false)
+  published_at    DateTime @default(now())
+  expires_at      DateTime?
+  created_by      Int
+
+  @@index([tenant_id, branch_id])
+  @@map("announcements")
+}
+
+/** Citizen feedback/rating for services. */
+model CitizenFeedback {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  citizen_user_id Int?
+  entity_type     String?                // "complaint", "service"
+  entity_id       Int?
+  rating          Int                    // 1-5
+  comment         String?
+  created_at      DateTime @default(now())
+
+  @@index([tenant_id, branch_id])
+  @@map("citizen_feedback")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0Q. FIELD INSPECTION MODULE
+// ─────────────────────────────────────────────────────────────────────
+
+/** Reusable inspection template with checklist items. */
+model InspectionTemplate {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  name            String
+  asset_type_code String?                // null = any asset type
+  checklist_items Json                   // [{ item: "Wiring intact", type: "yes_no" }]
+  is_active       Boolean  @default(true)
+
+  @@map("inspection_templates")
+}
+
+/** Individual field inspection record with GPS, photos, signature. */
+model FieldInspection {
+  id                Int       @id @default(autoincrement())
+  tenant_id         String
+  branch_id         Int
+  template_id       Int?
+  inspector_user_id Int
+  asset_id          Int?
+  location_lat      Float?
+  location_lng      Float?
+  gps_locked        Boolean  @default(false)
+  gps_accuracy_m    Float?
+  checklist_results Json?
+  overall_score     Int?
+  photos            Json?
+  signature_url     String?
+  remarks           String?
+  status            String   @default("completed")
+  inspected_at      DateTime @default(now())
+
+  @@index([tenant_id, branch_id])
+  @@map("field_inspections")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0R. DASHBOARD & REPORTING ENGINE
+// ─────────────────────────────────────────────────────────────────────
+
+/** Configurable dashboard widget definition. */
+model DashboardWidget {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  code            String
+  title           String
+  widget_type     String                 // "counter", "pie_chart", "bar_chart", "table", "map", "kpi"
+  data_source     String
+  query_config    Json
+  default_size    String   @default("medium")
+  is_active       Boolean  @default(true)
+
+  @@unique([tenant_id, code])
+  @@map("dashboard_widgets")
+}
+
+/** Role-specific dashboard layout. */
+model RoleDashboard {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  role_name       String
+  widget_ids      Int[]
+  layout          Json?
+
+  @@unique([tenant_id, role_name])
+  @@map("role_dashboards")
+}
+
+/** Saved report with optional scheduling. */
+model SavedReport {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int?
+  name            String
+  report_type     String
+  format          String   @default("pdf") // pdf, excel, csv
+  filters         Json?
+  schedule_cron   String?
+  email_to        String[]  @default([])
+  last_generated  DateTime?
+  created_by      Int
+  created_at      DateTime @default(now())
+
+  @@map("saved_reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  0S. DYNAMIC FORM BUILDER
+// ─────────────────────────────────────────────────────────────────────
+
+/** Dynamic form template — complaint form, building permit, birth registration. */
+model FormTemplate {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  code            String
+  name            String
+  name_ta         String?
+  module          String
+  version         Int       @default(1)
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+
+  fields FormField[]
+
+  @@unique([tenant_id, code, version])
+  @@map("form_templates")
+}
+
+/** Individual field in a dynamic form. */
+model FormField {
+  id              Int       @id @default(autoincrement())
+  template_id     Int
+  field_key       String
+  field_type      String                 // "text", "number", "date", "select", "file", "gps", "photo", "signature"
+  label           String
+  label_ta        String?
+  placeholder     String?
+  options         Json?                  // For select fields
+  validation      Json?                  // { required: true, min: 0, max: 100 }
+  display_order   Int
+  section         String?
+  visible_when    Json?                  // Conditional visibility
+  is_required     Boolean  @default(false)
+
+  template FormTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+
+  @@map("form_fields")
+}
+
+/** Submitted form data linked to an entity. */
+model FormSubmission {
+  id              Int       @id @default(autoincrement())
+  tenant_id       String
+  branch_id       Int
+  template_id     Int
+  submitted_by    Int?
+  data            Json
+  status          String   @default("submitted")
+  entity_type     String?
+  entity_id       Int?
+  submitted_at    DateTime @default(now())
+
+  @@index([tenant_id, branch_id, template_id])
+  @@map("form_submissions")
+}

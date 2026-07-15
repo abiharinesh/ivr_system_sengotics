@@ -55,8 +55,67 @@ export class SuperAdminService {
     ivr_number?: string;
     center_lat?: number;
     center_lng?: number;
+    tenant_id?: string;
+    branch_type?: any;
+    branch_status?: any;
+    branch_code?: string;
+    parent_branch_id?: number;
+    district?: string;
+    taluk?: string;
+    block?: string;
+    village?: string;
+    ward_count?: number;
+    gis_boundary?: any;
+    area_sq_km?: number;
+    contact_phone?: string;
+    contact_email?: string;
+    address?: string;
+    logo_url?: string;
   }) {
-    return this.prisma.panchayat.create({ data });
+    if (data.parent_branch_id) {
+      await this.ensurePanchayatExists(data.parent_branch_id);
+    }
+    const branch = await this.prisma.panchayat.create({
+      data: {
+        name: data.name,
+        ivr_number: data.ivr_number ?? null,
+        center_lat: data.center_lat ?? null,
+        center_lng: data.center_lng ?? null,
+        tenant_id: data.tenant_id ?? 'default',
+        branch_type: data.branch_type ?? 'VILLAGE_PANCHAYAT',
+        branch_status: data.branch_status ?? 'ACTIVE',
+        branch_code: data.branch_code ?? null,
+        parent_branch_id: data.parent_branch_id ?? null,
+        district: data.district ?? null,
+        taluk: data.taluk ?? null,
+        block: data.block ?? null,
+        village: data.village ?? null,
+        ward_count: data.ward_count ?? null,
+        gis_boundary: data.gis_boundary ?? null,
+        area_sq_km: data.area_sq_km ?? null,
+        contact_phone: data.contact_phone ?? null,
+        contact_email: data.contact_email ?? null,
+        address: data.address ?? null,
+        logo_url: data.logo_url ?? null,
+      },
+    });
+
+    await this.prisma.branchFeatureConfig.create({
+      data: { panchayat_id: branch.id },
+    });
+
+    await this.prisma.branchLifecycleEvent.create({
+      data: {
+        tenant_id: branch.tenant_id,
+        branch_id: branch.id,
+        event_type: 'created',
+        to_status: branch.branch_status,
+        effective_date: new Date(),
+        details: { reason: 'Initial creation' } as any,
+      },
+    });
+
+    return branch;
   }
 
   async updatePanchayat(
@@ -66,25 +125,104 @@ export class SuperAdminService {
       ivr_number?: string;
       center_lat?: number;
       center_lng?: number;
+      branch_type?: any;
+      branch_status?: any;
+      branch_code?: string;
+      parent_branch_id?: number;
+      district?: string;
+      taluk?: string;
+      block?: string;
+      village?: string;
+      ward_count?: number;
+      gis_boundary?: any;
+      area_sq_km?: number;
+      contact_phone?: string;
+      contact_email?: string;
+      address?: string;
+      logo_url?: string;
     },
   ) {
-    await this.ensurePanchayatExists(id);
-    return this.prisma.panchayat.update({ where: { id }, data });
+    const existing = await this.ensurePanchayatExists(id);
+    if (data.parent_branch_id) {
+      await this.ensurePanchayatExists(data.parent_branch_id);
+    }
+    const updated = await this.prisma.panchayat.update({ where: { id }, data: data as any });
+
+    if (data.branch_status && data.branch_status !== existing.branch_status) {
+      await this.prisma.branchLifecycleEvent.create({
+        data: {
+          tenant_id: updated.tenant_id,
+          branch_id: updated.id,
+          event_type: 'status_changed',
+          from_status: existing.branch_status,
+          to_status: updated.branch_status,
+          effective_date: new Date(),
+          details: { reason: 'Admin status update' } as any,
+        },
+      });
+    }
+
+    return updated;
   }
 
   async deletePanchayat(id: number) {
     await this.ensurePanchayatExists(id);
-    await this.prisma.panchayat.delete({ where: { id } });
+    await this.prisma.panchayat.update({
+      where: { id },
+      data: { is_deleted: true, deleted_at: new Date(), is_active: false },
+    });
     return { success: true };
   }
 
-  async listPanchayats() {
+  async listPanchayats(tenantId = 'default') {
     return this.prisma.panchayat.findMany({
+      where: { tenant_id: tenantId, is_deleted: false },
       include: {
+        parent_branch: {
+          select: { id: true, name: true, branch_type: true },
+        },
         _count: {
           select: { electric_poles: true, complaints: true, users: true },
         },
       },
+    });
+  }
+
+  // ── Branch Feature Config Matrix ────────────────────────────────────────
+
+  async getFeatureConfig(branchId: number) {
+    await this.ensurePanchayatExists(branchId);
+    let config = await this.prisma.branchFeatureConfig.findUnique({
+      where: { panchayat_id: branchId },
+    });
+    if (!config) {
+      config = await this.prisma.branchFeatureConfig.create({
+        data: { panchayat_id: branchId },
+      });
+    }
+    return config;
+  }
+
+  async updateFeatureConfig(branchId: number, data: any) {
+    await this.ensurePanchayatExists(branchId);
+    delete data.id;
+    delete data.panchayat_id;
+    delete data.created_at;
+    delete data.updated_at;
+
+    return this.prisma.branchFeatureConfig.update({
+      where: { panchayat_id: branchId },
+      data,
+    });
+  }
+
+  // ── Branch Lifecycle Events ──────────────────────────────────────────────
+
+  async getLifecycleEvents(tenantId: string, branchId: number) {
+    await this.ensurePanchayatExists(branchId);
+    return this.prisma.branchLifecycleEvent.findMany({
+      where: { tenant_id: tenantId, branch_id: branchId },
+      orderBy: { created_at: 'desc' },
     });
   }
 
@@ -216,7 +354,7 @@ export class SuperAdminService {
 
     await this.ensurePanchayatExists(data.panchayat_id);
 
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.prisma.user.findFirst({
       where: { email: data.email },
     });
     if (existing) throw new ForbiddenException('Email already in use');
@@ -258,7 +396,7 @@ export class SuperAdminService {
       );
     }
     await this.ensurePanchayatExists(data.panchayat_id);
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.prisma.user.findFirst({
       where: { email: data.email },
     });
     if (existing) throw new ForbiddenException('Email already in use');
@@ -771,11 +909,11 @@ export class SuperAdminService {
 
   // ── Private Helpers ────────────────────────────────────────────────────
 
-  private async ensurePanchayatExists(id: number): Promise<void> {
+  private async ensurePanchayatExists(id: number): Promise<any> {
     const exists = await this.prisma.panchayat.findUnique({
       where: { id },
-      select: { id: true },
     });
     if (!exists) throw new NotFoundException(`Panchayat #${id} not found`);
+    return exists;
   }
 }

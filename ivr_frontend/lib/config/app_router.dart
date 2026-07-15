@@ -77,6 +77,12 @@ import '../features/reports/presentation/certificate_review_screen.dart';
 import '../features/reports/presentation/asset_booking_screen.dart';
 import '../features/reports/presentation/market_fees_screen.dart';
 
+import '../features/contractor/presentation/contractor_list_screen.dart';
+import '../features/inspection/presentation/inspection_list_screen.dart';
+import '../features/search/presentation/universal_search_screen.dart';
+import '../features/citizen_portal/presentation/citizen_portal_screen.dart';
+import '../features/municipality/presentation/municipality_screen.dart';
+
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
 
@@ -533,6 +539,38 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/revenue/markets',
             builder: (context, state) => const MarketFeesScreen(),
           ),
+
+          // Phase 6 — Contractor & Work Orders
+          GoRoute(
+            path: '/contractors',
+            builder: (context, state) => const ContractorListScreen(),
+          ),
+
+          // Phase 7 — Field Inspections
+          GoRoute(
+            path: '/inspections',
+            builder: (context, state) => const InspectionListScreen(),
+          ),
+
+          // Phase 9 — Universal Search
+          GoRoute(
+            path: '/search',
+            builder: (context, state) => UniversalSearchScreen(
+              initialQuery: state.uri.queryParameters['q'] ?? '',
+            ),
+          ),
+
+          // Phase 9 — Citizen Portal
+          GoRoute(
+            path: '/citizen-portal',
+            builder: (context, state) => const CitizenPortalScreen(),
+          ),
+
+          // Phase 11 — Municipality Modules
+          GoRoute(
+            path: '/municipality',
+            builder: (context, state) => const MunicipalityScreen(),
+          ),
         ],
       ),
     ],
@@ -624,6 +662,16 @@ String _getTitle(String location) {
       return 'Community Asset Rental';
     case '/revenue/markets':
       return 'Market Stall Fees';
+    case '/contractors':
+      return 'Contractor Management';
+    case '/inspections':
+      return 'Field Inspections';
+    case '/search':
+      return 'Universal Search';
+    case '/citizen-portal':
+      return 'Citizen Portal';
+    case '/municipality':
+      return 'Municipality Modules';
     default:
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';

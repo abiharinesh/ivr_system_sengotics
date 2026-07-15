@@ -1,6 +1,11 @@
 import {
   Controller,
   Get,
+  Post,
+  Put,
+  Param,
+  ParseIntPipe,
+  Body,
   Query,
   UseGuards,
   Req,
@@ -9,7 +14,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as express from 'express';
-import { ReportsService } from './reports.service';
+import { ReportsService, CreateWidgetDto, CreateSavedReportDto } from './reports.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -141,5 +146,58 @@ export class ReportsController {
       );
       res.send(Buffer.from(data, 'utf-8'));
     }
+  }
+
+  // ── Dashboard Widgets Endpoints ─────────────────────────────────────────
+
+  @Post('widgets')
+  createWidget(@Req() req: AuthenticatedRequest, @Body() dto: CreateWidgetDto) {
+    return this.service.createWidget(req.user.role === 'super_admin' ? 'default' : 'default', dto);
+  }
+
+  @Get('widgets')
+  listWidgets(@Req() req: AuthenticatedRequest) {
+    return this.service.getWidgets('default');
+  }
+
+  // ── Role Dashboard Endpoints ─────────────────────────────────────────────
+
+  @Put('roles/:roleName/dashboard')
+  updateRoleDashboard(
+    @Req() req: AuthenticatedRequest,
+    @Param('roleName') roleName: string,
+    @Body() body: { widgetIds: number[]; layout?: any },
+  ) {
+    if (!body.widgetIds) {
+      throw new BadRequestException('widgetIds is required');
+    }
+    return this.service.updateRoleDashboard('default', roleName, body.widgetIds, body.layout);
+  }
+
+  @Get('roles/:roleName/dashboard')
+  getRoleDashboard(@Req() req: AuthenticatedRequest, @Param('roleName') roleName: string) {
+    return this.service.getRoleDashboard('default', roleName);
+  }
+
+  // ── Saved Reports Endpoints ──────────────────────────────────────────────
+
+  @Post('saved')
+  createSavedReport(@Req() req: AuthenticatedRequest, @Body() dto: CreateSavedReportDto) {
+    const branchId = req.user.panchayat_id ?? 1;
+    return this.service.createSavedReport('default', branchId, {
+      ...dto,
+      created_by: req.user.id,
+    });
+  }
+
+  @Get('saved')
+  listSavedReports(@Req() req: AuthenticatedRequest) {
+    const branchId = req.user.panchayat_id ?? 1;
+    return this.service.getSavedReports('default', branchId);
+  }
+
+  @Post('saved/:id/generate')
+  generateSavedReport(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number) {
+    return this.service.triggerReportGeneration('default', id);
   }
 }

@@ -29,6 +29,10 @@ interface AuthenticatedRequest {
     email: string;
     role: string;
     panchayat_id: number | null;
+    tenant_id: string;
+    user_type: string;
+    employee_id: number | null;
+    access_scope: string;
   };
 }
 
@@ -61,12 +65,20 @@ export class PanchayatAdminController {
   // ── Stats ──────────────────────────────────────────────────────────────
   @Get('dashboard/insights')
   getDashboardInsights(@Req() req: AuthenticatedRequest) {
-    return this.service.getDashboardInsights(this.getPanchayatId(req));
+    return this.service.getDashboardInsights(
+      this.getPanchayatId(req),
+      req.user.tenant_id,
+      req.user.access_scope,
+    );
   }
 
   @Get('stats')
   getStats(@Req() req: AuthenticatedRequest) {
-    return this.service.getStats(this.getPanchayatId(req));
+    return this.service.getStats(
+      this.getPanchayatId(req),
+      req.user.tenant_id,
+      req.user.access_scope,
+    );
   }
 
   // ── Pole Management ─────────────────────────────────────────────────────
@@ -87,7 +99,11 @@ export class PanchayatAdminController {
 
   @Get('poles')
   listPoles(@Req() req: AuthenticatedRequest) {
-    return this.service.listPoles(this.getPanchayatId(req));
+    return this.service.listPoles(
+      this.getPanchayatId(req),
+      req.user.tenant_id,
+      req.user.access_scope,
+    );
   }
 
   @Put('poles/:id')
@@ -120,7 +136,12 @@ export class PanchayatAdminController {
     @Req() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
-    return this.service.listComplaints(this.getPanchayatId(req), status);
+    return this.service.listComplaints(
+      this.getPanchayatId(req),
+      req.user.tenant_id,
+      req.user.access_scope,
+      status,
+    );
   }
 
   @Post('complaints')

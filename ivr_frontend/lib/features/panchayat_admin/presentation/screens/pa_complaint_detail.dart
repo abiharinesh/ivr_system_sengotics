@@ -277,6 +277,12 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
     switch (status) {
       case 'pending':
         return const Color(0xFFFFB000);
+      case 'je_review':
+        return Colors.blue;
+      case 'ae_approval':
+        return Colors.purple;
+      case 'bdo_approval':
+        return Colors.amber;
       case 'assigned':
       case 'in_progress':
         return AppTheme.primary;
@@ -1425,14 +1431,38 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
             isCompleted: true,
           ),
           _TimelineItem(
-            title: complaint.status == 'pending' ? 'Pending Assignment' : (complaint.status == 'assigned' || complaint.status == 'in_progress' ? 'Technician Dispatched' : 'Fault Resolved'),
+            title: complaint.status == 'pending'
+                ? 'Pending Assignment'
+                : complaint.status == 'je_review'
+                    ? 'Under JE Review'
+                    : complaint.status == 'ae_approval'
+                        ? 'Awaiting AE Approval'
+                        : complaint.status == 'bdo_approval'
+                            ? 'Awaiting BDO Approval'
+                            : (complaint.status == 'assigned' || complaint.status == 'in_progress'
+                                ? 'Technician Dispatched'
+                                : 'Fault Resolved'),
             subtitle: complaint.status == 'pending'
                 ? 'Queueing for technician dispatch.'
-                : (complaint.status == 'assigned' || complaint.status == 'in_progress'
-                    ? 'Technician on-site repairing components.'
-                    : 'Resolution proof submitted. Case closed.'),
+                : complaint.status == 'je_review'
+                    ? 'Junior Engineer reviewing technical assessment.'
+                    : complaint.status == 'ae_approval'
+                        ? 'Assistant Engineer verifying cost estimates.'
+                        : complaint.status == 'bdo_approval'
+                            ? 'Block Development Officer final sign-off.'
+                            : (complaint.status == 'assigned' || complaint.status == 'in_progress'
+                                ? 'Technician on-site repairing components.'
+                                : 'Resolution proof submitted. Case closed.'),
             time: 'Current',
-            icon: complaint.status == 'resolved' ? Icons.check_circle_rounded : Icons.schedule_rounded,
+            icon: complaint.status == 'resolved'
+                ? Icons.check_circle_rounded
+                : complaint.status == 'je_review'
+                    ? Icons.rate_review_outlined
+                    : complaint.status == 'ae_approval'
+                        ? Icons.verified_outlined
+                        : complaint.status == 'bdo_approval'
+                            ? Icons.gavel_rounded
+                            : Icons.schedule_rounded,
             isLast: true,
             isCurrent: true,
             statusColor: _getStatusColor(complaint.status),
@@ -1551,42 +1581,60 @@ class _PAComplaintDetailScreenState extends State<PAComplaintDetailScreen> {
                         showModalBottomSheet<void>(
                           context: context,
                           builder: (ctx) => SafeArea(
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                ListTile(
-                                  leading: const Icon(Icons.schedule_rounded),
-                                  title: const Text('Mark Pending'),
-                                  onTap: () {
-                                    Navigator.pop(ctx);
-                                    _updateStatus('pending');
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.engineering_rounded),
-                                  title: const Text('Mark In Progress'),
-                                  onTap: () {
-                                    Navigator.pop(ctx);
-                                    _updateStatus('in_progress');
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.check_circle_rounded),
-                                  title: const Text('Mark Resolved'),
-                                  onTap: () {
-                                    Navigator.pop(ctx);
-                                    _updateStatus('resolved');
-                                  },
-                                ),
-                                ListTile(
-                                  leading: const Icon(Icons.cancel_rounded, color: Colors.red),
-                                  title: const Text('Mark Rejected', style: TextStyle(color: Colors.red)),
-                                  onTap: () {
-                                    Navigator.pop(ctx);
-                                    _updateStatus('rejected');
-                                  },
-                                ),
-                              ],
+                            child: SingleChildScrollView(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  ListTile(
+                                    leading: const Icon(Icons.schedule_rounded),
+                                    title: const Text('Mark Pending'),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('pending');
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.rate_review_outlined, color: Colors.blue),
+                                    title: const Text('Send to JE Review', style: TextStyle(color: Colors.blue)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('je_review');
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.verified_outlined, color: Colors.purple),
+                                    title: const Text('Send to AE Approval', style: TextStyle(color: Colors.purple)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('ae_approval');
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.gavel_rounded, color: Colors.amber),
+                                    title: const Text('Send to BDO Approval', style: TextStyle(color: Colors.amber)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('bdo_approval');
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.check_circle_rounded, color: Colors.green),
+                                    title: const Text('Mark Resolved', style: TextStyle(color: Colors.green)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('resolved');
+                                    },
+                                  ),
+                                  ListTile(
+                                    leading: const Icon(Icons.cancel_rounded, color: Colors.red),
+                                    title: const Text('Mark Rejected', style: TextStyle(color: Colors.red)),
+                                    onTap: () {
+                                      Navigator.pop(ctx);
+                                      _updateStatus('rejected');
+                                    },
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         );

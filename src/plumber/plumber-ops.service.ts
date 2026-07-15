@@ -66,7 +66,7 @@ export class PlumberOpsService {
         'Password must be at least 8 characters long',
       );
     }
-    const existing = await this.prisma.user.findUnique({
+    const existing = await this.prisma.user.findFirst({
       where: { email: data.email },
     });
     if (existing) throw new BadRequestException('Email already in use');

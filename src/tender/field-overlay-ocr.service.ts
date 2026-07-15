@@ -12,7 +12,7 @@ export interface OverlayOcrResult {
 
 type TesseractWorker = {
   recognize(image: Buffer): Promise<{ data: { text?: string } }>;
-  terminate(): Promise<void>;
+  terminate(): Promise<any>;
 };
 
 @Injectable()

@@ -29,7 +29,7 @@ export class CitizenService {
     const email = data.email.toLowerCase().trim();
 
     // Check if user already exists
-    const existing = await this.prisma.user.findUnique({ where: { email } });
+    const existing = await this.prisma.user.findFirst({ where: { email } });
     if (existing) {
       throw new ConflictException('Email already registered');
     }

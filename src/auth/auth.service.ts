@@ -16,17 +16,25 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.prisma.user.findFirst({ where: { email } });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
+
+    const employee = await this.prisma.employee.findFirst({
+      where: { user_id: user.id },
+    });
 
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       panchayat_id: user.panchayat_id,
+      tenant_id: user.tenant_id,
+      user_type: user.user_type,
+      employee_id: employee?.id || null,
+      access_scope: employee?.access_scope || 'own_branch',
     };
 
     return {
@@ -117,11 +125,19 @@ export class AuthService {
       this.logger.log(`[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`);
     }
 
+    const employee = await this.prisma.employee.findFirst({
+      where: { user_id: user.id },
+    });
+
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       panchayat_id: user.panchayat_id,
+      tenant_id: user.tenant_id,
+      user_type: user.user_type,
+      employee_id: employee?.id || null,
+      access_scope: employee?.access_scope || 'own_branch',
     };
 
     return {

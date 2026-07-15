@@ -3,6 +3,17 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import {
+  TenantModule,
+  AuditModule,
+  NumberGenModule,
+  CommentModule,
+  WorkflowModule,
+  NotificationModule,
+  SlaModule,
+  DocumentModule,
+} from './core';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -31,6 +42,14 @@ import { PropertyTaxModule } from './property-tax/property-tax.module';
 import { CertificateModule } from './certificate/certificate.module';
 import { AssetBookingModule } from './asset-booking/asset-booking.module';
 import { MarketModule } from './market/market.module';
+import { AssetModule } from './asset/asset.module';
+import { FormModule } from './form/form.module';
+import { ContractorModule } from './contractor/contractor.module';
+import { InspectionModule } from './inspection/inspection.module';
+import { SearchModule } from './search/search.module';
+import { CitizenPortalModule } from './citizen-portal/citizen-portal.module';
+import { SyncModule } from './sync/sync.module';
+import { MunicipalityModule } from './municipality/municipality.module';
 
 @Module({
   imports: [
@@ -71,6 +90,25 @@ import { MarketModule } from './market/market.module';
     CertificateModule,
     AssetBookingModule,
     MarketModule,
+    AssetModule,
+    FormModule,
+    ContractorModule,
+    InspectionModule,
+    SearchModule,
+    CitizenPortalModule,
+    SyncModule,
+    MunicipalityModule,
+
+    // Core Platform Modules (Phase 0)
+    EventEmitterModule.forRoot(),
+    TenantModule,
+    AuditModule,
+    NumberGenModule,
+    CommentModule,
+    WorkflowModule,
+    NotificationModule,
+    SlaModule,
+    DocumentModule,
   ],
   controllers: [AppController],
   providers: [
