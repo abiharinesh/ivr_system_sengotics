@@ -22,9 +22,9 @@ class _WorkflowTemplateBuilderScreenState extends State<WorkflowTemplateBuilderS
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('Workflow Template Visual Builder', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ElevatedButton(onPressed: null, child: Text('Save Template Schema')),
             ],

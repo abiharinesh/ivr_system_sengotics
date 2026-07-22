@@ -33,9 +33,9 @@ class _ConditionalApprovalMatrixScreenState extends State<ConditionalApprovalMat
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('Conditional Routing Matrix Builder (WorkflowRule)', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ElevatedButton(onPressed: null, child: Text('Add Conditional Rule')),
             ],

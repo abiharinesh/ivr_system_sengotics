@@ -35,9 +35,9 @@ class _SlaPolicyConfiguratorScreenState extends State<SlaPolicyConfiguratorScree
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('SLA Policy & Rule Configurator (SlaPolicy)', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ElevatedButton(onPressed: null, child: Text('Add SLA Policy')),
             ],

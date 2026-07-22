@@ -49,9 +49,9 @@ class _FormTemplateBuilderScreenState extends State<FormTemplateBuilderScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text('Form Layout Schema Designer', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                       ElevatedButton(onPressed: null, child: Text('Publish Schema JSON')),
                     ],

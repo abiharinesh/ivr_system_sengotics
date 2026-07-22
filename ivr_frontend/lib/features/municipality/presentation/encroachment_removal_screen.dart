@@ -5,13 +5,13 @@ class EncroachmentRemovalScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Encroachment Removal & Survey Monitor', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text('Encroachment GIS map, eviction notice generator (Form I & II), and demolition drive logs.'),
+        children: [
+          Text('Public Land Encroachment Enforcement', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('Eviction notices, legal stay orders, and demolition task force deployment.'),
         ],
       ),
     );

@@ -27,14 +27,14 @@ class _DmsExplorerScreenState extends State<DmsExplorerScreen> {
               border: Border(right: BorderSide(color: AppTheme.stroke)),
             ),
             padding: const EdgeInsets.all(16),
-            child: Column(
+            child: const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('DMS Directory Tree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                const SizedBox(height: 16),
-                const ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Engineering & Works')),
-                const ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Revenue & Land Maps')),
-                const ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Grievance Attachments')),
+                Text('DMS Directory Tree', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                SizedBox(height: 16),
+                ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Engineering & Works')),
+                ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Revenue & Land Maps')),
+                ListTile(leading: Icon(Icons.folder_rounded, color: Colors.amber), title: Text('Grievance Attachments')),
               ],
             ),
           ),
@@ -48,9 +48,9 @@ class _DmsExplorerScreenState extends State<DmsExplorerScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
+                      const Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Document Management System (DMS Explorer)', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                           Text('AWS S3 Abstraction • Document Versioning • e-Sign Certificate Cards'),
                         ],

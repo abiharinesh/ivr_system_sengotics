@@ -38,9 +38,9 @@ class _FinancialYearScreenState extends State<FinancialYearScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Financial Year Manager', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('Manage FY accounting periods and historical edit locks.'),
                 ],

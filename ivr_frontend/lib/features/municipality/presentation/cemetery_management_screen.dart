@@ -5,13 +5,13 @@ class CemeteryManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Cemetery & Crematorium Management', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text('Burial slot & crematorium booking calendar, fuel/wood inventory gauge, and cremation certificates.'),
+        children: [
+          Text('Burial Ground & Cemetery Management', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('Slot bookings, crematorium status, and digital burial register.'),
         ],
       ),
     );

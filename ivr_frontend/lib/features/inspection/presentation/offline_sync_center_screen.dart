@@ -23,9 +23,9 @@ class _OfflineSyncCenterScreenState extends State<OfflineSyncCenterScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Offline Sync Queue & Conflict Center', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('SQLite local storage sync status and server vs local conflict resolver.'),
                 ],

@@ -23,9 +23,9 @@ class _AppConfigsScreenState extends State<AppConfigsScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('System AppConfig Dynamic Settings', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ElevatedButton(onPressed: null, child: Text('Add AppConfig Key')),
             ],

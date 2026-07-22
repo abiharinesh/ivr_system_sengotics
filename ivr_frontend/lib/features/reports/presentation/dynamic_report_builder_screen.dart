@@ -18,9 +18,9 @@ class _DynamicReportBuilderScreenState extends State<DynamicReportBuilderScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Dynamic Report Builder & Export Engine', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('Construct custom query reports with scheduled PDF/Excel email export.'),
                 ],

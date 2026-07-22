@@ -29,9 +29,9 @@ class _CitizenGrievanceRegistrationScreenState extends State<CitizenGrievanceReg
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Public Citizen Grievance Registration', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('பொதுமக்கள் குறைதீர்ப்பு மனு தாக்கல் பக்கம் (Voice Audio & Location Geotag)'),
                 ],

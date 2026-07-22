@@ -26,9 +26,9 @@ class _LocalizationDictionaryScreenState extends State<LocalizationDictionaryScr
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Localization Dictionary Manager', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('Manage English (EN) and Tamil (TA) translation keys in real-time.'),
                 ],

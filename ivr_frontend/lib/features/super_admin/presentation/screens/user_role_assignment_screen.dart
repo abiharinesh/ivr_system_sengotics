@@ -31,9 +31,9 @@ class _UserRoleAssignmentScreenState extends State<UserRoleAssignmentScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('User Role & Branch Assignment Manager', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               ElevatedButton(onPressed: null, child: Text('Assign New Role Context')),
             ],

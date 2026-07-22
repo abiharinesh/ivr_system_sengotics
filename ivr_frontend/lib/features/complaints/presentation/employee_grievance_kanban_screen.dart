@@ -24,9 +24,9 @@ class _EmployeeGrievanceKanbanScreenState extends State<EmployeeGrievanceKanbanS
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('Grievance Kanban Workbench & Live SLA Timers', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               Chip(label: Text('Live SLA Business Hour Calculations Active'), backgroundColor: Colors.greenAccent),
             ],

@@ -118,7 +118,9 @@ class _ContextSelectorScreenState extends State<ContextSelectorScreen> {
                           children: [
                             Radio<int>(
                               value: index,
+                              // ignore: deprecated_member_use
                               groupValue: _selectedContextIndex,
+                              // ignore: deprecated_member_use
                               onChanged: (v) => setState(
                                   () => _selectedContextIndex = v ?? 0),
                               activeColor: AppTheme.primary,

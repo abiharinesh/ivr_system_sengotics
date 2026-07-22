@@ -42,9 +42,9 @@ class _SequenceBuilderScreenState extends State<SequenceBuilderScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text(
                 'Number Generation Sequence Builder (SequenceConfig)',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),

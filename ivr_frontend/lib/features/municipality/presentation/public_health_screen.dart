@@ -5,13 +5,13 @@ class PublicHealthScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Public Health & Sanitation Drive', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text('Vector control mosquito fogging schedules, food hygiene score audits, outbreak alerts.'),
+        children: [
+          Text('Public Health & Vector Disease Control', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('Dengue fogging schedules, trade license health inspections, and food safety audits.'),
         ],
       ),
     );

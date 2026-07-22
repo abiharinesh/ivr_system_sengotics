@@ -5,13 +5,13 @@ class VitalEventsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text('Birth & Death Registration Registry', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text('Searchable vital events registry, hospital electronic feeds, and QR code certificate verification.'),
+        children: [
+          Text('Vital Events Civil Registration (Birth & Death)', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text('CRS portal integration, birth/death certificate approvals, and institutional hospital logs.'),
         ],
       ),
     );

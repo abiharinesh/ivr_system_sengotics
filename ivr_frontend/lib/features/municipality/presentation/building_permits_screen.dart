@@ -5,11 +5,11 @@ class BuildingPermitsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+    return const SingleChildScrollView(
+      padding: EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text('Building Permit & Plan Approval Screen', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           Text('Process citizen building plan applications, blueprint PDF reviews, and multi-dept NOC clearances.'),
         ],

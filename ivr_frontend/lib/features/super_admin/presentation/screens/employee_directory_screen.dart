@@ -40,9 +40,9 @@ class _EmployeeDirectoryScreenState extends State<EmployeeDirectoryScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
+              const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('Employee Directory & Service Profiles', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                   Text('Official directory of empanelled government staff across departments.'),
                 ],

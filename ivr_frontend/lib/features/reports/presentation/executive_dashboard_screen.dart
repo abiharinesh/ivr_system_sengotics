@@ -15,9 +15,9 @@ class _ExecutiveDashboardScreenState extends State<ExecutiveDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               Text('Role-Based Executive Widget Grid', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               Chip(label: Text('Role View: Executive Leadership'), backgroundColor: Colors.purpleAccent),
             ],
