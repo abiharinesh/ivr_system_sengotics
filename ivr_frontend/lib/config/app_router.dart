@@ -85,6 +85,58 @@ import '../features/search/presentation/universal_search_screen.dart';
 import '../features/citizen_portal/presentation/citizen_portal_screen.dart';
 import '../features/municipality/presentation/municipality_screen.dart';
 
+// Screen Plan Modules
+import '../features/auth/presentation/otp_verification_screen.dart';
+import '../features/auth/presentation/context_selector_screen.dart';
+import '../features/auth/presentation/employee_service_book_screen.dart';
+import '../features/super_admin/presentation/screens/tenant_management_screen.dart';
+import '../features/super_admin/presentation/screens/branch_hierarchy_tree_screen.dart';
+import '../features/super_admin/presentation/screens/branch_lifecycle_screen.dart';
+import '../features/super_admin/presentation/screens/branch_gis_drawer_screen.dart';
+import '../features/master_data/presentation/master_data_configurator_screen.dart';
+import '../features/master_data/presentation/sequence_builder_screen.dart';
+import '../features/master_data/presentation/financial_year_screen.dart';
+import '../features/master_data/presentation/working_calendar_screen.dart';
+import '../features/master_data/presentation/localization_dictionary_screen.dart';
+import '../features/master_data/presentation/app_configs_screen.dart';
+import '../features/super_admin/presentation/screens/employee_directory_screen.dart';
+import '../features/super_admin/presentation/screens/designation_transfer_timeline_screen.dart';
+import '../features/super_admin/presentation/screens/user_role_assignment_screen.dart';
+import '../features/assets/presentation/asset_inventory_screen.dart';
+import '../features/assets/presentation/asset_registration_screen.dart';
+import '../features/assets/presentation/asset_detail_screen.dart';
+import '../features/assets/presentation/asset_inspection_screen.dart';
+import '../features/assets/presentation/asset_maintenance_log_screen.dart';
+import '../features/complaints/presentation/citizen_grievance_registration_screen.dart';
+import '../features/complaints/presentation/employee_grievance_kanban_screen.dart';
+import '../features/complaints/presentation/sla_policy_configurator_screen.dart';
+import '../features/complaints/presentation/sla_analytics_screen.dart';
+import '../features/workflows/presentation/workflow_template_builder_screen.dart';
+import '../features/workflows/presentation/conditional_approval_matrix_screen.dart';
+import '../features/workflows/presentation/universal_approvals_inbox_screen.dart';
+import '../features/dynamic_forms/presentation/form_template_builder_screen.dart';
+import '../features/dynamic_forms/presentation/dynamic_form_runtime_renderer.dart';
+import '../features/contractor/presentation/work_order_creation_screen.dart';
+import '../features/contractor/presentation/mbook_entry_screen.dart';
+import '../features/inspection/presentation/inspector_route_dashboard_screen.dart';
+import '../features/inspection/presentation/offline_field_inspection_screen.dart';
+import '../features/inspection/presentation/offline_sync_center_screen.dart';
+import '../features/reports/presentation/executive_dashboard_screen.dart';
+import '../features/reports/presentation/dynamic_report_builder_screen.dart';
+import '../features/dms/presentation/dms_explorer_screen.dart';
+import '../features/audit/presentation/audit_log_inspector_screen.dart';
+import '../features/integrations/presentation/integration_monitor_screen.dart';
+import '../features/municipality/presentation/solid_waste_screen.dart';
+import '../features/municipality/presentation/potholes_monitoring_screen.dart';
+import '../features/municipality/presentation/drainage_flood_screen.dart';
+import '../features/municipality/presentation/parks_open_spaces_screen.dart';
+import '../features/municipality/presentation/public_health_screen.dart';
+import '../features/municipality/presentation/building_permits_screen.dart';
+import '../features/municipality/presentation/vital_events_screen.dart';
+import '../features/municipality/presentation/fleet_fuel_tracking_screen.dart';
+import '../features/municipality/presentation/encroachment_removal_screen.dart';
+import '../features/municipality/presentation/cemetery_management_screen.dart';
+
 import '../core/widgets/app_scaffold.dart';
 import '../features/auth/bloc/auth_event.dart';
 
@@ -584,6 +636,222 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/municipality',
             builder: (context, state) => const MunicipalityScreen(),
+          ),
+
+          // Screen Plan Specification Routes
+          GoRoute(
+            path: '/verify-otp',
+            builder: (context, state) => const OtpVerificationScreen(),
+          ),
+          GoRoute(
+            path: '/select-context',
+            builder: (context, state) => const ContextSelectorScreen(),
+          ),
+          GoRoute(
+            path: '/profile/employee',
+            builder: (context, state) => const EmployeeServiceBookScreen(),
+          ),
+          GoRoute(
+            path: '/admin/tenants',
+            builder: (context, state) => const TenantManagementScreen(),
+          ),
+          GoRoute(
+            path: '/admin/branches/tree',
+            builder: (context, state) => const BranchHierarchyTreeScreen(),
+          ),
+          GoRoute(
+            path: '/admin/branches/:id/lifecycle',
+            builder: (context, state) => BranchLifecycleScreen(
+              branchId: state.pathParameters['id'] ?? 'USL-BLK-12',
+            ),
+          ),
+          GoRoute(
+            path: '/admin/branches/:id/gis',
+            builder: (context, state) => BranchGisDrawerScreen(
+              branchId: state.pathParameters['id'] ?? 'USL-BLK-12',
+            ),
+          ),
+          GoRoute(
+            path: '/admin/master-data',
+            builder: (context, state) => const MasterDataConfiguratorScreen(),
+          ),
+          GoRoute(
+            path: '/admin/sequence-configs',
+            builder: (context, state) => const SequenceBuilderScreen(),
+          ),
+          GoRoute(
+            path: '/admin/financial-years',
+            builder: (context, state) => const FinancialYearScreen(),
+          ),
+          GoRoute(
+            path: '/admin/calendars',
+            builder: (context, state) => const WorkingCalendarScreen(),
+          ),
+          GoRoute(
+            path: '/admin/localization',
+            builder: (context, state) => const LocalizationDictionaryScreen(),
+          ),
+          GoRoute(
+            path: '/admin/app-configs',
+            builder: (context, state) => const AppConfigsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/employees',
+            builder: (context, state) => const EmployeeDirectoryScreen(),
+          ),
+          GoRoute(
+            path: '/admin/employees/:id/history',
+            builder: (context, state) => DesignationTransferTimelineScreen(
+              empId: state.pathParameters['id'] ?? 'EMP-00042',
+            ),
+          ),
+          GoRoute(
+            path: '/admin/rbac/user-assignments',
+            builder: (context, state) => const UserRoleAssignmentScreen(),
+          ),
+          GoRoute(
+            path: '/assets',
+            builder: (context, state) => const AssetInventoryScreen(),
+          ),
+          GoRoute(
+            path: '/assets/new',
+            builder: (context, state) => const AssetRegistrationScreen(),
+          ),
+          GoRoute(
+            path: '/assets/:id',
+            builder: (context, state) => AssetDetailScreen(
+              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
+            ),
+          ),
+          GoRoute(
+            path: '/assets/:id/inspect',
+            builder: (context, state) => AssetInspectionScreen(
+              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
+            ),
+          ),
+          GoRoute(
+            path: '/assets/:id/maintenance/new',
+            builder: (context, state) => AssetMaintenanceLogScreen(
+              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
+            ),
+          ),
+          GoRoute(
+            path: '/complaints/new',
+            builder: (context, state) => const CitizenGrievanceRegistrationScreen(),
+          ),
+          GoRoute(
+            path: '/complaints/inbox',
+            builder: (context, state) => const EmployeeGrievanceKanbanScreen(),
+          ),
+          GoRoute(
+            path: '/admin/sla-policies',
+            builder: (context, state) => const SlaPolicyConfiguratorScreen(),
+          ),
+          GoRoute(
+            path: '/analytics/sla',
+            builder: (context, state) => const SlaAnalyticsScreen(),
+          ),
+          GoRoute(
+            path: '/admin/workflows/builder',
+            builder: (context, state) => const WorkflowTemplateBuilderScreen(),
+          ),
+          GoRoute(
+            path: '/admin/workflows/rules',
+            builder: (context, state) => const ConditionalApprovalMatrixScreen(),
+          ),
+          GoRoute(
+            path: '/approvals',
+            builder: (context, state) => const UniversalApprovalsInboxScreen(),
+          ),
+          GoRoute(
+            path: '/admin/form-builder',
+            builder: (context, state) => const FormTemplateBuilderScreen(),
+          ),
+          GoRoute(
+            path: '/forms/render',
+            builder: (context, state) => const DynamicFormRuntimeRenderer(),
+          ),
+          GoRoute(
+            path: '/work-orders/new',
+            builder: (context, state) => const WorkOrderCreationScreen(),
+          ),
+          GoRoute(
+            path: '/work-orders/:id/mbook',
+            builder: (context, state) => MBookEntryScreen(
+              workOrderId: state.pathParameters['id'] ?? 'WO-2026-000042',
+            ),
+          ),
+          GoRoute(
+            path: '/mobile/dashboard',
+            builder: (context, state) => const InspectorRouteDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/mobile/inspection/execute',
+            builder: (context, state) => const OfflineFieldInspectionScreen(),
+          ),
+          GoRoute(
+            path: '/mobile/sync-center',
+            builder: (context, state) => const OfflineSyncCenterScreen(),
+          ),
+          GoRoute(
+            path: '/dashboard/executive',
+            builder: (context, state) => const ExecutiveDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/reports/builder',
+            builder: (context, state) => const DynamicReportBuilderScreen(),
+          ),
+          GoRoute(
+            path: '/documents',
+            builder: (context, state) => const DmsExplorerScreen(),
+          ),
+          GoRoute(
+            path: '/admin/audit-logs',
+            builder: (context, state) => const AuditLogInspectorScreen(),
+          ),
+          GoRoute(
+            path: '/admin/integrations',
+            builder: (context, state) => const IntegrationMonitorScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/solid-waste',
+            builder: (context, state) => const SolidWasteScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/potholes',
+            builder: (context, state) => const PotholesMonitoringScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/drainage',
+            builder: (context, state) => const DrainageFloodScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/parks',
+            builder: (context, state) => const ParksOpenSpacesScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/health',
+            builder: (context, state) => const PublicHealthScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/building-permits',
+            builder: (context, state) => const BuildingPermitsScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/vital-events',
+            builder: (context, state) => const VitalEventsScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/fleet',
+            builder: (context, state) => const FleetFuelTrackingScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/encroachment',
+            builder: (context, state) => const EncroachmentRemovalScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/cemeteries',
+            builder: (context, state) => const CemeteryManagementScreen(),
           ),
         ],
       ),

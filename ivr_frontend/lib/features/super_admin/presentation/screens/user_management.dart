@@ -72,7 +72,8 @@ class _UserManagementState extends State<UserManagement> {
       builder: (context, state) {
         final isLoading = state is UserMgmtLoading;
         if (state is UserMgmtLoaded || isLoading) {
-          final users = state is UserMgmtLoaded ? state.users : const <UserModel>[];
+          final users =
+              state is UserMgmtLoaded ? state.users : const <UserModel>[];
           final filtered = _filteredUsers(users);
           return _buildList(context, filtered, isLoading: isLoading);
         }
@@ -136,13 +137,18 @@ class _UserManagementState extends State<UserManagement> {
     }
   }
 
-  Widget _buildList(BuildContext context, List<UserModel> filteredUsers, {bool isLoading = false}) {
+  Widget _buildList(
+    BuildContext context,
+    List<UserModel> filteredUsers, {
+    bool isLoading = false,
+  }) {
     return ListScreenShell(
       title: _titleForFilter(_activeRole),
       subtitle: _subtitleForFilter(_activeRole),
       countLabel: isLoading ? 'Loading...' : '${filteredUsers.length} user(s)',
       action: ElevatedButton.icon(
-        onPressed: isLoading ? null : () => _showCreateDialog(context, _activeRole),
+        onPressed:
+            isLoading ? null : () => _showCreateDialog(context, _activeRole),
         icon: const Icon(Icons.add, size: 18),
         label: Text(_addLabelForFilter(_activeRole)),
       ),
@@ -174,134 +180,150 @@ class _UserManagementState extends State<UserManagement> {
                       }).toList(),
                 ),
               ),
-      child: isLoading
-          ? const AppLoadingState(
-              message: 'Loading users...',
-              style: AppLoadingStyle.list,
-            )
-          : (filteredUsers.isEmpty
-              ? EmptyState(
-                  icon: Icons.people_rounded,
-                  title: _titleForFilter(_activeRole),
-                  subtitle: _subtitleForFilter(_activeRole),
-                  action: ElevatedButton.icon(
-                    onPressed: () => _showCreateDialog(context, _activeRole),
-                    icon: const Icon(Icons.add),
-                    label: Text(_addLabelForFilter(_activeRole)),
-                  ),
-                )
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
-                    return ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: hPad),
-                      itemCount: filteredUsers.length,
-                      itemBuilder: (context, index) {
-                        final user = filteredUsers[index];
-                        final isField = user.isFieldStaff;
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: ListTile(
-                            contentPadding: const EdgeInsets.all(16),
-                            leading: CircleAvatar(
-                              backgroundColor:
-                                  user.isSuperAdmin
-                                      ? AppTheme.warning.withValues(alpha: 0.15)
-                                      : isField
-                                      ? AppTheme.primary.withValues(alpha: 0.15)
-                                      : AppTheme.accent.withValues(alpha: 0.12),
-                              child: Icon(
-                                user.isSuperAdmin
-                                    ? Icons.admin_panel_settings_rounded
-                                    : user.isAgent
-                                    ? Icons.group_rounded
-                                    : user.isElectrician
-                                    ? Icons.engineering_rounded
-                                    : Icons.person_rounded,
-                                color:
+      child:
+          isLoading
+              ? const AppLoadingState(
+                message: 'Loading users...',
+                style: AppLoadingStyle.list,
+              )
+              : (filteredUsers.isEmpty
+                  ? EmptyState(
+                    icon: Icons.people_rounded,
+                    title: _titleForFilter(_activeRole),
+                    subtitle: _subtitleForFilter(_activeRole),
+                    action: ElevatedButton.icon(
+                      onPressed: () => _showCreateDialog(context, _activeRole),
+                      icon: const Icon(Icons.add),
+                      label: Text(_addLabelForFilter(_activeRole)),
+                    ),
+                  )
+                  : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final hPad = constraints.maxWidth < 400 ? 12.0 : 24.0;
+                      return ListView.builder(
+                        padding: EdgeInsets.symmetric(horizontal: hPad),
+                        itemCount: filteredUsers.length,
+                        itemBuilder: (context, index) {
+                          final user = filteredUsers[index];
+                          final isField = user.isFieldStaff;
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              leading: CircleAvatar(
+                                backgroundColor:
                                     user.isSuperAdmin
-                                        ? AppTheme.warning
+                                        ? AppTheme.warning.withValues(
+                                          alpha: 0.15,
+                                        )
                                         : isField
-                                        ? AppTheme.primary
-                                        : AppTheme.accent,
+                                        ? AppTheme.primary.withValues(
+                                          alpha: 0.15,
+                                        )
+                                        : AppTheme.accent.withValues(
+                                          alpha: 0.12,
+                                        ),
+                                child: Icon(
+                                  user.isSuperAdmin
+                                      ? Icons.admin_panel_settings_rounded
+                                      : user.isAgent
+                                      ? Icons.group_rounded
+                                      : user.isElectrician
+                                      ? Icons.engineering_rounded
+                                      : Icons.person_rounded,
+                                  color:
+                                      user.isSuperAdmin
+                                          ? AppTheme.warning
+                                          : isField
+                                          ? AppTheme.primary
+                                          : AppTheme.accent,
+                                ),
                               ),
-                            ),
-                            title: Text(
-                              user.email,
-                              style: const TextStyle(fontWeight: FontWeight.w600),
-                            ),
-                            subtitle: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        user.isSuperAdmin
-                                            ? AppTheme.warning.withValues(alpha: 0.12)
-                                            : AppTheme.accent.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    _labelForRole(user.role),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
+                              title: Text(
+                                user.email,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
                                       color:
                                           user.isSuperAdmin
-                                              ? AppTheme.warning
-                                              : AppTheme.accent,
+                                              ? AppTheme.warning.withValues(
+                                                alpha: 0.12,
+                                              )
+                                              : AppTheme.accent.withValues(
+                                                alpha: 0.12,
+                                              ),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      _labelForRole(user.role),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color:
+                                            user.isSuperAdmin
+                                                ? AppTheme.warning
+                                                : AppTheme.accent,
+                                      ),
                                     ),
                                   ),
-                                ),
-                                if (user.panchayatName != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    user.panchayatName!,
-                                    style:       TextStyle(
-                                      fontSize: 12,
-                                      color: AppTheme.textMuted,
+                                  if (user.panchayatName != null) ...[
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      user.panchayatName!,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppTheme.textMuted,
+                                      ),
                                     ),
-                                  ),
+                                  ],
                                 ],
-                              ],
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.shield_outlined,
-                                    color: AppTheme.primary,
-                                  ),
-                                  tooltip: 'Roles & Permissions',
-                                  onPressed: () => context.go('/superadmin/roles?user_id=${user.id}'),
-                                ),
-                                if (!user.isSuperAdmin)
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
                                   IconButton(
                                     icon: Icon(
-                                      Icons.delete_outline,
-                                      color: AppTheme.error,
+                                      Icons.shield_outlined,
+                                      color: AppTheme.primary,
                                     ),
+                                    tooltip: 'Roles & Permissions',
                                     onPressed:
-                                        () => _showDeleteDialog(
-                                          context,
-                                          user.id,
-                                          user.email,
+                                        () => context.go(
+                                          '/superadmin/roles?user_id=${user.id}',
                                         ),
                                   ),
-                              ],
+                                  if (!user.isSuperAdmin)
+                                    IconButton(
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: AppTheme.error,
+                                      ),
+                                      onPressed:
+                                          () => _showDeleteDialog(
+                                            context,
+                                            user.id,
+                                            user.email,
+                                          ),
+                                    ),
+                                ],
+                              ),
                             ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                )),
+                          );
+                        },
+                      );
+                    },
+                  )),
     );
   }
 
