@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../core/widgets/app_loading_state.dart';
 import '../../../../core/widgets/empty_state.dart';
@@ -269,21 +270,32 @@ class _UserManagementState extends State<UserManagement> {
                                 ],
                               ],
                             ),
-                            trailing:
-                                user.isSuperAdmin
-                                    ? null
-                                    : IconButton(
-                                      icon: const Icon(
-                                        Icons.delete_outline,
-                                        color: AppTheme.error,
-                                      ),
-                                      onPressed:
-                                          () => _showDeleteDialog(
-                                            context,
-                                            user.id,
-                                            user.email,
-                                          ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.shield_outlined,
+                                    color: AppTheme.primary,
+                                  ),
+                                  tooltip: 'Roles & Permissions',
+                                  onPressed: () => context.go('/superadmin/roles?user_id=${user.id}'),
+                                ),
+                                if (!user.isSuperAdmin)
+                                  IconButton(
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: AppTheme.error,
                                     ),
+                                    onPressed:
+                                        () => _showDeleteDialog(
+                                          context,
+                                          user.id,
+                                          user.email,
+                                        ),
+                                  ),
+                              ],
+                            ),
                           ),
                         );
                       },

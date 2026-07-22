@@ -907,6 +907,240 @@ export class SuperAdminService {
     };
   }
 
+  // ── RBAC: Permissions ──────────────────────────────────────────────────
+
+  async listPermissions() {
+    const perms = await this.prisma.permission.findMany({
+      orderBy: [{ module: 'asc' }, { action: 'asc' }],
+    });
+    // Group by module for the frontend
+    const grouped: Record<string, typeof perms> = {};
+    for (const p of perms) {
+      if (!grouped[p.module]) grouped[p.module] = [];
+      grouped[p.module].push(p);
+    }
+    return { permissions: perms, grouped };
+  }
+
+  // ── RBAC: Permission Groups ───────────────────────────────────────────
+
+  async listPermissionGroups(tenantId = 'default') {
+    return this.prisma.permissionGroup.findMany({
+      where: { tenant_id: tenantId },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  async createPermissionGroup(data: {
+    name: string;
+    permissions: string[];
+    tenant_id?: string;
+  }) {
+    if (!data.name?.trim()) {
+      throw new BadRequestException('Permission group name is required');
+    }
+    return this.prisma.permissionGroup.create({
+      data: {
+        tenant_id: data.tenant_id ?? 'default',
+        name: data.name.trim(),
+        permissions: data.permissions ?? [],
+      },
+    });
+  }
+
+  async updatePermissionGroup(
+    id: number,
+    data: { name?: string; permissions?: string[] },
+  ) {
+    const existing = await this.prisma.permissionGroup.findUnique({
+      where: { id },
+    });
+    if (!existing)
+      throw new NotFoundException(`PermissionGroup #${id} not found`);
+
+    return this.prisma.permissionGroup.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.permissions && { permissions: data.permissions }),
+      },
+    });
+  }
+
+  async deletePermissionGroup(id: number) {
+    const existing = await this.prisma.permissionGroup.findUnique({
+      where: { id },
+    });
+    if (!existing)
+      throw new NotFoundException(`PermissionGroup #${id} not found`);
+
+    await this.prisma.permissionGroup.delete({ where: { id } });
+    return { success: true };
+  }
+
+  // ── RBAC: Roles ───────────────────────────────────────────────────────
+
+  async listRoles(tenantId = 'default', branchId?: number) {
+    return this.prisma.role.findMany({
+      where: {
+        tenant_id: tenantId,
+        ...(branchId != null && { branch_id: branchId }),
+      },
+      include: {
+        branch: { select: { id: true, name: true } },
+      },
+      orderBy: [{ hierarchy_level: 'asc' }, { name: 'asc' }],
+    });
+  }
+
+  async createRole(data: {
+    name: string;
+    display_name: string;
+    display_name_ta?: string;
+    department?: string;
+    hierarchy_level?: number;
+    permission_group_id?: number;
+    inherits_from_role_id?: number;
+    can_approve?: boolean;
+    branch_id?: number;
+    tenant_id?: string;
+  }) {
+    if (!data.name?.trim()) {
+      throw new BadRequestException('Role name is required');
+    }
+    if (!data.display_name?.trim()) {
+      throw new BadRequestException('Display name is required');
+    }
+    if (data.branch_id) {
+      await this.ensurePanchayatExists(data.branch_id);
+    }
+    return this.prisma.role.create({
+      data: {
+        tenant_id: data.tenant_id ?? 'default',
+        name: data.name.trim().toLowerCase().replace(/\s+/g, '_'),
+        display_name: data.display_name.trim(),
+        display_name_ta: data.display_name_ta ?? null,
+        department: data.department ?? null,
+        hierarchy_level: data.hierarchy_level ?? 5,
+        permission_group_id: data.permission_group_id ?? null,
+        inherits_from_role_id: data.inherits_from_role_id ?? null,
+        can_approve: data.can_approve ?? false,
+        branch_id: data.branch_id ?? null,
+      },
+      include: {
+        branch: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async updateRole(
+    id: number,
+    data: {
+      display_name?: string;
+      display_name_ta?: string;
+      department?: string;
+      hierarchy_level?: number;
+      permission_group_id?: number;
+      inherits_from_role_id?: number;
+      can_approve?: boolean;
+      is_active?: boolean;
+    },
+  ) {
+    const existing = await this.prisma.role.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Role #${id} not found`);
+
+    return this.prisma.role.update({
+      where: { id },
+      data: data as any,
+      include: {
+        branch: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async deleteRole(id: number) {
+    const existing = await this.prisma.role.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException(`Role #${id} not found`);
+    if (existing.is_system) {
+      throw new ForbiddenException('System roles cannot be deleted');
+    }
+    await this.prisma.role.delete({ where: { id } });
+    return { success: true };
+  }
+
+  // ── RBAC: User Role Assignments ───────────────────────────────────────
+
+  async listUserRoles(userId: number) {
+    return this.prisma.userRole.findMany({
+      where: { user_id: userId },
+      include: {
+        user: { select: { id: true, email: true, role: true } },
+      },
+    });
+  }
+
+  async assignUserRole(data: {
+    user_id: number;
+    role_id: number;
+    branch_id: number;
+    is_temporary?: boolean;
+    valid_until?: string;
+    granted_by?: number;
+  }) {
+    // Validate user exists
+    const user = await this.prisma.user.findUnique({
+      where: { id: data.user_id },
+    });
+    if (!user) throw new NotFoundException(`User #${data.user_id} not found`);
+
+    // Validate role exists
+    const role = await this.prisma.role.findUnique({
+      where: { id: data.role_id },
+    });
+    if (!role) throw new NotFoundException(`Role #${data.role_id} not found`);
+
+    // Validate branch exists
+    await this.ensurePanchayatExists(data.branch_id);
+
+    // Check for duplicate
+    const existing = await this.prisma.userRole.findUnique({
+      where: {
+        user_id_role_id_branch_id: {
+          user_id: data.user_id,
+          role_id: data.role_id,
+          branch_id: data.branch_id,
+        },
+      },
+    });
+    if (existing) {
+      throw new BadRequestException(
+        'This user already has this role at the specified branch',
+      );
+    }
+
+    return this.prisma.userRole.create({
+      data: {
+        user_id: data.user_id,
+        role_id: data.role_id,
+        branch_id: data.branch_id,
+        is_temporary: data.is_temporary ?? false,
+        valid_until: data.valid_until ? new Date(data.valid_until) : null,
+        granted_by: data.granted_by ?? null,
+      },
+    });
+  }
+
+  async revokeUserRole(userRoleId: number) {
+    const existing = await this.prisma.userRole.findUnique({
+      where: { id: userRoleId },
+    });
+    if (!existing)
+      throw new NotFoundException(`UserRole #${userRoleId} not found`);
+
+    await this.prisma.userRole.delete({ where: { id: userRoleId } });
+    return { success: true };
+  }
+
   // ── Private Helpers ────────────────────────────────────────────────────
 
   private async ensurePanchayatExists(id: number): Promise<any> {

@@ -32,6 +32,8 @@ import '../features/super_admin/presentation/screens/super_admin_pole_management
 import '../features/super_admin/presentation/screens/agent_management.dart';
 import '../features/super_admin/presentation/screens/electrician_management.dart';
 import '../features/super_admin/presentation/screens/plumber_management.dart';
+import '../features/super_admin/presentation/screens/role_permission_screen.dart';
+import '../features/super_admin/presentation/screens/branch_feature_toggle_screen.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
@@ -292,6 +294,18 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
 
           // Super Admin Routes
+          GoRoute(
+            path: '/superadmin/roles',
+            builder: (context, state) {
+              final userIdStr = state.uri.queryParameters['user_id'];
+              final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
+              return RolePermissionScreen(preselectedUserId: userId);
+            },
+          ),
+          GoRoute(
+            path: '/superadmin/feature-toggles',
+            builder: (context, state) => const BranchFeatureToggleScreen(),
+          ),
           GoRoute(
             path: '/panchayats',
             builder:

@@ -284,4 +284,106 @@ class SuperAdminRepository {
   Future<Uint8List> downloadExportZip(int jobId) async {
     return _api.getBytes(ApiConfig.saExportDownload(jobId));
   }
+
+  // ── RBAC: Permissions & Groups ──────────────────────────────────────────
+  Future<Map<String, dynamic>> listPermissions() async {
+    final data = await _api.get('/api/superadmin/permissions');
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<List<dynamic>> listPermissionGroups() async {
+    final data = await _api.get('/api/superadmin/permission-groups');
+    return List<dynamic>.from(data as List);
+  }
+
+  Future<Map<String, dynamic>> createPermissionGroup({
+    required String name,
+    required List<String> permissions,
+  }) async {
+    final data = await _api.post('/api/superadmin/permission-groups', data: {
+      'name': name,
+      'permissions': permissions,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> updatePermissionGroup(
+    int id, {
+    String? name,
+    List<String>? permissions,
+  }) async {
+    final data = await _api.put('/api/superadmin/permission-groups/$id', data: {
+      if (name != null) 'name': name,
+      if (permissions != null) 'permissions': permissions,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<void> deletePermissionGroup(int id) async {
+    await _api.delete('/api/superadmin/permission-groups/$id');
+  }
+
+  // ── RBAC: Roles ──────────────────────────────────────────────────────────
+  Future<List<dynamic>> listRoles({int? branchId}) async {
+    final data = await _api.get(
+      '/api/superadmin/roles',
+      queryParams: branchId != null ? {'branch_id': branchId.toString()} : null,
+    );
+    return List<dynamic>.from(data as List);
+  }
+
+  Future<Map<String, dynamic>> createRole(Map<String, dynamic> body) async {
+    final data = await _api.post('/api/superadmin/roles', data: body);
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> updateRole(int id, Map<String, dynamic> body) async {
+    final data = await _api.put('/api/superadmin/roles/$id', data: body);
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<void> deleteRole(int id) async {
+    await _api.delete('/api/superadmin/roles/$id');
+  }
+
+  // ── RBAC: User Role Assignments ─────────────────────────────────────────
+  Future<List<dynamic>> listUserRoles(int userId) async {
+    final data = await _api.get('/api/superadmin/users/$userId/roles');
+    return List<dynamic>.from(data as List);
+  }
+
+  Future<Map<String, dynamic>> assignUserRole({
+    required int userId,
+    required int roleId,
+    required int branchId,
+    bool isTemporary = false,
+    String? validUntil,
+  }) async {
+    final data = await _api.post('/api/superadmin/users/$userId/roles', data: {
+      'role_id': roleId,
+      'branch_id': branchId,
+      'is_temporary': isTemporary,
+      if (validUntil != null) 'valid_until': validUntil,
+    });
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<void> revokeUserRole(int id) async {
+    await _api.delete('/api/superadmin/user-roles/$id');
+  }
+
+  // ── Branch Feature Config Toggles ───────────────────────────────────────
+  Future<Map<String, dynamic>> getFeatureConfig(int panchayatId) async {
+    final data = await _api.get('/api/superadmin/panchayats/$panchayatId/features');
+    return Map<String, dynamic>.from(data as Map);
+  }
+
+  Future<Map<String, dynamic>> updateFeatureConfig(
+    int panchayatId,
+    Map<String, dynamic> body,
+  ) async {
+    final data = await _api.put('/api/superadmin/panchayats/$panchayatId/features', data: body);
+    return Map<String, dynamic>.from(data as Map);
+  }
 }
+

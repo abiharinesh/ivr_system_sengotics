@@ -455,6 +455,8 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
         _NavSpec(icon: Icons.account_tree_rounded, label: 'Panchayat Mgmt', route: '/panchayats'),
         _NavSpec(icon: Icons.people_rounded, label: 'User Management', route: '/users'),
+        _NavSpec(icon: Icons.admin_panel_settings_rounded, label: 'Roles & Permissions', route: '/superadmin/roles'),
+        _NavSpec(icon: Icons.tune_rounded, label: 'Feature Toggles', route: '/superadmin/feature-toggles'),
         _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/superadmin/tenders'),
         _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/superadmin/vendors'),
         _NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),

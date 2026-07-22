@@ -1113,4 +1113,97 @@ export class SuperAdminController {
     const pid = await this.getTenderPanchayatId(id);
     return this.fieldVerification.confirmVerification(pid, id, req.user.id);
   }
+
+  // ── RBAC: Permissions (read-only, system-seeded) ──────────────────────
+  @Get('permissions')
+  listPermissions() {
+    return this.superAdminService.listPermissions();
+  }
+
+  // ── RBAC: Permission Groups ───────────────────────────────────────────
+  @Get('permission-groups')
+  listPermissionGroups() {
+    return this.superAdminService.listPermissionGroups();
+  }
+
+  @Post('permission-groups')
+  createPermissionGroup(
+    @Body() body: { name: string; permissions: string[] },
+  ) {
+    return this.superAdminService.createPermissionGroup(body);
+  }
+
+  @Put('permission-groups/:id')
+  updatePermissionGroup(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { name?: string; permissions?: string[] },
+  ) {
+    return this.superAdminService.updatePermissionGroup(id, body);
+  }
+
+  @Delete('permission-groups/:id')
+  deletePermissionGroup(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.deletePermissionGroup(id);
+  }
+
+  // ── RBAC: Roles ───────────────────────────────────────────────────────
+  @Get('roles')
+  listRoles(@Query('branch_id') branchId?: string) {
+    const bid = branchId ? parseInt(branchId, 10) : undefined;
+    return this.superAdminService.listRoles(
+      'default',
+      isNaN(bid as number) ? undefined : bid,
+    );
+  }
+
+  @Post('roles')
+  createRole(@Body() body: any) {
+    return this.superAdminService.createRole(body);
+  }
+
+  @Put('roles/:id')
+  updateRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    return this.superAdminService.updateRole(id, body);
+  }
+
+  @Delete('roles/:id')
+  deleteRole(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.deleteRole(id);
+  }
+
+  // ── RBAC: User Role Assignments ───────────────────────────────────────
+  @Get('users/:userId/roles')
+  listUserRoles(@Param('userId', ParseIntPipe) userId: number) {
+    return this.superAdminService.listUserRoles(userId);
+  }
+
+  @Post('users/:userId/roles')
+  assignUserRole(
+    @Req() req: any,
+    @Param('userId', ParseIntPipe) userId: number,
+    @Body()
+    body: {
+      role_id: number;
+      branch_id: number;
+      is_temporary?: boolean;
+      valid_until?: string;
+    },
+  ) {
+    return this.superAdminService.assignUserRole({
+      user_id: userId,
+      role_id: body.role_id,
+      branch_id: body.branch_id,
+      is_temporary: body.is_temporary,
+      valid_until: body.valid_until,
+      granted_by: req.user?.id,
+    });
+  }
+
+  @Delete('user-roles/:id')
+  revokeUserRole(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.revokeUserRole(id);
+  }
 }
