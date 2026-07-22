@@ -21,6 +21,7 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
   PanchayatModel? _selectedPanchayat;
 
   Map<String, dynamic> _config = {};
+  bool _isSaving = false;
 
   static const List<Map<String, dynamic>> _modules = [
     // Core Services
@@ -130,6 +131,10 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (_isSaving) ...[
+                        const LinearProgressIndicator(),
+                        const SizedBox(height: 12),
+                      ],
                       // Branch Selector Top Bar
                       Card(
                         child: Padding(
