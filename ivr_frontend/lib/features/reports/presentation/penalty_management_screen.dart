@@ -115,7 +115,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
           mainAxisSize: MainAxisSize.min,
           children: [
             DropdownButtonFormField<String>(
-              value: 'electrician',
+              initialValue: 'electrician',
               items: const [
                 DropdownMenuItem(value: 'electrician', child: Text('Electrician')),
                 DropdownMenuItem(value: 'plumber', child: Text('Plumber')),
@@ -127,7 +127,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: 'medium',
+              initialValue: 'medium',
               items: const [
                 DropdownMenuItem(value: 'low', child: Text('Low Urgency')),
                 DropdownMenuItem(value: 'medium', child: Text('Medium Urgency')),

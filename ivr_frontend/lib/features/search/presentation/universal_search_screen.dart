@@ -92,7 +92,7 @@ class _UniversalSearchScreenState extends State<UniversalSearchScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
               : _results == null
                   ? _buildHint()
                   : _totalCount == 0

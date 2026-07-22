@@ -15,8 +15,8 @@ void main() {
     testWidgets('Renders Contractors, Field Inspections, and Citizen Portal items', (WidgetTester tester) async {
       await tester.pumpWidget(
         wrap(
-          Column(
-            children: const [
+          const Column(
+            children: [
               AppCard(child: Text('Contractor: Apex Infrastructure Ltd (Verified)')),
               AppCard(child: Text('Inspection: Ward 2 Drainage Pipeline - PASS')),
               AppCard(child: Text('Universal Search: Electric Pole TY-PL-001')),

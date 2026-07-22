@@ -242,7 +242,7 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: AppTheme.stroke)),
                 ),
                 hint: Text('Select template', style: TextStyle(color: AppTheme.textMuted)),
-                value: _selectedTemplateId,
+                initialValue: _selectedTemplateId,
                 items: _templates.map((t) => DropdownMenuItem<int>(
                   value: t['id'] as int,
                   child: Text(t['name']?.toString() ?? 'Template', style: TextStyle(color: AppTheme.textPrimary)),

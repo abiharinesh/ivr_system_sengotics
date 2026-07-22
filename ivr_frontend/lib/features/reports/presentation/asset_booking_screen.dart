@@ -87,7 +87,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: 'hall',
+                initialValue: 'hall',
                 items: const [
                   DropdownMenuItem(value: 'hall', child: Text('Community Hall')),
                   DropdownMenuItem(value: 'ground', child: Text('Open Ground / Maidan')),

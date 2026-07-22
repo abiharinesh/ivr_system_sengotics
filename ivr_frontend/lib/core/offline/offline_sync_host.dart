@@ -177,7 +177,7 @@ class _OfflineSyncHostState extends State<OfflineSyncHost>
                     ] else ...[
                       const Icon(Icons.cloud_done_rounded, color: Colors.greenAccent, size: 16),
                       const SizedBox(width: 8),
-                      Text(
+                      const Text(
                         'Online • Connected',
                         style: TextStyle(color: Colors.greenAccent, fontSize: 12, fontWeight: FontWeight.w600),
                       ),

@@ -90,7 +90,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<int>(
-              value: 0,
+              initialValue: 0,
               items: const [
                 DropdownMenuItem(value: 0, child: Text('Sunday')),
                 DropdownMenuItem(value: 1, child: Text('Monday')),
@@ -249,7 +249,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<int>(
-                value: selectedVendorId,
+                initialValue: selectedVendorId,
                 items: vendors.map((v) => DropdownMenuItem<int>(
                   value: v['id'] as int,
                   child: Text(v['vendor_name'] as String),
@@ -261,7 +261,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<int>(
-                value: selectedMarketDayId,
+                initialValue: selectedMarketDayId,
                 items: marketDays.map((md) => DropdownMenuItem<int>(
                   value: md['id'] as int,
                   child: Text(md['name'] as String),

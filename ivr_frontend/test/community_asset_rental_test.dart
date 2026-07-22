@@ -12,12 +12,12 @@ void main() {
     );
   }
 
-  group('Community Asset Rental Suite', () => {
+  group('Community Asset Rental Suite', () {
     testWidgets('Renders asset rental stats and hall booking title', (WidgetTester tester) async {
       await tester.pumpWidget(
         wrap(
-          Column(
-            children: const [
+          const Column(
+            children: [
               StatCard(
                 title: 'Total Rentable Assets',
                 value: '14',
@@ -35,6 +35,6 @@ void main() {
       expect(find.text('Total Rentable Assets'), findsOneWidget);
       expect(find.text('14'), findsOneWidget);
       expect(find.text('Thayanur Community Hall - Booked'), findsOneWidget);
-    }),
+    });
   });
 }

@@ -15,8 +15,8 @@ void main() {
     testWidgets('Displays certificate approval status badges correctly', (WidgetTester tester) async {
       await tester.pumpWidget(
         wrap(
-          Row(
-            children: const [
+          const Row(
+            children: [
               StatusBadge(status: 'resolved'),
               StatusBadge(status: 'pending'),
             ],

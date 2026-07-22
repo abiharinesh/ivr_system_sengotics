@@ -189,14 +189,14 @@ class _FeedbackTabState extends State<_FeedbackTab> {
               borderRadius: BorderRadius.circular(AppTheme.radiusMd),
             ),
             padding: const EdgeInsets.all(20),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.rate_review_outlined, color: Colors.white, size: 36),
-                const SizedBox(width: 16),
+                Icon(Icons.rate_review_outlined, color: Colors.white, size: 36),
+                SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text('Share your feedback', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       SizedBox(height: 4),
                       Text('Help us improve our services', style: TextStyle(color: Colors.white70, fontSize: 13)),

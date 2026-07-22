@@ -211,7 +211,7 @@ class _ContractorCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              Icon(Icons.star_rounded, size: 16, color: Colors.amber),
+              const Icon(Icons.star_rounded, size: 16, color: Colors.amber),
               const SizedBox(width: 4),
               Text(rating, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
               const SizedBox(width: 4),
@@ -278,7 +278,7 @@ class _WorkOrderListScreenState extends State<WorkOrderListScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
+              ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
               : _workOrders.isEmpty
                   ? Center(
                       child: Text('No work orders found.',

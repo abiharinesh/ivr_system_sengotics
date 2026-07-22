@@ -42,14 +42,14 @@ class _MunicipalityScreenState extends State<MunicipalityScreen> {
                 borderRadius: BorderRadius.circular(AppTheme.radiusMd),
               ),
               padding: const EdgeInsets.all(20),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.account_balance_outlined, color: Colors.white, size: 36),
-                  const SizedBox(width: 16),
+                  Icon(Icons.account_balance_outlined, color: Colors.white, size: 36),
+                  SizedBox(width: 16),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
+                      children: [
                         Text('Municipality Modules', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                         SizedBox(height: 4),
                         Text('Feature-gated department functions', style: TextStyle(color: Colors.white70, fontSize: 13)),
@@ -206,7 +206,7 @@ class _MunicipalityTransactionsScreenState extends State<MunicipalityTransaction
           : _isFeatureLocked
               ? _buildLocked()
               : _error != null
-                  ? Center(child: Text(_error!, style: TextStyle(color: Colors.red)))
+                  ? Center(child: Text(_error!, style: const TextStyle(color: Colors.red)))
                   : _records.isEmpty
                       ? _buildEmpty()
                       : RefreshIndicator(

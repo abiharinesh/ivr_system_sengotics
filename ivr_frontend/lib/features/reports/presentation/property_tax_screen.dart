@@ -104,7 +104,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: 'residential',
+                initialValue: 'residential',
                 items: const [
                   DropdownMenuItem(value: 'residential', child: Text('Residential')),
                   DropdownMenuItem(value: 'commercial', child: Text('Commercial')),
@@ -223,7 +223,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
             ),
             const SizedBox(height: 8),
             DropdownButtonFormField<String>(
-              value: 'upi',
+              initialValue: 'upi',
               items: const [
                 DropdownMenuItem(value: 'upi', child: Text('UPI / Scan QR')),
                 DropdownMenuItem(value: 'cash', child: Text('Cash')),

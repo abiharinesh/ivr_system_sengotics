@@ -336,7 +336,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
             child: _isLoadingUserRoles
                 ? const AppLoadingState(message: 'Loading user role assignments...')
                 : _userRoles.isEmpty
-                    ? EmptyState(
+                    ? const EmptyState(
                         icon: Icons.shield_outlined,
                         title: 'No Roles Assigned',
                         subtitle: 'Assign a role to grant branch-level permissions to this user.',
@@ -622,14 +622,14 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<dynamic>(
-                value: selectedRole,
+                initialValue: selectedRole,
                 decoration: const InputDecoration(labelText: 'Select Role'),
                 items: _roles.map((r) => DropdownMenuItem(value: r, child: Text(r['display_name'] ?? r['name']))).toList(),
                 onChanged: (val) => setDlgState(() => selectedRole = val),
               ),
               const SizedBox(height: 12),
               DropdownButtonFormField<PanchayatModel>(
-                value: selectedBranch,
+                initialValue: selectedBranch,
                 decoration: const InputDecoration(labelText: 'Select Panchayat Branch'),
                 items: _panchayats.map((p) => DropdownMenuItem(value: p, child: Text(p.name))).toList(),
                 onChanged: (val) { if (val != null) setDlgState(() => selectedBranch = val); },
