@@ -34,13 +34,14 @@ class _UniversalSearchScreenState extends State<UniversalSearchScreen> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final res = await ApiClient.instance.get('/api/search/universal', queryParams: {'q': q.trim()});
+      final map = res is Map ? res : {};
       setState(() {
         _results = {
-          'Complaints': List<dynamic>.from(res['complaints'] ?? []),
-          'Assets': List<dynamic>.from(res['assets'] ?? []),
-          'Tenders': List<dynamic>.from(res['tenders'] ?? []),
-          'Work Orders': List<dynamic>.from(res['workOrders'] ?? []),
-          'Contractors': List<dynamic>.from(res['contractors'] ?? []),
+          'Complaints': List<dynamic>.from(map['complaints'] ?? []),
+          'Assets': List<dynamic>.from(map['assets'] ?? []),
+          'Tenders': List<dynamic>.from(map['tenders'] ?? []),
+          'Work Orders': List<dynamic>.from(map['workOrders'] ?? []),
+          'Contractors': List<dynamic>.from(map['contractors'] ?? []),
         };
       });
     } catch (e) {

@@ -26,7 +26,8 @@ class _InspectionListScreenState extends State<InspectionListScreen> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final res = await ApiClient.instance.get('/api/inspections');
-      setState(() { _inspections = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _inspections = list; });
     } catch (e) {
       setState(() { _error = e.toString(); });
     } finally {
@@ -209,7 +210,8 @@ class _NewInspectionScreenState extends State<NewInspectionScreen> {
   Future<void> _loadTemplates() async {
     try {
       final res = await ApiClient.instance.get('/api/inspection-templates');
-      setState(() { _templates = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _templates = list; });
     } catch (_) {}
   }
 

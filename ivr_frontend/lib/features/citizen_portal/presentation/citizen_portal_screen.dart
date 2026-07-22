@@ -33,7 +33,8 @@ class _CitizenPortalScreenState extends State<CitizenPortalScreen> with SingleTi
     setState(() => _loadingAnn = true);
     try {
       final res = await ApiClient.instance.get('/api/citizen-portal/announcements');
-      setState(() { _announcements = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _announcements = list; });
     } catch (_) {
     } finally {
       setState(() => _loadingAnn = false);

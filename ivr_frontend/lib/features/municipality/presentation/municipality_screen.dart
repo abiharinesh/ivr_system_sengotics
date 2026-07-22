@@ -166,7 +166,8 @@ class _MunicipalityTransactionsScreenState extends State<MunicipalityTransaction
     setState(() { _isLoading = true; _error = null; _isFeatureLocked = false; });
     try {
       final res = await ApiClient.instance.get('/api/municipality/${widget.module.key}/records');
-      setState(() { _records = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _records = list; });
     } catch (e) {
       final msg = e.toString();
       if (msg.contains('403') || msg.toLowerCase().contains('forbidden')) {

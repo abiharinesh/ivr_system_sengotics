@@ -25,7 +25,8 @@ class _ContractorListScreenState extends State<ContractorListScreen> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final res = await ApiClient.instance.get('/api/contractors');
-      setState(() { _contractors = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _contractors = list; });
     } catch (e) {
       setState(() { _error = e.toString(); });
     } finally {
@@ -255,7 +256,8 @@ class _WorkOrderListScreenState extends State<WorkOrderListScreen> {
     setState(() { _isLoading = true; _error = null; });
     try {
       final res = await ApiClient.instance.get('/api/work-orders', queryParams: {'contractorId': widget.contractorId});
-      setState(() { _workOrders = List<dynamic>.from(res['data'] ?? res ?? []); });
+      final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
+      setState(() { _workOrders = list; });
     } catch (e) {
       setState(() { _error = e.toString(); });
     } finally {
