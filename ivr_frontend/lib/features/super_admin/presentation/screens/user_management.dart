@@ -274,7 +274,7 @@ class _UserManagementState extends State<UserManagement> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.shield_outlined,
                                     color: AppTheme.primary,
                                   ),
@@ -283,7 +283,7 @@ class _UserManagementState extends State<UserManagement> {
                                 ),
                                 if (!user.isSuperAdmin)
                                   IconButton(
-                                    icon: const Icon(
+                                    icon: Icon(
                                       Icons.delete_outline,
                                       color: AppTheme.error,
                                     ),

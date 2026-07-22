@@ -21,7 +21,6 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
   PanchayatModel? _selectedPanchayat;
 
   Map<String, dynamic> _config = {};
-  bool _isSaving = false;
 
   static const List<Map<String, dynamic>> _modules = [
     // Core Services
@@ -143,7 +142,7 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
                                   color: AppTheme.primary.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: const Icon(Icons.account_tree_rounded, color: AppTheme.primary),
+                                child: Icon(Icons.account_tree_rounded, color: AppTheme.primary),
                               ),
                               const SizedBox(width: 16),
                               const Text('Select Branch / Panchayat:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
@@ -155,7 +154,7 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
                                     isExpanded: true,
                                     items: _panchayats.map((p) => DropdownMenuItem(
                                       value: p,
-                                      child: Text('${p.name} (${p.district ?? 'TN'})'),
+                                      child: Text(p.name),
                                     )).toList(),
                                     onChanged: (p) {
                                       if (p != null) {
@@ -231,7 +230,7 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
                                         ),
                                         Switch(
                                           value: isEnabled,
-                                          activeColor: AppTheme.primary,
+                                          activeTrackColor: AppTheme.primary,
                                           onChanged: (val) => _toggleFeature(key, val),
                                         ),
                                       ],

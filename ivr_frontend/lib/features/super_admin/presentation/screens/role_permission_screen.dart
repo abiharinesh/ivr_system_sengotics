@@ -208,12 +208,12 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.edit_rounded, color: AppTheme.primary),
+                    icon: Icon(Icons.edit_rounded, color: AppTheme.primary),
                     onPressed: () => _showEditRoleDialog(r),
                   ),
                   if (!isSystem)
                     IconButton(
-                      icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+                      icon: Icon(Icons.delete_outline_rounded, color: AppTheme.error),
                       onPressed: () => _deleteRole(r['id']),
                     ),
                 ],
@@ -256,11 +256,11 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
                       Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.edit_rounded, color: AppTheme.primary),
+                            icon: Icon(Icons.edit_rounded, color: AppTheme.primary),
                             onPressed: () => _showEditGroupDialog(group),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.delete_outline_rounded, color: AppTheme.error),
+                            icon: Icon(Icons.delete_outline_rounded, color: AppTheme.error),
                             onPressed: () => _deleteGroup(group['id']),
                           ),
                         ],
@@ -297,7 +297,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
               padding: const EdgeInsets.all(16),
               child: Row(
                 children: [
-                  const Icon(Icons.person_search_rounded, color: AppTheme.primary),
+                  Icon(Icons.person_search_rounded, color: AppTheme.primary),
                   const SizedBox(width: 12),
                   const Text('Select User:', style: TextStyle(fontWeight: FontWeight.w600)),
                   const SizedBox(width: 16),
@@ -355,14 +355,14 @@ class _RolePermissionScreenState extends State<RolePermissionScreen> with Single
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
-                              leading: const CircleAvatar(
+                              leading: CircleAvatar(
                                 backgroundColor: AppTheme.primary,
-                                child: Icon(Icons.workspace_premium_rounded, color: Colors.white),
+                                child: const Icon(Icons.workspace_premium_rounded, color: Colors.white),
                               ),
                               title: Text(roleName, style: const TextStyle(fontWeight: FontWeight.w600)),
                               subtitle: Text('Branch: $branchName ${ur['is_temporary'] == true ? ' (Temporary)' : ''}'),
                               trailing: IconButton(
-                                icon: const Icon(Icons.remove_circle_outline_rounded, color: AppTheme.error),
+                                icon: Icon(Icons.remove_circle_outline_rounded, color: AppTheme.error),
                                 onPressed: () => _revokeUserRole(ur['id']),
                               ),
                             ),
