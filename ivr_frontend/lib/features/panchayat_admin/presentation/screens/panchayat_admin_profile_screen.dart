@@ -1,0 +1,480 @@
+import 'package:flutter/material.dart';
+import '../../../../config/app_theme.dart';
+
+class PanchayatAdminProfileScreen extends StatefulWidget {
+  final String? adminId;
+  const PanchayatAdminProfileScreen({super.key, this.adminId});
+
+  @override
+  State<PanchayatAdminProfileScreen> createState() => _PanchayatAdminProfileScreenState();
+}
+
+class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  String _officerName = 'K. Rajasekar';
+  String _email = 'admin.alandur@tn.gov.in';
+  String _phone = '+91 98401 23456';
+  String _panchayatName = 'Alandur Panchayat Union';
+  String _branchCode = 'TN-ALN-PNC-04';
+  String _district = 'Chengalpattu District';
+  String _empCode = 'TN-PA-2024-8842';
+  String _language = 'English & தமிழ்';
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _showEditProfileDialog() {
+    final nameC = TextEditingController(text: _officerName);
+    final emailC = TextEditingController(text: _email);
+    final phoneC = TextEditingController(text: _phone);
+    final panchayatC = TextEditingController(text: _panchayatName);
+    final formKey = GlobalKey<FormState>();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.edit_note_rounded, color: AppTheme.primary),
+            const SizedBox(width: 8),
+            const Text('Edit Panchayat Admin Profile'),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextFormField(
+                  controller: nameC,
+                  decoration: const InputDecoration(
+                    labelText: 'Officer Full Name *',
+                    prefixIcon: Icon(Icons.person_outline),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: emailC,
+                  decoration: const InputDecoration(
+                    labelText: 'Official Email Address *',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (v) => v == null || !v.contains('@') ? 'Invalid email' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: phoneC,
+                  decoration: const InputDecoration(
+                    labelText: 'Contact Mobile Number *',
+                    prefixIcon: Icon(Icons.phone_outlined),
+                  ),
+                  validator: (v) => v == null || v.length < 10 ? 'Invalid phone' : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: panchayatC,
+                  decoration: const InputDecoration(
+                    labelText: 'Assigned Panchayat Name *',
+                    prefixIcon: Icon(Icons.location_city_outlined),
+                  ),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                setState(() {
+                  _officerName = nameC.text.trim();
+                  _email = emailC.text.trim();
+                  _phone = phoneC.text.trim();
+                  _panchayatName = panchayatC.text.trim();
+                });
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Panchayat Admin profile details updated successfully!'),
+                    backgroundColor: AppTheme.accent,
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.save_rounded, size: 18),
+            label: const Text('Save Profile Updates'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Top Header Banner Card
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppTheme.stroke),
+              boxShadow: AppTheme.softShadow,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 40,
+                  backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
+                  child: Text(
+                    _officerName.isNotEmpty ? _officerName[0].toUpperCase() : 'P',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            _officerName,
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textPrimary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Active Panchayat Admin',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '$_panchayatName • $_district',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textSecondary),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Branch Code: $_branchCode • Employee ID: $_empCode',
+                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                Row(
+                  children: [
+                    OutlinedButton.icon(
+                      onPressed: _showEditProfileDialog,
+                      icon: const Icon(Icons.edit_rounded, size: 18),
+                      label: const Text('Edit Profile'),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Downloading Official e-Service Credentials PDF...')),
+                        );
+                      },
+                      icon: const Icon(Icons.badge_rounded, size: 18),
+                      label: const Text('ID Credentials'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+
+          // Quick Operational Statistics Banner
+          Row(
+            children: [
+              _buildKpiCard('Assigned Wards', '18 Wards', Icons.map_rounded, Colors.blue),
+              const SizedBox(width: 16),
+              _buildKpiCard('Total Infrastructure Assets', '434 Assets', Icons.lightbulb_rounded, Colors.purple),
+              const SizedBox(width: 16),
+              _buildKpiCard('Grievances Resolved', '1,420 Resolved', Icons.task_alt_rounded, Colors.green),
+              const SizedBox(width: 16),
+              _buildKpiCard('Active Field Staff', '8 Electricians', Icons.engineering_rounded, Colors.orange),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Navigation Tab Bar
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppTheme.stroke),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              labelColor: AppTheme.primary,
+              unselectedLabelColor: AppTheme.textSecondary,
+              indicatorColor: AppTheme.primary,
+              tabs: const [
+                Tab(text: 'Branch & Panchayat Details'),
+                Tab(text: 'Officer Credentials & Contact'),
+                Tab(text: 'RBAC Roles & Permissions'),
+                Tab(text: 'Operational Performance & Log'),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Tab Contents View
+          SizedBox(
+            height: 520,
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildBranchDetailsTab(),
+                _buildOfficerCredentialsTab(),
+                _buildRbacPermissionsTab(),
+                _buildPerformanceLogTab(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKpiCard(String title, String val, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.stroke),
+          boxShadow: AppTheme.softShadow,
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: color, size: 26),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  const SizedBox(height: 2),
+                  Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBranchDetailsTab() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ListView(
+          children: [
+            _buildDetailTile(Icons.account_balance_rounded, 'Panchayat Body Name', _panchayatName),
+            const Divider(),
+            _buildDetailTile(Icons.qr_code_rounded, 'Administrative Branch Code', _branchCode),
+            const Divider(),
+            _buildDetailTile(Icons.location_on_rounded, 'District & State Jurisdiction', '$_district, Tamil Nadu Government'),
+            const Divider(),
+            _buildDetailTile(Icons.business_rounded, 'Office Headquarters Address', 'No. 1, Main Panchayat Office Road, Alandur, Chengalpattu - 600016'),
+            const Divider(),
+            _buildDetailTile(Icons.access_time_filled_rounded, 'Official Business Hours', 'Monday to Saturday (09:30 AM – 05:45 PM)'),
+            const Divider(),
+            _buildDetailTile(Icons.headset_mic_rounded, 'IVR Public Grievance Helpline', '1800-425-0014 (Toll-Free 24x7)'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOfficerCredentialsTab() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ListView(
+          children: [
+            _buildDetailTile(Icons.person_rounded, 'Officer Full Name', _officerName),
+            const Divider(),
+            _buildDetailTile(Icons.email_rounded, 'Official Registered Email', _email),
+            const Divider(),
+            _buildDetailTile(Icons.phone_rounded, 'Contact Phone Number', _phone),
+            const Divider(),
+            _buildDetailTile(Icons.badge_rounded, 'Employee Service Book Code', _empCode),
+            const Divider(),
+            _buildDetailTile(Icons.work_history_rounded, 'Service Cadre & Appointment', 'TNCS — Tamil Nadu Panchayat Administrative Officer (Appointed May 2018)'),
+            const Divider(),
+            _buildDetailTile(Icons.translate_rounded, 'System Portal Preferences', 'Language: $_language • Notifications: SMS, Email & WhatsApp Active'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRbacPermissionsTab() {
+    final permissions = [
+      {'code': 'complaints.manage', 'desc': 'Manage & Resolve Public Citizen Complaints', 'status': 'Granted'},
+      {'code': 'electricians.assign', 'desc': 'Assign & Monitor Field Electrician Work Orders', 'status': 'Granted'},
+      {'code': 'assets.register', 'desc': 'Register & Inspect Municipal Infrastructure Assets', 'status': 'Granted'},
+      {'code': 'mbook.approve', 'desc': 'Verify Site Measurement Book (M-Book) Entries', 'status': 'Granted'},
+      {'code': 'reports.executive', 'desc': 'Access Panchayat Analytics & SLA Compliance Reports', 'status': 'Granted'},
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Granted Administrative Permissions (Role: panchayat_admin)',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: permissions.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final item = permissions[index];
+                  return ListTile(
+                    leading: const CircleAvatar(
+                      backgroundColor: Colors.green,
+                      radius: 14,
+                      child: Icon(Icons.check, size: 16, color: Colors.white),
+                    ),
+                    title: Text(item['desc']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                    subtitle: Text('Permission Code: ${item['code']}', style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                    trailing: Chip(
+                      label: Text(item['status']!),
+                      backgroundColor: Colors.green.shade100,
+                      labelStyle: TextStyle(color: Colors.green.shade900, fontWeight: FontWeight.bold, fontSize: 11),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceLogTab() {
+    final logs = [
+      {'time': 'Today, 02:45 PM', 'action': 'Assigned Electrician (E-104) to Complaint CMP-2026-00042'},
+      {'time': 'Yesterday, 11:20 AM', 'action': 'Approved Work Order WO-2026-00012 for Road Patching'},
+      {'time': '20-Jul-2026, 09:30 AM', 'action': 'Logged System Login from IP 10.0.4.12'},
+    ];
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Recent System Audit Activity Log', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView.separated(
+                itemCount: logs.length,
+                separatorBuilder: (_, __) => const Divider(),
+                itemBuilder: (context, index) {
+                  final log = logs[index];
+                  return ListTile(
+                    leading: Icon(Icons.history_rounded, color: AppTheme.primary),
+                    title: Text(log['action']!, style: const TextStyle(fontSize: 14)),
+                    subtitle: Text(log['time']!, style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailTile(IconData icon, String title, String val) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: AppTheme.primary, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                const SizedBox(height: 2),
+                Text(val, style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

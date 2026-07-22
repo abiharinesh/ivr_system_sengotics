@@ -86,6 +86,7 @@ import '../features/citizen_portal/presentation/citizen_portal_screen.dart';
 import '../features/municipality/presentation/municipality_screen.dart';
 
 // Screen Plan Modules
+import '../features/panchayat_admin/presentation/screens/panchayat_admin_profile_screen.dart';
 import '../features/auth/presentation/otp_verification_screen.dart';
 import '../features/auth/presentation/context_selector_screen.dart';
 import '../features/auth/presentation/employee_service_book_screen.dart';
@@ -639,6 +640,14 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
 
           // Screen Plan Specification Routes
+          GoRoute(
+            path: '/profile',
+            builder: (context, state) => const PanchayatAdminProfileScreen(),
+          ),
+          GoRoute(
+            path: '/panchayat-admin/profile',
+            builder: (context, state) => const PanchayatAdminProfileScreen(),
+          ),
           GoRoute(
             path: '/verify-otp',
             builder: (context, state) => const OtpVerificationScreen(),

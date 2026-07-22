@@ -219,65 +219,78 @@ class _AppScaffoldState extends State<AppScaffold> {
             ),
           ),
           const Divider(height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 18,
-                  backgroundColor: AppTheme.primary,
-                  child: Text(
-                    widget.userEmail.isNotEmpty
-                        ? widget.userEmail[0].toUpperCase()
-                        : '?',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+          InkWell(
+            onTap: () => context.go('/profile'),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 18,
+                    backgroundColor: AppTheme.primary,
+                    child: Text(
+                      widget.userEmail.isNotEmpty
+                          ? widget.userEmail[0].toUpperCase()
+                          : '?',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.userEmail,
-                        style:       TextStyle(
-                          fontSize: 12,
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w500,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.userEmail,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        widget.userRole == 'super_admin'
-                            ? 'Super Admin'
-                            : widget.userRole == 'panchayat_admin'
-                                ? 'Panchayat Admin'
-                                : widget.userRole == 'agent'
-                                    ? 'Field agent'
-                                    : widget.userRole == 'electrician'
-                                        ? 'Electrician'
-                                        : widget.userRole,
-                        style:       TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.textMuted,
+                        Text(
+                          widget.userRole == 'super_admin'
+                              ? 'Super Admin'
+                              : widget.userRole == 'panchayat_admin'
+                                  ? 'Panchayat Admin'
+                                  : widget.userRole == 'agent'
+                                      ? 'Field agent'
+                                      : widget.userRole == 'electrician'
+                                          ? 'Electrician'
+                                          : widget.userRole,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppTheme.textMuted,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-                IconButton(
-                  icon:       Icon(
-                    Icons.logout_rounded,
-                    size: 18,
-                    color: AppTheme.textMuted,
+                  IconButton(
+                    icon: Icon(
+                      Icons.account_circle_outlined,
+                      size: 18,
+                      color: AppTheme.primary,
+                    ),
+                    onPressed: () => context.go('/profile'),
+                    tooltip: 'View Profile',
                   ),
-                  onPressed: widget.onLogout,
-                  tooltip: 'Logout',
-                ),
-              ],
+                  IconButton(
+                    icon: Icon(
+                      Icons.logout_rounded,
+                      size: 18,
+                      color: AppTheme.textMuted,
+                    ),
+                    onPressed: widget.onLogout,
+                    tooltip: 'Logout',
+                  ),
+                ],
+              ),
             ),
           ),
         ],

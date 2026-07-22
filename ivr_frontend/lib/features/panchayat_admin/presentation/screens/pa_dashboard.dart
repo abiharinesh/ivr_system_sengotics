@@ -226,6 +226,17 @@ class PADashboard extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
+                    onPressed: () => context.go('/panchayat-admin/profile'),
+                    icon: const Icon(Icons.account_circle_outlined, size: 18),
+                    label: const Text('Admin Profile'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(

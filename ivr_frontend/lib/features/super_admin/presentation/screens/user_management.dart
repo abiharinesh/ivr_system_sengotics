@@ -294,6 +294,14 @@ class _UserManagementState extends State<UserManagement> {
                                 children: [
                                   IconButton(
                                     icon: Icon(
+                                      Icons.edit_note_rounded,
+                                      color: AppTheme.primary,
+                                    ),
+                                    tooltip: 'Edit Profile & Details',
+                                    onPressed: () => _showEditUserDialog(context, user),
+                                  ),
+                                  IconButton(
+                                    icon: Icon(
                                       Icons.shield_outlined,
                                       color: AppTheme.primary,
                                     ),
@@ -324,6 +332,103 @@ class _UserManagementState extends State<UserManagement> {
                       );
                     },
                   )),
+    );
+  }
+
+  Future<void> _showEditUserDialog(BuildContext context, UserModel user) async {
+    final emailC = TextEditingController(text: user.email);
+    int? selectedPanchayatId = user.panchayatId;
+    String selectedRole = user.role;
+    final formKey = GlobalKey<FormState>();
+
+    List<dynamic> panchayats = const [];
+    try {
+      panchayats = await _repo.listPanchayats();
+      if (selectedPanchayatId == null && panchayats.isNotEmpty) {
+        selectedPanchayatId = panchayats.first.id as int;
+      }
+    } catch (_) {
+      panchayats = [];
+    }
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          title: Text('Edit Profile — ${user.email}'),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: emailC,
+                    decoration: const InputDecoration(labelText: 'Email Address *'),
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) {
+                      if (v == null || v.isEmpty) return 'Required';
+                      if (!v.contains('@')) return 'Invalid email';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: selectedRole,
+                    decoration: const InputDecoration(labelText: 'Role *'),
+                    items: const [
+                      DropdownMenuItem(value: 'panchayat_admin', child: Text('Panchayat Admin')),
+                      DropdownMenuItem(value: 'super_admin', child: Text('Super Admin')),
+                      DropdownMenuItem(value: 'agent', child: Text('Agent')),
+                      DropdownMenuItem(value: 'electrician', child: Text('Electrician')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedRole = v);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedPanchayatId,
+                    decoration: const InputDecoration(labelText: 'Panchayat Assignment'),
+                    hint: const Text('Select panchayat'),
+                    items: panchayats
+                        .map((p) => DropdownMenuItem<int>(
+                              value: p.id as int,
+                              child: Text(p.name as String),
+                            ))
+                        .toList(),
+                    onChanged: (v) {
+                      setDialogState(() => selectedPanchayatId = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final payload = <String, dynamic>{
+                    'email': emailC.text.trim(),
+                    'role': selectedRole,
+                    if (selectedPanchayatId != null) 'panchayat_id': selectedPanchayatId,
+                  };
+                  context.read<UserMgmtBloc>().add(UpdateUser(user.id, payload));
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

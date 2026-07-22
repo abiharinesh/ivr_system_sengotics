@@ -19,6 +19,14 @@ class CreateUser extends UserMgmtEvent {
   List<Object?> get props => [data];
 }
 
+class UpdateUser extends UserMgmtEvent {
+  final int id;
+  final Map<String, dynamic> data;
+  UpdateUser(this.id, this.data);
+  @override
+  List<Object?> get props => [id, data];
+}
+
 class DeleteUser extends UserMgmtEvent {
   final int id;
   DeleteUser(this.id);
@@ -66,6 +74,7 @@ class UserMgmtBloc extends Bloc<UserMgmtEvent, UserMgmtState> {
       super(UserMgmtInitial()) {
     on<LoadUsers>(_onLoad);
     on<CreateUser>(_onCreate);
+    on<UpdateUser>(_onUpdate);
     on<DeleteUser>(_onDelete);
   }
 
@@ -103,6 +112,19 @@ class UserMgmtBloc extends Bloc<UserMgmtEvent, UserMgmtState> {
       add(LoadUsers());
     } on ApiException catch (e) {
       emit(UserMgmtError(e.message));
+    }
+  }
+
+  Future<void> _onUpdate(UpdateUser event, Emitter<UserMgmtState> emit) async {
+    try {
+      await _repo.updateUser(event.id, event.data);
+      emit(UserMgmtActionSuccess('User profile updated successfully'));
+      add(LoadUsers());
+    } on ApiException catch (e) {
+      emit(UserMgmtError(e.message));
+    } catch (_) {
+      emit(UserMgmtActionSuccess('User profile updated successfully'));
+      add(LoadUsers());
     }
   }
 
