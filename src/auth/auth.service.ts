@@ -22,25 +22,22 @@ export class AuthService {
     const valid = await bcrypt.compare(password, user.password_hash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
-    const employee = await this.prisma.employee.findFirst({
-      where: { user_id: user.id },
-    });
+    // Update last login tracking
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        last_login_at: new Date(),
+        failed_attempts: 0,
+      },
+    }).catch(() => { /* non-critical */ });
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      panchayat_id: user.panchayat_id,
-      tenant_id: user.tenant_id,
-      user_type: user.user_type,
-      employee_id: employee?.id || null,
-      access_scope: employee?.access_scope || 'own_branch',
-    };
+    const payload = await this.buildJwtPayload(user);
 
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
       panchayat_id: user.panchayat_id,
+      user_type: user.user_type,
     };
   }
 
@@ -120,30 +117,132 @@ export class AuthService {
           role: 'citizen',
           panchayat_id,
           phone_e164: formattedPhone,
+          user_type: 'citizen',
         },
       });
       this.logger.log(`[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`);
     }
 
-    const employee = await this.prisma.employee.findFirst({
-      where: { user_id: user.id },
-    });
-
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-      panchayat_id: user.panchayat_id,
-      tenant_id: user.tenant_id,
-      user_type: user.user_type,
-      employee_id: employee?.id || null,
-      access_scope: employee?.access_scope || 'own_branch',
-    };
+    const payload = await this.buildJwtPayload(user);
 
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
       panchayat_id: user.panchayat_id,
     };
+  }
+
+  // ── RBAC-Aware JWT Payload Builder ──────────────────────────────────────────
+
+  /**
+   * Builds a JWT payload that includes both the legacy `role` field AND
+   * the proper RBAC roles/permissions from UserRole → Role → PermissionGroup.
+   */
+  private async buildJwtPayload(user: {
+    id: number;
+    email: string | null;
+    role: string;
+    panchayat_id: number | null;
+    tenant_id: string;
+    user_type: string;
+  }) {
+    // Get employee record if exists
+    let employee: { id: number; access_scope: string } | null = null;
+    try {
+      employee = await this.prisma.employee.findFirst({
+        where: { user_id: user.id },
+        select: { id: true, access_scope: true },
+      });
+    } catch {
+      // Employee table may not exist pre-migration
+    }
+
+    // Get RBAC roles and permissions
+    const { rbacRoles, permissions } = await this.resolveUserRbac(user.id);
+
+    return {
+      sub: user.id,
+      email: user.email,
+      role: user.role, // Legacy field — kept for backward compatibility
+      panchayat_id: user.panchayat_id,
+      tenant_id: user.tenant_id,
+      user_type: user.user_type,
+      employee_id: employee?.id || null,
+      access_scope: employee?.access_scope || 'own_branch',
+      // RBAC fields
+      rbac_roles: rbacRoles,
+      permissions: permissions,
+    };
+  }
+
+  /**
+   * Resolves all RBAC roles and flattened permissions for a user.
+   * Returns empty arrays if RBAC tables don't exist yet.
+   */
+  private async resolveUserRbac(userId: number): Promise<{
+    rbacRoles: Array<{ id: number; name: string; branch_id: number | null }>;
+    permissions: string[];
+  }> {
+    try {
+      // 1. Get active user role assignments
+      const userRoles = await this.prisma.userRole.findMany({
+        where: {
+          user_id: userId,
+          valid_from: { lte: new Date() },
+          OR: [
+            { valid_until: null },
+            { valid_until: { gte: new Date() } },
+          ],
+        },
+      });
+
+      if (userRoles.length === 0) {
+        return { rbacRoles: [], permissions: [] };
+      }
+
+      // 2. Get role details
+      const roleIds = userRoles.map((ur) => ur.role_id);
+      const roles = await this.prisma.role.findMany({
+        where: { id: { in: roleIds }, is_active: true },
+        select: { id: true, name: true, permission_group_id: true },
+      });
+
+      const rbacRoles = roles.map((r) => {
+        const userRole = userRoles.find((ur) => ur.role_id === r.id);
+        return {
+          id: r.id,
+          name: r.name,
+          branch_id: userRole?.branch_id ?? null,
+        };
+      });
+
+      // 3. Get permission groups and flatten permissions
+      const groupIds = roles
+        .map((r) => r.permission_group_id)
+        .filter((id): id is number => id !== null);
+
+      if (groupIds.length === 0) {
+        return { rbacRoles, permissions: [] };
+      }
+
+      const groups = await this.prisma.permissionGroup.findMany({
+        where: { id: { in: groupIds } },
+        select: { permissions: true },
+      });
+
+      const permissionSet = new Set<string>();
+      for (const group of groups) {
+        const perms = group.permissions as string[];
+        if (Array.isArray(perms)) {
+          perms.forEach((p) => permissionSet.add(p));
+        }
+      }
+
+      return { rbacRoles, permissions: Array.from(permissionSet) };
+    } catch (error) {
+      // RBAC tables may not exist yet (pre-migration) — return empty
+      this.logger.debug(`RBAC resolution skipped (tables may not exist): ${(error as Error).message}`);
+      return { rbacRoles: [], permissions: [] };
+    }
   }
 }

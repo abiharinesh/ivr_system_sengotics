@@ -167,6 +167,20 @@ export class SuperAdminController {
     return this.superAdminService.updateFeatureConfig(id, body);
   }
 
+  /** Apply a feature template to multiple branches at once. */
+  @Post('features/bulk-update')
+  bulkUpdateFeatures(
+    @Body() body: { branch_ids: number[]; features: Record<string, boolean> },
+  ) {
+    if (!Array.isArray(body?.branch_ids) || body.branch_ids.length === 0) {
+      throw new BadRequestException('branch_ids array is required');
+    }
+    return this.superAdminService.bulkUpdateFeatureConfig(
+      body.branch_ids,
+      body.features ?? {},
+    );
+  }
+
   @Get('panchayats/:id/lifecycle')
   getLifecycleEvents(
     @Param('id', ParseIntPipe) id: number,
@@ -174,6 +188,7 @@ export class SuperAdminController {
   ) {
     return this.superAdminService.getLifecycleEvents(tenantId ?? 'default', id);
   }
+
 
   // ── Pole Management (all panchayats) ─────────────────────────────────────
   @Post('poles')

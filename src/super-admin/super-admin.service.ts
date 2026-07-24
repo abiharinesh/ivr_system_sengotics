@@ -190,6 +190,16 @@ export class SuperAdminService {
 
   // ── Branch Feature Config Matrix ────────────────────────────────────────
 
+  /** All valid feature toggle keys that can be set. */
+  private static readonly VALID_FEATURE_KEYS = new Set([
+    'street_light_mgmt', 'water_supply_mgmt', 'complaint_mgmt', 'tender_mgmt',
+    'certificate_mgmt', 'market_mgmt', 'asset_booking', 'ad_campaign',
+    'penalty_mgmt', 'ivr_system', 'zone_management',
+    'solid_waste_mgmt', 'drainage_mgmt', 'road_mgmt', 'parks_mgmt',
+    'public_health', 'building_permit', 'birth_death_reg',
+    'vehicle_fleet_mgmt', 'cemetery_mgmt', 'encroachment_mgmt',
+  ]);
+
   async getFeatureConfig(branchId: number) {
     await this.ensurePanchayatExists(branchId);
     let config = await this.prisma.branchFeatureConfig.findUnique({
@@ -205,15 +215,71 @@ export class SuperAdminService {
 
   async updateFeatureConfig(branchId: number, data: any) {
     await this.ensurePanchayatExists(branchId);
+
+    // Strip non-feature fields
     delete data.id;
     delete data.panchayat_id;
     delete data.created_at;
     delete data.updated_at;
 
+    // Validate only known feature keys are being set
+    const cleanData: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (SuperAdminService.VALID_FEATURE_KEYS.has(key)) {
+        cleanData[key] = Boolean(value);
+      } else {
+        this.logger.warn(`Ignoring unknown feature key: "${key}"`);
+      }
+    }
+
+    if (Object.keys(cleanData).length === 0) {
+      throw new BadRequestException(
+        'No valid feature toggles provided. Valid keys: ' +
+        Array.from(SuperAdminService.VALID_FEATURE_KEYS).join(', '),
+      );
+    }
+
+    // Auto-create config if it doesn't exist
+    const existing = await this.prisma.branchFeatureConfig.findUnique({
+      where: { panchayat_id: branchId },
+    });
+    if (!existing) {
+      return this.prisma.branchFeatureConfig.create({
+        data: { panchayat_id: branchId, ...cleanData },
+      });
+    }
+
     return this.prisma.branchFeatureConfig.update({
       where: { panchayat_id: branchId },
-      data,
+      data: cleanData,
     });
+  }
+
+  /** Apply a feature template to multiple branches at once. */
+  async bulkUpdateFeatureConfig(branchIds: number[], data: Record<string, boolean>) {
+    const cleanData: Record<string, boolean> = {};
+    for (const [key, value] of Object.entries(data)) {
+      if (SuperAdminService.VALID_FEATURE_KEYS.has(key)) {
+        cleanData[key] = Boolean(value);
+      }
+    }
+
+    const results: Array<{ branch_id: number; success: boolean; error?: string }> = [];
+
+    for (const branchId of branchIds) {
+      try {
+        await this.updateFeatureConfig(branchId, { ...cleanData });
+        results.push({ branch_id: branchId, success: true });
+      } catch (err) {
+        results.push({
+          branch_id: branchId,
+          success: false,
+          error: (err as Error).message,
+        });
+      }
+    }
+
+    return { updated: results.filter(r => r.success).length, results };
   }
 
   // ── Branch Lifecycle Events ──────────────────────────────────────────────

@@ -30,6 +30,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       user_type: payload.user_type,
       employee_id: payload.employee_id,
       access_scope: payload.access_scope,
+      // RBAC fields from enhanced JWT
+      rbac_roles: payload.rbac_roles || [],
+      permissions: payload.permissions || [],
     };
   }
 }
