@@ -165,12 +165,22 @@ class _MunicipalityTransactionsScreenState extends State<MunicipalityTransaction
   Future<void> _load() async {
     setState(() { _isLoading = true; _error = null; _isFeatureLocked = false; });
     try {
-      final res = await ApiClient.instance.get('/api/municipality/${widget.module.key}/records');
+      dynamic user = ApiClient.instance.getCached('/api/admin/me');
+      if (user == null) {
+        try {
+          user = await ApiClient.instance.get('/api/admin/me');
+        } catch (_) {}
+      }
+      final branchId = user != null && user['panchayat_id'] != null ? user['panchayat_id'] : null;
+      final uri = branchId != null
+          ? '/api/municipality/${widget.module.key}/records?branch_id=$branchId'
+          : '/api/municipality/${widget.module.key}/records';
+      final res = await ApiClient.instance.get(uri);
       final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);
       setState(() { _records = list; });
     } catch (e) {
       final msg = e.toString();
-      if (msg.contains('403') || msg.toLowerCase().contains('forbidden')) {
+      if (msg.contains('403') || msg.toLowerCase().contains('forbidden') || msg.toLowerCase().contains('disabled')) {
         setState(() { _isFeatureLocked = true; });
       } else {
         setState(() { _error = msg; });

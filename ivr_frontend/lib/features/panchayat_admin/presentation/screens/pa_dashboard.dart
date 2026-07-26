@@ -69,7 +69,7 @@ class PADashboard extends StatelessWidget {
       totalAdmins: 0,
     );
     final profile = state?.profile;
-    final titlePanchayat = profile?.panchayatName ?? 'Alandur Panchayat';
+    final titlePanchayat = profile?.panchayatName ?? (isLoading ? 'Loading Panchayat...' : 'Panchayat Portal');
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
     final w = MediaQuery.sizeOf(context).width;
     final isDesktop = w >= 1024;

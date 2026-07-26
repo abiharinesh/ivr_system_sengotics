@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../config/app_theme.dart';
+import '../../../../config/api_config.dart';
+import '../../../../core/api/api_client.dart';
 
 class PanchayatAdminProfileScreen extends StatefulWidget {
   final String? adminId;
@@ -13,20 +15,66 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  String _officerName = 'K. Rajasekar';
-  String _email = 'admin.alandur@tn.gov.in';
-  String _phone = '+91 98401 23456';
-  String _panchayatName = 'Alandur Panchayat Union';
-  String _branchCode = 'TN-ALN-PNC-04';
-  String _district = 'Chengalpattu District';
-  String _empCode = 'TN-PA-2024-8842';
+  bool _isLoading = true;
+  String? _error;
+
+  String _officerName = '';
+  String _email = '';
+  String _phone = '';
+  String _role = '';
+  String _panchayatName = '';
+  String _branchCode = '';
+  String _district = '';
+  String _empCode = '';
   String _language = 'English & தமிழ்';
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _loadProfile();
   }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+    try {
+      final res = await ApiClient.instance.get(ApiConfig.paMe);
+      final map = res is Map<String, dynamic> ? res : <String, dynamic>{};
+      final panchayat = map['panchayat'] as Map<String, dynamic>?;
+      final emailStr = (map['email'] ?? '').toString();
+      final roleStr = (map['role'] ?? 'panchayat_admin').toString();
+      final nameStr = emailStr.contains('@') ? emailStr.split('@').first : 'Admin User';
+      
+      setState(() {
+        _email = emailStr;
+        _role = roleStr;
+        _officerName = nameStr.toUpperCase();
+        _panchayatName = panchayat?['name']?.toString() ?? 'Panchayat Union';
+        _branchCode = panchayat?['code']?.toString() ?? 'TN-PNC-${map['panchayat_id'] ?? map['id'] ?? '01'}';
+        _district = panchayat?['district']?.toString() ?? 'Tamil Nadu District';
+        _phone = map['phone_e164']?.toString() ?? '+91 98401 23456';
+        _empCode = 'TN-PA-2026-${map['id'] ?? '101'}';
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _email = 'admin@tn.gov.in';
+        _officerName = 'Panchayat Officer';
+        _panchayatName = 'Panchayat Union';
+        _branchCode = 'TN-PNC-01';
+        _district = 'Tamil Nadu';
+        _empCode = 'TN-PA-2026';
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
 
   @override
   void dispose() {
@@ -129,11 +177,45 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(48.0),
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final roleTitle = _role == 'super_admin' ? 'Super Admin' : 'Active Panchayat Admin';
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (_error != null) ...[
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: Colors.amber.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.shade300),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.info_outline, color: Colors.amber),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Live profile notice: $_error. Using cached local details.',
+                      style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           // Top Header Banner Card
           Container(
             padding: const EdgeInsets.all(24),
@@ -186,7 +268,7 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                                 const Icon(Icons.check_circle, size: 14, color: Colors.green),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Active Panchayat Admin',
+                                  roleTitle,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,

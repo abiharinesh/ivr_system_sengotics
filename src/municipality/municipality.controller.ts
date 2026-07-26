@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   Req,
   UseGuards,
   BadRequestException,
@@ -47,9 +48,11 @@ export class MunicipalityController {
     @Req() req: AuthenticatedRequest,
     @Param('featureKey') featureKey: string,
     @Body() body: any,
+    @Query('branch_id') branchIdQuery?: string,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const rawBranchId = branchIdQuery || body?.branch_id || req.user.panchayat_id;
+    const branchId = rawBranchId ? Number(rawBranchId) : null;
+    if (!branchId || isNaN(branchId)) {
       throw new BadRequestException('Your user context has no branch associated');
     }
 
@@ -75,9 +78,11 @@ export class MunicipalityController {
   getTransactions(
     @Req() req: AuthenticatedRequest,
     @Param('featureKey') featureKey: string,
+    @Query('branch_id') branchIdQuery?: string,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const rawBranchId = branchIdQuery || req.user.panchayat_id;
+    const branchId = rawBranchId ? Number(rawBranchId) : null;
+    if (!branchId || isNaN(branchId)) {
       throw new BadRequestException('Your user context has no branch associated');
     }
 
@@ -89,3 +94,4 @@ export class MunicipalityController {
     return this.service.getTransactions(req.user.tenant_id, branchId, feature);
   }
 }
+
