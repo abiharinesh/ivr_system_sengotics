@@ -38,7 +38,11 @@ const VALID_FEATURES: MunicipalityFeature[] = [
   'encroachment_mgmt',
 ];
 
-@UseGuards(JwtAuthGuard)
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin', 'panchayat_admin', 'health_officer', 'assistant_engineer', 'municipal_engineer')
 @Controller('api/municipality')
 export class MunicipalityController {
   constructor(private readonly service: MunicipalityService) {}

@@ -7,9 +7,15 @@ import {
   Body,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { PenaltyService } from './penalty.service';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin', 'panchayat_admin', 'revenue_officer')
 @Controller('penalties')
 export class PenaltyController {
   constructor(private readonly penaltyService: PenaltyService) {}

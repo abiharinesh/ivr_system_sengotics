@@ -9,9 +9,15 @@ import {
   Query,
   ParseIntPipe,
   Req,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AdCampaignService } from './ad-campaign.service';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin', 'panchayat_admin', 'revenue_officer', 'revenue_inspector')
 @Controller('ad-campaigns')
 export class AdCampaignController {
   constructor(private readonly adCampaignService: AdCampaignService) {}

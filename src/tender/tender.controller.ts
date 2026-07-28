@@ -32,7 +32,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('panchayat_admin')
+@Roles('panchayat_admin', 'super_admin', 'municipal_commissioner', 'municipal_engineer', 'contractor')
 @Controller('api/admin')
 export class TenderController {
   constructor(

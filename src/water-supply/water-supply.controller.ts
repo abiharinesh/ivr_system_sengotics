@@ -8,9 +8,15 @@ import {
   Query,
   Param,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { WaterSupplyService } from './water-supply.service';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin', 'panchayat_admin', 'municipal_engineer', 'assistant_engineer', 'junior_engineer', 'plumber', 'agent')
 @Controller('api/water-supply')
 export class WaterSupplyController {
   constructor(private readonly waterSupplyService: WaterSupplyService) {}

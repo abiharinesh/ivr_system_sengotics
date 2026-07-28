@@ -31,7 +31,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('super_admin', 'panchayat_admin')
+@Roles('super_admin', 'panchayat_admin', 'municipal_commissioner')
 @Controller('api/sla/policies')
 export class SlaController {
   constructor(private readonly service: SlaService) {}

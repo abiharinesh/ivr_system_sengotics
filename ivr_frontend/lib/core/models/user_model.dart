@@ -54,9 +54,43 @@ class UserModel extends Equatable {
   bool get isElectrician => role == 'electrician';
   bool get isPlumber => role == 'plumber';
   bool get isCitizen => role == 'citizen';
+  bool get isMunicipalCommissioner => role == 'municipal_commissioner';
+  bool get isMunicipalEngineer => role == 'municipal_engineer';
+  bool get isRevenueOfficer => role == 'revenue_officer';
+  bool get isAssistantEngineer => role == 'assistant_engineer';
+  bool get isHealthOfficer => role == 'health_officer';
+  bool get isRevenueInspector => role == 'revenue_inspector';
+  bool get isJuniorEngineer => role == 'junior_engineer';
+  bool get isI3cStaff => role == 'i3c_staff';
+  bool get isContractor => role == 'contractor';
 
   /// Panchayat-scoped field roles share the same panchayat_id as admins.
-  bool get isFieldStaff => isAgent || isElectrician || isPlumber;
+  bool get isFieldStaff => isAgent || isElectrician || isPlumber || isJuniorEngineer;
+
+  /// Executive-level roles that get the admin shell with full sidebar.
+  bool get isExecutive => isSuperAdmin || isPanchayatAdmin || isMunicipalCommissioner || isMunicipalEngineer;
+
+  /// Human-readable display name for the role.
+  String get displayRoleName {
+    switch (role) {
+      case 'super_admin': return 'Super Administrator';
+      case 'panchayat_admin': return 'Panchayat Admin';
+      case 'municipal_commissioner': return 'Municipal Commissioner';
+      case 'municipal_engineer': return 'Municipal Engineer';
+      case 'revenue_officer': return 'Revenue Officer';
+      case 'assistant_engineer': return 'Assistant Engineer';
+      case 'health_officer': return 'Health Officer';
+      case 'revenue_inspector': return 'Revenue Inspector';
+      case 'junior_engineer': return 'Junior Engineer';
+      case 'i3c_staff': return 'I3C Command Center';
+      case 'contractor': return 'Contractor / Vendor';
+      case 'citizen': return 'Citizen';
+      case 'agent': return 'Field Agent';
+      case 'electrician': return 'Electrician';
+      case 'plumber': return 'Plumber';
+      default: return role;
+    }
+  }
 
   @override
   List<Object?> get props => [id, email, role, panchayatId];

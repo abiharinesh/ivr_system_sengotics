@@ -28,7 +28,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('super_admin', 'panchayat_admin')
+@Roles('super_admin', 'panchayat_admin', 'municipal_commissioner', 'municipal_engineer')
 @Controller('api/workflows')
 export class WorkflowController {
   constructor(private readonly service: WorkflowService) {}

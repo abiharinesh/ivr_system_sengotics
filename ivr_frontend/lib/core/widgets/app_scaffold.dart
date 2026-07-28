@@ -254,15 +254,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          widget.userRole == 'super_admin'
-                              ? 'Super Admin'
-                              : widget.userRole == 'panchayat_admin'
-                                  ? 'Panchayat Admin'
-                                  : widget.userRole == 'agent'
-                                      ? 'Field agent'
-                                      : widget.userRole == 'electrician'
-                                          ? 'Electrician'
-                                          : widget.userRole,
+                          _formatRoleName(widget.userRole),
                           style: TextStyle(
                             fontSize: 11,
                             color: AppTheme.textMuted,
@@ -434,6 +426,27 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
   }
 
+  String _formatRoleName(String role) {
+    switch (role) {
+      case 'super_admin': return 'Super Admin';
+      case 'panchayat_admin': return 'Panchayat Admin';
+      case 'municipal_commissioner': return 'Municipal Commissioner';
+      case 'municipal_engineer': return 'Municipal Engineer';
+      case 'revenue_officer': return 'Revenue Officer';
+      case 'assistant_engineer': return 'Assistant Engineer';
+      case 'health_officer': return 'Health Officer';
+      case 'revenue_inspector': return 'Revenue Inspector';
+      case 'junior_engineer': return 'Junior Engineer';
+      case 'i3c_staff': return 'I3C Command Center';
+      case 'contractor': return 'Contractor / Vendor';
+      case 'citizen': return 'Citizen';
+      case 'agent': return 'Field Agent';
+      case 'electrician': return 'Electrician';
+      case 'plumber': return 'Plumber';
+      default: return role;
+    }
+  }
+
   List<_NavSpec> _primaryNavSpecs() {
     if (widget.userRole == 'agent') {
       return const [
@@ -453,6 +466,91 @@ class _AppScaffoldState extends State<AppScaffold> {
       return const [
         _NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/plumber'),
         _NavSpec(icon: Icons.plumbing_rounded, label: 'My jobs', route: '/plumber/jobs'),
+      ];
+    }
+    if (widget.userRole == 'municipal_commissioner') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/commissioner'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+        _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
+        _NavSpec(icon: Icons.insights_rounded, label: 'SLA Analytics', route: '/analytics/sla'),
+        _NavSpec(icon: Icons.dashboard_customize_rounded, label: 'Executive View', route: '/dashboard/executive'),
+        _NavSpec(icon: Icons.approval_rounded, label: 'Approvals Inbox', route: '/approvals'),
+      ];
+    }
+    if (widget.userRole == 'municipal_engineer') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/municipal-engineer'),
+        _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
+        _NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
+        _NavSpec(icon: Icons.engineering_outlined, label: 'Contractors', route: '/contractors'),
+        _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
+        _NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Field Inspections', route: '/inspections'),
+      ];
+    }
+    if (widget.userRole == 'revenue_officer') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/revenue-officer'),
+        _NavSpec(icon: Icons.currency_rupee_rounded, label: 'Property Tax', route: '/revenue/property-tax'),
+        _NavSpec(icon: Icons.storefront_rounded, label: 'Market Stall Fees', route: '/revenue/markets'),
+        _NavSpec(icon: Icons.domain_rounded, label: 'Asset Rental', route: '/revenue/assets'),
+        _NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
+        _NavSpec(icon: Icons.task_rounded, label: 'Certificates', route: '/revenue/certificates'),
+        _NavSpec(icon: Icons.history_edu_rounded, label: 'Audit Logs', route: '/admin/audit-logs'),
+      ];
+    }
+    if (widget.userRole == 'assistant_engineer') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/assistant-engineer'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+        _NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Inspections', route: '/inspections'),
+        _NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
+        _NavSpec(icon: Icons.alt_route_rounded, label: 'Poles', route: '/poles'),
+      ];
+    }
+    if (widget.userRole == 'health_officer') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/health-officer'),
+        _NavSpec(icon: Icons.delete_rounded, label: 'Solid Waste Mgmt', route: '/municipality/solid-waste'),
+        _NavSpec(icon: Icons.medical_services_rounded, label: 'Public Health', route: '/municipality/health'),
+        _NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Inspections', route: '/inspections'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+      ];
+    }
+    if (widget.userRole == 'revenue_inspector') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/revenue-inspector'),
+        _NavSpec(icon: Icons.storefront_rounded, label: 'Market Fees', route: '/revenue/markets'),
+        _NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
+        _NavSpec(icon: Icons.domain_rounded, label: 'Asset Rentals', route: '/revenue/assets'),
+        _NavSpec(icon: Icons.document_scanner_rounded, label: 'Reports', route: '/report-generation'),
+      ];
+    }
+    if (widget.userRole == 'junior_engineer') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/junior-engineer'),
+        _NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Field Inspections', route: '/inspections'),
+        _NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Mgmt', route: '/poles'),
+        _NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
+      ];
+    }
+    if (widget.userRole == 'i3c_staff') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/i3c'),
+        _NavSpec(icon: Icons.report_problem_rounded, label: 'Route Complaints', route: '/complaints'),
+        _NavSpec(icon: Icons.map_rounded, label: 'Zone Mgmt / GIS', route: '/zone-management'),
+        _NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
+        _NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
+        _NavSpec(icon: Icons.manage_search_rounded, label: 'Universal Search', route: '/search'),
+      ];
+    }
+    if (widget.userRole == 'contractor') {
+      return const [
+        _NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/contractor-dashboard'),
+        _NavSpec(icon: Icons.gavel_rounded, label: 'Tender Bidding Portal', route: '/tenders/vendor-portal'),
+        _NavSpec(icon: Icons.assignment_rounded, label: 'My Work Orders', route: '/work-orders/new'),
+        _NavSpec(icon: Icons.folder_rounded, label: 'My Documents', route: '/documents'),
       ];
     }
     if (widget.userRole == 'super_admin') {

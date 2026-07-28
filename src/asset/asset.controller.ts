@@ -34,7 +34,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('panchayat_admin', 'super_admin')
+@Roles('panchayat_admin', 'super_admin', 'municipal_engineer', 'revenue_officer')
 @Controller('api/assets')
 export class AssetController {
   constructor(private readonly service: AssetService) {}

@@ -32,7 +32,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('super_admin', 'panchayat_admin')
+@Roles('super_admin', 'panchayat_admin', 'municipal_engineer', 'assistant_engineer', 'contractor')
 @Controller('api/contractors')
 export class ContractorController {
   constructor(private readonly service: ContractorService) {}

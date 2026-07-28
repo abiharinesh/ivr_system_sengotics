@@ -7,9 +7,15 @@ import {
   Body,
   Query,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { CertificateService } from './certificate.service';
 
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles('super_admin', 'panchayat_admin', 'revenue_officer', 'municipal_commissioner', 'citizen')
 @Controller('certificates')
 export class CertificateController {
   constructor(private readonly certificateService: CertificateService) {}

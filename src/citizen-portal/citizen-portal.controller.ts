@@ -58,7 +58,7 @@ export class CitizenPortalController {
   // ── Announcement Endpoints ──────────────────────────────────────────────
 
   @UseGuards(RolesGuard)
-  @Roles('super_admin', 'panchayat_admin')
+  @Roles('super_admin', 'panchayat_admin', 'i3c_staff')
   @Post('announcements')
   createAnnouncement(@Req() req: AuthenticatedRequest, @Body() dto: CreateAnnouncementDto) {
     const branchId = dto.branchId ?? req.user.panchayat_id;
@@ -96,7 +96,7 @@ export class CitizenPortalController {
   }
 
   @UseGuards(RolesGuard)
-  @Roles('super_admin', 'panchayat_admin')
+  @Roles('super_admin', 'panchayat_admin', 'i3c_staff')
   @Get('feedback')
   listFeedback(@Req() req: AuthenticatedRequest, @Query('branchId') branchId?: string) {
     const bId = branchId ? parseInt(branchId, 10) : req.user.panchayat_id;

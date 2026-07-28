@@ -37,7 +37,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('panchayat_admin')
+@Roles('panchayat_admin', 'municipal_commissioner', 'municipal_engineer', 'assistant_engineer', 'junior_engineer', 'i3c_staff', 'health_officer')
 @Controller('api/admin')
 export class PanchayatAdminController {
   constructor(

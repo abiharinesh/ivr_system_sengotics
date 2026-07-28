@@ -50,6 +50,7 @@ import { SearchModule } from './search/search.module';
 import { CitizenPortalModule } from './citizen-portal/citizen-portal.module';
 import { SyncModule } from './sync/sync.module';
 import { MunicipalityModule } from './municipality/municipality.module';
+import { RoleDashboardModule } from './role-dashboard/role-dashboard.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { MunicipalityModule } from './municipality/municipality.module';
     PlumberModule,
     CitizenModule,
     PublicReportModule,
+    RoleDashboardModule,
     
     // Revenue Generation Modules
     AdCampaignModule,

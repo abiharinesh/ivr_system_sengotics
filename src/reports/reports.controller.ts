@@ -29,7 +29,7 @@ interface AuthenticatedRequest {
 }
 
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('panchayat_admin', 'super_admin')
+@Roles('panchayat_admin', 'super_admin', 'municipal_commissioner', 'revenue_officer', 'revenue_inspector', 'municipal_engineer')
 @Controller('api/admin/reports')
 export class ReportsController {
   constructor(private readonly service: ReportsService) {}
