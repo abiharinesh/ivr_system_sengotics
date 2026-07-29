@@ -1221,4 +1221,30 @@ export class SuperAdminController {
   revokeUserRole(@Param('id', ParseIntPipe) id: number) {
     return this.superAdminService.revokeUserRole(id);
   }
+
+  // ── Dynamic Branch Naming & Branding Configuration ─────────────────────
+  @Get('panchayats/:id/branding')
+  getBranchBranding(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.getBranchBranding(id);
+  }
+
+  @Put('panchayats/:id/branding')
+  updateBranchBranding(
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      software_name_ta?: string;
+      software_name_en?: string;
+      software_tagline_ta?: string;
+      software_tagline_en?: string;
+      logo_url?: string;
+      secondary_logo_url?: string;
+      favicon_url?: string;
+      primary_color?: string;
+      secondary_color?: string;
+      welcome_audio_url?: string;
+    },
+  ) {
+    return this.superAdminService.updateBranchBranding(id, body);
+  }
 }

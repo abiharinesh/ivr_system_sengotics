@@ -67,10 +67,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Municipal Commissioner',
-      email: 'commissioner@thayanur.com',
+      email: 'commissioner@sengotics.com',
       expectedRole: 'municipal_commissioner',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const summary = await roleController.getCommissionerSummary({ user: { id: userId, email: 'commissioner@thayanur.com', role: 'municipal_commissioner', panchayat_id: panchayatId } });
+        const summary = await roleController.getCommissionerSummary({ user: { id: userId, email: 'commissioner@sengotics.com', role: 'municipal_commissioner', panchayat_id: panchayatId } });
         return {
           pass: summary.role === 'municipal_commissioner' && summary.kpis.sla_compliance_rate != null,
           details: `Executive Summary loaded (SLA: ${summary.kpis.sla_compliance_rate}, Breaches count: ${summary.sla_breaches.length})`,
@@ -79,10 +79,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Municipal Engineer',
-      email: 'engineer@thayanur.com',
+      email: 'engineer@sengotics.com',
       expectedRole: 'municipal_engineer',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const projects = await roleController.getEngineeringProjects({ user: { id: userId, email: 'engineer@thayanur.com', role: 'municipal_engineer', panchayat_id: panchayatId } });
+        const projects = await roleController.getEngineeringProjects({ user: { id: userId, email: 'engineer@sengotics.com', role: 'municipal_engineer', panchayat_id: panchayatId } });
         return {
           pass: projects.role === 'municipal_engineer' && projects.capital_projects.length > 0,
           details: `Capital Projects loaded (${projects.capital_projects.length} projects, Managed poles: ${projects.kpis.managed_poles})`,
@@ -91,10 +91,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Revenue Officer',
-      email: 'revenue.officer@thayanur.com',
+      email: 'revenue.officer@sengotics.com',
       expectedRole: 'revenue_officer',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const rev = await roleController.getRevenueSummary({ user: { id: userId, email: 'revenue.officer@thayanur.com', role: 'revenue_officer', panchayat_id: panchayatId } });
+        const rev = await roleController.getRevenueSummary({ user: { id: userId, email: 'revenue.officer@sengotics.com', role: 'revenue_officer', panchayat_id: panchayatId } });
         return {
           pass: rev.role === 'revenue_officer' && rev.breakdown.length > 0,
           details: `Revenue Overview loaded (Property Tax: ${rev.kpis.property_tax}, Breakdown streams: ${rev.breakdown.length})`,
@@ -103,10 +103,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Assistant Engineer',
-      email: 'asst.engineer@thayanur.com',
+      email: 'asst.engineer@sengotics.com',
       expectedRole: 'assistant_engineer',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const ops = await roleController.getFieldDispatches({ user: { id: userId, email: 'asst.engineer@thayanur.com', role: 'assistant_engineer', panchayat_id: panchayatId } });
+        const ops = await roleController.getFieldDispatches({ user: { id: userId, email: 'asst.engineer@sengotics.com', role: 'assistant_engineer', panchayat_id: panchayatId } });
         return {
           pass: ops.role === 'assistant_engineer' && ops.dispatches.length > 0,
           details: `Field Dispatches loaded (${ops.dispatches.length} active dispatches, Open complaints: ${ops.kpis.open_complaints})`,
@@ -115,7 +115,7 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Health Officer',
-      email: 'health.officer@thayanur.com',
+      email: 'health.officer@sengotics.com',
       expectedRole: 'health_officer',
       testFunction: async ({ prisma }) => {
         const healthComplaints = await prisma.complaint.findMany({ take: 5 }).catch(() => []);
@@ -127,7 +127,7 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Revenue Inspector',
-      email: 'revenue.inspector@thayanur.com',
+      email: 'revenue.inspector@sengotics.com',
       expectedRole: 'revenue_inspector',
       testFunction: async ({ roleController }) => {
         const receipt = await roleController.recordStallFee({
@@ -144,7 +144,7 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Field Agent — Electrician',
-      email: 'electrician@thayanur.com',
+      email: 'electrician@sengotics.com',
       expectedRole: 'electrician',
       testFunction: async ({ prisma }) => {
         const assignedJobs = await prisma.complaint.findMany({
@@ -158,7 +158,7 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Field Agent — Plumber',
-      email: 'plumber@thayanur.com',
+      email: 'plumber@sengotics.com',
       expectedRole: 'plumber',
       testFunction: async ({ prisma }) => {
         const assignedPlumbing = await prisma.complaint.findMany({
@@ -172,10 +172,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Junior Engineer',
-      email: 'junior.engineer@thayanur.com',
+      email: 'junior.engineer@sengotics.com',
       expectedRole: 'junior_engineer',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const ops = await roleController.getFieldDispatches({ user: { id: userId, email: 'junior.engineer@thayanur.com', role: 'junior_engineer', panchayat_id: panchayatId } });
+        const ops = await roleController.getFieldDispatches({ user: { id: userId, email: 'junior.engineer@sengotics.com', role: 'junior_engineer', panchayat_id: panchayatId } });
         return {
           pass: ops.dispatches.length > 0,
           details: `Junior Engineer ground verification queue verified (${ops.dispatches.length} tasks)`,
@@ -196,10 +196,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Contractor / Vendor',
-      email: 'contractor@thayanur.com',
+      email: 'contractor@sengotics.com',
       expectedRole: 'contractor',
       testFunction: async ({ roleController, userId, panchayatId }) => {
-        const vendorData = await roleController.getContractorBids({ user: { id: userId, email: 'contractor@thayanur.com', role: 'contractor', panchayat_id: panchayatId } });
+        const vendorData = await roleController.getContractorBids({ user: { id: userId, email: 'contractor@sengotics.com', role: 'contractor', panchayat_id: panchayatId } });
         return {
           pass: vendorData.role === 'contractor' && vendorData.tenders.length > 0,
           details: `Vendor Portal Bidding loaded (${vendorData.tenders.length} open tenders, Bids submitted: ${vendorData.kpis.bids_submitted})`,
@@ -208,10 +208,10 @@ async function runRoleIntegrationSuite() {
     },
     {
       roleName: 'Citizen',
-      email: 'citizen@thayanur.com',
+      email: 'citizen@sengotics.com',
       expectedRole: 'citizen',
       testFunction: async ({ prisma }) => {
-        const citizenUser = await prisma.user.findFirst({ where: { email: 'citizen@thayanur.com' } });
+        const citizenUser = await prisma.user.findFirst({ where: { email: 'citizen@sengotics.com' } });
         return {
           pass: citizenUser != null && citizenUser.user_type === 'citizen',
           details: `Citizen profile verified (User ID: ${citizenUser?.id}, Type: ${citizenUser?.user_type})`,

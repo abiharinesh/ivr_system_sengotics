@@ -44,6 +44,7 @@ import '../features/super_admin/presentation/screens/electrician_management.dart
 import '../features/super_admin/presentation/screens/plumber_management.dart';
 import '../features/super_admin/presentation/screens/role_permission_screen.dart';
 import '../features/super_admin/presentation/screens/branch_feature_toggle_screen.dart';
+import '../features/super_admin/presentation/screens/branch_branding_config_screen.dart';
 
 import '../features/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import '../features/panchayat_admin/bloc/pole_bloc.dart';
@@ -414,6 +415,13 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/superadmin/feature-toggles',
             builder: (context, state) => const BranchFeatureToggleScreen(),
+          ),
+          GoRoute(
+            path: '/superadmin/branding',
+            builder: (context, state) => BlocProvider(
+              create: (_) => PanchayatBloc()..add(LoadPanchayats()),
+              child: const BranchBrandingConfigScreen(),
+            ),
           ),
           GoRoute(
             path: '/panchayats',

@@ -86,6 +86,7 @@ class ApiConfig {
   static const String saStats = '/api/superadmin/stats';
   static const String saDashboardInsights = '/api/superadmin/dashboard/insights';
   static const String saPoles = '/api/superadmin/poles';
+  static String saBranding(int id) => '/api/superadmin/panchayats/$id/branding';
   static const String saSttProvider = '/api/superadmin/settings/stt-provider';
   static const String saLlmProvider = '/api/superadmin/settings/llm-provider';
   static const String saDocumentTemplates =

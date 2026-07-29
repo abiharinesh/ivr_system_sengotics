@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../config/app_theme.dart';
+import '../../../auth/bloc/auth_bloc.dart';
+import '../../../auth/bloc/auth_state.dart';
 
 class CommissionerDashboardScreen extends StatefulWidget {
   const CommissionerDashboardScreen({super.key});
@@ -19,7 +22,7 @@ class _CommissionerDashboardScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildHeader(),
+          _buildHeader(context),
           const SizedBox(height: 24),
           _buildKpiRow(),
           const SizedBox(height: 24),
@@ -38,7 +41,12 @@ class _CommissionerDashboardScreenState
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is Authenticated ? authState.user : null;
+    final softwareName = user?.dynamicSoftwareName ?? 'நகராட்சி குரல்';
+    final branchName = user?.panchayatName ?? '';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -50,7 +58,7 @@ class _CommissionerDashboardScreenState
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1E3A5F).withOpacity(0.3),
+            color: const Color(0xFF1E3A5F).withValues(alpha: 0.3),
             blurRadius: 16,
             offset: const Offset(0, 6),
           ),
@@ -61,7 +69,7 @@ class _CommissionerDashboardScreenState
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.15),
+              color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.account_balance_rounded,
@@ -72,20 +80,20 @@ class _CommissionerDashboardScreenState
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Municipal Commissioner',
-                  style: TextStyle(
-                    fontSize: 22,
+                Text(
+                  '$softwareName — Executive Control',
+                  style: const TextStyle(
+                    fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Executive Oversight • Administrative Approvals • SLA Monitoring',
+                  '${branchName.isNotEmpty ? "$branchName • " : ""}Municipal Commissioner Command Center',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Colors.white.withOpacity(0.75),
+                    color: Colors.white.withValues(alpha: 0.8),
                   ),
                 ),
               ],

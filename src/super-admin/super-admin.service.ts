@@ -48,7 +48,25 @@ export class SuperAdminService {
     );
   }
 
-  // ── Panchayat Management ────────────────────────────────────────────────
+  // ── Branch Software Name Presets ───────────────────────────────────────
+  private static readonly BRANCH_NAME_PRESETS: Record<
+    string,
+    { ta: string; en: string }
+  > = {
+    VILLAGE_PANCHAYAT: { ta: 'கிராம ஊராட்சி குரல்', en: 'Grama Ooratchi Kural' },
+    PANCHAYAT_UNION: { ta: 'ஊராட்சி ஒன்றிய குரல்', en: 'Ooratchi Union Kural' },
+    DISTRICT_PANCHAYAT: { ta: 'மாவட்ட ஊராட்சி குரல்', en: 'District Ooratchi Kural' },
+    TOWN_PANCHAYAT: { ta: 'பேரூராட்சி குரல்', en: 'Peeraatchi Kural' },
+    MUNICIPALITY: { ta: 'நகராட்சி குரல்', en: 'Nagaraatchi Kural' },
+    MUNICIPAL_CORPORATION: { ta: 'மாநகராட்சி குரல்', en: 'Maanagaraatchi Kural' },
+  };
+
+  private resolveBranchPreset(branchType: string) {
+    return SuperAdminService.BRANCH_NAME_PRESETS[branchType] ?? {
+      ta: 'ஊராட்சி குரல்',
+      en: 'Ooratchi Kural',
+    };
+  }
 
   async createPanchayat(data: {
     name: string;
@@ -71,10 +89,21 @@ export class SuperAdminService {
     contact_email?: string;
     address?: string;
     logo_url?: string;
+    software_name_ta?: string;
+    software_name_en?: string;
+    software_tagline_ta?: string;
+    software_tagline_en?: string;
+    primary_color?: string;
+    secondary_color?: string;
   }) {
     if (data.parent_branch_id) {
       await this.ensurePanchayatExists(data.parent_branch_id);
     }
+
+    // Auto-generate software names from branch_type preset if not explicitly provided
+    const branchType = data.branch_type ?? 'VILLAGE_PANCHAYAT';
+    const preset = this.resolveBranchPreset(branchType);
+
     const branch = await this.prisma.panchayat.create({
       data: {
         name: data.name,
@@ -82,7 +111,7 @@ export class SuperAdminService {
         center_lat: data.center_lat ?? null,
         center_lng: data.center_lng ?? null,
         tenant_id: data.tenant_id ?? 'default',
-        branch_type: data.branch_type ?? 'VILLAGE_PANCHAYAT',
+        branch_type: branchType,
         branch_status: data.branch_status ?? 'ACTIVE',
         branch_code: data.branch_code ?? null,
         parent_branch_id: data.parent_branch_id ?? null,
@@ -97,6 +126,12 @@ export class SuperAdminService {
         contact_email: data.contact_email ?? null,
         address: data.address ?? null,
         logo_url: data.logo_url ?? null,
+        software_name_ta: data.software_name_ta ?? preset.ta,
+        software_name_en: data.software_name_en ?? preset.en,
+        software_tagline_ta: data.software_tagline_ta ?? 'குடிமக்கள் சேவை மையம்',
+        software_tagline_en: data.software_tagline_en ?? 'Citizen Service Portal',
+        primary_color: data.primary_color ?? '#1E3A8A',
+        secondary_color: data.secondary_color ?? '#0EA5E9',
       },
     });
 
@@ -1205,6 +1240,64 @@ export class SuperAdminService {
 
     await this.prisma.userRole.delete({ where: { id: userRoleId } });
     return { success: true };
+  }
+
+  // ── Dynamic Branch Naming & Branding Config ────────────────────────────
+
+  async getBranchBranding(id: number) {
+    const panchayat = await this.prisma.panchayat.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        branch_type: true,
+        logo_url: true,
+        secondary_logo_url: true,
+        favicon_url: true,
+        software_name_ta: true,
+        software_name_en: true,
+        software_tagline_ta: true,
+        software_tagline_en: true,
+        primary_color: true,
+        secondary_color: true,
+        welcome_audio_url: true,
+      },
+    });
+    if (!panchayat) throw new NotFoundException(`Branch #${id} not found`);
+    return panchayat;
+  }
+
+  async updateBranchBranding(
+    id: number,
+    data: {
+      software_name_ta?: string;
+      software_name_en?: string;
+      software_tagline_ta?: string;
+      software_tagline_en?: string;
+      logo_url?: string;
+      secondary_logo_url?: string;
+      favicon_url?: string;
+      primary_color?: string;
+      secondary_color?: string;
+      welcome_audio_url?: string;
+    },
+  ) {
+    await this.ensurePanchayatExists(id);
+    return this.prisma.panchayat.update({
+      where: { id },
+      data: {
+        ...(data.software_name_ta && { software_name_ta: data.software_name_ta }),
+        ...(data.software_name_en && { software_name_en: data.software_name_en }),
+        ...(data.software_tagline_ta !== undefined && { software_tagline_ta: data.software_tagline_ta }),
+        ...(data.software_tagline_en !== undefined && { software_tagline_en: data.software_tagline_en }),
+        ...(data.logo_url !== undefined && { logo_url: data.logo_url }),
+        ...(data.secondary_logo_url !== undefined && { secondary_logo_url: data.secondary_logo_url }),
+        ...(data.favicon_url !== undefined && { favicon_url: data.favicon_url }),
+        ...(data.primary_color && { primary_color: data.primary_color }),
+        ...(data.secondary_color && { secondary_color: data.secondary_color }),
+        ...(data.welcome_audio_url !== undefined && { welcome_audio_url: data.welcome_audio_url }),
+      },
+    });
   }
 
   // ── Private Helpers ────────────────────────────────────────────────────

@@ -370,7 +370,7 @@ async function main() {
       },
       // 2. Municipal Commissioner
       {
-        email: 'commissioner@thayanur.com',
+        email: 'commissioner@sengotics.com',
         role: 'municipal_commissioner',
         panchayat_id: branchId,
         phone: '+919876540001',
@@ -381,9 +381,22 @@ async function main() {
         hierarchy_level: 2,
         access_scope: 'all_branches',
       },
-      // 3. Municipal Engineer
+      // 3. Branch Administrator
       {
-        email: 'engineer@thayanur.com',
+        email: 'admin@sengotics.com',
+        role: 'panchayat_admin',
+        panchayat_id: branchId,
+        phone: '+919876543001',
+        user_type: 'employee',
+        employee_code: 'BA-001',
+        designation: 'Branch Administrator',
+        dept_code: 'executive',
+        hierarchy_level: 3,
+        access_scope: 'own_branch',
+      },
+      // 4. Municipal Engineer
+      {
+        email: 'engineer@sengotics.com',
         role: 'municipal_engineer',
         panchayat_id: branchId,
         phone: '+919876540002',
@@ -394,9 +407,9 @@ async function main() {
         hierarchy_level: 3,
         access_scope: 'child_branches',
       },
-      // 4. Revenue Officer
+      // 5. Revenue Officer
       {
-        email: 'revenue.officer@thayanur.com',
+        email: 'revenue.officer@sengotics.com',
         role: 'revenue_officer',
         panchayat_id: branchId,
         phone: '+919876540003',
@@ -407,9 +420,9 @@ async function main() {
         hierarchy_level: 4,
         access_scope: 'own_branch',
       },
-      // 5. Assistant Engineer
+      // 6. Assistant Engineer
       {
-        email: 'asst.engineer@thayanur.com',
+        email: 'asst.engineer@sengotics.com',
         role: 'assistant_engineer',
         panchayat_id: branchId,
         phone: '+919876540004',
@@ -420,9 +433,9 @@ async function main() {
         hierarchy_level: 5,
         access_scope: 'own_branch',
       },
-      // 6. Health Officer
+      // 7. Health Officer
       {
-        email: 'health.officer@thayanur.com',
+        email: 'health.officer@sengotics.com',
         role: 'health_officer',
         panchayat_id: branchId,
         phone: '+919876540005',
@@ -433,9 +446,9 @@ async function main() {
         hierarchy_level: 5,
         access_scope: 'own_branch',
       },
-      // 7. Revenue Inspector
+      // 8. Revenue Inspector
       {
-        email: 'revenue.inspector@thayanur.com',
+        email: 'revenue.inspector@sengotics.com',
         role: 'revenue_inspector',
         panchayat_id: branchId,
         phone: '+919876540006',
@@ -446,9 +459,9 @@ async function main() {
         hierarchy_level: 6,
         access_scope: 'own_branch',
       },
-      // 8. Field Agent (Electrician)
+      // 9a. Field Agent (Electrician)
       {
-        email: 'electrician@thayanur.com',
+        email: 'electrician@sengotics.com',
         role: 'electrician',
         panchayat_id: branchId,
         phone: '+919876543210',
@@ -459,9 +472,9 @@ async function main() {
         hierarchy_level: 7,
         access_scope: 'own_branch',
       },
-      // 8b. Field Agent (Plumber)
+      // 9b. Field Agent (Plumber)
       {
-        email: 'plumber@thayanur.com',
+        email: 'plumber@sengotics.com',
         role: 'plumber',
         panchayat_id: branchId,
         phone: '+919876543211',
@@ -472,9 +485,9 @@ async function main() {
         hierarchy_level: 7,
         access_scope: 'own_branch',
       },
-      // 9. Junior Engineer
+      // 10. Junior Engineer
       {
-        email: 'junior.engineer@thayanur.com',
+        email: 'junior.engineer@sengotics.com',
         role: 'junior_engineer',
         panchayat_id: branchId,
         phone: '+919876540007',
@@ -485,7 +498,7 @@ async function main() {
         hierarchy_level: 6,
         access_scope: 'own_branch',
       },
-      // 10. Deputed Sengotics I3C Staff
+      // 11. Deputed Sengotics I3C Staff
       {
         email: 'i3c.staff@sengotics.com',
         role: 'i3c_staff',
@@ -498,9 +511,9 @@ async function main() {
         hierarchy_level: 5,
         access_scope: 'all_branches',
       },
-      // 11. Contractor / Vendor
+      // 12. Contractor / Vendor
       {
-        email: 'contractor@thayanur.com',
+        email: 'contractor@sengotics.com',
         role: 'contractor',
         panchayat_id: branchId,
         phone: '+919876540009',
@@ -510,9 +523,9 @@ async function main() {
         contractor_pan: 'AADCM1234A',
         contractor_category: ['electrical', 'civil'],
       },
-      // 12. Citizen
+      // 13. Citizen
       {
-        email: 'citizen@thayanur.com',
+        email: 'citizen@sengotics.com',
         role: 'citizen',
         panchayat_id: branchId,
         phone: '+919876540010',
@@ -538,9 +551,9 @@ async function main() {
         userId = existing.rows[0].id;
         // Update existing user
         await client.query(
-          `UPDATE users SET role = $1, user_type = $2, is_active = true, is_verified = true, 
+          `UPDATE users SET email = $5, role = $1, user_type = $2, is_active = true, is_verified = true, 
            password_hash = $3, failed_attempts = 0, locked_until = NULL WHERE id = $4`,
-          [u.role, u.user_type, passwordHash, userId]
+          [u.role, u.user_type, passwordHash, userId, u.email]
         );
         console.log(`   ♻️  Updated existing user: ${u.email} (id: ${userId})`);
       } else {
@@ -664,18 +677,19 @@ async function main() {
     console.log('  │ #  │ Role                               │ Email                                  │');
     console.log('  ├────┼────────────────────────────────────┼────────────────────────────────────────┤');
     console.log('  │  1 │ Super Administrator                │ superadmin@sengotics.com                │');
-    console.log('  │  2 │ Municipal Commissioner             │ commissioner@thayanur.com               │');
-    console.log('  │  3 │ Municipal Engineer                 │ engineer@thayanur.com                   │');
-    console.log('  │  4 │ Revenue Officer                    │ revenue.officer@thayanur.com            │');
-    console.log('  │  5 │ Assistant Engineer                 │ asst.engineer@thayanur.com              │');
-    console.log('  │  6 │ Health Officer                     │ health.officer@thayanur.com             │');
-    console.log('  │  7 │ Revenue Inspector                  │ revenue.inspector@thayanur.com          │');
-    console.log('  │  8 │ Field Agent (Electrician)           │ electrician@thayanur.com                │');
-    console.log('  │  9 │ Field Agent (Plumber)               │ plumber@thayanur.com                    │');
-    console.log('  │ 10 │ Junior Engineer                    │ junior.engineer@thayanur.com            │');
-    console.log('  │ 11 │ Deputed Sengotics I3C Staff        │ i3c.staff@sengotics.com                 │');
-    console.log('  │ 12 │ Contractor / Vendor                │ contractor@thayanur.com                 │');
-    console.log('  │ 13 │ Citizen                            │ citizen@thayanur.com                    │');
+    console.log('  │  2 │ Municipal Commissioner             │ commissioner@sengotics.com              │');
+    console.log('  │  3 │ Branch Administrator               │ admin@sengotics.com                     │');
+    console.log('  │  4 │ Municipal Engineer                 │ engineer@sengotics.com                  │');
+    console.log('  │  5 │ Revenue Officer                    │ revenue.officer@sengotics.com           │');
+    console.log('  │  6 │ Assistant Engineer                 │ asst.engineer@sengotics.com             │');
+    console.log('  │  7 │ Health Officer                     │ health.officer@sengotics.com            │');
+    console.log('  │  8 │ Revenue Inspector                  │ revenue.inspector@sengotics.com         │');
+    console.log('  │  9 │ Field Agent (Electrician)           │ electrician@sengotics.com               │');
+    console.log('  │ 10 │ Field Agent (Plumber)               │ plumber@sengotics.com                   │');
+    console.log('  │ 11 │ Junior Engineer                    │ junior.engineer@sengotics.com           │');
+    console.log('  │ 12 │ Deputed Sengotics I3C Staff        │ i3c.staff@sengotics.com                 │');
+    console.log('  │ 13 │ Contractor / Vendor                │ contractor@sengotics.com                │');
+    console.log('  │ 14 │ Citizen                            │ citizen@sengotics.com                   │');
     console.log('  └────┴────────────────────────────────────┴────────────────────────────────────────┘');
     console.log('');
 

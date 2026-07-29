@@ -23,6 +23,13 @@ class UserModel extends Equatable {
   final String role;
   final int? panchayatId;
   final String? panchayatName;
+  final String? branchType;
+  final String? softwareNameTa;
+  final String? softwareNameEn;
+  final String? softwareTaglineTa;
+  final String? softwareTaglineEn;
+  final String? logoUrl;
+  final String? primaryColor;
   final DateTime? createdAt;
 
   const UserModel({
@@ -31,21 +38,60 @@ class UserModel extends Equatable {
     required this.role,
     this.panchayatId,
     this.panchayatName,
+    this.branchType,
+    this.softwareNameTa,
+    this.softwareNameEn,
+    this.softwareTaglineTa,
+    this.softwareTaglineEn,
+    this.logoUrl,
+    this.primaryColor,
     this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
+    final panchayat = json['panchayat'] as Map<String, dynamic>?;
     return UserModel(
       id: _jsonInt(json['id']),
       email: json['email'] as String,
       role: json['role'] as String,
       panchayatId: _jsonIntOpt(json['panchayat_id']),
-      panchayatName: json['panchayat']?['name'] as String?,
+      panchayatName: panchayat?['name'] as String?,
+      branchType: panchayat?['branch_type'] as String?,
+      softwareNameTa: panchayat?['software_name_ta'] as String?,
+      softwareNameEn: panchayat?['software_name_en'] as String?,
+      softwareTaglineTa: panchayat?['software_tagline_ta'] as String?,
+      softwareTaglineEn: panchayat?['software_tagline_en'] as String?,
+      logoUrl: panchayat?['logo_url'] as String?,
+      primaryColor: panchayat?['primary_color'] as String?,
       createdAt:
           json['created_at'] != null
               ? DateTime.parse(json['created_at'] as String)
               : null,
     );
+  }
+
+  String get dynamicSoftwareName {
+    if (softwareNameTa != null && softwareNameTa!.isNotEmpty) {
+      return softwareNameTa!;
+    }
+    if (softwareNameEn != null && softwareNameEn!.isNotEmpty) {
+      return softwareNameEn!;
+    }
+    switch (branchType) {
+      case 'MUNICIPALITY':
+        return 'நகராட்சி குரல்';
+      case 'MUNICIPAL_CORPORATION':
+        return 'மாநகராட்சி குரல்';
+      case 'TOWN_PANCHAYAT':
+        return 'பேரூராட்சி குரல்';
+      case 'PANCHAYAT_UNION':
+        return 'ஊராட்சி ஒன்றிய குரல்';
+      case 'DISTRICT_PANCHAYAT':
+        return 'மாவட்ட ஊராட்சி குரல்';
+      case 'VILLAGE_PANCHAYAT':
+      default:
+        return 'கிராம ஊராட்சி குரல்';
+    }
   }
 
   bool get isSuperAdmin => role == 'super_admin';

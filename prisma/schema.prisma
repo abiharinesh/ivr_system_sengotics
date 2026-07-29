@@ -135,11 +135,20 @@ model Panchayat {
   area_sq_km        Float?
 
   // ── Contact & Branding ──
-  contact_phone     String?
-  contact_email     String?
-  address           String?
-  logo_url          String?
-  state_code        String?   @default("TN")
+  contact_phone          String?
+  contact_email          String?
+  address                String?
+  logo_url               String?
+  secondary_logo_url     String?
+  favicon_url            String?
+  software_name_ta       String?   @default("ஊராட்சி குரல்")
+  software_name_en       String?   @default("Ooratchi Kural")
+  software_tagline_ta    String?   @default("குடிமக்கள் சேவை மையம்")
+  software_tagline_en    String?   @default("Citizen Service Portal")
+  primary_color          String?   @default("#1E3A8A")
+  secondary_color        String?   @default("#0EA5E9")
+  welcome_audio_url      String?
+  state_code             String?   @default("TN")
 
   // ── Soft delete ──
   is_active         Boolean   @default(true)

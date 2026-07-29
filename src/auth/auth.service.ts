@@ -16,7 +16,24 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findFirst({ where: { email } });
+    const user = await this.prisma.user.findFirst({
+      where: { email },
+      include: {
+        panchayat: {
+          select: {
+            id: true,
+            name: true,
+            branch_type: true,
+            software_name_ta: true,
+            software_name_en: true,
+            software_tagline_ta: true,
+            software_tagline_en: true,
+            logo_url: true,
+            primary_color: true,
+          },
+        },
+      },
+    });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.password_hash);
@@ -38,6 +55,7 @@ export class AuthService {
       role: user.role,
       panchayat_id: user.panchayat_id,
       user_type: user.user_type,
+      panchayat: user.panchayat,
     };
   }
 

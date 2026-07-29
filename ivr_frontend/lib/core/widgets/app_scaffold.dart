@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../app.dart';
 import '../../config/app_theme.dart';
+import '../../features/auth/bloc/auth_bloc.dart';
+import '../../features/auth/bloc/auth_state.dart';
 import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
 import '../../features/super_admin/data/super_admin_repository.dart';
 import '../models/dashboard_insights_model.dart';
@@ -144,6 +147,11 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Widget _buildSidebar(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is Authenticated ? authState.user : null;
+    final softwareName = user?.dynamicSoftwareName ?? 'ஊராட்சி குரல்';
+    final tagline = user?.softwareTaglineTa ?? 'GIS & Citizen Portal';
+
     return Container(
       width: 270,
       decoration: BoxDecoration(
@@ -174,20 +182,24 @@ class _AppScaffoldState extends State<AppScaffold> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ooraatchi',
+                        softwareName,
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: AppTheme.textPrimary,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        'GIS & Project Portal',
+                        tagline,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
                           fontWeight: FontWeight.w500,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -372,6 +384,10 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Widget _buildDrawer(BuildContext context) {
+    final authState = context.watch<AuthBloc>().state;
+    final user = authState is Authenticated ? authState.user : null;
+    final softwareName = user?.dynamicSoftwareName ?? 'ஊராட்சி குரல்';
+
     return Drawer(
       child: Column(
         children: [
@@ -387,13 +403,15 @@ class _AppScaffoldState extends State<AppScaffold> {
                   size: 36,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Ooraatchi',
-                  style: TextStyle(
+                Text(
+                  softwareName,
+                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w700,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 Text(
                   widget.userEmail,
@@ -568,6 +586,7 @@ class _AppScaffoldState extends State<AppScaffold> {
         _NavSpec(icon: Icons.people_rounded, label: 'User Management', route: '/users'),
         _NavSpec(icon: Icons.admin_panel_settings_rounded, label: 'Roles & Permissions', route: '/superadmin/roles'),
         _NavSpec(icon: Icons.tune_rounded, label: 'Feature Toggles', route: '/superadmin/feature-toggles'),
+        _NavSpec(icon: Icons.branding_watermark_rounded, label: 'Software Branding', route: '/superadmin/branding'),
         _NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/superadmin/tenders'),
         _NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/superadmin/vendors'),
         _NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),

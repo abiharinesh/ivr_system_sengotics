@@ -126,25 +126,25 @@ async function main() {
         // Thayanur Users
         const tAdminRes = await client.query(`
             INSERT INTO users (email, password_hash, role, panchayat_id, phone_e164, created_at)
-            VALUES ('admin@thayanur.com', $1, 'panchayat_admin', $2, '+919876543001', NOW()) RETURNING id;
+            VALUES ('admin@sengotics.com', $1, 'panchayat_admin', $2, '+919876543001', NOW()) RETURNING id;
         `, [passwordHash, thayanurId]);
         const thayanurAdminId = tAdminRes.rows[0].id;
 
         const tElectricianRes = await client.query(`
             INSERT INTO users (email, password_hash, role, panchayat_id, phone_e164, created_at)
-            VALUES ('electrician@thayanur.com', $1, 'electrician', $2, '+919876543210', NOW()) RETURNING id;
+            VALUES ('electrician@sengotics.com', $1, 'electrician', $2, '+919876543210', NOW()) RETURNING id;
         `, [passwordHash, thayanurId]);
         const thayanurElectricianId = tElectricianRes.rows[0].id;
 
         const tPlumberRes = await client.query(`
             INSERT INTO users (email, password_hash, role, panchayat_id, phone_e164, created_at)
-            VALUES ('plumber@thayanur.com', $1, 'plumber', $2, '+919876543211', NOW()) RETURNING id;
+            VALUES ('plumber@sengotics.com', $1, 'plumber', $2, '+919876543211', NOW()) RETURNING id;
         `, [passwordHash, thayanurId]);
         const thayanurPlumberId = tPlumberRes.rows[0].id;
 
         await client.query(`
             INSERT INTO users (email, password_hash, role, panchayat_id, phone_e164, created_at)
-            VALUES ('agent@thayanur.com', $1, 'agent', $2, '+919876543214', NOW());
+            VALUES ('agent@sengotics.com', $1, 'agent', $2, '+919876543214', NOW());
         `, [passwordHash, thayanurId]);
 
         // Tholampalay Users

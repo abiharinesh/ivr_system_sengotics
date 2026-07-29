@@ -2,10 +2,12 @@ import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { TenantMiddleware } from './tenant.middleware';
 import { TenantService } from './tenant.service';
 import { BranchHierarchyService } from './branch-hierarchy.service';
+import { TenantConfigController } from './tenant-config.controller';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
+  controllers: [TenantConfigController],
   providers: [TenantService, BranchHierarchyService],
   exports: [TenantService, BranchHierarchyService],
 })

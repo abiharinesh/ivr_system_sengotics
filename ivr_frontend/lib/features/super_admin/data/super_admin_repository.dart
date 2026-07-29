@@ -45,6 +45,20 @@ class SuperAdminRepository {
     await _api.delete('${ApiConfig.saPanchayats}/$id');
   }
 
+  // ── Branch Branding ────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> getBranchBranding(int branchId) async {
+    final data = await _api.get(ApiConfig.saBranding(branchId));
+    return data as Map<String, dynamic>;
+  }
+
+  Future<Map<String, dynamic>> updateBranchBranding(
+    int branchId,
+    Map<String, dynamic> body,
+  ) async {
+    final data = await _api.put(ApiConfig.saBranding(branchId), data: body);
+    return data as Map<String, dynamic>;
+  }
+
   // ── Users ───────────────────────────────────────────────────────────────
   List<UserModel>? getCachedUsers() {
     final cached = _api.getCached(ApiConfig.saUsers);
