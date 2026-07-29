@@ -16,24 +16,7 @@ export class AuthService {
   ) {}
 
   async login(email: string, password: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { email },
-      include: {
-        panchayat: {
-          select: {
-            id: true,
-            name: true,
-            branch_type: true,
-            software_name_ta: true,
-            software_name_en: true,
-            software_tagline_ta: true,
-            software_tagline_en: true,
-            logo_url: true,
-            primary_color: true,
-          },
-        },
-      },
-    });
+    const user = await this.prisma.user.findFirst({ where: { email } });
     if (!user) throw new UnauthorizedException('Invalid credentials');
 
     const valid = await bcrypt.compare(password, user.password_hash);
@@ -48,6 +31,39 @@ export class AuthService {
       },
     }).catch(() => { /* non-critical */ });
 
+    // Fetch panchayat branding safely with fallback for un-migrated production DBs
+    let panchayat: any = null;
+    if (user.panchayat_id) {
+      try {
+        panchayat = await this.prisma.panchayat.findUnique({
+          where: { id: user.panchayat_id },
+          select: {
+            id: true,
+            name: true,
+            branch_type: true,
+            software_name_ta: true,
+            software_name_en: true,
+            software_tagline_ta: true,
+            software_tagline_en: true,
+            logo_url: true,
+            primary_color: true,
+          },
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Panchayat branding fetch fallback (DB schema may pending migration): ${(err as Error).message}`,
+        );
+        try {
+          panchayat = await this.prisma.panchayat.findUnique({
+            where: { id: user.panchayat_id },
+            select: { id: true, name: true, logo_url: true },
+          });
+        } catch (_) {
+          panchayat = null;
+        }
+      }
+    }
+
     const payload = await this.buildJwtPayload(user);
 
     return {
@@ -55,7 +71,7 @@ export class AuthService {
       role: user.role,
       panchayat_id: user.panchayat_id,
       user_type: user.user_type,
-      panchayat: user.panchayat,
+      panchayat,
     };
   }
 
