@@ -36,6 +36,14 @@ class _BranchBrandingConfigScreenState
   bool _isSaving = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<PanchayatBloc>().add(LoadPanchayats());
+    });
+  }
+
   static const Map<String, Map<String, String>> _presets = {
     'VILLAGE_PANCHAYAT': {
       'ta': 'கிராம ஊராட்சி குரல்',
@@ -158,7 +166,17 @@ class _BranchBrandingConfigScreenState
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PanchayatBloc, PanchayatState>(
+    return BlocConsumer<PanchayatBloc, PanchayatState>(
+      listener: (context, state) {
+        if (state is PanchayatLoaded &&
+            state.panchayats.isNotEmpty &&
+            _selectedBranch == null) {
+          setState(() {
+            _selectedBranch = state.panchayats.first;
+          });
+          _loadBranding(state.panchayats.first.id);
+        }
+      },
       builder: (context, state) {
         final panchayats =
             state is PanchayatLoaded ? state.panchayats : <PanchayatModel>[];

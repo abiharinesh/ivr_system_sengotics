@@ -164,8 +164,8 @@ class PADashBloc extends Bloc<PADashEvent, PADashState> {
 
     try {
       electricians = await _repo.listElectricians();
-    } on ApiException catch (e) {
-      errors.add('Electricians unavailable: ${e.message}');
+    } on ApiException catch (_) {
+      // Non-critical — dashboard works without electrician list
     }
 
     if (stats == null && profile == null && poles == null && insights == null && complaints == null && electricians == null) {

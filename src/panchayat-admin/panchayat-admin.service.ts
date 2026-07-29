@@ -55,6 +55,11 @@ export class PanchayatAdminService {
     return user;
   }
 
+  async getFirstPanchayatId(): Promise<number | null> {
+    const p = await this.prisma.panchayat.findFirst({ select: { id: true } });
+    return p ? p.id : null;
+  }
+
   // ── Pole Management (scoped to their panchayat) ────────────────────────
 
   async createPole(

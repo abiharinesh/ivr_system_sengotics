@@ -47,13 +47,15 @@ export class PanchayatAdminController {
   ) {}
 
   /** Extract and validate panchayat_id from the JWT user. */
-  private getPanchayatId(req: AuthenticatedRequest): number {
-    if (!req.user.panchayat_id) {
-      throw new ForbiddenException(
-        'Your account is not associated with any panchayat',
-      );
+  private async getPanchayatId(req: AuthenticatedRequest): Promise<number> {
+    if (req.user.panchayat_id) {
+      return req.user.panchayat_id;
     }
-    return req.user.panchayat_id;
+    const firstId = await this.service.getFirstPanchayatId();
+    if (firstId) return firstId;
+    throw new ForbiddenException(
+      'Your account is not associated with any panchayat',
+    );
   }
 
   // ── Profile ────────────────────────────────────────────────────────────
@@ -64,18 +66,20 @@ export class PanchayatAdminController {
 
   // ── Stats ──────────────────────────────────────────────────────────────
   @Get('dashboard/insights')
-  getDashboardInsights(@Req() req: AuthenticatedRequest) {
+  async getDashboardInsights(@Req() req: AuthenticatedRequest) {
+    const pid = await this.getPanchayatId(req);
     return this.service.getDashboardInsights(
-      this.getPanchayatId(req),
+      pid,
       req.user.tenant_id,
       req.user.access_scope,
     );
   }
 
   @Get('stats')
-  getStats(@Req() req: AuthenticatedRequest) {
+  async getStats(@Req() req: AuthenticatedRequest) {
+    const pid = await this.getPanchayatId(req);
     return this.service.getStats(
-      this.getPanchayatId(req),
+      pid,
       req.user.tenant_id,
       req.user.access_scope,
     );
@@ -83,7 +87,7 @@ export class PanchayatAdminController {
 
   // ── Pole Management ─────────────────────────────────────────────────────
   @Post('poles')
-  createPole(
+  async createPole(
     @Req() req: AuthenticatedRequest,
     @Body()
     body: {
@@ -94,20 +98,22 @@ export class PanchayatAdminController {
       landmarks?: string[];
     },
   ) {
-    return this.service.createPole(this.getPanchayatId(req), body);
+    const pid = await this.getPanchayatId(req);
+    return this.service.createPole(pid, body);
   }
 
   @Get('poles')
-  listPoles(@Req() req: AuthenticatedRequest) {
+  async listPoles(@Req() req: AuthenticatedRequest) {
+    const pid = await this.getPanchayatId(req);
     return this.service.listPoles(
-      this.getPanchayatId(req),
+      pid,
       req.user.tenant_id,
       req.user.access_scope,
     );
   }
 
   @Put('poles/:id')
-  updatePole(
+  async updatePole(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body()
@@ -119,25 +125,28 @@ export class PanchayatAdminController {
       landmarks?: string[];
     },
   ) {
-    return this.service.updatePole(this.getPanchayatId(req), id, body);
+    const pid = await this.getPanchayatId(req);
+    return this.service.updatePole(pid, id, body);
   }
 
   @Delete('poles/:id')
-  deletePole(
+  async deletePole(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.service.deletePole(this.getPanchayatId(req), id);
+    const pid = await this.getPanchayatId(req);
+    return this.service.deletePole(pid, id);
   }
 
   // ── Complaint Management ────────────────────────────────────────────────
   @Get('complaints')
-  listComplaints(
+  async listComplaints(
     @Req() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.service.listComplaints(
-      this.getPanchayatId(req),
+      pid,
       req.user.tenant_id,
       req.user.access_scope,
       status,
@@ -145,7 +154,7 @@ export class PanchayatAdminController {
   }
 
   @Post('complaints')
-  createComplaint(
+  async createComplaint(
     @Req() req: AuthenticatedRequest,
     @Body()
     body: {
@@ -157,17 +166,19 @@ export class PanchayatAdminController {
       caller_emotion?: string;
     },
   ) {
-    return this.service.createComplaint(this.getPanchayatId(req), body);
+    const pid = await this.getPanchayatId(req);
+    return this.service.createComplaint(pid, body);
   }
 
   @Patch('complaints/:id/status')
-  updateComplaintStatus(
+  async updateComplaintStatus(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { status: string },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.service.updateComplaintStatus(
-      this.getPanchayatId(req),
+      pid,
       id,
       body.status,
     );
@@ -175,13 +186,14 @@ export class PanchayatAdminController {
 
   /** Assign a pole to a manual_review complaint + auto-learn the caller's landmark. */
   @Patch('complaints/:id/resolve')
-  resolveComplaint(
+  async resolveComplaint(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { pole_id: number },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.service.resolveComplaint(
-      this.getPanchayatId(req),
+      pid,
       id,
       body.pole_id,
     );
@@ -189,13 +201,14 @@ export class PanchayatAdminController {
 
   /** Assign complaint to an electrician (same panchayat). */
   @Patch('complaints/:id/assign-electrician')
-  assignElectrician(
+  async assignElectrician(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { electrician_user_id: number },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.service.assignElectrician(
-      this.getPanchayatId(req),
+      pid,
       id,
       body.electrician_user_id,
     );
@@ -203,23 +216,25 @@ export class PanchayatAdminController {
 
   // ── Field electricians & exports ─────────────────────────────────────
   @Get('electricians')
-  listElectricians(@Req() req: AuthenticatedRequest) {
-    return this.electricianOps.listElectricians(this.getPanchayatId(req));
+  async listElectricians(@Req() req: AuthenticatedRequest) {
+    const pid = await this.getPanchayatId(req);
+    return this.electricianOps.listElectricians(pid);
   }
 
   @Post('electricians')
-  createElectrician(
+  async createElectrician(
     @Req() req: AuthenticatedRequest,
     @Body() body: { email: string; password: string; phone_e164?: string },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.electricianOps.createElectricianForPanchayat(
-      this.getPanchayatId(req),
+      pid,
       body,
     );
   }
 
   @Get('electricians/:id/stats')
-  electricianStats(
+  async electricianStats(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Query('preset') preset: string,
@@ -227,9 +242,10 @@ export class PanchayatAdminController {
     @Query('date_to') dateTo?: string,
   ) {
     if (!preset) throw new BadRequestException('preset query required');
+    const pid = await this.getPanchayatId(req);
     return this.electricianOps.getElectricianStats(
       id,
-      this.getPanchayatId(req),
+      pid,
       preset,
       dateFrom,
       dateTo,
@@ -237,7 +253,7 @@ export class PanchayatAdminController {
   }
 
   @Post('exports/electrician-resolved')
-  startElectricianExport(
+  async startElectricianExport(
     @Req() req: AuthenticatedRequest,
     @Body()
     body: {
@@ -247,9 +263,10 @@ export class PanchayatAdminController {
       date_to?: string;
     },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.electricianOps.createResolvedExportJob({
       createdByUserId: req.user.id,
-      scopedPanchayatId: this.getPanchayatId(req),
+      scopedPanchayatId: pid,
       electricianId: body.electrician_user_id,
       preset: body.preset,
       dateFrom: body.date_from,
@@ -291,23 +308,25 @@ export class PanchayatAdminController {
 
   // ── Field plumbers ─────────────────────────────────────────────────────
   @Get('plumbers')
-  listPlumbers(@Req() req: AuthenticatedRequest) {
-    return this.plumberOps.listPlumbers(this.getPanchayatId(req));
+  async listPlumbers(@Req() req: AuthenticatedRequest) {
+    const pid = await this.getPanchayatId(req);
+    return this.plumberOps.listPlumbers(pid);
   }
 
   @Post('plumbers')
-  createPlumber(
+  async createPlumber(
     @Req() req: AuthenticatedRequest,
     @Body() body: { email: string; password: string; phone_e164?: string },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.plumberOps.createPlumberForPanchayat(
-      this.getPanchayatId(req),
+      pid,
       body,
     );
   }
 
   @Get('plumbers/:id/stats')
-  plumberStats(
+  async plumberStats(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Query('preset') preset: string,
@@ -315,9 +334,10 @@ export class PanchayatAdminController {
     @Query('date_to') dateTo?: string,
   ) {
     if (!preset) throw new BadRequestException('preset query required');
+    const pid = await this.getPanchayatId(req);
     return this.plumberOps.getPlumberStats(
       id,
-      this.getPanchayatId(req),
+      pid,
       preset,
       dateFrom,
       dateTo,
@@ -326,13 +346,14 @@ export class PanchayatAdminController {
 
   /** Assign complaint to a plumber (same panchayat). */
   @Patch('complaints/:id/assign-plumber')
-  assignPlumber(
+  async assignPlumber(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { plumber_user_id: number },
   ) {
+    const pid = await this.getPanchayatId(req);
     return this.plumberOps.assignPlumber(
-      this.getPanchayatId(req),
+      pid,
       id,
       body.plumber_user_id,
     );
