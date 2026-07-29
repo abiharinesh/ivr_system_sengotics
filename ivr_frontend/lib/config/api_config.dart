@@ -72,6 +72,8 @@ class ApiConfig {
   }
   // Auth
   static const String login = '/api/auth/login';
+  static const String sendOtp = '/api/auth/send-otp';
+  static const String verifyOtp = '/api/auth/verify-otp';
 
   // Citizen
   static const String citizenRegister = '/api/citizen/register';

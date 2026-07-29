@@ -31,12 +31,12 @@ class RevenueOfficerDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)]),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: const Color(0xFF6D28D9).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Row(children: [
         Container(
           padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
           child: const Icon(Icons.account_balance_wallet_rounded, color: Colors.white, size: 32),
         ),
         const SizedBox(width: 20),
@@ -44,7 +44,7 @@ class RevenueOfficerDashboardScreen extends StatelessWidget {
           const Text('Revenue Officer', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 4),
           Text('Revenue Engine • Commercial Leases • Fee Collection • Audit Oversight',
-              style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.75))),
+              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
         ])),
       ]),
     );
@@ -76,7 +76,7 @@ class RevenueOfficerDashboardScreen extends StatelessWidget {
       child: Row(children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 24),
         ),
         const SizedBox(width: 14),
@@ -104,7 +104,7 @@ class RevenueOfficerDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.stroke)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.pie_chart_rounded, color: const Color(0xFF8B5CF6), size: 22),
+          const Icon(Icons.pie_chart_rounded, color: Color(0xFF8B5CF6), size: 22),
           const SizedBox(width: 10),
           Text('Revenue Breakdown — FY 2025-26', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
         ]),
@@ -179,7 +179,7 @@ class RevenueOfficerDashboardScreen extends StatelessWidget {
         Text('Recent Audit Entries', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
         const SizedBox(height: 16),
         ...logs.map((l) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
-          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (l['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (l['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Icon(l['icon'] as IconData, color: l['color'] as Color, size: 18)),
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

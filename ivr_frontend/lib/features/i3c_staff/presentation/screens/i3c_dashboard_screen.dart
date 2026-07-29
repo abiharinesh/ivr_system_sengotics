@@ -21,7 +21,7 @@ class I3cDashboardScreen extends StatelessWidget {
     return Container(padding: const EdgeInsets.all(24), decoration: BoxDecoration(
       gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF334155)]),
       borderRadius: BorderRadius.circular(16),
-      boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6))]),
+      boxShadow: [BoxShadow(color: const Color(0xFF0F172A).withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 6))]),
       child: Row(children: [
         Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(
           gradient: const LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF06B6D4)]),
@@ -42,7 +42,7 @@ class I3cDashboardScreen extends StatelessWidget {
           ]),
           const SizedBox(height: 4),
           Text('Live Ticket Routing • GIS Data Collection • Municipal Officer Support',
-              style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.65))),
+              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.65))),
         ])),
       ]),
     );
@@ -65,7 +65,7 @@ class I3cDashboardScreen extends StatelessWidget {
     return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(
       color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.stroke)),
       child: Row(children: [
-        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 24)),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -91,12 +91,12 @@ class I3cDashboardScreen extends StatelessWidget {
       color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.stroke)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.stream_rounded, color: const Color(0xFFEF4444), size: 22),
+          const Icon(Icons.stream_rounded, color: Color(0xFFEF4444), size: 22),
           const SizedBox(width: 10),
           Text('Live Ticket Feed', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
           const Spacer(),
           Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(color: const Color(0xFFEF4444).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(color: const Color(0xFFEF4444).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Text('${tickets.where((t) => t['status'] == 'Unassigned').length} unassigned',
                 style: const TextStyle(fontSize: 12, color: Color(0xFFEF4444), fontWeight: FontWeight.w600))),
         ]),
@@ -119,7 +119,7 @@ class I3cDashboardScreen extends StatelessWidget {
               Text(t['ward'] as String, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
               const Spacer(),
               Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(color: (t['sColor'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+                decoration: BoxDecoration(color: (t['sColor'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
                 child: Text(t['status'] as String, style: TextStyle(fontSize: 10, color: t['sColor'] as Color, fontWeight: FontWeight.w600))),
             ]),
           ]),

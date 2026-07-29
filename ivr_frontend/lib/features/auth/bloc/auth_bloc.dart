@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/api/api_exceptions.dart';
 import '../../../core/storage/secure_storage.dart';
@@ -34,6 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         userId: response.user.id,
         panchayatId: response.user.panchayatId,
       );
+      await SecureStorageService.saveUserJson(jsonEncode(response.user.toJson()));
       emit(Authenticated(user: response.user, token: response.accessToken));
     } on ApiException catch (e) {
       emit(AuthError(e.message));
@@ -52,6 +54,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     final token = await SecureStorageService.getToken();
+    final userJsonStr = await SecureStorageService.getUserJson();
+
+    if (token != null && userJsonStr != null) {
+      try {
+        final userMap = jsonDecode(userJsonStr) as Map<String, dynamic>;
+        final user = UserModel.fromJson(userMap);
+        emit(Authenticated(user: user, token: token));
+        return;
+      } catch (_) {
+        // Fallback to basic info if json parsing fails
+      }
+    }
+
     final role = await SecureStorageService.getRole();
     final email = await SecureStorageService.getEmail();
     final userId = await SecureStorageService.getUserId();

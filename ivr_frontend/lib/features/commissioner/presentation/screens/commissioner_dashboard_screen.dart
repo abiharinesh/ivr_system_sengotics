@@ -114,7 +114,7 @@ class _CommissionerDashboardScreenState
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.12),
+        color: Colors.white.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
@@ -131,7 +131,7 @@ class _CommissionerDashboardScreenState
             '${months[now.month - 1]} ${now.year}',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
             ),
           ),
         ],
@@ -175,7 +175,7 @@ class _CommissionerDashboardScreenState
         border: Border.all(color: AppTheme.stroke),
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -186,7 +186,7 @@ class _CommissionerDashboardScreenState
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -238,8 +238,8 @@ class _CommissionerDashboardScreenState
         children: [
           Row(
             children: [
-              Icon(Icons.warning_amber_rounded,
-                  color: const Color(0xFFEF4444), size: 22),
+              const Icon(Icons.warning_amber_rounded,
+                  color: Color(0xFFEF4444), size: 22),
               const SizedBox(width: 10),
               Text('SLA Breach Alerts',
                   style: TextStyle(
@@ -251,7 +251,7 @@ class _CommissionerDashboardScreenState
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withOpacity(0.1),
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text('${breaches.length} Active',
@@ -302,7 +302,7 @@ class _CommissionerDashboardScreenState
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEF4444).withOpacity(0.1),
+                        color: const Color(0xFFEF4444).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(b['hours']!,
@@ -413,7 +413,7 @@ class _CommissionerDashboardScreenState
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: (a['color'] as Color).withOpacity(0.1),
+                        color: (a['color'] as Color).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Icon(a['icon'] as IconData,

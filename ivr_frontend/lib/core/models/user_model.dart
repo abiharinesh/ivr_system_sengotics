@@ -138,6 +138,26 @@ class UserModel extends Equatable {
     }
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'email': email,
+      'role': role,
+      'panchayat_id': panchayatId,
+      'created_at': createdAt?.toIso8601String(),
+      'panchayat': {
+        'name': panchayatName,
+        'branch_type': branchType,
+        'software_name_ta': softwareNameTa,
+        'software_name_en': softwareNameEn,
+        'software_tagline_ta': softwareTaglineTa,
+        'software_tagline_en': softwareTaglineEn,
+        'logo_url': logoUrl,
+        'primary_color': primaryColor,
+      },
+    };
+  }
+
   @override
   List<Object?> get props => [id, email, role, panchayatId];
 }
@@ -168,6 +188,7 @@ class AuthResponse {
         'role': '${json['role'] ?? payload['role'] ?? 'user'}',
         'panchayat_id':
             _jsonIntOpt(json['panchayat_id']) ?? _jsonIntOpt(payload['panchayat_id']),
+        'panchayat': json['panchayat'],
       }),
     );
   }

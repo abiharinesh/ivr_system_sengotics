@@ -10,6 +10,7 @@ class SecureStorageService {
   static const _emailKey = 'user_email';
   static const _userIdKey = 'user_id';
   static const _panchayatIdKey = 'panchayat_id';
+  static const _userJsonKey = 'user_json';
 
   // Token
   static Future<void> saveToken(String token) =>
@@ -46,6 +47,11 @@ class SecureStorageService {
     final val = await _storage.read(key: _panchayatIdKey);
     return val != null ? int.tryParse(val) : null;
   }
+
+  static Future<void> saveUserJson(String userJson) =>
+      _storage.write(key: _userJsonKey, value: userJson);
+
+  static Future<String?> getUserJson() => _storage.read(key: _userJsonKey);
 
   // Clear all
   static Future<void> clearAll() => _storage.deleteAll();

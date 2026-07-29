@@ -49,14 +49,14 @@ class _MunicipalEngineerDashboardScreenState
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: const Color(0xFF0D47A1).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6)),
+          BoxShadow(color: const Color(0xFF0D47A1).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6)),
         ],
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
             child: const Icon(Icons.engineering_rounded, color: Colors.white, size: 32),
           ),
           const SizedBox(width: 20),
@@ -67,7 +67,7 @@ class _MunicipalEngineerDashboardScreenState
                 const Text('Municipal Engineer', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
                 const SizedBox(height: 4),
                 Text('Technical Infrastructure • Capital Projects • Engineering Workflows',
-                    style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.75))),
+                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
               ],
             ),
           ),
@@ -101,12 +101,12 @@ class _MunicipalEngineerDashboardScreenState
       decoration: BoxDecoration(
         color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.stroke),
-        boxShadow: [BoxShadow(color: color.withOpacity(0.08), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.08), blurRadius: 12, offset: const Offset(0, 4))],
       ),
       child: Row(children: [
         Container(
           padding: const EdgeInsets.all(10),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 24),
         ),
         const SizedBox(width: 14),
@@ -141,7 +141,7 @@ class _MunicipalEngineerDashboardScreenState
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(Icons.construction_rounded, color: const Color(0xFF3B82F6), size: 22),
+            const Icon(Icons.construction_rounded, color: Color(0xFF3B82F6), size: 22),
             const SizedBox(width: 10),
             Text('Capital Projects', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
           ]),
@@ -153,7 +153,7 @@ class _MunicipalEngineerDashboardScreenState
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Row(children: [
                 Expanded(child: Text(p['name'] as String, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textPrimary))),
-                Text(p['cost'] as String, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF10B981))),
+                Text(p['cost'] as String, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF10B981))),
               ]),
               const SizedBox(height: 6),
               Row(children: [
@@ -236,7 +236,7 @@ class _MunicipalEngineerDashboardScreenState
           child: Row(children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: (o['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              decoration: BoxDecoration(color: (o['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
               child: Icon(Icons.assignment_rounded, color: o['color'] as Color, size: 18),
             ),
             const SizedBox(width: 14),
@@ -246,7 +246,7 @@ class _MunicipalEngineerDashboardScreenState
             ])),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: (o['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+              decoration: BoxDecoration(color: (o['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
               child: Text(o['status'] as String, style: TextStyle(fontSize: 11, color: o['color'] as Color, fontWeight: FontWeight.w600)),
             ),
           ]),

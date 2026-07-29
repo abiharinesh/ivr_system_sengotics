@@ -24,17 +24,17 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(colors: [Color(0xFF0E7490), Color(0xFF06B6D4)]),
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: const Color(0xFF0E7490).withOpacity(0.3), blurRadius: 16, offset: const Offset(0, 6))],
+        boxShadow: [BoxShadow(color: const Color(0xFF0E7490).withValues(alpha: 0.3), blurRadius: 16, offset: const Offset(0, 6))],
       ),
       child: Row(children: [
-        Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(14)),
+        Container(padding: const EdgeInsets.all(14), decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(14)),
           child: const Icon(Icons.precision_manufacturing_rounded, color: Colors.white, size: 32)),
         const SizedBox(width: 20),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Assistant Engineer', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
           const SizedBox(height: 4),
           Text('Sub-Division Verification • Contractor Inspections • Field Dispatches',
-              style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.75))),
+              style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.75))),
         ])),
       ]),
     );
@@ -57,7 +57,7 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
     return Container(padding: const EdgeInsets.all(20), decoration: BoxDecoration(
       color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.stroke)),
       child: Row(children: [
-        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+        Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, color: color, size: 24)),
         const SizedBox(width: 14),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, mainAxisAlignment: MainAxisAlignment.center, children: [
@@ -82,7 +82,7 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
       color: AppTheme.bgCard, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppTheme.stroke)),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(Icons.local_shipping_rounded, color: const Color(0xFF06B6D4), size: 22),
+          const Icon(Icons.local_shipping_rounded, color: Color(0xFF06B6D4), size: 22),
           const SizedBox(width: 10),
           Text('Active Field Dispatches', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
         ]),
@@ -96,7 +96,7 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
               Text('Assigned: ${d['tech']}', style: TextStyle(fontSize: 12, color: AppTheme.textMuted)),
             ])),
             Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: (d['sColor'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+              decoration: BoxDecoration(color: (d['sColor'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
               child: Text(d['status'] as String, style: TextStyle(fontSize: 11, color: d['sColor'] as Color, fontWeight: FontWeight.w600))),
           ]),
         )),
@@ -142,7 +142,7 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
         Text('Recent Inspections & Verifications', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
         const SizedBox(height: 16),
         ...inspections.map((i) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
-          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (i['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: (i['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
             child: Icon(Icons.checklist_rtl_rounded, color: i['color'] as Color, size: 18)),
           const SizedBox(width: 14),
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -150,7 +150,7 @@ class AssistantEngineerDashboardScreen extends StatelessWidget {
             Text(i['time'] as String, style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
           ])),
           Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(color: (i['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(6)),
+            decoration: BoxDecoration(color: (i['color'] as Color).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
             child: Text(i['result'] as String, style: TextStyle(fontSize: 11, color: i['color'] as Color, fontWeight: FontWeight.w600))),
         ]))),
       ]),

@@ -157,12 +157,43 @@ export class AuthService {
       this.logger.log(`[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`);
     }
 
+    let panchayat: any = null;
+    if (user.panchayat_id) {
+      try {
+        panchayat = await this.prisma.panchayat.findUnique({
+          where: { id: user.panchayat_id },
+          select: {
+            id: true,
+            name: true,
+            branch_type: true,
+            software_name_ta: true,
+            software_name_en: true,
+            software_tagline_ta: true,
+            software_tagline_en: true,
+            logo_url: true,
+            primary_color: true,
+          },
+        });
+      } catch (err) {
+        try {
+          panchayat = await this.prisma.panchayat.findUnique({
+            where: { id: user.panchayat_id },
+            select: { id: true, name: true, logo_url: true },
+          });
+        } catch (_) {
+          panchayat = null;
+        }
+      }
+    }
+
     const payload = await this.buildJwtPayload(user);
 
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
       panchayat_id: user.panchayat_id,
+      user_type: user.user_type,
+      panchayat,
     };
   }
 

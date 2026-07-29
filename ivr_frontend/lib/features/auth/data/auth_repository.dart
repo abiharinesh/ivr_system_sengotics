@@ -12,4 +12,24 @@ class AuthRepository {
     );
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
+
+  Future<Map<String, dynamic>> sendOtp(String phone) async {
+    final data = await _apiClient.post(
+      ApiConfig.sendOtp,
+      data: {'phone': phone},
+    );
+    return data as Map<String, dynamic>;
+  }
+
+  Future<AuthResponse> verifyOtp(String phone, String otp, {int? panchayatId}) async {
+    final data = await _apiClient.post(
+      ApiConfig.verifyOtp,
+      data: {
+        'phone': phone,
+        'otp': otp,
+        if (panchayatId != null) 'panchayat_id': panchayatId,
+      },
+    );
+    return AuthResponse.fromJson(data as Map<String, dynamic>);
+  }
 }
