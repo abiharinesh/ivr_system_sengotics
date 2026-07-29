@@ -46,16 +46,9 @@ export class PanchayatAdminController {
     private readonly plumberOps: PlumberOpsService,
   ) {}
 
-  /** Extract and validate panchayat_id from the JWT user. */
-  private async getPanchayatId(req: AuthenticatedRequest): Promise<number> {
-    if (req.user.panchayat_id) {
-      return req.user.panchayat_id;
-    }
-    const firstId = await this.service.getFirstPanchayatId();
-    if (firstId) return firstId;
-    throw new ForbiddenException(
-      'Your account is not associated with any panchayat',
-    );
+  /** Extract and validate panchayat_id from the JWT user (defaults to 1 for super admin). */
+  private getPanchayatId(req: AuthenticatedRequest): number {
+    return req.user.panchayat_id || 1;
   }
 
   // ── Profile ────────────────────────────────────────────────────────────
@@ -67,7 +60,7 @@ export class PanchayatAdminController {
   // ── Stats ──────────────────────────────────────────────────────────────
   @Get('dashboard/insights')
   async getDashboardInsights(@Req() req: AuthenticatedRequest) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.getDashboardInsights(
       pid,
       req.user.tenant_id,
@@ -77,7 +70,7 @@ export class PanchayatAdminController {
 
   @Get('stats')
   async getStats(@Req() req: AuthenticatedRequest) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.getStats(
       pid,
       req.user.tenant_id,
@@ -98,13 +91,13 @@ export class PanchayatAdminController {
       landmarks?: string[];
     },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.createPole(pid, body);
   }
 
   @Get('poles')
   async listPoles(@Req() req: AuthenticatedRequest) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.listPoles(
       pid,
       req.user.tenant_id,
@@ -125,7 +118,7 @@ export class PanchayatAdminController {
       landmarks?: string[];
     },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.updatePole(pid, id, body);
   }
 
@@ -134,7 +127,7 @@ export class PanchayatAdminController {
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.deletePole(pid, id);
   }
 
@@ -144,7 +137,7 @@ export class PanchayatAdminController {
     @Req() req: AuthenticatedRequest,
     @Query('status') status?: string,
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.listComplaints(
       pid,
       req.user.tenant_id,
@@ -166,7 +159,7 @@ export class PanchayatAdminController {
       caller_emotion?: string;
     },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.createComplaint(pid, body);
   }
 
@@ -176,7 +169,7 @@ export class PanchayatAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { status: string },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.updateComplaintStatus(
       pid,
       id,
@@ -191,7 +184,7 @@ export class PanchayatAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { pole_id: number },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.resolveComplaint(
       pid,
       id,
@@ -206,7 +199,7 @@ export class PanchayatAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { electrician_user_id: number },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.service.assignElectrician(
       pid,
       id,
@@ -217,7 +210,7 @@ export class PanchayatAdminController {
   // ── Field electricians & exports ─────────────────────────────────────
   @Get('electricians')
   async listElectricians(@Req() req: AuthenticatedRequest) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.electricianOps.listElectricians(pid);
   }
 
@@ -226,7 +219,7 @@ export class PanchayatAdminController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { email: string; password: string; phone_e164?: string },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.electricianOps.createElectricianForPanchayat(
       pid,
       body,
@@ -242,7 +235,7 @@ export class PanchayatAdminController {
     @Query('date_to') dateTo?: string,
   ) {
     if (!preset) throw new BadRequestException('preset query required');
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.electricianOps.getElectricianStats(
       id,
       pid,
@@ -263,7 +256,7 @@ export class PanchayatAdminController {
       date_to?: string;
     },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.electricianOps.createResolvedExportJob({
       createdByUserId: req.user.id,
       scopedPanchayatId: pid,
@@ -309,7 +302,7 @@ export class PanchayatAdminController {
   // ── Field plumbers ─────────────────────────────────────────────────────
   @Get('plumbers')
   async listPlumbers(@Req() req: AuthenticatedRequest) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.plumberOps.listPlumbers(pid);
   }
 
@@ -318,7 +311,7 @@ export class PanchayatAdminController {
     @Req() req: AuthenticatedRequest,
     @Body() body: { email: string; password: string; phone_e164?: string },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.plumberOps.createPlumberForPanchayat(
       pid,
       body,
@@ -334,7 +327,7 @@ export class PanchayatAdminController {
     @Query('date_to') dateTo?: string,
   ) {
     if (!preset) throw new BadRequestException('preset query required');
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.plumberOps.getPlumberStats(
       id,
       pid,
@@ -351,7 +344,7 @@ export class PanchayatAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { plumber_user_id: number },
   ) {
-    const pid = await this.getPanchayatId(req);
+    const pid = this.getPanchayatId(req);
     return this.plumberOps.assignPlumber(
       pid,
       id,
