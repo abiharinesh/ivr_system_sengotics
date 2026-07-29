@@ -268,7 +268,7 @@ class _BranchBrandingConfigScreenState
               )
             else
               DropdownButtonFormField<int>(
-                value: _selectedBranch?.id,
+                initialValue: _selectedBranch?.id,
                 decoration: const InputDecoration(
                   labelText: 'Branch',
                   prefixIcon: Icon(Icons.location_city_rounded),
