@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 class PanchayatModel extends Equatable {
   final int id;
   final String name;
+  final String? branchCode;
   final double? centerLat;
   final double? centerLng;
   final String? ivrNumber;
@@ -26,6 +27,7 @@ class PanchayatModel extends Equatable {
   const PanchayatModel({
     required this.id,
     required this.name,
+    this.branchCode,
     this.centerLat,
     this.centerLng,
     this.ivrNumber,
@@ -50,6 +52,7 @@ class PanchayatModel extends Equatable {
     return PanchayatModel(
       id: json['id'] as int,
       name: json['name'] as String,
+      branchCode: (json['branch_code'] ?? json['code']) as String?,
       centerLat: (json['center_lat'] as num?)?.toDouble(),
       centerLng: (json['center_lng'] as num?)?.toDouble(),
       ivrNumber: json['ivr_number'] as String?,
@@ -71,5 +74,5 @@ class PanchayatModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, ivrNumber, branchType, softwareNameTa, softwareNameEn];
+  List<Object?> get props => [id, name, branchCode, ivrNumber, branchType, softwareNameTa, softwareNameEn];
 }
