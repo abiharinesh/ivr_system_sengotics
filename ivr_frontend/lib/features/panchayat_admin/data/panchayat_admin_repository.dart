@@ -22,6 +22,12 @@ class PanchayatAdminRepository {
     return UserModel.fromJson(data as Map<String, dynamic>);
   }
 
+  // ── Branding ─────────────────────────────────────────────────────────────
+  Future<Map<String, dynamic>> getBranding() async {
+    final data = await _api.get(ApiConfig.paBranding);
+    return Map<String, dynamic>.from(data as Map);
+  }
+
   // ── Stats ───────────────────────────────────────────────────────────────
   StatsModel? getCachedStats() {
     final cached = _api.getCached(ApiConfig.paStats);

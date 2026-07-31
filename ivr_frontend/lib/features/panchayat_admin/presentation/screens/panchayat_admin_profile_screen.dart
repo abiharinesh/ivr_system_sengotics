@@ -24,22 +24,36 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
   bool _isSaving = false;
   String? _error;
 
+  // Officer / User fields
   String _officerName = '';
   String _email = '';
   String _phone = '';
   String _role = '';
-  String _panchayatName = '';
-  String _branchCode = '';
-  String _district = '';
   String _empCode = '';
   String _cadre = '';
   String _designation = '';
+  String _photoUrl = '';
+
+  // Panchayat fields
+  String _panchayatName = '';
+  String _branchCode = '';
+  String _district = '';
+  String _taluk = '';
   String _address = '';
   String _ivrNumber = '';
   String _logoUrl = '';
-  String _photoUrl = '';
-  String _language = 'English & தமிழ்';
+  String _contactPhone = '';
+  String _contactEmail = '';
 
+  // Branding fields
+  String _softwareNameTa = '';
+  String _softwareNameEn = '';
+  String _softwareTaglineTa = '';
+  String _softwareTaglineEn = '';
+  String _primaryColor = '';
+  String _secondaryColor = '';
+
+  // Stats
   int _wardsCount = 0;
   int _totalAssets = 0;
   int _resolvedGrievances = 0;
@@ -69,31 +83,44 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
       final emailStr = (map['email'] ?? '').toString();
       final roleStr = (map['role'] ?? 'panchayat_admin').toString();
       final nameStr = employee?['officer_name']?.toString() ??
-          (emailStr.contains('@') ? emailStr.split('@').first : 'Panchayat Officer');
+          (emailStr.contains('@') ? emailStr.split('@').first : '');
 
       setState(() {
         _email = emailStr;
         _role = roleStr;
-        _phone = map['phone_e164']?.toString() ?? '+91 98401 23456';
-        _officerName = nameStr.toUpperCase();
-        _panchayatName = panchayat?['name']?.toString() ?? 'Panchayat Union';
-        _branchCode = panchayat?['branch_code']?.toString() ??
-            'TN-PNC-${map['panchayat_id'] ?? map['id'] ?? '01'}';
-        _district = panchayat?['district']?.toString() ?? 'Tamil Nadu District';
-        _address = panchayat?['address']?.toString() ??
-            'No. 1, Main Panchayat Office Road, Alandur, Chengalpattu - 600016';
-        _ivrNumber = panchayat?['ivr_number']?.toString() ?? '1800-425-0014 (Toll-Free 24x7)';
-        _logoUrl = panchayat?['logo_url']?.toString() ?? '';
-        _photoUrl = employee?['photo_url']?.toString() ?? '';
-        _empCode = employee?['employee_code']?.toString() ??
-            'TN-PA-2026-${map['id'] ?? '101'}';
-        _cadre = employee?['cadre']?.toString() ?? 'TNCS — Tamil Nadu Civil Services';
-        _designation = employee?['designation']?.toString() ?? 'Panchayat Administrative Officer';
+        _phone = map['phone_e164']?.toString() ?? '';
+        _officerName = nameStr.isNotEmpty ? nameStr.toUpperCase() : '';
 
-        _wardsCount = stats?['wards'] as int? ?? 18;
-        _totalAssets = stats?['total_assets'] as int? ?? 434;
-        _resolvedGrievances = stats?['resolved_grievances'] as int? ?? 1420;
-        _activeStaff = stats?['active_field_staff'] as int? ?? 8;
+        // Panchayat fields — direct from DB, no dummy fallbacks
+        _panchayatName = panchayat?['name']?.toString() ?? '';
+        _branchCode = panchayat?['branch_code']?.toString() ?? '';
+        _district = panchayat?['district']?.toString() ?? '';
+        _taluk = panchayat?['taluk']?.toString() ?? '';
+        _address = panchayat?['address']?.toString() ?? '';
+        _ivrNumber = panchayat?['ivr_number']?.toString() ?? '';
+        _logoUrl = panchayat?['logo_url']?.toString() ?? '';
+        _contactPhone = panchayat?['contact_phone']?.toString() ?? '';
+        _contactEmail = panchayat?['contact_email']?.toString() ?? '';
+
+        // Branding fields — direct from DB
+        _softwareNameTa = panchayat?['software_name_ta']?.toString() ?? '';
+        _softwareNameEn = panchayat?['software_name_en']?.toString() ?? '';
+        _softwareTaglineTa = panchayat?['software_tagline_ta']?.toString() ?? '';
+        _softwareTaglineEn = panchayat?['software_tagline_en']?.toString() ?? '';
+        _primaryColor = panchayat?['primary_color']?.toString() ?? '';
+        _secondaryColor = panchayat?['secondary_color']?.toString() ?? '';
+
+        // Employee fields
+        _photoUrl = employee?['photo_url']?.toString() ?? '';
+        _empCode = employee?['employee_code']?.toString() ?? '';
+        _cadre = employee?['cadre']?.toString() ?? '';
+        _designation = employee?['designation']?.toString() ?? '';
+
+        // Stats
+        _wardsCount = stats?['wards'] as int? ?? 0;
+        _totalAssets = stats?['total_assets'] as int? ?? 0;
+        _resolvedGrievances = stats?['resolved_grievances'] as int? ?? 0;
+        _activeStaff = stats?['active_field_staff'] as int? ?? 0;
       });
 
       if (mounted && map['email'] != null) {
@@ -103,12 +130,6 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
     } catch (e) {
       setState(() {
         _error = e.toString();
-        _email = 'admin@tn.gov.in';
-        _officerName = 'Panchayat Officer';
-        _panchayatName = 'Panchayat Union';
-        _branchCode = 'TN-PNC-01';
-        _district = 'Tamil Nadu';
-        _empCode = 'TN-PA-2026';
       });
     } finally {
       setState(() {
@@ -123,138 +144,361 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
     super.dispose();
   }
 
+  /// Helper: returns "Not configured" styled widget when value is empty
+  String _displayValue(String value, [String fallback = 'Not configured']) {
+    return value.isNotEmpty ? value : fallback;
+  }
+
   void _showEditProfileDialog() {
+    // Officer fields
     final nameC = TextEditingController(text: _officerName);
     final emailC = TextEditingController(text: _email);
     final phoneC = TextEditingController(text: _phone);
-    final panchayatC = TextEditingController(text: _panchayatName);
     final photoUrlC = TextEditingController(text: _photoUrl);
+
+    // Panchayat fields
+    final panchayatC = TextEditingController(text: _panchayatName);
+    final branchCodeC = TextEditingController(text: _branchCode);
+    final districtC = TextEditingController(text: _district);
+    final talukC = TextEditingController(text: _taluk);
+    final addressC = TextEditingController(text: _address);
+    final ivrNumberC = TextEditingController(text: _ivrNumber);
+    final contactPhoneC = TextEditingController(text: _contactPhone);
+    final contactEmailC = TextEditingController(text: _contactEmail);
+
+    // Branding fields
+    final logoUrlC = TextEditingController(text: _logoUrl);
+    final softwareNameTaC = TextEditingController(text: _softwareNameTa);
+    final softwareNameEnC = TextEditingController(text: _softwareNameEn);
+    final taglineTaC = TextEditingController(text: _softwareTaglineTa);
+    final taglineEnC = TextEditingController(text: _softwareTaglineEn);
+    final primaryColorC = TextEditingController(text: _primaryColor);
+    final secondaryColorC = TextEditingController(text: _secondaryColor);
+
     final formKey = GlobalKey<FormState>();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.edit_note_rounded, color: AppTheme.primary),
-              const SizedBox(width: 8),
-              const Text('Edit Panchayat Admin Profile'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nameC,
-                    decoration: const InputDecoration(
-                      labelText: 'Officer Full Name *',
-                      prefixIcon: Icon(Icons.person_outline),
-                    ),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: Row(
+              children: [
+                Icon(Icons.edit_note_rounded, color: AppTheme.primary),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text('Edit Profile & Branding',
+                      style: TextStyle(fontSize: 18)),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 700,
+              height: 520,
+              child: DefaultTabController(
+                length: 3,
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    children: [
+                      TabBar(
+                        labelColor: AppTheme.primary,
+                        unselectedLabelColor: AppTheme.textSecondary,
+                        indicatorColor: AppTheme.primary,
+                        tabs: const [
+                          Tab(text: 'Officer Details'),
+                          Tab(text: 'Panchayat & Branding'),
+                          Tab(text: 'Contact & Location'),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Expanded(
+                        child: TabBarView(
+                          children: [
+                            // Tab 1: Officer Details
+                            SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: nameC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Officer Full Name',
+                                      prefixIcon: Icon(Icons.person_outline),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: emailC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Official Email *',
+                                      prefixIcon: Icon(Icons.email_outlined),
+                                    ),
+                                    validator: (v) => v == null || !v.contains('@')
+                                        ? 'Enter a valid email'
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: phoneC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Contact Phone',
+                                      prefixIcon: Icon(Icons.phone_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: photoUrlC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Profile Photo URL',
+                                      prefixIcon: Icon(Icons.image_outlined),
+                                      hintText: 'https://...',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Tab 2: Panchayat & Branding
+                            SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: panchayatC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Panchayat Name *',
+                                      prefixIcon:
+                                          Icon(Icons.location_city_outlined),
+                                    ),
+                                    validator: (v) =>
+                                        v == null || v.trim().isEmpty
+                                            ? 'Required'
+                                            : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: softwareNameTaC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Software Name (Tamil)',
+                                      prefixIcon: Icon(Icons.translate),
+                                      hintText: 'e.g. கிராம ஊராட்சி குரல்',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: softwareNameEnC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Software Name (English)',
+                                      prefixIcon: Icon(Icons.abc),
+                                      hintText: 'e.g. Grama Ooratchi Kural',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: taglineTaC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Tagline (Tamil)',
+                                      prefixIcon: Icon(Icons.short_text),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: taglineEnC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Tagline (English)',
+                                      prefixIcon: Icon(Icons.short_text),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: logoUrlC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Logo URL',
+                                      prefixIcon: Icon(Icons.image_outlined),
+                                      hintText: 'https://...',
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: primaryColorC,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Primary Color',
+                                            prefixIcon:
+                                                Icon(Icons.color_lens_outlined),
+                                            hintText: '#1E3A8A',
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: TextFormField(
+                                          controller: secondaryColorC,
+                                          decoration: const InputDecoration(
+                                            labelText: 'Secondary Color',
+                                            prefixIcon:
+                                                Icon(Icons.color_lens_outlined),
+                                            hintText: '#0EA5E9',
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Tab 3: Contact & Location
+                            SingleChildScrollView(
+                              child: Column(
+                                children: [
+                                  TextFormField(
+                                    controller: branchCodeC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Branch Code',
+                                      prefixIcon: Icon(Icons.qr_code_rounded),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: districtC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'District',
+                                      prefixIcon:
+                                          Icon(Icons.location_on_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: talukC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Taluk',
+                                      prefixIcon: Icon(Icons.map_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: addressC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Office Address',
+                                      prefixIcon:
+                                          Icon(Icons.business_outlined),
+                                    ),
+                                    maxLines: 2,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: contactPhoneC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Office Contact Phone',
+                                      prefixIcon: Icon(Icons.phone_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: contactEmailC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Office Contact Email',
+                                      prefixIcon: Icon(Icons.email_outlined),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: ivrNumberC,
+                                    decoration: const InputDecoration(
+                                      labelText: 'IVR Helpline Number',
+                                      prefixIcon:
+                                          Icon(Icons.headset_mic_outlined),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: emailC,
-                    decoration: const InputDecoration(
-                      labelText: 'Official Email Address *',
-                      prefixIcon: Icon(Icons.email_outlined),
-                    ),
-                    validator: (v) =>
-                        v == null || !v.contains('@') ? 'Enter a valid email address' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: phoneC,
-                    decoration: const InputDecoration(
-                      labelText: 'Contact Mobile Number *',
-                      prefixIcon: Icon(Icons.phone_outlined),
-                    ),
-                    validator: (v) =>
-                        v == null || v.trim().length < 8 ? 'Enter valid phone number' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: panchayatC,
-                    decoration: const InputDecoration(
-                      labelText: 'Assigned Panchayat Name *',
-                      prefixIcon: Icon(Icons.location_city_outlined),
-                    ),
-                    validator: (v) => v == null || v.trim().isEmpty ? 'Required' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: photoUrlC,
-                    decoration: const InputDecoration(
-                      labelText: 'Profile Photo URL (Optional)',
-                      prefixIcon: Icon(Icons.image_outlined),
-                      hintText: 'https://...',
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: _isSaving ? null : () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton.icon(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
-                      if (formKey.currentState!.validate()) {
-                        setDialogState(() => _isSaving = true);
-                        try {
-                          final updatedUser = await _repo.updateProfile({
-                            'officer_name': nameC.text.trim(),
-                            'email': emailC.text.trim(),
-                            'phone': phoneC.text.trim(),
-                            'panchayat_name': panchayatC.text.trim(),
-                            'photo_url': photoUrlC.text.trim(),
-                          });
+            actions: [
+              TextButton(
+                onPressed: _isSaving ? null : () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton.icon(
+                onPressed: _isSaving
+                    ? null
+                    : () async {
+                        if (formKey.currentState!.validate()) {
+                          setDialogState(() => _isSaving = true);
+                          try {
+                            final updatedUser = await _repo.updateProfile({
+                              'officer_name': nameC.text.trim(),
+                              'email': emailC.text.trim(),
+                              'phone': phoneC.text.trim(),
+                              'photo_url': photoUrlC.text.trim(),
+                              'panchayat_name': panchayatC.text.trim(),
+                              // Branding
+                              'software_name_ta': softwareNameTaC.text.trim(),
+                              'software_name_en': softwareNameEnC.text.trim(),
+                              'software_tagline_ta': taglineTaC.text.trim(),
+                              'software_tagline_en': taglineEnC.text.trim(),
+                              'logo_url': logoUrlC.text.trim(),
+                              'primary_color': primaryColorC.text.trim(),
+                              'secondary_color': secondaryColorC.text.trim(),
+                              // Contact & Location
+                              'branch_code': branchCodeC.text.trim(),
+                              'district': districtC.text.trim(),
+                              'taluk': talukC.text.trim(),
+                              'address': addressC.text.trim(),
+                              'contact_phone': contactPhoneC.text.trim(),
+                              'contact_email': contactEmailC.text.trim(),
+                              'ivr_number': ivrNumberC.text.trim(),
+                            });
 
-                          if (mounted) {
-                            context.read<AuthBloc>().add(UpdateAuthUser(updatedUser));
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text(
-                                    'Panchayat Admin profile details updated & saved to DB!'),
-                                backgroundColor: AppTheme.accent,
-                              ),
-                            );
-                            _loadProfile();
+                            if (mounted) {
+                              context
+                                  .read<AuthBloc>()
+                                  .add(UpdateAuthUser(updatedUser));
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text(
+                                      'Profile & branding updated and saved to database!'),
+                                  backgroundColor: AppTheme.accent,
+                                ),
+                              );
+                              _loadProfile();
+                            }
+                          } catch (err) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content:
+                                      Text('Failed to update profile: $err'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } finally {
+                            setDialogState(() => _isSaving = false);
                           }
-                        } catch (err) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('Failed to update profile: $err'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } finally {
-                          setDialogState(() => _isSaving = false);
                         }
-                      }
-                    },
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.save_rounded, size: 18),
-              label: Text(_isSaving ? 'Saving...' : 'Save Profile Updates'),
-            ),
-          ],
-        ),
+                      },
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.save_rounded, size: 18),
+                label: Text(_isSaving ? 'Saving...' : 'Save All Changes'),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -270,7 +514,9 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
       );
     }
 
-    final roleTitle = _role == 'super_admin' ? 'Super Admin' : 'Active Panchayat Admin';
+    final roleTitle =
+        _role == 'super_admin' ? 'Super Admin' : 'Active Panchayat Admin';
+    final displayName = _officerName.isNotEmpty ? _officerName : (_email.isNotEmpty ? _email.split('@').first.toUpperCase() : 'Admin');
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -292,9 +538,14 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Live profile notice: $_error. Using cached local details.',
-                      style: TextStyle(fontSize: 12, color: Colors.amber.shade900),
+                      'Could not load profile from server: $_error',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.amber.shade900),
                     ),
+                  ),
+                  TextButton(
+                    onPressed: _loadProfile,
+                    child: const Text('Retry'),
                   ),
                 ],
               ),
@@ -320,17 +571,21 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                     children: [
                       Row(
                         children: [
-                          Text(
-                            _officerName,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.textPrimary,
+                          Flexible(
+                            child: Text(
+                              displayName,
+                              style: TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                           const SizedBox(width: 12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(20),
@@ -338,7 +593,8 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(Icons.check_circle, size: 14, color: Colors.green),
+                                const Icon(Icons.check_circle,
+                                    size: 14, color: Colors.green),
                                 const SizedBox(width: 4),
                                 Text(
                                   roleTitle,
@@ -355,17 +611,47 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '$_panchayatName • $_district',
+                        [
+                          if (_panchayatName.isNotEmpty) _panchayatName,
+                          if (_district.isNotEmpty) _district,
+                        ].join(' • '),
                         style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.textSecondary),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Branch Code: $_branchCode • Employee ID: $_empCode',
-                        style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
-                      ),
+                      if (_branchCode.isNotEmpty || _empCode.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          [
+                            if (_branchCode.isNotEmpty) 'Branch: $_branchCode',
+                            if (_empCode.isNotEmpty) 'Employee: $_empCode',
+                          ].join(' • '),
+                          style: TextStyle(
+                              fontSize: 13, color: AppTheme.textMuted),
+                        ),
+                      ],
+                      if (_softwareNameTa.isNotEmpty || _softwareNameEn.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            [
+                              if (_softwareNameTa.isNotEmpty) _softwareNameTa,
+                              if (_softwareNameEn.isNotEmpty) _softwareNameEn,
+                            ].join(' — '),
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -381,7 +667,8 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                       onPressed: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Downloading Official e-Service Credentials PDF...')),
+                              content: Text(
+                                  'Downloading Official e-Service Credentials PDF...')),
                         );
                       },
                       icon: const Icon(Icons.badge_rounded, size: 18),
@@ -397,16 +684,23 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
           // Quick Operational Statistics Banner
           Row(
             children: [
-              _buildKpiCard('Assigned Wards', '$_wardsCount Wards', Icons.map_rounded, Colors.blue),
+              _buildKpiCard('Assigned Wards', '$_wardsCount Wards',
+                  Icons.map_rounded, Colors.blue),
               const SizedBox(width: 16),
-              _buildKpiCard('Total Infrastructure Assets', '$_totalAssets Assets',
-                  Icons.lightbulb_rounded, Colors.purple),
+              _buildKpiCard(
+                  'Total Infrastructure Assets',
+                  '$_totalAssets Assets',
+                  Icons.lightbulb_rounded,
+                  Colors.purple),
               const SizedBox(width: 16),
-              _buildKpiCard('Grievances Resolved', '$_resolvedGrievances Resolved',
-                  Icons.task_alt_rounded, Colors.green),
+              _buildKpiCard(
+                  'Grievances Resolved',
+                  '$_resolvedGrievances Resolved',
+                  Icons.task_alt_rounded,
+                  Colors.green),
               const SizedBox(width: 16),
-              _buildKpiCard('Active Field Staff', '$_activeStaff Staff', Icons.engineering_rounded,
-                  Colors.orange),
+              _buildKpiCard('Active Field Staff', '$_activeStaff Staff',
+                  Icons.engineering_rounded, Colors.orange),
             ],
           ),
           const SizedBox(height: 24),
@@ -425,9 +719,9 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
               indicatorColor: AppTheme.primary,
               tabs: const [
                 Tab(text: 'Branch & Panchayat Details'),
+                Tab(text: 'Branding & Software Config'),
                 Tab(text: 'Officer Credentials & Contact'),
                 Tab(text: 'RBAC Roles & Permissions'),
-                Tab(text: 'Operational Performance & Log'),
               ],
             ),
           ),
@@ -440,9 +734,9 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
               controller: _tabController,
               children: [
                 _buildBranchDetailsTab(),
+                _buildBrandingTab(),
                 _buildOfficerCredentialsTab(),
                 _buildRbacPermissionsTab(),
-                _buildPerformanceLogTab(),
               ],
             ),
           ),
@@ -481,11 +775,14 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
   }
 
   Widget _defaultLetterAvatar() {
+    final letter = _officerName.isNotEmpty
+        ? _officerName[0].toUpperCase()
+        : (_panchayatName.isNotEmpty ? _panchayatName[0].toUpperCase() : 'P');
     return CircleAvatar(
       radius: 40,
       backgroundColor: AppTheme.primary.withValues(alpha: 0.12),
       child: Text(
-        _officerName.isNotEmpty ? _officerName[0].toUpperCase() : 'P',
+        letter,
         style: TextStyle(
           fontSize: 32,
           fontWeight: FontWeight.bold,
@@ -520,9 +817,13 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  Text(title,
+                      style: TextStyle(
+                          fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 2),
-                  Text(val, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text(val,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             ),
@@ -538,21 +839,163 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
         padding: const EdgeInsets.all(24),
         child: ListView(
           children: [
-            _buildDetailTile(Icons.account_balance_rounded, 'Panchayat Body Name', _panchayatName),
+            _buildDetailTile(Icons.account_balance_rounded,
+                'Panchayat Body Name', _displayValue(_panchayatName)),
             const Divider(),
-            _buildDetailTile(Icons.qr_code_rounded, 'Administrative Branch Code', _branchCode),
+            _buildDetailTile(Icons.qr_code_rounded,
+                'Administrative Branch Code', _displayValue(_branchCode)),
             const Divider(),
-            _buildDetailTile(Icons.location_on_rounded, 'District & State Jurisdiction',
-                '$_district, Tamil Nadu Government'),
+            _buildDetailTile(
+                Icons.location_on_rounded,
+                'District & State',
+                _district.isNotEmpty
+                    ? '$_district, Tamil Nadu'
+                    : 'Not configured'),
             const Divider(),
-            _buildDetailTile(Icons.business_rounded, 'Office Headquarters Address', _address),
+            _buildDetailTile(Icons.map_rounded, 'Taluk',
+                _displayValue(_taluk)),
             const Divider(),
-            _buildDetailTile(Icons.access_time_filled_rounded, 'Official Business Hours',
-                'Monday to Saturday (09:30 AM – 05:45 PM)'),
+            _buildDetailTile(Icons.business_rounded,
+                'Office Headquarters Address', _displayValue(_address)),
             const Divider(),
-            _buildDetailTile(Icons.headset_mic_rounded, 'IVR Public Grievance Helpline', _ivrNumber),
+            _buildDetailTile(Icons.access_time_filled_rounded,
+                'Official Business Hours', 'Monday to Saturday (09:30 AM – 05:45 PM)'),
+            const Divider(),
+            _buildDetailTile(Icons.headset_mic_rounded,
+                'IVR Public Grievance Helpline', _displayValue(_ivrNumber)),
+            const Divider(),
+            _buildDetailTile(Icons.phone_rounded, 'Office Contact Phone',
+                _displayValue(_contactPhone)),
+            const Divider(),
+            _buildDetailTile(Icons.email_rounded, 'Office Contact Email',
+                _displayValue(_contactEmail)),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildBrandingTab() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ListView(
+          children: [
+            // Logo preview
+            if (_logoUrl.isNotEmpty) ...[
+              Center(
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.stroke),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      ApiConfig.fileUrl(_logoUrl),
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Icon(
+                        Icons.broken_image,
+                        size: 40,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+            _buildDetailTile(Icons.translate_rounded,
+                'Software Name (Tamil)', _displayValue(_softwareNameTa)),
+            const Divider(),
+            _buildDetailTile(Icons.abc_rounded,
+                'Software Name (English)', _displayValue(_softwareNameEn)),
+            const Divider(),
+            _buildDetailTile(Icons.short_text_rounded,
+                'Tagline (Tamil)', _displayValue(_softwareTaglineTa)),
+            const Divider(),
+            _buildDetailTile(Icons.short_text_rounded,
+                'Tagline (English)', _displayValue(_softwareTaglineEn)),
+            const Divider(),
+            // Color swatches
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  Icon(Icons.color_lens_rounded, color: AppTheme.primary, size: 24),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Brand Colors', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            if (_primaryColor.isNotEmpty) ...[
+                              _buildColorChip('Primary', _primaryColor),
+                              const SizedBox(width: 12),
+                            ],
+                            if (_secondaryColor.isNotEmpty)
+                              _buildColorChip('Secondary', _secondaryColor),
+                            if (_primaryColor.isEmpty && _secondaryColor.isEmpty)
+                              Text('Not configured', style: TextStyle(
+                                fontSize: 14, color: AppTheme.textMuted, fontStyle: FontStyle.italic)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(),
+            _buildDetailTile(Icons.image_rounded,
+                'Logo URL', _displayValue(_logoUrl, 'No logo set')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorChip(String label, String hexColor) {
+    Color color;
+    try {
+      color = Color(int.parse(hexColor.replaceFirst('#', '0xFF')));
+    } catch (_) {
+      color = Colors.grey;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 16,
+            height: 16,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: Colors.black12),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            '$label: $hexColor',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -563,19 +1006,33 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
         padding: const EdgeInsets.all(24),
         child: ListView(
           children: [
-            _buildDetailTile(Icons.person_rounded, 'Officer Full Name', _officerName),
+            _buildDetailTile(Icons.person_rounded, 'Officer Full Name',
+                _displayValue(_officerName, 'Not set')),
             const Divider(),
-            _buildDetailTile(Icons.email_rounded, 'Official Registered Email', _email),
+            _buildDetailTile(Icons.email_rounded,
+                'Official Registered Email', _displayValue(_email)),
             const Divider(),
-            _buildDetailTile(Icons.phone_rounded, 'Contact Phone Number', _phone),
+            _buildDetailTile(Icons.phone_rounded, 'Contact Phone Number',
+                _displayValue(_phone, 'Not set')),
             const Divider(),
-            _buildDetailTile(Icons.badge_rounded, 'Employee Service Book Code', _empCode),
+            _buildDetailTile(Icons.badge_rounded,
+                'Employee Service Book Code', _displayValue(_empCode, 'Not assigned')),
             const Divider(),
-            _buildDetailTile(Icons.work_history_rounded, 'Service Cadre & Designation',
-                '$_cadre — $_designation'),
+            _buildDetailTile(
+                Icons.work_history_rounded,
+                'Service Cadre & Designation',
+                [
+                  if (_cadre.isNotEmpty) _cadre,
+                  if (_designation.isNotEmpty) _designation,
+                ].join(' — ').isNotEmpty
+                    ? [
+                        if (_cadre.isNotEmpty) _cadre,
+                        if (_designation.isNotEmpty) _designation,
+                      ].join(' — ')
+                    : 'Not set'),
             const Divider(),
-            _buildDetailTile(Icons.translate_rounded, 'System Portal Preferences',
-                'Language: $_language • Notifications: SMS, Email & WhatsApp Active'),
+            _buildDetailTile(Icons.translate_rounded,
+                'System Portal Preferences', 'Language: English & தமிழ் • Notifications: Active'),
           ],
         ),
       ),
@@ -619,7 +1076,8 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
           children: [
             Text(
               'Granted Administrative Permissions (Role: $_role)',
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style:
+                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 16),
             Expanded(
@@ -632,12 +1090,15 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                     leading: const CircleAvatar(
                       backgroundColor: Colors.green,
                       radius: 14,
-                      child: Icon(Icons.check, size: 16, color: Colors.white),
+                      child:
+                          Icon(Icons.check, size: 16, color: Colors.white),
                     ),
                     title: Text(item['desc']!,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 14)),
                     subtitle: Text('Permission Code: ${item['code']}',
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 12)),
+                        style: const TextStyle(
+                            fontFamily: 'monospace', fontSize: 12)),
                     trailing: Chip(
                       label: Text(item['status']!),
                       backgroundColor: Colors.green.shade100,
@@ -656,54 +1117,8 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
     );
   }
 
-  Widget _buildPerformanceLogTab() {
-    final logs = [
-      {
-        'time': 'Today, Live Sync',
-        'action': 'System dynamic branding and real-time DB profile sync active.'
-      },
-      {
-        'time': 'Today, 02:45 PM',
-        'action': 'Assigned Field Electrician to Complaint CMP-2026-00042'
-      },
-      {
-        'time': 'Yesterday, 11:20 AM',
-        'action': 'Approved Work Order WO-2026-00012 for Road Patching'
-      },
-      {'time': 'Live', 'action': 'Logged System Login session verified.'},
-    ];
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Recent System Audit Activity Log',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 16),
-            Expanded(
-              child: ListView.separated(
-                itemCount: logs.length,
-                separatorBuilder: (_, __) => const Divider(),
-                itemBuilder: (context, index) {
-                  final log = logs[index];
-                  return ListTile(
-                    leading: Icon(Icons.history_rounded, color: AppTheme.primary),
-                    title: Text(log['action']!, style: const TextStyle(fontSize: 14)),
-                    subtitle: Text(log['time']!,
-                        style: TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildDetailTile(IconData icon, String title, String val) {
+    final isNotConfigured = val == 'Not configured' || val == 'Not set' || val == 'Not assigned' || val == 'No logo set';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -714,13 +1129,17 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                Text(title,
+                    style: TextStyle(
+                        fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 2),
                 Text(val,
                     style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
-                        color: AppTheme.textPrimary)),
+                        color: isNotConfigured ? AppTheme.textMuted : AppTheme.textPrimary,
+                        fontStyle: isNotConfigured ? FontStyle.italic : FontStyle.normal,
+                    )),
               ],
             ),
           ),

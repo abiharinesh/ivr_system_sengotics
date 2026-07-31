@@ -57,6 +57,12 @@ export class PanchayatAdminController {
     return this.service.getMe(req.user.id);
   }
 
+  @Get('branding')
+  getBranding(@Req() req: AuthenticatedRequest) {
+    const pid = this.getPanchayatId(req);
+    return this.service.getBranding(pid);
+  }
+
   @Put('profile')
   updateProfile(
     @Req() req: AuthenticatedRequest,
@@ -67,6 +73,24 @@ export class PanchayatAdminController {
       phone?: string;
       panchayat_name?: string;
       photo_url?: string;
+      // Branding & panchayat config fields
+      logo_url?: string;
+      secondary_logo_url?: string;
+      favicon_url?: string;
+      software_name_ta?: string;
+      software_name_en?: string;
+      software_tagline_ta?: string;
+      software_tagline_en?: string;
+      primary_color?: string;
+      secondary_color?: string;
+      welcome_audio_url?: string;
+      contact_phone?: string;
+      contact_email?: string;
+      address?: string;
+      ivr_number?: string;
+      district?: string;
+      taluk?: string;
+      branch_code?: string;
     },
   ) {
     return this.service.updateProfile(req.user.id, body);

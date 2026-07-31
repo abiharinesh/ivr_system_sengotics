@@ -104,6 +104,7 @@ class ApiConfig {
 
   // Panchayat Admin
   static const String paMe = '/api/admin/me';
+  static const String paBranding = '/api/admin/branding';
   static const String paStats = '/api/admin/stats';
   static const String paDashboardInsights = '/api/admin/dashboard/insights';
   static const String paPoles = '/api/admin/poles';

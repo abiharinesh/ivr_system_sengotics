@@ -112,6 +112,24 @@ export class PanchayatAdminService {
       phone?: string;
       panchayat_name?: string;
       photo_url?: string;
+      // Branding & panchayat config fields
+      logo_url?: string;
+      secondary_logo_url?: string;
+      favicon_url?: string;
+      software_name_ta?: string;
+      software_name_en?: string;
+      software_tagline_ta?: string;
+      software_tagline_en?: string;
+      primary_color?: string;
+      secondary_color?: string;
+      welcome_audio_url?: string;
+      contact_phone?: string;
+      contact_email?: string;
+      address?: string;
+      ivr_number?: string;
+      district?: string;
+      taluk?: string;
+      branch_code?: string;
     },
   ) {
     const user = await this.prisma.user.findUnique({
@@ -140,11 +158,34 @@ export class PanchayatAdminService {
       }
     }
 
-    if (data.panchayat_name && user.panchayat_id) {
-      await this.prisma.panchayat.update({
-        where: { id: user.panchayat_id },
-        data: { name: data.panchayat_name.trim() },
-      });
+    // Update panchayat-level fields (name, branding, contact, etc.)
+    if (user.panchayat_id) {
+      const panchayatUpdate: Record<string, any> = {};
+      if (data.panchayat_name) panchayatUpdate.name = data.panchayat_name.trim();
+      if (data.logo_url !== undefined) panchayatUpdate.logo_url = data.logo_url || null;
+      if (data.secondary_logo_url !== undefined) panchayatUpdate.secondary_logo_url = data.secondary_logo_url || null;
+      if (data.favicon_url !== undefined) panchayatUpdate.favicon_url = data.favicon_url || null;
+      if (data.software_name_ta !== undefined) panchayatUpdate.software_name_ta = data.software_name_ta;
+      if (data.software_name_en !== undefined) panchayatUpdate.software_name_en = data.software_name_en;
+      if (data.software_tagline_ta !== undefined) panchayatUpdate.software_tagline_ta = data.software_tagline_ta;
+      if (data.software_tagline_en !== undefined) panchayatUpdate.software_tagline_en = data.software_tagline_en;
+      if (data.primary_color !== undefined) panchayatUpdate.primary_color = data.primary_color;
+      if (data.secondary_color !== undefined) panchayatUpdate.secondary_color = data.secondary_color;
+      if (data.welcome_audio_url !== undefined) panchayatUpdate.welcome_audio_url = data.welcome_audio_url || null;
+      if (data.contact_phone !== undefined) panchayatUpdate.contact_phone = data.contact_phone || null;
+      if (data.contact_email !== undefined) panchayatUpdate.contact_email = data.contact_email || null;
+      if (data.address !== undefined) panchayatUpdate.address = data.address || null;
+      if (data.ivr_number !== undefined) panchayatUpdate.ivr_number = data.ivr_number || null;
+      if (data.district !== undefined) panchayatUpdate.district = data.district || null;
+      if (data.taluk !== undefined) panchayatUpdate.taluk = data.taluk || null;
+      if (data.branch_code !== undefined) panchayatUpdate.branch_code = data.branch_code || null;
+
+      if (Object.keys(panchayatUpdate).length > 0) {
+        await this.prisma.panchayat.update({
+          where: { id: user.panchayat_id },
+          data: panchayatUpdate,
+        });
+      }
     }
 
     return this.getMe(userId);
@@ -153,6 +194,39 @@ export class PanchayatAdminService {
   async getFirstPanchayatId(): Promise<number | null> {
     const p = await this.prisma.panchayat.findFirst({ select: { id: true } });
     return p ? p.id : null;
+  }
+
+  // ── Branding ────────────────────────────────────────────────────────────
+
+  async getBranding(panchayatId: number) {
+    const panchayat = await this.prisma.panchayat.findUnique({
+      where: { id: panchayatId },
+      select: {
+        id: true,
+        name: true,
+        branch_type: true,
+        branch_code: true,
+        district: true,
+        taluk: true,
+        address: true,
+        contact_phone: true,
+        contact_email: true,
+        ivr_number: true,
+        ward_count: true,
+        logo_url: true,
+        secondary_logo_url: true,
+        favicon_url: true,
+        software_name_ta: true,
+        software_name_en: true,
+        software_tagline_ta: true,
+        software_tagline_en: true,
+        primary_color: true,
+        secondary_color: true,
+        welcome_audio_url: true,
+      },
+    });
+    if (!panchayat) throw new NotFoundException(`Panchayat #${panchayatId} not found`);
+    return panchayat;
   }
 
   // ── Pole Management (scoped to their panchayat) ────────────────────────
