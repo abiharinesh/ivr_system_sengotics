@@ -20,3 +20,11 @@ class LoginRequested extends AuthEvent {
 class LogoutRequested extends AuthEvent {}
 
 class AuthCheckRequested extends AuthEvent {}
+
+class UpdateAuthUser extends AuthEvent {
+  final UserModel user;
+  const UpdateAuthUser(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}

@@ -16,6 +16,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LoginRequested>(_onLogin);
     on<LogoutRequested>(_onLogout);
     on<AuthCheckRequested>(_onAuthCheck);
+    on<UpdateAuthUser>(_onUpdateUser);
+  }
+
+  Future<void> _onUpdateUser(UpdateAuthUser event, Emitter<AuthState> emit) async {
+    final currentState = state;
+    if (currentState is Authenticated) {
+      await SecureStorageService.saveUserJson(jsonEncode(event.user.toJson()));
+      emit(Authenticated(user: event.user, token: currentState.token));
+    }
   }
 
   UserModel? get currentUser {

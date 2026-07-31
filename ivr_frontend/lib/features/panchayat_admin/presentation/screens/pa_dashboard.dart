@@ -18,7 +18,12 @@ class PADashboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PADashBloc, PADashState>(
+    return BlocConsumer<PADashBloc, PADashState>(
+      listener: (context, state) {
+        if (state is PADashLoaded) {
+          context.read<AuthBloc>().add(UpdateAuthUser(state.profile));
+        }
+      },
       builder: (context, state) {
         final isLoading = state is PADashLoading;
         if (state is PADashError) {

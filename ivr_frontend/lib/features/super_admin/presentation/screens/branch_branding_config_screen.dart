@@ -339,10 +339,13 @@ class _BranchBrandingConfigScreenState
                 items: panchayats.map((p) {
                   final typeLabel =
                       (p.branchType ?? 'VILLAGE_PANCHAYAT').replaceAll('_', ' ');
+                  final codeStr = p.branchCode != null && p.branchCode!.isNotEmpty
+                      ? ' (${p.branchCode})'
+                      : ' (#${p.id})';
                   return DropdownMenuItem(
                     value: p.id,
                     child: Text(
-                      '${p.name}  ·  $typeLabel',
+                      '${p.name}$codeStr  ·  $typeLabel',
                       overflow: TextOverflow.ellipsis,
                     ),
                   );
