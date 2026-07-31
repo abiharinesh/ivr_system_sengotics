@@ -210,7 +210,33 @@ class UserModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, email, role, panchayatId];
+  List<Object?> get props => [
+        id,
+        email,
+        role,
+        phone,
+        panchayatId,
+        panchayatName,
+        branchType,
+        softwareNameTa,
+        softwareNameEn,
+        softwareTaglineTa,
+        softwareTaglineEn,
+        logoUrl,
+        secondaryLogoUrl,
+        primaryColor,
+        district,
+        address,
+        contactPhone,
+        contactEmail,
+        ivrNumber,
+        employeeCode,
+        cadre,
+        designation,
+        serviceBookNumber,
+        photoUrl,
+        createdAt,
+      ];
 }
 
 class AuthResponse {

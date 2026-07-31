@@ -421,11 +421,27 @@ class _AppScaffoldState extends State<AppScaffold> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                const Icon(
-                  Icons.phone_in_talk_rounded,
-                  color: Colors.white,
-                  size: 36,
-                ),
+                if (user?.logoUrl != null && user!.logoUrl!.isNotEmpty)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      ApiConfig.fileUrl(user.logoUrl),
+                      height: 40,
+                      width: 40,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.phone_in_talk_rounded,
+                        color: Colors.white,
+                        size: 36,
+                      ),
+                    ),
+                  )
+                else
+                  const Icon(
+                    Icons.phone_in_talk_rounded,
+                    color: Colors.white,
+                    size: 36,
+                  ),
                 const SizedBox(height: 8),
                 Text(
                   softwareName,
@@ -438,7 +454,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  widget.userEmail,
+                  user?.panchayatName ?? widget.userEmail,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
