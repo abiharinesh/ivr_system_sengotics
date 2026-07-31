@@ -174,7 +174,6 @@ export class SuperAdminController {
   }
 
 
-  // ── Pole Management (all panchayats) ─────────────────────────────────────
   @Post('poles')
   createPole(
     @Body()

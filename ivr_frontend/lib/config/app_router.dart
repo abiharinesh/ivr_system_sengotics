@@ -418,10 +418,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/superadmin/branding',
-            builder: (context, state) => BlocProvider(
-              create: (_) => PanchayatBloc()..add(LoadPanchayats()),
-              child: const BranchBrandingConfigScreen(),
-            ),
+            redirect: (_, __) => '/panchayats',
           ),
           GoRoute(
             path: '/panchayats',

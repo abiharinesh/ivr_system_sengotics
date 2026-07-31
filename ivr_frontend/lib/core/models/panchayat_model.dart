@@ -11,8 +11,12 @@ class PanchayatModel extends Equatable {
   final int complaintsCount;
   final int usersCount;
 
-  // Branding fields
+  // Branding & Details fields
   final String? branchType;
+  final String? district;
+  final String? contactPhone;
+  final String? contactEmail;
+  final String? address;
   final String? softwareNameTa;
   final String? softwareNameEn;
   final String? softwareTaglineTa;
@@ -35,6 +39,10 @@ class PanchayatModel extends Equatable {
     this.complaintsCount = 0,
     this.usersCount = 0,
     this.branchType,
+    this.district,
+    this.contactPhone,
+    this.contactEmail,
+    this.address,
     this.softwareNameTa,
     this.softwareNameEn,
     this.softwareTaglineTa,
@@ -60,6 +68,10 @@ class PanchayatModel extends Equatable {
       complaintsCount: count?['complaints'] as int? ?? 0,
       usersCount: count?['users'] as int? ?? 0,
       branchType: json['branch_type'] as String?,
+      district: json['district'] as String?,
+      contactPhone: json['contact_phone'] as String?,
+      contactEmail: json['contact_email'] as String?,
+      address: json['address'] as String?,
       softwareNameTa: json['software_name_ta'] as String?,
       softwareNameEn: json['software_name_en'] as String?,
       softwareTaglineTa: json['software_tagline_ta'] as String?,
@@ -74,5 +86,17 @@ class PanchayatModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id, name, branchCode, ivrNumber, branchType, softwareNameTa, softwareNameEn];
+  List<Object?> get props => [
+        id,
+        name,
+        branchCode,
+        ivrNumber,
+        branchType,
+        district,
+        contactPhone,
+        contactEmail,
+        address,
+        softwareNameTa,
+        softwareNameEn
+      ];
 }

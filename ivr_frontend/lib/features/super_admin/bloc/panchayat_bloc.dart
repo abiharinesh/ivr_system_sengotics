@@ -34,6 +34,14 @@ class UpdatePanchayat extends PanchayatEvent {
   List<Object?> get props => [id, data];
 }
 
+class UpdateBranding extends PanchayatEvent {
+  final int id;
+  final Map<String, dynamic> data;
+  UpdateBranding(this.id, this.data);
+  @override
+  List<Object?> get props => [id, data];
+}
+
 class DeletePanchayat extends PanchayatEvent {
   final int id;
   DeletePanchayat(this.id);
@@ -83,6 +91,7 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     on<CreatePanchayat>(_onCreate);
     on<CreateUnifiedPanchayat>(_onCreateUnified);
     on<UpdatePanchayat>(_onUpdate);
+    on<UpdateBranding>(_onUpdateBranding);
     on<DeletePanchayat>(_onDelete);
   }
 
@@ -146,6 +155,21 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
       add(LoadPanchayats());
     } on ApiException catch (e) {
       emit(PanchayatError(e.message));
+    }
+  }
+
+  Future<void> _onUpdateBranding(
+    UpdateBranding event,
+    Emitter<PanchayatState> emit,
+  ) async {
+    try {
+      await _repo.updateBranchBranding(event.id, event.data);
+      emit(PanchayatActionSuccess('Branding updated successfully — changes will reflect in the admin panel'));
+      add(LoadPanchayats());
+    } on ApiException catch (e) {
+      emit(PanchayatError(e.message));
+    } catch (e) {
+      emit(PanchayatError(e.toString()));
     }
   }
 
