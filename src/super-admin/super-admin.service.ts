@@ -153,6 +153,104 @@ export class SuperAdminService {
     return branch;
   }
 
+  async createUnifiedPanchayat(data: {
+    name: string;
+    branch_code?: string;
+    branch_type?: any;
+    district?: string;
+    taluk?: string;
+    address?: string;
+    contact_phone?: string;
+    contact_email?: string;
+    ivr_number?: string;
+    software_name_ta?: string;
+    software_name_en?: string;
+    software_tagline_ta?: string;
+    software_tagline_en?: string;
+    logo_url?: string;
+    secondary_logo_url?: string;
+    primary_color?: string;
+    secondary_color?: string;
+    admin_name?: string;
+    admin_email?: string;
+    admin_password?: string;
+    admin_phone?: string;
+  }) {
+    const branch = await this.createPanchayat({
+      name: data.name,
+      branch_code: data.branch_code,
+      branch_type: data.branch_type ?? 'VILLAGE_PANCHAYAT',
+      district: data.district,
+      taluk: data.taluk,
+      address: data.address,
+      contact_phone: data.contact_phone,
+      contact_email: data.contact_email,
+      ivr_number: data.ivr_number,
+      software_name_ta: data.software_name_ta,
+      software_name_en: data.software_name_en,
+      software_tagline_ta: data.software_tagline_ta,
+      software_tagline_en: data.software_tagline_en,
+      logo_url: data.logo_url,
+      primary_color: data.primary_color,
+      secondary_color: data.secondary_color,
+    });
+
+    if (data.secondary_logo_url) {
+      await this.prisma.panchayat.update({
+        where: { id: branch.id },
+        data: { secondary_logo_url: data.secondary_logo_url },
+      });
+    }
+
+    let adminUser: any = null;
+    if (data.admin_email) {
+      const existingUser = await this.prisma.user.findFirst({
+        where: { email: data.admin_email.trim() },
+      });
+      if (existingUser) {
+        throw new BadRequestException(`User with email "${data.admin_email}" already exists`);
+      }
+
+      const passwordHash = await bcrypt.hash(data.admin_password || 'Password@123', 10);
+      adminUser = await this.prisma.user.create({
+        data: {
+          email: data.admin_email.trim(),
+          password_hash: passwordHash,
+          role: 'panchayat_admin',
+          user_type: 'employee',
+          panchayat_id: branch.id,
+          phone_e164: data.admin_phone?.trim() ?? null,
+          is_active: true,
+          is_verified: true,
+        },
+      });
+
+      await this.prisma.employee.create({
+        data: {
+          tenant_id: branch.tenant_id || 'default',
+          user_id: adminUser.id,
+          employee_code: `EMP-PA-${branch.id}-${Date.now().toString().slice(-4)}`,
+          service_book_number: `SB-PA-${branch.id}`,
+          branch_id: branch.id,
+          designation: 'Panchayat Administrative Officer',
+          status: 'active',
+        },
+      }).catch(() => {});
+    }
+
+    return {
+      branch,
+      admin_user: adminUser
+        ? {
+            id: adminUser.id,
+            email: adminUser.email,
+            role: adminUser.role,
+            phone_e164: adminUser.phone_e164,
+          }
+        : null,
+    };
+  }
+
   async updatePanchayat(
     id: number,
     data: {

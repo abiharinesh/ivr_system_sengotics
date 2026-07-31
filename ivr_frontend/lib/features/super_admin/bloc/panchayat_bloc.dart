@@ -19,6 +19,13 @@ class CreatePanchayat extends PanchayatEvent {
   List<Object?> get props => [data];
 }
 
+class CreateUnifiedPanchayat extends PanchayatEvent {
+  final Map<String, dynamic> data;
+  CreateUnifiedPanchayat(this.data);
+  @override
+  List<Object?> get props => [data];
+}
+
 class UpdatePanchayat extends PanchayatEvent {
   final int id;
   final Map<String, dynamic> data;
@@ -74,6 +81,7 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
       super(PanchayatInitial()) {
     on<LoadPanchayats>(_onLoad);
     on<CreatePanchayat>(_onCreate);
+    on<CreateUnifiedPanchayat>(_onCreateUnified);
     on<UpdatePanchayat>(_onUpdate);
     on<DeletePanchayat>(_onDelete);
   }
@@ -109,6 +117,19 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
     try {
       await _repo.createPanchayat(event.data);
       emit(PanchayatActionSuccess('Panchayat created successfully'));
+      add(LoadPanchayats());
+    } on ApiException catch (e) {
+      emit(PanchayatError(e.message));
+    }
+  }
+
+  Future<void> _onCreateUnified(
+    CreateUnifiedPanchayat event,
+    Emitter<PanchayatState> emit,
+  ) async {
+    try {
+      await _repo.createUnifiedPanchayat(event.data);
+      emit(PanchayatActionSuccess('Panchayat, Branding & Admin created successfully'));
       add(LoadPanchayats());
     } on ApiException catch (e) {
       emit(PanchayatError(e.message));

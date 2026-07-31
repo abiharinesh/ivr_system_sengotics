@@ -110,6 +110,11 @@ export class SuperAdminController {
     return this.superAdminService.createPanchayat(body);
   }
 
+  @Post('panchayats/unified')
+  createUnifiedPanchayat(@Body() body: any) {
+    return this.superAdminService.createUnifiedPanchayat(body);
+  }
+
   @Get('panchayats')
   listPanchayats(@Query('tenant_id') tenantId?: string) {
     return this.superAdminService.listPanchayats(tenantId ?? 'default');

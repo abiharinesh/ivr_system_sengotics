@@ -33,6 +33,13 @@ class SuperAdminRepository {
     return PanchayatModel.fromJson(data);
   }
 
+  Future<PanchayatModel> createUnifiedPanchayat(Map<String, dynamic> body) async {
+    final data = await _api.post('${ApiConfig.saPanchayats}/unified', data: body);
+    final res = data is Map<String, dynamic> ? data : <String, dynamic>{};
+    final branchJson = res['branch'] ?? res;
+    return PanchayatModel.fromJson(branchJson as Map<String, dynamic>);
+  }
+
   Future<PanchayatModel> updatePanchayat(
     int id,
     Map<String, dynamic> body,
