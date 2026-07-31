@@ -95,6 +95,10 @@ class PanchayatBloc extends Bloc<PanchayatEvent, PanchayatState> {
       if (cached == null) {
         emit(PanchayatError(e.message));
       }
+    } catch (e) {
+      if (cached == null) {
+        emit(PanchayatError(e.toString()));
+      }
     }
   }
 

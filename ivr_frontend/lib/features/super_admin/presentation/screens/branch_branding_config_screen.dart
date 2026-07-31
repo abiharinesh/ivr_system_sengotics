@@ -180,6 +180,8 @@ class _BranchBrandingConfigScreenState
       builder: (context, state) {
         final panchayats =
             state is PanchayatLoaded ? state.panchayats : <PanchayatModel>[];
+        final isLoadingPanchayats = state is PanchayatLoading;
+        final panchayatError = state is PanchayatError ? state.message : null;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -193,33 +195,76 @@ class _BranchBrandingConfigScreenState
                 children: [
                   _buildHeader(),
                   const SizedBox(height: 20),
-                  _buildBranchSelector(panchayats),
-                  const SizedBox(height: 20),
-                  if (_selectedBranch != null) ...[
-                    _buildPresetRibbon(),
-                    const SizedBox(height: 20),
-                    if (_isLoading)
-                      const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(48),
-                          child: CircularProgressIndicator(),
+                  if (isLoadingPanchayats)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(48),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (panchayatError != null)
+                    Card(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          children: [
+                            const Icon(Icons.error_outline,
+                                color: AppTheme.error, size: 40),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Failed to load branches',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              panchayatError,
+                              style: TextStyle(
+                                  color: AppTheme.textMuted, fontSize: 13),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton.icon(
+                              onPressed: () => context
+                                  .read<PanchayatBloc>()
+                                  .add(LoadPanchayats()),
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Retry'),
+                            ),
+                          ],
                         ),
-                      )
-                    else if (_errorMessage != null)
-                      _buildErrorState()
-                    else if (isWide)
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(flex: 3, child: _buildFormCard()),
-                          const SizedBox(width: 20),
-                          Expanded(flex: 2, child: _buildPreviewCard()),
-                        ],
-                      )
-                    else ...[
-                      _buildFormCard(),
+                      ),
+                    )
+                  else ...[
+                    _buildBranchSelector(panchayats),
+                    const SizedBox(height: 20),
+                    if (_selectedBranch != null) ...[
+                      _buildPresetRibbon(),
                       const SizedBox(height: 20),
-                      _buildPreviewCard(),
+                      if (_isLoading)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(48),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else if (_errorMessage != null)
+                        _buildErrorState()
+                      else if (isWide)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 3, child: _buildFormCard()),
+                            const SizedBox(width: 20),
+                            Expanded(flex: 2, child: _buildPreviewCard()),
+                          ],
+                        )
+                      else ...[
+                        _buildFormCard(),
+                        const SizedBox(height: 20),
+                        _buildPreviewCard(),
+                      ],
                     ],
                   ],
                 ],
