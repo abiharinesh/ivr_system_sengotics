@@ -47,12 +47,107 @@ export class PanchayatAdminService {
         id: true,
         email: true,
         role: true,
+        phone_e164: true,
+        user_type: true,
+        created_at: true,
+        last_login_at: true,
         panchayat_id: true,
         panchayat: true,
+        employee: {
+          select: {
+            id: true,
+            employee_code: true,
+            service_book_number: true,
+            cadre: true,
+            designation: true,
+            photo_url: true,
+            date_of_joining: true,
+            qualification: true,
+            status: true,
+          },
+        },
       },
     });
     if (!user) throw new NotFoundException('User not found');
-    return user;
+
+    const pid = user.panchayat_id;
+    let stats = {
+      wards: 0,
+      total_assets: 0,
+      resolved_grievances: 0,
+      active_field_staff: 0,
+    };
+
+    if (pid) {
+      const [wardsCount, polesCount, pipelinesCount, resolvedCount, staffCount] = await Promise.all([
+        this.prisma.panchayatZone.count({ where: { panchayat_id: pid } }).catch(() => 0),
+        this.prisma.electricPole.count({ where: { panchayat_id: pid } }).catch(() => 0),
+        this.prisma.waterPipeline.count({ where: { panchayat_id: pid } }).catch(() => 0),
+        this.prisma.complaint.count({ where: { panchayat_id: pid, status: 'resolved' } }).catch(() => 0),
+        this.prisma.user.count({
+          where: { panchayat_id: pid, role: { in: ['electrician', 'plumber', 'agent'] }, is_active: true },
+        }).catch(() => 0),
+      ]);
+
+      const declaredWards = user.panchayat?.ward_count || 0;
+      stats = {
+        wards: declaredWards > 0 ? declaredWards : Math.max(wardsCount, 12),
+        total_assets: polesCount + pipelinesCount,
+        resolved_grievances: resolvedCount,
+        active_field_staff: staffCount,
+      };
+    }
+
+    return {
+      ...user,
+      stats,
+    };
+  }
+
+  async updateProfile(
+    userId: number,
+    data: {
+      officer_name?: string;
+      email?: string;
+      phone?: string;
+      panchayat_name?: string;
+      photo_url?: string;
+    },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, panchayat_id: true, email: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (data.email || data.phone) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          ...(data.email && { email: data.email.trim() }),
+          ...(data.phone && { phone_e164: data.phone.trim() }),
+        },
+      });
+    }
+
+    if (data.photo_url !== undefined) {
+      const emp = await this.prisma.employee.findFirst({ where: { user_id: userId } });
+      if (emp) {
+        await this.prisma.employee.update({
+          where: { id: emp.id },
+          data: { photo_url: data.photo_url },
+        });
+      }
+    }
+
+    if (data.panchayat_name && user.panchayat_id) {
+      await this.prisma.panchayat.update({
+        where: { id: user.panchayat_id },
+        data: { name: data.panchayat_name.trim() },
+      });
+    }
+
+    return this.getMe(userId);
   }
 
   async getFirstPanchayatId(): Promise<number | null> {

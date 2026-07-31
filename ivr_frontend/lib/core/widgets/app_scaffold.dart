@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../app.dart';
 import '../../config/app_theme.dart';
+import '../../config/api_config.dart';
 import '../../features/auth/bloc/auth_bloc.dart';
 import '../../features/auth/bloc/auth_state.dart';
 import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
@@ -161,21 +162,44 @@ class _AppScaffoldState extends State<AppScaffold> {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
+                if (user?.logoUrl != null && user!.logoUrl!.isNotEmpty)
+                  ClipRRect(
                     borderRadius: BorderRadius.circular(10),
+                    child: Image.network(
+                      ApiConfig.fileUrl(user.logoUrl),
+                      height: 38,
+                      width: 38,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, __, ___) => Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.primaryGradient,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(
+                          Icons.account_balance_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.account_balance_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
                   ),
-                  child: const Icon(
-                    Icons.phone_in_talk_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -192,7 +216,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        tagline,
+                        user?.panchayatName ?? tagline,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,

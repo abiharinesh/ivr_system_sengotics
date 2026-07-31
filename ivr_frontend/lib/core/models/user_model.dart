@@ -21,6 +21,7 @@ class UserModel extends Equatable {
   final int id;
   final String email;
   final String role;
+  final String? phone;
   final int? panchayatId;
   final String? panchayatName;
   final String? branchType;
@@ -29,13 +30,25 @@ class UserModel extends Equatable {
   final String? softwareTaglineTa;
   final String? softwareTaglineEn;
   final String? logoUrl;
+  final String? secondaryLogoUrl;
   final String? primaryColor;
+  final String? district;
+  final String? address;
+  final String? contactPhone;
+  final String? contactEmail;
+  final String? ivrNumber;
+  final String? employeeCode;
+  final String? cadre;
+  final String? designation;
+  final String? serviceBookNumber;
+  final String? photoUrl;
   final DateTime? createdAt;
 
   const UserModel({
     required this.id,
     required this.email,
     required this.role,
+    this.phone,
     this.panchayatId,
     this.panchayatName,
     this.branchType,
@@ -44,16 +57,29 @@ class UserModel extends Equatable {
     this.softwareTaglineTa,
     this.softwareTaglineEn,
     this.logoUrl,
+    this.secondaryLogoUrl,
     this.primaryColor,
+    this.district,
+    this.address,
+    this.contactPhone,
+    this.contactEmail,
+    this.ivrNumber,
+    this.employeeCode,
+    this.cadre,
+    this.designation,
+    this.serviceBookNumber,
+    this.photoUrl,
     this.createdAt,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final panchayat = json['panchayat'] as Map<String, dynamic>?;
+    final employee = json['employee'] as Map<String, dynamic>?;
     return UserModel(
       id: _jsonInt(json['id']),
-      email: json['email'] as String,
-      role: json['role'] as String,
+      email: (json['email'] as String?) ?? '',
+      role: (json['role'] as String?) ?? 'user',
+      phone: json['phone_e164'] as String?,
       panchayatId: _jsonIntOpt(json['panchayat_id']),
       panchayatName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
@@ -62,10 +88,21 @@ class UserModel extends Equatable {
       softwareTaglineTa: panchayat?['software_tagline_ta'] as String?,
       softwareTaglineEn: panchayat?['software_tagline_en'] as String?,
       logoUrl: panchayat?['logo_url'] as String?,
+      secondaryLogoUrl: panchayat?['secondary_logo_url'] as String?,
       primaryColor: panchayat?['primary_color'] as String?,
+      district: panchayat?['district'] as String?,
+      address: panchayat?['address'] as String?,
+      contactPhone: panchayat?['contact_phone'] as String?,
+      contactEmail: panchayat?['contact_email'] as String?,
+      ivrNumber: panchayat?['ivr_number'] as String?,
+      employeeCode: employee?['employee_code'] as String?,
+      cadre: employee?['cadre'] as String?,
+      designation: employee?['designation'] as String?,
+      serviceBookNumber: employee?['service_book_number'] as String?,
+      photoUrl: employee?['photo_url'] as String?,
       createdAt:
           json['created_at'] != null
-              ? DateTime.parse(json['created_at'] as String)
+              ? DateTime.tryParse(json['created_at'] as String)
               : null,
     );
   }
@@ -143,8 +180,16 @@ class UserModel extends Equatable {
       'id': id,
       'email': email,
       'role': role,
+      'phone_e164': phone,
       'panchayat_id': panchayatId,
       'created_at': createdAt?.toIso8601String(),
+      'employee': {
+        'employee_code': employeeCode,
+        'cadre': cadre,
+        'designation': designation,
+        'service_book_number': serviceBookNumber,
+        'photo_url': photoUrl,
+      },
       'panchayat': {
         'name': panchayatName,
         'branch_type': branchType,
@@ -153,7 +198,13 @@ class UserModel extends Equatable {
         'software_tagline_ta': softwareTaglineTa,
         'software_tagline_en': softwareTaglineEn,
         'logo_url': logoUrl,
+        'secondary_logo_url': secondaryLogoUrl,
         'primary_color': primaryColor,
+        'district': district,
+        'address': address,
+        'contact_phone': contactPhone,
+        'contact_email': contactEmail,
+        'ivr_number': ivrNumber,
       },
     };
   }

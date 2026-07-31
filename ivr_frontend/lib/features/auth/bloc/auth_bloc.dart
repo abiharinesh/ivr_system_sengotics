@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/api/api_exceptions.dart';
+import '../../../config/api_config.dart';
 import '../../../core/storage/secure_storage.dart';
 import '../../../core/models/user_model.dart';
 import '../data/auth_repository.dart';
@@ -65,36 +67,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final token = await SecureStorageService.getToken();
     final userJsonStr = await SecureStorageService.getUserJson();
 
-    if (token != null && userJsonStr != null) {
-      try {
-        final userMap = jsonDecode(userJsonStr) as Map<String, dynamic>;
-        final user = UserModel.fromJson(userMap);
-        emit(Authenticated(user: user, token: token));
-        return;
-      } catch (_) {
-        // Fallback to basic info if json parsing fails
+    if (token != null) {
+      UserModel? initialUser;
+      if (userJsonStr != null) {
+        try {
+          final userMap = jsonDecode(userJsonStr) as Map<String, dynamic>;
+          initialUser = UserModel.fromJson(userMap);
+        } catch (_) {}
       }
-    }
 
-    final role = await SecureStorageService.getRole();
-    final email = await SecureStorageService.getEmail();
-    final userId = await SecureStorageService.getUserId();
-    final panchayatId = await SecureStorageService.getPanchayatId();
-
-    if (token != null && role != null && email != null && userId != null) {
-      emit(
-        Authenticated(
-          user: UserModel(
+      if (initialUser == null) {
+        final role = await SecureStorageService.getRole();
+        final email = await SecureStorageService.getEmail();
+        final userId = await SecureStorageService.getUserId();
+        final panchayatId = await SecureStorageService.getPanchayatId();
+        if (role != null && email != null && userId != null) {
+          initialUser = UserModel(
             id: userId,
             email: email,
             role: role,
             panchayatId: panchayatId,
-          ),
-          token: token,
-        ),
-      );
-    } else {
-      emit(Unauthenticated());
+          );
+        }
+      }
+
+      if (initialUser != null) {
+        emit(Authenticated(user: initialUser, token: token));
+
+        // Re-sync fresh profile and dynamic branding from database
+        try {
+          final freshData = await ApiClient.instance.get(ApiConfig.paMe);
+          if (freshData is Map<String, dynamic>) {
+            final freshUser = UserModel.fromJson(freshData);
+            await SecureStorageService.saveUserJson(jsonEncode(freshUser.toJson()));
+            emit(Authenticated(user: freshUser, token: token));
+          }
+        } catch (_) {
+          // Keep cached initial user if server fetch is unavailable
+        }
+        return;
+      }
     }
+
+    emit(Unauthenticated());
   }
 }

@@ -17,6 +17,11 @@ class PanchayatAdminRepository {
     return UserModel.fromJson(data);
   }
 
+  Future<UserModel> updateProfile(Map<String, dynamic> body) async {
+    final data = await _api.put('/api/admin/profile', data: body);
+    return UserModel.fromJson(data as Map<String, dynamic>);
+  }
+
   // ── Stats ───────────────────────────────────────────────────────────────
   StatsModel? getCachedStats() {
     final cached = _api.getCached(ApiConfig.paStats);

@@ -57,6 +57,21 @@ export class PanchayatAdminController {
     return this.service.getMe(req.user.id);
   }
 
+  @Put('profile')
+  updateProfile(
+    @Req() req: AuthenticatedRequest,
+    @Body()
+    body: {
+      officer_name?: string;
+      email?: string;
+      phone?: string;
+      panchayat_name?: string;
+      photo_url?: string;
+    },
+  ) {
+    return this.service.updateProfile(req.user.id, body);
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────────
   @Get('dashboard/insights')
   async getDashboardInsights(@Req() req: AuthenticatedRequest) {
