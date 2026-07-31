@@ -15,6 +15,14 @@ class PanchayatManagement extends StatefulWidget {
 }
 
 class _PanchayatManagementState extends State<PanchayatManagement> {
+  List<dynamic> _cachedPanchayats = [];
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<PanchayatBloc>().add(LoadPanchayats());
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<PanchayatBloc, PanchayatState>(
@@ -26,6 +34,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
               backgroundColor: AppTheme.accent,
             ),
           );
+          context.read<PanchayatBloc>().add(LoadPanchayats());
         }
         if (state is PanchayatError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -37,12 +46,11 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
         }
       },
       builder: (context, state) {
-        final isLoading = state is PanchayatLoading;
-        if (state is PanchayatLoaded || isLoading) {
-          final panchayats = state is PanchayatLoaded ? state.panchayats : const [];
-          return _buildList(context, panchayats, isLoading: isLoading);
+        final isLoading = state is PanchayatLoading || (state is PanchayatInitial && _cachedPanchayats.isEmpty);
+        if (state is PanchayatLoaded) {
+          _cachedPanchayats = state.panchayats;
         }
-        return const SizedBox.shrink();
+        return _buildList(context, _cachedPanchayats, isLoading: isLoading);
       },
     );
   }

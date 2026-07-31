@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../config/app_theme.dart';
 import '../../../../config/api_config.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../../core/models/user_model.dart';
 import '../../../auth/bloc/auth_bloc.dart';
 import '../../../auth/bloc/auth_event.dart';
 import '../../data/panchayat_admin_repository.dart';
@@ -94,6 +95,11 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
         _resolvedGrievances = stats?['resolved_grievances'] as int? ?? 1420;
         _activeStaff = stats?['active_field_staff'] as int? ?? 8;
       });
+
+      if (mounted && map['email'] != null) {
+        final updatedUser = UserModel.fromJson(map);
+        context.read<AuthBloc>().add(UpdateAuthUser(updatedUser));
+      }
     } catch (e) {
       setState(() {
         _error = e.toString();

@@ -128,28 +128,7 @@ export class SuperAdminController {
   @Put('panchayats/:id')
   updatePanchayat(
     @Param('id', ParseIntPipe) id: number,
-    @Body()
-    body: {
-      name?: string;
-      ivr_number?: string;
-      center_lat?: number;
-      center_lng?: number;
-      branch_type?: any;
-      branch_status?: any;
-      branch_code?: string;
-      parent_branch_id?: number;
-      district?: string;
-      taluk?: string;
-      block?: string;
-      village?: string;
-      ward_count?: number;
-      gis_boundary?: any;
-      area_sq_km?: number;
-      contact_phone?: string;
-      contact_email?: string;
-      address?: string;
-      logo_url?: string;
-    },
+    @Body() body: any,
   ) {
     return this.superAdminService.updatePanchayat(id, body);
   }

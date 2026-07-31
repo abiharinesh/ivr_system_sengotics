@@ -253,27 +253,7 @@ export class SuperAdminService {
 
   async updatePanchayat(
     id: number,
-    data: {
-      name?: string;
-      ivr_number?: string;
-      center_lat?: number;
-      center_lng?: number;
-      branch_type?: any;
-      branch_status?: any;
-      branch_code?: string;
-      parent_branch_id?: number;
-      district?: string;
-      taluk?: string;
-      block?: string;
-      village?: string;
-      ward_count?: number;
-      gis_boundary?: any;
-      area_sq_km?: number;
-      contact_phone?: string;
-      contact_email?: string;
-      address?: string;
-      logo_url?: string;
-    },
+    data: any,
   ) {
     const existing = await this.ensurePanchayatExists(id);
     if (data.parent_branch_id) {
@@ -1384,15 +1364,15 @@ export class SuperAdminService {
     return this.prisma.panchayat.update({
       where: { id },
       data: {
-        ...(data.software_name_ta && { software_name_ta: data.software_name_ta }),
-        ...(data.software_name_en && { software_name_en: data.software_name_en }),
+        ...(data.software_name_ta !== undefined && { software_name_ta: data.software_name_ta }),
+        ...(data.software_name_en !== undefined && { software_name_en: data.software_name_en }),
         ...(data.software_tagline_ta !== undefined && { software_tagline_ta: data.software_tagline_ta }),
         ...(data.software_tagline_en !== undefined && { software_tagline_en: data.software_tagline_en }),
         ...(data.logo_url !== undefined && { logo_url: data.logo_url }),
         ...(data.secondary_logo_url !== undefined && { secondary_logo_url: data.secondary_logo_url }),
         ...(data.favicon_url !== undefined && { favicon_url: data.favicon_url }),
-        ...(data.primary_color && { primary_color: data.primary_color }),
-        ...(data.secondary_color && { secondary_color: data.secondary_color }),
+        ...(data.primary_color !== undefined && { primary_color: data.primary_color }),
+        ...(data.secondary_color !== undefined && { secondary_color: data.secondary_color }),
         ...(data.welcome_audio_url !== undefined && { welcome_audio_url: data.welcome_audio_url }),
       },
     });
