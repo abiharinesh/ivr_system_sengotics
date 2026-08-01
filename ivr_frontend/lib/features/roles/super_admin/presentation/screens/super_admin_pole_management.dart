@@ -85,7 +85,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                   : ((p.poleNumber ?? '').toLowerCase().contains(searchLower) ||
                       (p.keypadId ?? '').toLowerCase().contains(searchLower));
           final matchesPanchayat =
-              _panchayatFilter == null || p.panchayatId == _panchayatFilter;
+              _panchayatFilter == null || p.orgUnitId == _panchayatFilter;
           return matchesSearch && matchesPanchayat;
         }).toList();
 
@@ -98,7 +98,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
     );
     final panchayatIds = <int>{};
     for (final p in allPoles) {
-      if (p.panchayatId != null) panchayatIds.add(p.panchayatId!);
+      if (p.orgUnitId != null) panchayatIds.add(p.orgUnitId!);
     }
 
     final visibleCount = poles.length;
@@ -194,7 +194,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                       ),
                                     ],
                                     const Spacer(),
-                                    if (pole.panchayatId != null)
+                                    if (pole.orgUnitId != null)
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 8,
@@ -207,7 +207,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                                           ),
                                         ),
                                         child: Text(
-                                          'Panchayat #${pole.panchayatId}',
+                                          'Panchayat #${pole.orgUnitId}',
                                           style:       TextStyle(
                                             fontSize: 11,
                                             color: AppTheme.textSecondary,
@@ -394,14 +394,14 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
 
     final availablePanchayats =
         _allPoles
-            .where((p) => p.panchayatId != null)
-            .map((p) => p.panchayatId!)
+            .where((p) => p.orgUnitId != null)
+            .map((p) => p.orgUnitId!)
             .toSet()
             .toList()
           ..sort();
 
     int? selectedPanchayat =
-        pole?.panchayatId ??
+        pole?.orgUnitId ??
         _panchayatFilter ??
         (availablePanchayats.isNotEmpty ? availablePanchayats.first : null);
 
@@ -542,7 +542,7 @@ class _SuperAdminPoleManagementState extends State<SuperAdminPoleManagement> {
                               setState(() => _saving = true);
                               try {
                                 final payload = <String, dynamic>{
-                                  'panchayat_id': selectedPanchayat,
+                                  'org_unit_id': selectedPanchayat,
                                   'pole_number':
                                       poleNumberC.text.trim().isEmpty
                                           ? null

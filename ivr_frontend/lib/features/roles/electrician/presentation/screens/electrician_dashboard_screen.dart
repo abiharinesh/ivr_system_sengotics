@@ -62,7 +62,7 @@ class _ElectricianDashboardScreenState extends State<ElectricianDashboardScreen>
   String? _panchayatHint() {
     final m = _me;
     if (m == null) return null;
-    final p = m['panchayat'];
+    final p = m['org_unit'];
     if (p is Map) {
       final name = p['name']?.toString();
       if (name != null && name.isNotEmpty) return name;

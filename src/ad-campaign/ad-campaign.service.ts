@@ -13,13 +13,13 @@ export class AdCampaignService {
    * Fetch the active ad campaign for a given pole.
    * Priority: pole-targeted > zone-targeted > panchayat-wide.
    */
-  async getActiveAdForPole(poleId: number, panchayatId: number) {
+  async getActiveAdForPole(poleId: number, orgUnitId: number) {
     const now = new Date();
 
     // 1. Check for pole-targeted campaign first
     const poleTargeted = await this.prisma.adCampaign.findFirst({
       where: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         is_active: true,
         starts_at: { lte: now },
         ends_at: { gte: now },
@@ -32,7 +32,7 @@ export class AdCampaignService {
     // 2. Fallback: panchayat-wide campaign (no targeting)
     const panchayatWide = await this.prisma.adCampaign.findFirst({
       where: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         is_active: true,
         starts_at: { lte: now },
         ends_at: { gte: now },
@@ -75,9 +75,9 @@ export class AdCampaignService {
   // ─── Admin CRUD ──────────────────────────────────────────────────────────────
 
   /** List all campaigns for a panchayat. */
-  async listCampaigns(panchayatId: number) {
+  async listCampaigns(orgUnitId: number) {
     return this.prisma.adCampaign.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
     });
   }
@@ -96,7 +96,7 @@ export class AdCampaignService {
 
   /** Create a new ad campaign. */
   async createCampaign(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     advertiser_name: string;
     advertiser_phone?: string;
     title: string;
@@ -112,7 +112,7 @@ export class AdCampaignService {
   }) {
     return this.prisma.adCampaign.create({
       data: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         advertiser_name: data.advertiser_name,
         advertiser_phone: data.advertiser_phone,
         title: data.title,

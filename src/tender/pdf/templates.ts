@@ -15,7 +15,7 @@ import {
 import { sanitizeOverlaySvg } from './overlay-sanitize';
 
 export interface TemplateContext {
-  panchayat: { id: number; name: string };
+  org_unit: { id: number; name: string };
   tender: {
     id: number;
     title_ta: string | null;
@@ -197,7 +197,7 @@ const SHELL = (
   .stamp-rejected { color: #b00; border: 2px solid #b00; padding: 4px 8px; display: inline-block; transform: rotate(-4deg); }
   .stamp-approved { color: #060; border: 2px solid #060; padding: 4px 8px; display: inline-block; transform: rotate(-2deg); }
   .header-block { border-bottom: 2px solid #222; padding-bottom: 8px; margin-bottom: 12px; }
-  .panchayat-name { font-size: 12pt; font-weight: 700; }
+  .org_unit-name { font-size: 12pt; font-weight: 700; }
   .doc-meta { font-size: 9pt; color: #555; margin-top: 4px; }
   .canvas-layer { position: absolute; transform: translate(-50%, -50%); white-space: pre-wrap; font-weight: 600; pointer-events: none; }
   .fabric-overlay { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; z-index: 2; }
@@ -223,8 +223,8 @@ function header(
   titleEn: string,
 ): string {
   return `<div class="header-block">
-  <div class="panchayat-name ta">${escape(ctx.panchayat.name)} ஊராட்சி</div>
-  <div class="panchayat-name">${escape(ctx.panchayat.name)} Panchayat</div>
+  <div class="panchayat-name ta">${escape(ctx.org_unit.name)} ஊராட்சி</div>
+  <div class="panchayat-name">${escape(ctx.org_unit.name)} Panchayat</div>
   <h1 class="ta">${escape(titleTa)}</h1>
   <h2>${escape(titleEn)}</h2>
   <div class="doc-meta">Tender #${ctx.tender.id} • Status: ${escape(ctx.tender.status)} • Generated: ${fmtDate(ctx.generated_at)}</div>
@@ -339,7 +339,7 @@ export function renderQuotation(ctx: TemplateContext): string {
 ${header(ctx, 'கொட்டேஷன்', 'Quotation')}
 <div class="grid">
   <div><strong class="ta">அனுப்புனர் / From:</strong><br/>${escape(vendor.name)}${vendor.place ? `, ${escape(vendor.place)}` : ''}<br/>${escape(vendor.phone_e164)}</div>
-  <div><strong class="ta">பெறுநர் / To:</strong><br/>${escape(ctx.panchayat.name)} Panchayat</div>
+  <div><strong class="ta">பெறுநர் / To:</strong><br/>${escape(ctx.org_unit.name)} Panchayat</div>
 </div>
 <p><strong>Reference:</strong> Tender #${ctx.tender.id} <span class="ta"> (${escape(ctx.tender.title_ta ?? '')})</span></p>
 ${lineItemsTable(ctx)}

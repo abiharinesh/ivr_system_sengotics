@@ -54,7 +54,7 @@ class _TenderListScreenState extends State<TenderListScreen> {
     setState(() {
       _future = _repo.listTenders(
         status: _statusFilter,
-        panchayatId: _panchayatFilter,
+        orgUnitId: _panchayatFilter,
       );
     });
   }
@@ -80,7 +80,7 @@ class _TenderListScreenState extends State<TenderListScreen> {
         future: _future,
         initialData: _repo.getCachedTenders(
           status: _statusFilter,
-          panchayatId: _panchayatFilter,
+          orgUnitId: _panchayatFilter,
         ),
         builder: (context, snap) {
           final isLoading = snap.connectionState == ConnectionState.waiting && !snap.hasData;
@@ -326,10 +326,10 @@ class _TenderRowState extends State<_TenderRow> {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     AppStatusBadge(status: t.status),
-                    if (widget.isSuperAdmin && t.panchayatName != null)
+                    if (widget.isSuperAdmin && t.orgUnitName != null)
                       Chip(
                         label: Text(
-                          t.panchayatName!,
+                          t.orgUnitName!,
                           style: TextStyle(
                             color:
                                 isDark

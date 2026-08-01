@@ -5,16 +5,16 @@ import { PrismaService } from '../prisma/prisma.service';
 export class WaterSupplyService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findPipelines(panchayatId: number) {
+  async findPipelines(orgUnitId: number) {
     return this.prisma.waterPipeline.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       include: { complaints: true },
     });
   }
 
   async createPipeline(dto: {
     name?: string;
-    panchayat_id: number;
+    org_unit_id: number;
     path_geojson: any;
     diameter_mm?: number;
     material?: string;
@@ -23,7 +23,7 @@ export class WaterSupplyService {
     return this.prisma.waterPipeline.create({
       data: {
         name: dto.name,
-        panchayat_id: dto.panchayat_id,
+        org_unit_id: dto.org_unit_id,
         path_geojson: dto.path_geojson,
         diameter_mm: dto.diameter_mm,
         material: dto.material,
@@ -32,25 +32,25 @@ export class WaterSupplyService {
     });
   }
 
-  async findTanks(panchayatId: number) {
+  async findTanks(orgUnitId: number) {
     return this.prisma.waterTankBorewell.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       include: { complaints: true },
     });
   }
 
-  async findValves(panchayatId: number) {
+  async findValves(orgUnitId: number) {
     return this.prisma.waterValve.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
   }
 
-  async findFlowLogs(panchayatId: number) {
+  async findFlowLogs(orgUnitId: number) {
     return this.prisma.waterFlowLog.findMany({
       where: {
         OR: [
-          { pipeline: { panchayat_id: panchayatId } },
-          { tank: { panchayat_id: panchayatId } },
+          { pipeline: { org_unit_id: orgUnitId } },
+          { tank: { org_unit_id: orgUnitId } },
         ],
       },
       include: {
@@ -102,7 +102,7 @@ export class WaterSupplyService {
           if (!exists) {
             await this.prisma.complaint.create({
               data: {
-                panchayat_id: pipeline.panchayat_id,
+                org_unit_id: pipeline.org_unit_id,
                 pipeline_id: dto.pipeline_id,
                 complaint_type: 'water_leak',
                 description: `AUTOMATED IoT ALERT: Water pressure dropped to ${dto.pressure_bar} bar at pipeline segment "${pipeline.name || 'Segment ' + pipeline.id}". Possible leak detected.`,
@@ -201,7 +201,7 @@ export class WaterSupplyService {
 
     if (asset.type === 'main_pipeline') {
       const panchayat = await this.prisma.orgUnit.findFirst();
-      const panchayatId = panchayat ? panchayat.id : 1;
+      const orgUnitId = panchayat ? panchayat.id : 1;
 
       const pathGeojson = {
         type: 'LineString',
@@ -215,7 +215,7 @@ export class WaterSupplyService {
       await this.prisma.waterPipeline.create({
         data: {
           name: `${asset.material} Main Line (${asset.diameter_mm}mm)`,
-          panchayat_id: panchayatId,
+          org_unit_id: orgUnitId,
           diameter_mm: asset.diameter_mm,
           material: asset.material,
           status: 'active',

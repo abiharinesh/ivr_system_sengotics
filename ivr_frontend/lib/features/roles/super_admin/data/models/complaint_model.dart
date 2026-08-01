@@ -6,7 +6,7 @@ class ComplaintModel extends Equatable {
   final int? poleId;
   final int? pipelineId;
   final int? tankId;
-  final int? panchayatId;
+  final int? orgUnitId;
   final String? complaintType;
   final String? description;
   final String? audioUrl;
@@ -33,7 +33,7 @@ class ComplaintModel extends Equatable {
     this.poleId,
     this.pipelineId,
     this.tankId,
-    this.panchayatId,
+    this.orgUnitId,
     this.complaintType,
     this.description,
     this.audioUrl,
@@ -60,7 +60,7 @@ class ComplaintModel extends Equatable {
       poleId: json['pole_id'] as int?,
       pipelineId: json['pipeline_id'] as int?,
       tankId: json['tank_id'] as int?,
-      panchayatId: json['panchayat_id'] as int?,
+      orgUnitId: json['org_unit_id'] as int?,
       complaintType: json['complaint_type'] as String?,
       description: json['description'] as String?,
       audioUrl: json['audio_url'] as String?,
@@ -76,9 +76,9 @@ class ComplaintModel extends Equatable {
               ? PoleInfo.fromJson(json['pole'] as Map<String, dynamic>)
               : null,
       panchayat:
-          json['panchayat'] != null
+          json['org_unit'] != null
               ? PanchayatInfo.fromJson(
-                json['panchayat'] as Map<String, dynamic>,
+                json['org_unit'] as Map<String, dynamic>,
               )
               : null,
       voiceCall:

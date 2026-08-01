@@ -12,9 +12,9 @@ async function main() {
     console.log('🌱 Seeding revenue module dummy data...');
 
     // 1. Fetch or create a Panchayat context
-    let panchayat = await prisma.panchayat.findFirst();
+    let panchayat = await prisma.org_unit.findFirst();
     if (!panchayat) {
-        panchayat = await prisma.panchayat.create({
+        panchayat = await prisma.org_unit.create({
             data: {
                 name: 'Kovilpatti Panchayat',
                 center_lat: 9.17,
@@ -28,12 +28,12 @@ async function main() {
 
     // 2. Fetch or create an electric pole context
     let pole = await prisma.electricPole.findFirst({
-        where: { panchayat_id: panchayat.id }
+        where: { org_unit_id: panchayat.id }
     });
     if (!pole) {
         pole = await prisma.electricPole.create({
             data: {
-                panchayat_id: panchayat.id,
+                org_unit_id: panchayat.id,
                 pole_number: 'KP-PL-101',
                 latitude: 9.171,
                 longitude: 77.871,
@@ -56,7 +56,7 @@ async function main() {
                 email: 'electrician@sengotics.com',
                 password_hash: '$2b$10$vN.1Q2.iN8B0KzG6.8pGTeT6.d3d3d3d3d3d3d3d3d3d3d3d3d3d', // dummy hash
                 role: 'electrician',
-                panchayat_id: panchayat.id,
+                org_unit_id: panchayat.id,
                 phone_e164: '+919999999999'
             }
         });
@@ -73,7 +73,7 @@ async function main() {
         complaint = await prisma.complaint.create({
             data: {
                 pole_id: pole.id,
-                panchayat_id: panchayat.id,
+                org_unit_id: panchayat.id,
                 complaint_type: 'street_light',
                 description: 'Street light bulb is flickering.',
                 status: 'pending',
@@ -89,7 +89,7 @@ async function main() {
     // 5. Ad Campaigns & Impressions
     const campaign = await prisma.adCampaign.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             advertiser_name: 'Annamalai Builders & Co',
             advertiser_phone: '9845012345',
             title: 'Sree Flats Kovilpatti Launch!',
@@ -119,14 +119,14 @@ async function main() {
     const rule = await prisma.penaltyRule.upsert({
         where: {
             panchayat_id_role_urgency_level: {
-                panchayat_id: panchayat.id,
+                org_unit_id: panchayat.id,
                 role: 'electrician',
                 urgency_level: 'medium'
             }
         },
         update: {},
         create: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             role: 'electrician',
             urgency_level: 'medium',
             deadline_hours: 24,
@@ -150,7 +150,7 @@ async function main() {
     // 7. Property & Tax Payment
     const property = await prisma.property.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             owner_name: 'Dharmaraja Pillai',
             owner_phone: '9443212345',
             door_number: '12/A, North Street',
@@ -180,7 +180,7 @@ async function main() {
     // 8. Certificate Requests
     const certRequest = await prisma.certificateRequest.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             certificate_type: 'birth',
             applicant_name: 'Suresh Kumar (Father)',
             applicant_phone: '9988776655',
@@ -202,7 +202,7 @@ async function main() {
     // 9. Rentable Assets & Bookings
     const asset = await prisma.panchayatAsset.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             name: 'Kovilpatti Panchayat Community Hall',
             asset_type: 'hall',
             description: 'Air-conditioned main hall with 500 seating capacity, kitchen, and dining area.',
@@ -234,7 +234,7 @@ async function main() {
     // 10. Shandy Market Days, Vendors & Payments
     const marketDay = await prisma.marketDay.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             name: 'Kovilpatti Shandy Ground Market',
             location: 'Old Town Market Ground',
             day_of_week: 0, // Sunday
@@ -245,7 +245,7 @@ async function main() {
 
     const vendor = await prisma.marketVendor.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             vendor_name: 'Muthuvel K. (Fruits Merchant)',
             vendor_phone: '9876543210',
             business_type: 'Fresh Fruits',
@@ -268,7 +268,7 @@ async function main() {
     // 11. Water connection & metered bill
     const waterConnection = await prisma.waterConnection.create({
         data: {
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             connection_number: 'W-CONN-2099',
             owner_name: 'Dharmaraja Pillai',
             owner_phone: '9443212345',
@@ -296,7 +296,7 @@ async function main() {
     const lease = await prisma.poleLeaseAgreement.create({
         data: {
             pole_id: pole.id,
-            panchayat_id: panchayat.id,
+            org_unit_id: panchayat.id,
             lessee_name: 'Reliance Jio Infocomm Ltd',
             equipment_type: '5g_antenna',
             monthly_rent: 3200.00,

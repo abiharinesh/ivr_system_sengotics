@@ -111,9 +111,9 @@ export class GeoMatchingService {
     return panchayat ?? null;
   }
 
-  async getLandmarksForPanchayat(panchayatId: number): Promise<string[]> {
+  async getLandmarksForPanchayat(orgUnitId: number): Promise<string[]> {
     const poles = await this.prisma.electricPole.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       select: { landmarks: true },
     });
 
@@ -128,7 +128,7 @@ export class GeoMatchingService {
   }
 
   async findNearestPole(
-    panchayatId: number,
+    orgUnitId: number,
     landmarkHints: string | string[],
   ): Promise<number | null> {
     const hints = Array.isArray(landmarkHints)
@@ -137,7 +137,7 @@ export class GeoMatchingService {
     const validHints = hints.filter((h) => h && h.trim() !== '');
 
     this.logger.log(
-      `Finding pole for panchayat: ${panchayatId}, hints (${validHints.length}): [${validHints.join(' | ')}]`,
+      `Finding pole for org_unit: ${orgUnitId}, hints (${validHints.length}): [${validHints.join(' | ')}]`,
     );
 
     if (validHints.length === 0) {
@@ -146,11 +146,11 @@ export class GeoMatchingService {
     }
 
     const poles = await this.prisma.electricPole.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
 
     if (poles.length === 0) {
-      this.logger.warn(`[FAIL] No poles found for panchayat ${panchayatId}`);
+      this.logger.warn(`[FAIL] No poles found for panchayat ${orgUnitId}`);
       return null;
     }
 
@@ -160,7 +160,7 @@ export class GeoMatchingService {
 
     if (polesWithLandmarks.length === 0) {
       this.logger.warn(
-        `[FAIL] No poles with landmarks found in panchayat ${panchayatId}`,
+        `[FAIL] No poles with landmarks found in panchayat ${orgUnitId}`,
       );
       return null;
     }
@@ -190,11 +190,11 @@ export class GeoMatchingService {
    * Searches known poles in the panchayat for a direct keyword match against the transcript.
    */
   async strictMatchPole(
-    panchayatId: number,
+    orgUnitId: number,
     transcriptEnglish: string,
   ): Promise<number | null> {
     this.logger.log(
-      `[Phase 1] Trying strict match for panchayat ${panchayatId} against transcript`,
+      `[Phase 1] Trying strict match for panchayat ${orgUnitId} against transcript`,
     );
 
     if (!transcriptEnglish || transcriptEnglish.trim() === '') {
@@ -202,7 +202,7 @@ export class GeoMatchingService {
     }
 
     const poles = await this.prisma.electricPole.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
 
     const polesWithLandmarks = poles.filter(
@@ -401,7 +401,7 @@ export class GeoMatchingService {
   }
 
   async findNearestPoleByCoordinates(
-    panchayatId: number,
+    orgUnitId: number,
     latitude: number,
     longitude: number,
     radiusMeters: number = 5000,
@@ -420,7 +420,7 @@ export class GeoMatchingService {
                         ST_SetSRID(ST_MakePoint(${longitude}, ${latitude}), 4326)::geography
                     ) as distance
                 FROM electric_poles
-                WHERE panchayat_id = ${panchayatId}
+                WHERE org_unit_id = ${orgUnitId}
                     AND location IS NOT NULL
                 ORDER BY distance ASC
                 LIMIT 1
@@ -435,7 +435,7 @@ export class GeoMatchingService {
   }
 
   async findNearestPipelineSegment(
-    panchayatId: number,
+    orgUnitId: number,
     landmarkHints: string | string[],
   ): Promise<number | null> {
     const hints = Array.isArray(landmarkHints)
@@ -446,7 +446,7 @@ export class GeoMatchingService {
     if (validHints.length === 0) return null;
 
     const pipelines = await this.prisma.waterPipeline.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
 
     if (pipelines.length === 0) return null;
@@ -463,7 +463,7 @@ export class GeoMatchingService {
   }
 
   async findNearestWaterTank(
-    panchayatId: number,
+    orgUnitId: number,
     landmarkHints: string | string[],
   ): Promise<number | null> {
     const hints = Array.isArray(landmarkHints)
@@ -474,7 +474,7 @@ export class GeoMatchingService {
     if (validHints.length === 0) return null;
 
     const tanks = await this.prisma.waterTankBorewell.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
 
     if (tanks.length === 0) return null;

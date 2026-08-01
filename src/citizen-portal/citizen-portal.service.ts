@@ -7,11 +7,11 @@ export class CreateCitizenProfileDto {
   email?: string;
   address?: string;
   ward?: string;
-  branchId: number;
+  orgUnitId: number;
 }
 
 export class CreateAnnouncementDto {
-  branchId: number;
+  orgUnitId: number;
   title: string;
   titleTa?: string;
   body: string;
@@ -22,7 +22,7 @@ export class CreateAnnouncementDto {
 }
 
 export class CreateFeedbackDto {
-  branchId: number;
+  orgUnitId: number;
   entityType?: string;
   entityId?: number;
   rating: number; // 1-5
@@ -52,7 +52,7 @@ export class CitizenPortalService {
         email: dto.email ?? null,
         address: dto.address ?? null,
         ward: dto.ward ?? null,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
       },
     });
   }
@@ -79,7 +79,7 @@ export class CitizenPortalService {
         email: dto.email,
         address: dto.address,
         ward: dto.ward,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
       },
     });
   }
@@ -90,7 +90,7 @@ export class CitizenPortalService {
     return this.prisma.announcement.create({
       data: {
         tenant_id: tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         title: dto.title,
         title_ta: dto.titleTa ?? null,
         body: dto.body,
@@ -103,12 +103,12 @@ export class CitizenPortalService {
     });
   }
 
-  async getAnnouncements(tenantId: string, branchId: number) {
+  async getAnnouncements(tenantId: string, orgUnitId: number) {
     const now = new Date();
     return this.prisma.announcement.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         OR: [
           { expires_at: null },
           { expires_at: { gte: now } },
@@ -131,7 +131,7 @@ export class CitizenPortalService {
     return this.prisma.citizenFeedback.create({
       data: {
         tenant_id: tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         citizen_user_id: citizenUserId,
         entity_type: dto.entityType ?? null,
         entity_id: dto.entityId ?? null,
@@ -141,9 +141,9 @@ export class CitizenPortalService {
     });
   }
 
-  async getFeedbackList(tenantId: string, branchId: number) {
+  async getFeedbackList(tenantId: string, orgUnitId: number) {
     return this.prisma.citizenFeedback.findMany({
-      where: { tenant_id: tenantId, branch_id: branchId },
+      where: { tenant_id: tenantId, org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
     });
   }

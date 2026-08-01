@@ -36,7 +36,7 @@ describe('CertificateService', () => {
   describe('createRequest', () => {
     it('should create certificate request with default unpaid status', async () => {
       const input = {
-        panchayat_id: 1,
+        org_unit_id: 1,
         certificate_type: 'birth',
         applicant_name: 'John Doe',
         fee_amount: 50,

@@ -76,7 +76,7 @@ class PADashboard extends StatelessWidget {
       totalAdmins: 0,
     );
     final profile = state?.profile;
-    final titlePanchayat = profile?.panchayatName ?? (isLoading ? 'Loading Panchayat...' : 'Panchayat Portal');
+    final titlePanchayat = profile?.orgUnitName ?? (isLoading ? 'Loading Panchayat...' : 'Panchayat Portal');
     final padding = MediaQuery.sizeOf(context).width < 600 ? 12.0 : 24.0;
     final w = MediaQuery.sizeOf(context).width;
     final isDesktop = w >= 1024;
@@ -185,7 +185,7 @@ class PADashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildHeaderRow(BuildContext context, String panchayatName) {
+  Widget _buildHeaderRow(BuildContext context, String orgUnitName) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -200,7 +200,7 @@ class PADashboard extends StatelessWidget {
             const SizedBox(width: 4),
             Expanded(
               child: Text(
-                panchayatName,
+                orgUnitName,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -510,7 +510,7 @@ class PADashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildGisQuickView(BuildContext context, List<PoleModel> poles, String panchayatName, {bool isLoading = false}) {
+  Widget _buildGisQuickView(BuildContext context, List<PoleModel> poles, String orgUnitName, {bool isLoading = false}) {
     return Container(
       height: 400,
       decoration: BoxDecoration(
@@ -542,7 +542,7 @@ class PADashboard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Real-time status in $panchayatName',
+                        'Real-time status in $orgUnitName',
                         style: TextStyle(fontSize: 13, color: AppTheme.textMuted),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

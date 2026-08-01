@@ -52,7 +52,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadPenaltyData(_panchayatId!));
       }
     }
@@ -87,7 +87,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(WaivePenaltyEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   penaltyId: penaltyId,
                   reason: reasonController.text.trim(),
                 ));
@@ -162,7 +162,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(UpsertRuleEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'role': roleController.text,
                   'urgency_level': urgencyController.text,
                   'deadline_hours': int.tryParse(hoursController.text) ?? 24,
@@ -337,7 +337,7 @@ class _PenaltyManagementScreenState extends State<PenaltyManagementScreen> with 
                                     onPressed: () {
                                       if (_panchayatId != null) {
                                         _bloc.add(DeductPenaltyEvent(
-                                          panchayatId: _panchayatId!,
+                                          orgUnitId: _panchayatId!,
                                           penaltyId: item['id'],
                                         ));
                                       }

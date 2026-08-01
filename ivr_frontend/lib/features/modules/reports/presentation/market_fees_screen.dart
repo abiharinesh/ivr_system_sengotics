@@ -53,7 +53,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadMarketData(_panchayatId!));
       }
     }
@@ -122,7 +122,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreateMarketDayEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'name': nameController.text.trim(),
                   'location': locationController.text.trim(),
                   'day_of_week': int.tryParse(dayController.text) ?? 0,
@@ -175,7 +175,7 @@ class _MarketFeesScreenState extends State<MarketFeesScreen> with SingleTickerPr
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreateVendorEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'vendor_name': nameController.text.trim(),
                   'vendor_phone': phoneController.text.trim(),
                   'business_type': typeController.text.trim(),

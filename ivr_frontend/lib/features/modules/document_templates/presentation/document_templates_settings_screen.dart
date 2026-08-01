@@ -254,7 +254,7 @@ class _DocumentTemplatesSettingsScreenState
       await _repo.saveSettings(_buildSavePayload());
       final html = await _repo.previewHtml(
         templateId,
-        panchayatId: widget.isSuperAdmin ? _previewPanchayatId : null,
+        orgUnitId: widget.isSuperAdmin ? _previewPanchayatId : null,
       );
       if (!mounted) return;
       setState(() {

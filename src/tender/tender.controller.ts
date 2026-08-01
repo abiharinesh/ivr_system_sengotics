@@ -27,7 +27,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
@@ -43,11 +43,11 @@ export class TenderController {
   ) {}
 
   private getPanchayatId(req: AuthenticatedRequest): number {
-    if (!req.user.panchayat_id)
+    if (!req.user.org_unit_id)
       throw new ForbiddenException(
         'Account is not associated with a panchayat',
       );
-    return req.user.panchayat_id;
+    return req.user.org_unit_id;
   }
 
   // ── Vendors ──────────────────────────────────────────────────────────

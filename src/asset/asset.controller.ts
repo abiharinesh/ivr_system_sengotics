@@ -25,7 +25,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -41,15 +41,15 @@ export class AssetController {
 
   @Post()
   create(@Req() req: AuthenticatedRequest, @Body() dto: CreateAssetDto) {
-    const branchId = dto.branchId ?? req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = dto.orgUnitId ?? req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Branch ID is required');
     }
     return this.service.create(
       {
         ...dto,
         tenantId: req.user.tenant_id,
-        branchId,
+        orgUnitId,
       },
       req.user.id,
     );
@@ -64,8 +64,8 @@ export class AssetController {
     @Query('take') take?: string,
     @Query('skip') skip?: string,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your account has no branch context');
     }
     const t = take ? parseInt(take, 10) : undefined;
@@ -73,7 +73,7 @@ export class AssetController {
 
     return this.service.list(
       req.user.tenant_id,
-      branchId,
+      orgUnitId,
       req.user.access_scope,
       {
         type,

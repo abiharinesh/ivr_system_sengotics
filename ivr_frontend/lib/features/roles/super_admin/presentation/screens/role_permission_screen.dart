@@ -459,13 +459,13 @@ class _RolePermissionScreenState extends State<RolePermissionScreen>
                             _roles.where((r) => r['id'] == roleId).firstOrNull;
                         final roleName =
                             roleMatch?['display_name'] ?? 'Role #$roleId';
-                        final branchId = ur['branch_id'];
+                        final orgUnitId = ur['org_unit_id'];
                         final panchayatMatch =
                             _panchayats
-                                .where((p) => p.id == branchId)
+                                .where((p) => p.id == orgUnitId)
                                 .firstOrNull;
                         final branchName =
-                            panchayatMatch?.name ?? 'Branch #$branchId';
+                            panchayatMatch?.name ?? 'Branch #$orgUnitId';
 
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
@@ -938,7 +938,7 @@ class _RolePermissionScreenState extends State<RolePermissionScreen>
                           await _repo.assignUserRole(
                             userId: _selectedUser!.id,
                             roleId: selectedRole['id'],
-                            branchId: selectedBranch.id,
+                            orgUnitId: selectedBranch.id,
                           );
                           Navigator.pop(ctx);
                           _loadUserRoles(_selectedUser!.id);

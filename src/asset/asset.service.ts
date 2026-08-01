@@ -9,7 +9,7 @@ import sharp from 'sharp';
 
 export class CreateAssetDto {
   tenantId: string;
-  branchId: number;
+  orgUnitId: number;
   assetTypeCode: string;  // references MasterValue code
   name?: string;
   latitude?: number;
@@ -43,12 +43,12 @@ export class AssetService {
    */
   async create(dto: CreateAssetDto, userId?: number) {
     // Generate asset code: e.g., AST-000042
-    const assetCode = await this.numberGen.next(dto.tenantId, 'asset', dto.branchId);
+    const assetCode = await this.numberGen.next(dto.tenantId, 'asset', dto.orgUnitId);
 
     const asset = await this.prisma.asset.create({
       data: {
         tenant_id: dto.tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         asset_type_code: dto.assetTypeCode,
         asset_code: assetCode,
         name: dto.name ?? null,
@@ -78,7 +78,7 @@ export class AssetService {
 
     await this.audit.log({
       tenantId: dto.tenantId,
-      branchId: dto.branchId,
+      orgUnitId: dto.orgUnitId,
       userId,
       module: 'assets',
       entityType: 'Asset',
@@ -95,7 +95,7 @@ export class AssetService {
    */
   async list(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     accessScope: string,
     filters?: {
       type?: string;
@@ -105,14 +105,14 @@ export class AssetService {
       skip?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_org_units'
-      ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
-      : [branchId];
+    const orgUnitIds = accessScope === 'child_org_units'
+      ? await this.hierarchy.getDescendantBranchIds(tenantId, orgUnitId)
+      : [orgUnitId];
 
     return this.prisma.asset.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: { in: branchIds },
+        org_unit_id: { in: orgUnitIds },
         is_deleted: false,
         ...(filters?.type && { asset_type_code: filters.type }),
         ...(filters?.zoneId && { zone_id: filters.zoneId }),
@@ -177,7 +177,7 @@ export class AssetService {
 
     await this.audit.log({
       tenantId,
-      branchId: updated.branch_id,
+      orgUnitId: updated.org_unit_id,
       userId,
       module: 'assets',
       entityType: 'Asset',
@@ -199,7 +199,7 @@ export class AssetService {
 
     await this.audit.log({
       tenantId,
-      branchId: asset.branch_id,
+      orgUnitId: asset.org_unit_id,
       userId,
       module: 'assets',
       entityType: 'Asset',
@@ -229,7 +229,7 @@ export class AssetService {
 
     // 1. Upload to storage
     const fileExtension = file.originalname.split('.').pop() || '';
-    const uniqueKey = `${tenantId}/${asset.branch_id}/assets/${assetId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+    const uniqueKey = `${tenantId}/${asset.org_unit_id}/assets/${assetId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
     await this.storage.save(uniqueKey, file.buffer);
     const imageUrl = await this.storage.getUrl(uniqueKey);
 

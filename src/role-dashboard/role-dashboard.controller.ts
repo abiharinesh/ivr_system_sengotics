@@ -17,7 +17,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
@@ -30,28 +30,28 @@ export class RoleDashboardController {
   @Get('commissioner/executive-summary')
   @Roles('municipal_commissioner', 'super_admin', 'panchayat_admin')
   getCommissionerSummary(@Req() req: AuthenticatedRequest) {
-    return this.service.getCommissionerExecutiveSummary(req.user.panchayat_id ?? undefined);
+    return this.service.getCommissionerExecutiveSummary(req.user.org_unit_id ?? undefined);
   }
 
   /** Capital projects overview for Municipal Engineer */
   @Get('engineering/capital-projects')
   @Roles('municipal_engineer', 'super_admin', 'panchayat_admin')
   getEngineeringProjects(@Req() req: AuthenticatedRequest) {
-    return this.service.getEngineeringCapitalProjects(req.user.panchayat_id ?? undefined);
+    return this.service.getEngineeringCapitalProjects(req.user.org_unit_id ?? undefined);
   }
 
   /** Consolidated revenue overview for Revenue Officer */
   @Get('revenue/summary')
   @Roles('revenue_officer', 'super_admin', 'panchayat_admin')
   getRevenueSummary(@Req() req: AuthenticatedRequest) {
-    return this.service.getRevenueSummary(req.user.panchayat_id ?? undefined);
+    return this.service.getRevenueSummary(req.user.org_unit_id ?? undefined);
   }
 
   /** Sub-division field dispatches for Assistant & Junior Engineers */
   @Get('field-ops/dispatches')
   @Roles('assistant_engineer', 'junior_engineer', 'super_admin', 'panchayat_admin')
   getFieldDispatches(@Req() req: AuthenticatedRequest) {
-    return this.service.getFieldOpsDispatches(req.user.panchayat_id ?? undefined);
+    return this.service.getFieldOpsDispatches(req.user.org_unit_id ?? undefined);
   }
 
   /** Stall fee collection logging for Revenue Inspectors */

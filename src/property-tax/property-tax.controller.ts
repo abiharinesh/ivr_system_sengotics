@@ -22,10 +22,10 @@ export class PropertyTaxController {
 
   // ─── Property CRUD ──────────────────────────────────────────────────────────
 
-  /** GET /property-tax/properties?panchayat_id=1 */
+  /** GET /property-tax/properties?org_unit_id=1 */
   @Get('properties')
-  async listProperties(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.propertyTaxService.listProperties(panchayatId);
+  async listProperties(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.propertyTaxService.listProperties(orgUnitId);
   }
 
   /** GET /property-tax/properties/:id */
@@ -37,7 +37,7 @@ export class PropertyTaxController {
   /** POST /property-tax/properties */
   @Post('properties')
   async createProperty(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     owner_name: string;
     owner_phone?: string;
     door_number?: string;
@@ -73,12 +73,12 @@ export class PropertyTaxController {
   /** POST /property-tax/generate-demands — bulk generate for a financial year */
   @Post('generate-demands')
   async generateDemands(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     financial_year: string;
     due_date: string;
   }) {
     return this.propertyTaxService.generateTaxDemands(
-      body.panchayat_id,
+      body.org_unit_id,
       body.financial_year,
       body.due_date,
     );
@@ -101,21 +101,21 @@ export class PropertyTaxController {
 
   // ─── Reports ────────────────────────────────────────────────────────────────
 
-  /** GET /property-tax/defaulters?panchayat_id=1&financial_year=2025-26 */
+  /** GET /property-tax/defaulters?org_unit_id=1&financial_year=2025-26 */
   @Get('defaulters')
   async getDefaulters(
-    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('org_unit_id', ParseIntPipe) orgUnitId: number,
     @Query('financial_year') financialYear?: string,
   ) {
-    return this.propertyTaxService.getDefaulters(panchayatId, financialYear);
+    return this.propertyTaxService.getDefaulters(orgUnitId, financialYear);
   }
 
-  /** GET /property-tax/revenue-summary?panchayat_id=1&financial_year=2025-26 */
+  /** GET /property-tax/revenue-summary?org_unit_id=1&financial_year=2025-26 */
   @Get('revenue-summary')
   async getRevenueSummary(
-    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('org_unit_id', ParseIntPipe) orgUnitId: number,
     @Query('financial_year') financialYear?: string,
   ) {
-    return this.propertyTaxService.getRevenueSummary(panchayatId, financialYear);
+    return this.propertyTaxService.getRevenueSummary(orgUnitId, financialYear);
   }
 }

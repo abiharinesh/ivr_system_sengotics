@@ -206,7 +206,7 @@ class _ComplaintTrackingScreenState extends State<ComplaintTrackingScreen>
             ?.map((e) => e.toString())
             .toList() ??
         [];
-    final panchayatName = c['panchayat']?['name'] as String? ?? 'Unknown';
+    final orgUnitName = c['org_unit']?['name'] as String? ?? 'Unknown';
     final createdAt = DateTime.tryParse(c['created_at'] ?? '');
     final resolvedAt = DateTime.tryParse(c['resolved_at'] ?? '');
 
@@ -222,7 +222,7 @@ class _ComplaintTrackingScreenState extends State<ComplaintTrackingScreen>
         const SizedBox(height: 12),
         _infoRow(Icons.bolt_rounded, _t('Pole', 'கம்பம்'), poleNumber),
         const SizedBox(height: 12),
-        _infoRow(Icons.location_city_rounded, _t('Panchayat', 'ஊராட்சி'), panchayatName),
+        _infoRow(Icons.location_city_rounded, _t('Panchayat', 'ஊராட்சி'), orgUnitName),
         if (landmarks.isNotEmpty) ...[
           const SizedBox(height: 12),
           _infoRow(Icons.place_outlined, _t('Landmarks', 'அடையாள இடம்'), landmarks.join(', ')),

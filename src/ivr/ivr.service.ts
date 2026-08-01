@@ -195,18 +195,18 @@ export class IvrService {
   private async createServiceComplaint(
     serviceType: string,
     detail: string,
-    panchayatId: number,
+    orgUnitId: number,
     callerNumber: string,
   ): Promise<{ id: number }> {
     // For street_light, look up the specific pole
     if (serviceType === 'street_light') {
       const pole = await this.prisma.electricPole.findFirst({
-        where: { panchayat_id: panchayatId, keypad_id: detail },
+        where: { org_unit_id: orgUnitId, keypad_id: detail },
       });
 
       if (!pole) {
         this.logger.warn(
-          `[EP2] No pole found with keypad_id="${detail}" in panchayat ${panchayatId}`,
+          `[EP2] No pole found with keypad_id="${detail}" in panchayat ${orgUnitId}`,
         );
         throw new Error(`Pole with keypad_id="${detail}" not found`);
       }
@@ -214,7 +214,7 @@ export class IvrService {
       const complaint = await this.prisma.complaint.create({
         data: {
           pole_id: pole.id,
-          panchayat_id: panchayatId,
+          org_unit_id: orgUnitId,
           complaint_type: 'street_light',
           description: `IVR street light complaint for pole ${pole.pole_number} (keypad: ${detail}) from ${callerNumber}`,
           status: 'pending',
@@ -229,7 +229,7 @@ export class IvrService {
     // For all other services, create a generic complaint
     const complaint = await this.prisma.complaint.create({
       data: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         complaint_type: serviceType,
         description: `IVR ${serviceType} complaint from ${callerNumber} (input: ${detail})`,
         status: 'pending',

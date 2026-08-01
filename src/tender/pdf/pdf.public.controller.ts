@@ -81,10 +81,10 @@ export class TenderPdfPublicController {
     });
     const tender = await this.prisma.tender.findUnique({
       where: { id },
-      include: { panchayat: { select: { name: true } } },
+      include: { org_unit: { select: { name: true } } },
     });
     const ext = storagePath.toLowerCase().endsWith('.html') ? 'html' : 'pdf';
-    const panchayat = this.slugify(tender?.panchayat?.name ?? 'panchayat');
+    const panchayat = this.slugify(tender?.org_unit?.name ?? 'panchayat');
     const template = this.slugify(doc?.template_id ?? 'document');
     const version = doc?.version ?? 1;
     const filename = `${panchayat}-${id}-${template}-v${version}-${this.stamp(doc?.generated_at ?? new Date())}.${ext}`;
@@ -124,9 +124,9 @@ export class TenderPdfPublicController {
     }
     const tender = await this.prisma.tender.findUnique({
       where: { id },
-      include: { panchayat: { select: { name: true } } },
+      include: { org_unit: { select: { name: true } } },
     });
-    const panchayat = this.slugify(tender?.panchayat?.name ?? 'panchayat');
+    const panchayat = this.slugify(tender?.org_unit?.name ?? 'panchayat');
     res.setHeader('Content-Type', 'application/zip');
     res.setHeader(
       'Content-Disposition',

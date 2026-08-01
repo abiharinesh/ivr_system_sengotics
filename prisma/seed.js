@@ -71,7 +71,7 @@ async function main() {
 
         // ─── THAYANUR — 10 poles ─────────────────────────────────────────
         {
-            pole_number: 'TY-001', keypad_id: '1', lat: 11.0170, lng: 76.9560, panchayat_id: thayanur.id,
+            pole_number: 'TY-001', keypad_id: '1', lat: 11.0170, lng: 76.9560, org_unit_id: thayanur.id,
             landmarks: [
                 'மாரியம்மன் கோயில் பக்கத்துல',
                 'மாரியம்மன் கோயில் கிட்ட',
@@ -83,7 +83,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-002', keypad_id: '2', lat: 11.0165, lng: 76.9555, panchayat_id: thayanur.id,
+            pole_number: 'TY-002', keypad_id: '2', lat: 11.0165, lng: 76.9555, org_unit_id: thayanur.id,
             landmarks: [
                 'அரசு பள்ளி பக்கத்துல',
                 'ஸ்கூல் கிட்ட',
@@ -95,7 +95,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-003', keypad_id: '3', lat: 11.0172, lng: 76.9562, panchayat_id: thayanur.id,
+            pole_number: 'TY-003', keypad_id: '3', lat: 11.0172, lng: 76.9562, org_unit_id: thayanur.id,
             landmarks: [
                 'பஸ் ஸ்டாண்ட் பக்கத்துல',
                 'பஸ் ஸ்டாப் கிட்ட',
@@ -107,7 +107,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-004', keypad_id: '4', lat: 11.0175, lng: 76.9565, panchayat_id: thayanur.id,
+            pole_number: 'TY-004', keypad_id: '4', lat: 11.0175, lng: 76.9565, org_unit_id: thayanur.id,
             landmarks: [
                 'ரேஷன் கடை பக்கத்துல',
                 'ரேஷன் கடை கிட்ட',
@@ -119,7 +119,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-005', keypad_id: '5', lat: 11.0160, lng: 76.9550, panchayat_id: thayanur.id,
+            pole_number: 'TY-005', keypad_id: '5', lat: 11.0160, lng: 76.9550, org_unit_id: thayanur.id,
             landmarks: [
                 'தண்ணி டேங்க் பக்கத்துல',
                 'வாட்டர் டேங்க் கிட்ட',
@@ -131,7 +131,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-006', keypad_id: '6', lat: 11.0178, lng: 76.9568, panchayat_id: thayanur.id,
+            pole_number: 'TY-006', keypad_id: '6', lat: 11.0178, lng: 76.9568, org_unit_id: thayanur.id,
             landmarks: [
                 'பெட்ரோல் பங்க் பக்கத்துல',
                 'பெட்ரோல் பங்க் கிட்ட',
@@ -143,7 +143,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-007', keypad_id: '7', lat: 11.0162, lng: 76.9552, panchayat_id: thayanur.id,
+            pole_number: 'TY-007', keypad_id: '7', lat: 11.0162, lng: 76.9552, org_unit_id: thayanur.id,
             landmarks: [
                 'ஆலமரம் கீழ',
                 'பெரிய மரம் கிட்ட',
@@ -155,7 +155,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-008', keypad_id: '8', lat: 11.0168, lng: 76.9558, panchayat_id: thayanur.id,
+            pole_number: 'TY-008', keypad_id: '8', lat: 11.0168, lng: 76.9558, org_unit_id: thayanur.id,
             landmarks: [
                 'பஞ்சாயத்து ஆபிஸ் பக்கத்துல',
                 'பஞ்சாயத்து ஆபிஸ் கிட்ட',
@@ -167,7 +167,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-009', keypad_id: '9', lat: 11.0182, lng: 76.9572, panchayat_id: thayanur.id,
+            pole_number: 'TY-009', keypad_id: '9', lat: 11.0182, lng: 76.9572, org_unit_id: thayanur.id,
             landmarks: [
                 'ஆஸ்பத்திரி பக்கத்துல',
                 'ஆஸ்பத்திரி கிட்ட',
@@ -179,7 +179,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TY-010', keypad_id: '10', lat: 11.0155, lng: 76.9545, panchayat_id: thayanur.id,
+            pole_number: 'TY-010', keypad_id: '10', lat: 11.0155, lng: 76.9545, org_unit_id: thayanur.id,
             landmarks: [
                 'விநாயகர் கோயில் பக்கத்துல',
                 'பிள்ளையார் கோயில் கிட்ட',
@@ -193,7 +193,7 @@ async function main() {
 
         // ─── THOLAMPALAY — 10 poles ──────────────────────────────────────
         {
-            pole_number: 'TH-001', keypad_id: '1', lat: 11.2425, lng: 76.9525, panchayat_id: tholampalay.id,
+            pole_number: 'TH-001', keypad_id: '1', lat: 11.2425, lng: 76.9525, org_unit_id: tholampalay.id,
             landmarks: [
                 'மெயின் ரோடு ஜங்ஷன் பக்கத்துல',
                 'மெயின் ரோடு கிட்ட',
@@ -205,7 +205,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-002', keypad_id: '2', lat: 11.2418, lng: 76.9518, panchayat_id: tholampalay.id,
+            pole_number: 'TH-002', keypad_id: '2', lat: 11.2418, lng: 76.9518, org_unit_id: tholampalay.id,
             landmarks: [
                 'மாரியம்மன் கோயில் பக்கத்துல',
                 'கோயில் கிட்ட',
@@ -217,7 +217,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-003', keypad_id: '3', lat: 11.2430, lng: 76.9530, panchayat_id: tholampalay.id,
+            pole_number: 'TH-003', keypad_id: '3', lat: 11.2430, lng: 76.9530, org_unit_id: tholampalay.id,
             landmarks: [
                 'ஆலமரம் கீழ',
                 'பெரிய ஆலமரம் கிட்ட',
@@ -229,7 +229,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-004', keypad_id: '4', lat: 11.2412, lng: 76.9512, panchayat_id: tholampalay.id,
+            pole_number: 'TH-004', keypad_id: '4', lat: 11.2412, lng: 76.9512, org_unit_id: tholampalay.id,
             landmarks: [
                 'குளம் பக்கத்துல',
                 'குளக்கரை கிட்ட',
@@ -241,7 +241,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-005', keypad_id: '5', lat: 11.2435, lng: 76.9535, panchayat_id: tholampalay.id,
+            pole_number: 'TH-005', keypad_id: '5', lat: 11.2435, lng: 76.9535, org_unit_id: tholampalay.id,
             landmarks: [
                 'ரேஷன் கடை பக்கத்துல',
                 'ரேஷன் கடை கிட்ட',
@@ -253,7 +253,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-006', keypad_id: '6', lat: 11.2408, lng: 76.9508, panchayat_id: tholampalay.id,
+            pole_number: 'TH-006', keypad_id: '6', lat: 11.2408, lng: 76.9508, org_unit_id: tholampalay.id,
             landmarks: [
                 'ஸ்கூல் கேட் பக்கத்துல',
                 'பள்ளி கிட்ட',
@@ -265,7 +265,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-007', keypad_id: '7', lat: 11.2440, lng: 76.9540, panchayat_id: tholampalay.id,
+            pole_number: 'TH-007', keypad_id: '7', lat: 11.2440, lng: 76.9540, org_unit_id: tholampalay.id,
             landmarks: [
                 'டீ கடை பக்கத்துல',
                 'டீ கடை கிட்ட',
@@ -277,7 +277,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-008', keypad_id: '8', lat: 11.2402, lng: 76.9502, panchayat_id: tholampalay.id,
+            pole_number: 'TH-008', keypad_id: '8', lat: 11.2402, lng: 76.9502, org_unit_id: tholampalay.id,
             landmarks: [
                 'பஞ்சாயத்து ஆபிஸ் பக்கத்துல',
                 'பஞ்சாயத்து ஆபிஸ் கிட்ட',
@@ -289,7 +289,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-009', keypad_id: '9', lat: 11.2445, lng: 76.9545, panchayat_id: tholampalay.id,
+            pole_number: 'TH-009', keypad_id: '9', lat: 11.2445, lng: 76.9545, org_unit_id: tholampalay.id,
             landmarks: [
                 'மசூதி பக்கத்துல',
                 'பள்ளிவாசல் கிட்ட',
@@ -301,7 +301,7 @@ async function main() {
             ]
         },
         {
-            pole_number: 'TH-010', keypad_id: '10', lat: 11.2398, lng: 76.9498, panchayat_id: tholampalay.id,
+            pole_number: 'TH-010', keypad_id: '10', lat: 11.2398, lng: 76.9498, org_unit_id: tholampalay.id,
             landmarks: [
                 'சர்ச் பக்கத்துல',
                 'சர்ச் கிட்ட',
@@ -318,11 +318,11 @@ async function main() {
     for (const p of polesData) {
         const token = randomUUID();
         await prisma.$executeRaw`
-            INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, panchayat_id, landmarks, public_report_token)
+            INSERT INTO electric_poles (pole_number, keypad_id, latitude, longitude, location, org_unit_id, landmarks, public_report_token)
             VALUES (
                 ${p.pole_number}, ${p.keypad_id}, ${p.lat}, ${p.lng},
                 ST_SetSRID(ST_MakePoint(${p.lng}, ${p.lat}), 4326),
-                ${p.panchayat_id},
+                ${p.org_unit_id},
                 ${p.landmarks},
                 ${token}
             )

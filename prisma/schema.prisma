@@ -232,7 +232,7 @@ model AdminJurisdiction {
  */
 model PanchayatZone {
   id               Int      @id @default(autoincrement())
-  panchayat_id     Int
+  org_unit_id      Int
   name             String
   boundary_geojson Json // GeoJSON Polygon/MultiPolygon
   color            String?  @default("#2563EB")
@@ -242,9 +242,9 @@ model PanchayatZone {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  panchayat OrgUnit @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
 
-  @@index([panchayat_id])
+  @@index([org_unit_id])
   @@map("panchayat_zones")
 }
 
@@ -306,14 +306,14 @@ model User {
 }
 
 model ElectricPole {
-  id           Int                                   @id @default(autoincrement())
-  pole_number  String?
-  keypad_id    String?
-  location     Unsupported("geometry(Point, 4326)")?
-  latitude     Float?
-  longitude    Float?
-  panchayat_id Int?
-  landmarks    String[]                              @default([])
+  id          Int                                   @id @default(autoincrement())
+  pole_number String?
+  keypad_id   String?
+  location    Unsupported("geometry(Point, 4326)")?
+  latitude    Float?
+  longitude   Float?
+  org_unit_id Int?
+  landmarks   String[]                              @default([])
 
   /**
    * Permanent UUID token for public QR-code stickers. Never expires.
@@ -327,7 +327,7 @@ model ElectricPole {
   image_uploaded_at DateTime?
   image_uploaded_by Int?
 
-  panchayat      OrgUnit?    @relation(fields: [panchayat_id], references: [id])
+  org_unit       OrgUnit?    @relation(fields: [org_unit_id], references: [id])
   complaints     Complaint[]
   image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
 
@@ -336,7 +336,7 @@ model ElectricPole {
   field_uploads_manual   FieldVerificationUpload[]  @relation("FieldUploadManual")
   tender_checklist_items TenderFieldChecklistItem[]
 
-  @@unique([panchayat_id, keypad_id])
+  @@unique([org_unit_id, keypad_id])
   @@map("electric_poles")
 }
 
@@ -346,7 +346,7 @@ model Complaint {
   pole_id         Int?
   pipeline_id     Int?
   tank_id         Int?
-  panchayat_id    Int?
+  org_unit_id     Int?
   complaint_type  String?
   description     String?
   caller_language String?
@@ -386,7 +386,7 @@ model Complaint {
   pole                 ElectricPole?      @relation(fields: [pole_id], references: [id])
   pipeline             WaterPipeline?     @relation(fields: [pipeline_id], references: [id])
   tank                 WaterTankBorewell? @relation(fields: [tank_id], references: [id])
-  panchayat            OrgUnit?           @relation(fields: [panchayat_id], references: [id])
+  org_unit             OrgUnit?           @relation(fields: [org_unit_id], references: [id])
   assigned_electrician User?              @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
   assigned_plumber     User?              @relation("AssignedPlumber", fields: [assigned_plumber_id], references: [id])
 
@@ -428,7 +428,7 @@ model SystemSettings {
 model ExportJob {
   id                   Int       @id @default(autoincrement())
   created_by_user_id   Int
-  panchayat_id         Int?
+  org_unit_id          Int?
   electrician_user_id  Int
   range_from           DateTime
   range_to             DateTime
@@ -441,7 +441,7 @@ model ExportJob {
 
   created_by  User     @relation("ExportJobCreator", fields: [created_by_user_id], references: [id])
   electrician User     @relation("ExportJobElectrician", fields: [electrician_user_id], references: [id])
-  panchayat   OrgUnit? @relation(fields: [panchayat_id], references: [id])
+  org_unit    OrgUnit? @relation(fields: [org_unit_id], references: [id])
 
   @@index([electrician_user_id])
   @@index([status])
@@ -456,22 +456,22 @@ model ExportJob {
  * Vendor master, panchayat-scoped. Phone is required and normalized to E.164.
  */
 model Vendor {
-  id           Int      @id @default(autoincrement())
-  panchayat_id Int
-  name         String
-  phone_e164   String
-  place        String?
-  notes        String?
-  active       Boolean  @default(true)
-  created_at   DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  org_unit_id Int
+  name        String
+  phone_e164  String
+  place       String?
+  notes       String?
+  active      Boolean  @default(true)
+  created_at  DateTime @default(now())
 
-  panchayat  OrgUnit              @relation(fields: [panchayat_id], references: [id])
+  org_unit   OrgUnit              @relation(fields: [org_unit_id], references: [id])
   invites    TenderVendorInvite[]
   quotations TenderQuotation[]
   documents  TenderDocument[]
 
-  @@unique([panchayat_id, phone_e164])
-  @@index([panchayat_id])
+  @@unique([org_unit_id, phone_e164])
+  @@index([org_unit_id])
   @@map("vendors")
 }
 
@@ -480,7 +480,7 @@ model Vendor {
  */
 model Tender {
   id                             Int       @id @default(autoincrement())
-  panchayat_id                   Int
+  org_unit_id                    Int
   status                         String    @default("draft")
   title_ta                       String?
   title_en                       String?
@@ -502,7 +502,7 @@ model Tender {
   created_at                     DateTime  @default(now())
   updated_at                     DateTime  @updatedAt
 
-  panchayat             OrgUnit                    @relation(fields: [panchayat_id], references: [id])
+  org_unit              OrgUnit                    @relation(fields: [org_unit_id], references: [id])
   created_by            User                       @relation("TenderCreator", fields: [created_by_user_id], references: [id])
   awarded_quotation     TenderQuotation?           @relation("AwardedQuotation", fields: [awarded_quotation_id], references: [id])
   invites               TenderVendorInvite[]
@@ -513,7 +513,7 @@ model Tender {
   checklist_items       TenderFieldChecklistItem[]
   audit_logs            TenderAuditLog[]
 
-  @@index([panchayat_id, status])
+  @@index([org_unit_id, status])
   @@map("tenders")
 }
 
@@ -719,7 +719,7 @@ model TenderAuditLog {
 model WaterPipeline {
   id           Int      @id @default(autoincrement())
   name         String? // e.g., "Main Annur Conduit"
-  panchayat_id Int
+  org_unit_id  Int
   path_geojson Json // GeoJSON LineString for path rendering and GIS calculations
   diameter_mm  Float?
   material     String? // PVC, HDPE, Cast Iron
@@ -727,11 +727,11 @@ model WaterPipeline {
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  panchayat  OrgUnit        @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit   OrgUnit        @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
   flow_logs  WaterFlowLog[]
   complaints Complaint[]
 
-  @@index([panchayat_id])
+  @@index([org_unit_id])
   @@map("water_pipelines")
 }
 
@@ -741,7 +741,7 @@ model WaterTankBorewell {
   type              String // overhead_tank, borewell_pump
   latitude          Float
   longitude         Float
-  panchayat_id      Int
+  org_unit_id       Int
   capacity_liters   Float?
   current_level_pct Float    @default(100.0) // 0 to 100
   status            String   @default("active") // active, empty, critical, maintenance
@@ -749,11 +749,11 @@ model WaterTankBorewell {
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
-  panchayat  OrgUnit        @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit   OrgUnit        @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
   flow_logs  WaterFlowLog[]
   complaints Complaint[]
 
-  @@index([panchayat_id])
+  @@index([org_unit_id])
   @@map("water_tank_borewells")
 }
 
@@ -762,14 +762,14 @@ model WaterValve {
   valve_number String?
   latitude     Float
   longitude    Float
-  panchayat_id Int
+  org_unit_id  Int
   status       String   @default("open") // open, closed, maintenance
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
 
-  panchayat OrgUnit @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
 
-  @@index([panchayat_id])
+  @@index([org_unit_id])
   @@map("water_valves")
 }
 
@@ -817,7 +817,7 @@ model CapturedAsset {
  */
 model AdCampaign {
   id                Int      @id @default(autoincrement())
-  panchayat_id      Int
+  org_unit_id       Int
   advertiser_name   String
   advertiser_phone  String?
   title             String
@@ -836,10 +836,10 @@ model AdCampaign {
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 
-  panchayat   OrgUnit        @relation(fields: [panchayat_id], references: [id])
+  org_unit    OrgUnit        @relation(fields: [org_unit_id], references: [id])
   impressions AdImpression[]
 
-  @@index([panchayat_id, is_active])
+  @@index([org_unit_id, is_active])
   @@map("ad_campaigns")
 }
 
@@ -865,7 +865,7 @@ model AdImpression {
  */
 model PenaltyRule {
   id             Int      @id @default(autoincrement())
-  panchayat_id   Int
+  org_unit_id    Int
   role           String // plumber, electrician
   urgency_level  String // low, medium, high, critical
   deadline_hours Int
@@ -874,9 +874,9 @@ model PenaltyRule {
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
 
-  panchayat OrgUnit @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
 
-  @@unique([panchayat_id, role, urgency_level])
+  @@unique([org_unit_id, role, urgency_level])
   @@map("penalty_rules")
 }
 
@@ -908,7 +908,7 @@ model UserPenalty {
  */
 model Property {
   id            Int      @id @default(autoincrement())
-  panchayat_id  Int
+  org_unit_id   Int
   owner_name    String
   owner_phone   String?
   door_number   String?
@@ -922,11 +922,11 @@ model Property {
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
-  panchayat    OrgUnit      @relation(fields: [panchayat_id], references: [id])
+  org_unit     OrgUnit      @relation(fields: [org_unit_id], references: [id])
   tax_payments TaxPayment[]
 
-  @@unique([panchayat_id, door_number])
-  @@index([panchayat_id])
+  @@unique([org_unit_id, door_number])
+  @@index([org_unit_id])
   @@map("properties")
 }
 
@@ -959,7 +959,7 @@ model TaxPayment {
  */
 model CertificateRequest {
   id               Int       @id @default(autoincrement())
-  panchayat_id     Int
+  org_unit_id      Int
   certificate_type String // birth, death, income, residence, trade_license, building_permit
   applicant_name   String
   applicant_phone  String?
@@ -976,9 +976,9 @@ model CertificateRequest {
   reviewed_at      DateTime?
   issued_at        DateTime?
 
-  panchayat OrgUnit @relation(fields: [panchayat_id], references: [id])
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id])
 
-  @@index([panchayat_id, certificate_type])
+  @@index([org_unit_id, certificate_type])
   @@map("certificate_requests")
 }
 
@@ -987,7 +987,7 @@ model CertificateRequest {
  */
 model PanchayatAsset {
   id             Int      @id @default(autoincrement())
-  panchayat_id   Int
+  org_unit_id    Int
   name           String
   asset_type     String // hall, ground, equipment, vehicle
   description    String?
@@ -999,10 +999,10 @@ model PanchayatAsset {
   is_available   Boolean  @default(true)
   created_at     DateTime @default(now())
 
-  panchayat OrgUnit        @relation(fields: [panchayat_id], references: [id])
-  bookings  AssetBooking[]
+  org_unit OrgUnit        @relation(fields: [org_unit_id], references: [id])
+  bookings AssetBooking[]
 
-  @@index([panchayat_id])
+  @@index([org_unit_id])
   @@map("panchayat_assets")
 }
 
@@ -1037,15 +1037,15 @@ model AssetBooking {
  * Weekly/daily market definition.
  */
 model MarketDay {
-  id           Int     @id @default(autoincrement())
-  panchayat_id Int
-  name         String
-  location     String?
-  day_of_week  Int // 0=Sun, 1=Mon, etc.
-  daily_fee    Decimal @db.Decimal(8, 2)
-  is_active    Boolean @default(true)
+  id          Int     @id @default(autoincrement())
+  org_unit_id Int
+  name        String
+  location    String?
+  day_of_week Int // 0=Sun, 1=Mon, etc.
+  daily_fee   Decimal @db.Decimal(8, 2)
+  is_active   Boolean @default(true)
 
-  panchayat       OrgUnit               @relation(fields: [panchayat_id], references: [id])
+  org_unit        OrgUnit               @relation(fields: [org_unit_id], references: [id])
   vendor_payments MarketVendorPayment[]
 
   @@map("market_days")
@@ -1056,7 +1056,7 @@ model MarketDay {
  */
 model MarketVendor {
   id            Int      @id @default(autoincrement())
-  panchayat_id  Int
+  org_unit_id   Int
   vendor_name   String
   vendor_phone  String
   business_type String?
@@ -1065,10 +1065,10 @@ model MarketVendor {
   is_active     Boolean  @default(true)
   registered_at DateTime @default(now())
 
-  panchayat OrgUnit               @relation(fields: [panchayat_id], references: [id])
-  payments  MarketVendorPayment[]
+  org_unit OrgUnit               @relation(fields: [org_unit_id], references: [id])
+  payments MarketVendorPayment[]
 
-  @@unique([panchayat_id, vendor_phone])
+  @@unique([org_unit_id, vendor_phone])
   @@map("market_vendors")
 }
 
@@ -1214,7 +1214,7 @@ model BranchFeatureConfig {
 model BranchLifecycleEvent {
   id             Int      @id @default(autoincrement())
   tenant_id      String
-  branch_id      Int
+  org_unit_id    Int
   event_type     String // "created", "activated", "deactivated", "merged", "upgraded", "closed", "transferred"
   from_status    String?
   to_status      String
@@ -1223,9 +1223,9 @@ model BranchLifecycleEvent {
   performed_by   Int?
   created_at     DateTime @default(now())
 
-  branch OrgUnit @relation(fields: [branch_id], references: [id])
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id])
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("branch_lifecycle_events")
 }
 
@@ -1332,7 +1332,7 @@ model Role {
 
 /**
  * Links a user to a role at a specific org unit (and optionally department).
- * The single authoritative scoping record — supersedes User.panchayat_id and
+ * The single authoritative scoping record — supersedes User.org_unit_id and
  * Employee.access_scope for authorization purposes. Supports temporary permissions.
  */
 model UserRole {
@@ -1398,7 +1398,7 @@ model Department {
 model SequenceConfig {
   id            Int       @id @default(autoincrement())
   tenant_id     String
-  branch_id     Int? // null = tenant-wide
+  org_unit_id   Int? // null = tenant-wide
   entity_type   String // "complaint", "work_order", "asset"
   prefix        String // "CMP", "WO", "AST"
   format        String // "{prefix}-{fy}-{seq:6}" → "CMP-2026-000001"
@@ -1406,7 +1406,7 @@ model SequenceConfig {
   reset_cycle   String?   @default("financial_year") // financial_year, calendar_year, never
   last_reset_at DateTime?
 
-  @@unique([tenant_id, branch_id, entity_type])
+  @@unique([tenant_id, org_unit_id, entity_type])
   @@map("sequence_configs")
 }
 
@@ -1420,7 +1420,7 @@ model SequenceConfig {
 model WorkingCalendar {
   id                  Int     @id @default(autoincrement())
   tenant_id           String
-  branch_id           Int? // null = tenant-wide default
+  org_unit_id         Int? // null = tenant-wide default
   name                String // "Standard Government Calendar", "Emergency 24x7"
   working_days        Int[]   @default([1, 2, 3, 4, 5, 6]) // 1=Mon..6=Sat
   working_hours_start String  @default("09:30")
@@ -1428,7 +1428,7 @@ model WorkingCalendar {
   half_day_hours_end  String? @default("13:00")
   is_default          Boolean @default(false)
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("working_calendars")
 }
 
@@ -1438,14 +1438,14 @@ model WorkingCalendar {
 model Holiday {
   id           Int      @id @default(autoincrement())
   tenant_id    String
-  branch_id    Int? // null = tenant-wide
+  org_unit_id  Int? // null = tenant-wide
   date         DateTime @db.Date
   name         String // "Republic Day"
   name_ta      String? // "குடியரசு தினம்"
   holiday_type String // "national", "state", "local", "restricted", "half_day"
   is_active    Boolean  @default(true)
 
-  @@unique([tenant_id, branch_id, date])
+  @@unique([tenant_id, org_unit_id, date])
   @@map("holidays")
 }
 
@@ -1455,7 +1455,7 @@ model Holiday {
 model SlaPolicy {
   id               Int      @id @default(autoincrement())
   tenant_id        String
-  branch_id        Int?
+  org_unit_id      Int?
   entity_type      String // "complaint", "building_permit"
   category         String? // "electrical", "plumbing"
   urgency_level    String? // "low", "medium", "high", "critical"
@@ -1468,7 +1468,7 @@ model SlaPolicy {
   is_active        Boolean  @default(true)
   created_at       DateTime @default(now())
 
-  @@unique([tenant_id, branch_id, entity_type, category, urgency_level])
+  @@unique([tenant_id, org_unit_id, entity_type, category, urgency_level])
   @@map("sla_policies")
 }
 
@@ -1509,7 +1509,7 @@ model SlaTracker {
 model AuditLog {
   id             BigInt   @id @default(autoincrement())
   tenant_id      String
-  branch_id      Int?
+  org_unit_id    Int?
   user_id        Int?
   module         String // "complaints", "assets"
   entity_type    String // "Complaint", "Asset"
@@ -1586,12 +1586,12 @@ model Notification {
  * Folder hierarchy for organizing documents.
  */
 model DocumentFolder {
-  id         Int      @id @default(autoincrement())
-  tenant_id  String
-  branch_id  Int
-  name       String
-  parent_id  Int?
-  created_at DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+  name        String
+  parent_id   Int?
+  created_at  DateTime @default(now())
 
   parent   DocumentFolder?  @relation("FolderHierarchy", fields: [parent_id], references: [id])
   children DocumentFolder[] @relation("FolderHierarchy")
@@ -1605,7 +1605,7 @@ model DocumentFolder {
 model Document {
   id                Int       @id @default(autoincrement())
   tenant_id         String
-  branch_id         Int
+  org_unit_id       Int
   folder_id         Int?
   title             String
   file_name         String
@@ -1629,7 +1629,7 @@ model Document {
   deleted_at DateTime?
   deleted_by Int?
 
-  @@index([tenant_id, branch_id, module])
+  @@index([tenant_id, org_unit_id, module])
   @@index([tenant_id, entity_type, entity_id])
   @@map("documents")
 }
@@ -1669,24 +1669,24 @@ model Comment {
  * Workflow definition for a branch — versioned so in-progress workflows aren't broken.
  */
 model WorkflowTemplate {
-  id           Int      @id @default(autoincrement())
-  tenant_id    String
-  panchayat_id Int
-  name         String // "complaint_resolution", "work_order_approval"
-  description  String?
-  department   String?
-  version      Int      @default(1)
-  status       String   @default("draft") // draft, published, archived
-  is_active    Boolean  @default(true)
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+  name        String // "complaint_resolution", "work_order_approval"
+  description String?
+  department  String?
+  version     Int      @default(1)
+  status      String   @default("draft") // draft, published, archived
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
-  panchayat OrgUnit            @relation(fields: [panchayat_id], references: [id], onDelete: Cascade)
+  org_unit  OrgUnit            @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
   steps     WorkflowStep[]
   rules     WorkflowRule[]
   instances WorkflowInstance[]
 
-  @@unique([panchayat_id, name, version])
+  @@unique([org_unit_id, name, version])
   @@map("workflow_templates")
 }
 
@@ -1788,7 +1788,7 @@ model WorkflowStepAction {
 model Asset {
   id              Int     @id @default(autoincrement())
   tenant_id       String
-  branch_id       Int
+  org_unit_id     Int
   asset_type_code String // References MasterValue code: "electric_pole", "water_tank"
   asset_uuid      String  @unique @default(uuid()) // Immutable internal ID
   asset_code      String? // Human-readable, can change: "SL-MDU-Z3-042"
@@ -1823,7 +1823,7 @@ model Asset {
 
   images AssetImage[]
 
-  @@index([tenant_id, branch_id, asset_type_code])
+  @@index([tenant_id, org_unit_id, asset_type_code])
   @@index([asset_uuid])
   @@map("assets")
 }
@@ -1896,7 +1896,7 @@ model Contractor {
 model WorkOrder {
   id                  Int       @id @default(autoincrement())
   tenant_id           String
-  branch_id           Int
+  org_unit_id         Int
   work_order_number   String? // Auto-generated via SequenceConfig
   contractor_id       Int?
   tender_id           Int?
@@ -1918,7 +1918,7 @@ model WorkOrder {
 
   contractor Contractor? @relation(fields: [contractor_id], references: [id])
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("work_orders")
 }
 
@@ -1930,20 +1930,20 @@ model WorkOrder {
  * Citizen profile linked to a user account.
  */
 model CitizenProfile {
-  id         Int      @id @default(autoincrement())
-  tenant_id  String
-  user_id    Int      @unique
-  full_name  String
-  phone      String
-  email      String?
-  address    String?
-  ward       String?
-  branch_id  Int
-  created_at DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  tenant_id   String
+  user_id     Int      @unique
+  full_name   String
+  phone       String
+  email       String?
+  address     String?
+  ward        String?
+  org_unit_id Int
+  created_at  DateTime @default(now())
 
   user User @relation(fields: [user_id], references: [id])
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("citizen_profiles")
 }
 
@@ -1953,7 +1953,7 @@ model CitizenProfile {
 model Announcement {
   id           Int       @id @default(autoincrement())
   tenant_id    String
-  branch_id    Int
+  org_unit_id  Int
   title        String
   title_ta     String?
   body         String
@@ -1964,7 +1964,7 @@ model Announcement {
   expires_at   DateTime?
   created_by   Int
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("announcements")
 }
 
@@ -1974,7 +1974,7 @@ model Announcement {
 model CitizenFeedback {
   id              Int      @id @default(autoincrement())
   tenant_id       String
-  branch_id       Int
+  org_unit_id     Int
   citizen_user_id Int?
   entity_type     String? // "complaint", "service"
   entity_id       Int?
@@ -1982,7 +1982,7 @@ model CitizenFeedback {
   comment         String?
   created_at      DateTime @default(now())
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("citizen_feedback")
 }
 
@@ -2010,7 +2010,7 @@ model InspectionTemplate {
 model FieldInspection {
   id                Int      @id @default(autoincrement())
   tenant_id         String
-  branch_id         Int
+  org_unit_id       Int
   template_id       Int?
   inspector_user_id Int
   asset_id          Int?
@@ -2026,7 +2026,7 @@ model FieldInspection {
   status            String   @default("completed")
   inspected_at      DateTime @default(now())
 
-  @@index([tenant_id, branch_id])
+  @@index([tenant_id, org_unit_id])
   @@map("field_inspections")
 }
 
@@ -2072,7 +2072,7 @@ model RoleDashboard {
 model SavedReport {
   id             Int       @id @default(autoincrement())
   tenant_id      String
-  branch_id      Int?
+  org_unit_id    Int?
   name           String
   report_type    String
   format         String    @default("pdf") // pdf, excel, csv
@@ -2139,7 +2139,7 @@ model FormField {
 model FormSubmission {
   id           Int      @id @default(autoincrement())
   tenant_id    String
-  branch_id    Int
+  org_unit_id  Int
   template_id  Int
   submitted_by Int?
   data         Json
@@ -2148,6 +2148,6 @@ model FormSubmission {
   entity_id    Int?
   submitted_at DateTime @default(now())
 
-  @@index([tenant_id, branch_id, template_id])
+  @@index([tenant_id, org_unit_id, template_id])
   @@map("form_submissions")
 }

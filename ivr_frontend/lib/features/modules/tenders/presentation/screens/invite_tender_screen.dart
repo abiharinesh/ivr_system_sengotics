@@ -121,7 +121,7 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
           }
           final data = snap.data!;
           final tender = (data['tender'] ?? {}) as Map<String, dynamic>;
-          final panchayat = (data['panchayat'] ?? {}) as Map<String, dynamic>;
+          final panchayat = (data['org_unit'] ?? {}) as Map<String, dynamic>;
           final timeline = (data['timeline'] ?? {}) as Map<String, dynamic>;
           final invite = (data['invite'] ?? {}) as Map<String, dynamic>;
           final vendor = (invite['vendor'] ?? {}) as Map<String, dynamic>;

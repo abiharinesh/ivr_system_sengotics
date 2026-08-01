@@ -36,29 +36,29 @@ class RevenueError extends RevenueState {
 //  1. PROPERTY TAX BLOC
 // =============================================================================
 class LoadPropertyTaxData extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final String? financialYear;
-  const LoadPropertyTaxData(this.panchayatId, {this.financialYear});
+  const LoadPropertyTaxData(this.orgUnitId, {this.financialYear});
 }
 
 class CreatePropertyEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreatePropertyEvent(this.panchayatId, this.data);
+  const CreatePropertyEvent(this.orgUnitId, this.data);
 }
 
 class GenerateDemandsEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final String financialYear;
   final String dueDate;
-  const GenerateDemandsEvent({required this.panchayatId, required this.financialYear, required this.dueDate});
+  const GenerateDemandsEvent({required this.orgUnitId, required this.financialYear, required this.dueDate});
 }
 
 class RecordPaymentEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int paymentId;
   final Map<String, dynamic> data;
-  const RecordPaymentEvent({required this.panchayatId, required this.paymentId, required this.data});
+  const RecordPaymentEvent({required this.orgUnitId, required this.paymentId, required this.data});
 }
 
 class PropertyTaxLoaded extends RevenueState {
@@ -76,9 +76,9 @@ class PropertyTaxBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadPropertyTaxData>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final props = await _service.getProperties(event.panchayatId);
-        final defs = await _service.getTaxDefaulters(event.panchayatId, financialYear: event.financialYear);
-        final sum = await _service.getTaxSummary(event.panchayatId, financialYear: event.financialYear);
+        final props = await _service.getProperties(event.orgUnitId);
+        final defs = await _service.getTaxDefaulters(event.orgUnitId, financialYear: event.financialYear);
+        final sum = await _service.getTaxSummary(event.orgUnitId, financialYear: event.financialYear);
         emit(PropertyTaxLoaded(properties: props, defaulters: defs, summary: sum));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -89,7 +89,7 @@ class PropertyTaxBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createProperty(event.data);
-        add(LoadPropertyTaxData(event.panchayatId));
+        add(LoadPropertyTaxData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -99,11 +99,11 @@ class PropertyTaxBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.generateTaxDemands({
-          'panchayat_id': event.panchayatId,
+          'org_unit_id': event.orgUnitId,
           'financial_year': event.financialYear,
           'due_date': event.dueDate,
         });
-        add(LoadPropertyTaxData(event.panchayatId, financialYear: event.financialYear));
+        add(LoadPropertyTaxData(event.orgUnitId, financialYear: event.financialYear));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -113,7 +113,7 @@ class PropertyTaxBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.recordTaxPayment(event.paymentId, event.data);
-        add(LoadPropertyTaxData(event.panchayatId));
+        add(LoadPropertyTaxData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -125,27 +125,27 @@ class PropertyTaxBloc extends Bloc<RevenueEvent, RevenueState> {
 //  2. AD CAMPAIGN BLOC
 // =============================================================================
 class LoadAdCampaigns extends RevenueEvent {
-  final int panchayatId;
-  const LoadAdCampaigns(this.panchayatId);
+  final int orgUnitId;
+  const LoadAdCampaigns(this.orgUnitId);
 }
 
 class CreateCampaignEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreateCampaignEvent(this.panchayatId, this.data);
+  const CreateCampaignEvent(this.orgUnitId, this.data);
 }
 
 class UpdateCampaignEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int id;
   final Map<String, dynamic> data;
-  const UpdateCampaignEvent(this.panchayatId, this.id, this.data);
+  const UpdateCampaignEvent(this.orgUnitId, this.id, this.data);
 }
 
 class DeleteCampaignEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int id;
-  const DeleteCampaignEvent(this.panchayatId, this.id);
+  const DeleteCampaignEvent(this.orgUnitId, this.id);
 }
 
 class AdCampaignsLoaded extends RevenueState {
@@ -161,7 +161,7 @@ class AdCampaignBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadAdCampaigns>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final campaigns = await _service.getCampaigns(event.panchayatId);
+        final campaigns = await _service.getCampaigns(event.orgUnitId);
         emit(AdCampaignsLoaded(campaigns));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -172,7 +172,7 @@ class AdCampaignBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createCampaign(event.data);
-        add(LoadAdCampaigns(event.panchayatId));
+        add(LoadAdCampaigns(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -182,7 +182,7 @@ class AdCampaignBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.updateCampaign(event.id, event.data);
-        add(LoadAdCampaigns(event.panchayatId));
+        add(LoadAdCampaigns(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -192,7 +192,7 @@ class AdCampaignBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.deleteCampaign(event.id);
-        add(LoadAdCampaigns(event.panchayatId));
+        add(LoadAdCampaigns(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -204,27 +204,27 @@ class AdCampaignBloc extends Bloc<RevenueEvent, RevenueState> {
 //  3. PENALTY BLOC
 // =============================================================================
 class LoadPenaltyData extends RevenueEvent {
-  final int panchayatId;
-  const LoadPenaltyData(this.panchayatId);
+  final int orgUnitId;
+  const LoadPenaltyData(this.orgUnitId);
 }
 
 class UpsertRuleEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const UpsertRuleEvent(this.panchayatId, this.data);
+  const UpsertRuleEvent(this.orgUnitId, this.data);
 }
 
 class WaivePenaltyEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int penaltyId;
   final String reason;
-  const WaivePenaltyEvent({required this.panchayatId, required this.penaltyId, required this.reason});
+  const WaivePenaltyEvent({required this.orgUnitId, required this.penaltyId, required this.reason});
 }
 
 class DeductPenaltyEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int penaltyId;
-  const DeductPenaltyEvent({required this.panchayatId, required this.penaltyId});
+  const DeductPenaltyEvent({required this.orgUnitId, required this.penaltyId});
 }
 
 class PenaltyDataLoaded extends RevenueState {
@@ -242,9 +242,9 @@ class PenaltyBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadPenaltyData>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final rules = await _service.getRules(event.panchayatId);
-        final penalties = await _service.getPenalties(event.panchayatId);
-        final summary = await _service.getPenaltySummary(event.panchayatId);
+        final rules = await _service.getRules(event.orgUnitId);
+        final penalties = await _service.getPenalties(event.orgUnitId);
+        final summary = await _service.getPenaltySummary(event.orgUnitId);
         emit(PenaltyDataLoaded(rules: rules, penalties: penalties, summary: summary));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -255,7 +255,7 @@ class PenaltyBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.upsertRule(event.data);
-        add(LoadPenaltyData(event.panchayatId));
+        add(LoadPenaltyData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -265,7 +265,7 @@ class PenaltyBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.waivePenalty(event.penaltyId, event.reason);
-        add(LoadPenaltyData(event.panchayatId));
+        add(LoadPenaltyData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -275,7 +275,7 @@ class PenaltyBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.deductPenalty(event.penaltyId);
-        add(LoadPenaltyData(event.panchayatId));
+        add(LoadPenaltyData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -287,23 +287,23 @@ class PenaltyBloc extends Bloc<RevenueEvent, RevenueState> {
 //  4. CERTIFICATE BLOC
 // =============================================================================
 class LoadCertificates extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final String? type;
-  const LoadCertificates(this.panchayatId, {this.type});
+  const LoadCertificates(this.orgUnitId, {this.type});
 }
 
 class ApproveCertificateEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int id;
   final Map<String, dynamic> data;
-  const ApproveCertificateEvent({required this.panchayatId, required this.id, required this.data});
+  const ApproveCertificateEvent({required this.orgUnitId, required this.id, required this.data});
 }
 
 class RejectCertificateEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int id;
   final String notes;
-  const RejectCertificateEvent({required this.panchayatId, required this.id, required this.notes});
+  const RejectCertificateEvent({required this.orgUnitId, required this.id, required this.notes});
 }
 
 class CertificatesLoaded extends RevenueState {
@@ -319,7 +319,7 @@ class CertificateBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadCertificates>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final requests = await _service.getCertificateRequests(event.panchayatId, type: event.type);
+        final requests = await _service.getCertificateRequests(event.orgUnitId, type: event.type);
         emit(CertificatesLoaded(requests));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -330,7 +330,7 @@ class CertificateBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.approveCertificate(event.id, event.data);
-        add(LoadCertificates(event.panchayatId));
+        add(LoadCertificates(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -340,7 +340,7 @@ class CertificateBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.rejectCertificate(event.id, event.notes);
-        add(LoadCertificates(event.panchayatId));
+        add(LoadCertificates(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -352,40 +352,40 @@ class CertificateBloc extends Bloc<RevenueEvent, RevenueState> {
 //  5. ASSET BOOKING BLOC
 // =============================================================================
 class LoadAssetBookings extends RevenueEvent {
-  final int panchayatId;
-  const LoadAssetBookings(this.panchayatId);
+  final int orgUnitId;
+  const LoadAssetBookings(this.orgUnitId);
 }
 
 class CreateAssetEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreateAssetEvent(this.panchayatId, this.data);
+  const CreateAssetEvent(this.orgUnitId, this.data);
 }
 
 class CreateBookingEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreateBookingEvent(this.panchayatId, this.data);
+  const CreateBookingEvent(this.orgUnitId, this.data);
 }
 
 class ConfirmBookingEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int bookingId;
   final String paymentRef;
-  const ConfirmBookingEvent({required this.panchayatId, required this.bookingId, required this.paymentRef});
+  const ConfirmBookingEvent({required this.orgUnitId, required this.bookingId, required this.paymentRef});
 }
 
 class PayBalanceEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int bookingId;
-  const PayBalanceEvent(this.panchayatId, this.bookingId);
+  const PayBalanceEvent(this.orgUnitId, this.bookingId);
 }
 
 class CancelBookingEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final int bookingId;
   final double fee;
-  const CancelBookingEvent({required this.panchayatId, required this.bookingId, required this.fee});
+  const CancelBookingEvent({required this.orgUnitId, required this.bookingId, required this.fee});
 }
 
 class AssetBookingsLoaded extends RevenueState {
@@ -402,8 +402,8 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadAssetBookings>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final assets = await _service.getAssets(event.panchayatId);
-        final bookings = await _service.getBookings(event.panchayatId);
+        final assets = await _service.getAssets(event.orgUnitId);
+        final bookings = await _service.getBookings(event.orgUnitId);
         emit(AssetBookingsLoaded(assets: assets, bookings: bookings));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -414,7 +414,7 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createAsset(event.data);
-        add(LoadAssetBookings(event.panchayatId));
+        add(LoadAssetBookings(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -424,7 +424,7 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createBooking(event.data);
-        add(LoadAssetBookings(event.panchayatId));
+        add(LoadAssetBookings(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -434,7 +434,7 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.confirmBooking(event.bookingId, event.paymentRef);
-        add(LoadAssetBookings(event.panchayatId));
+        add(LoadAssetBookings(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -444,7 +444,7 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.payBookingBalance(event.bookingId);
-        add(LoadAssetBookings(event.panchayatId));
+        add(LoadAssetBookings(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -454,7 +454,7 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.cancelBooking(event.bookingId, event.fee);
-        add(LoadAssetBookings(event.panchayatId));
+        add(LoadAssetBookings(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -466,26 +466,26 @@ class AssetBookingBloc extends Bloc<RevenueEvent, RevenueState> {
 //  6. SHANDY MARKET VENDORS BLOC
 // =============================================================================
 class LoadMarketData extends RevenueEvent {
-  final int panchayatId;
-  const LoadMarketData(this.panchayatId);
+  final int orgUnitId;
+  const LoadMarketData(this.orgUnitId);
 }
 
 class CreateMarketDayEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreateMarketDayEvent(this.panchayatId, this.data);
+  const CreateMarketDayEvent(this.orgUnitId, this.data);
 }
 
 class CreateVendorEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const CreateVendorEvent(this.panchayatId, this.data);
+  const CreateVendorEvent(this.orgUnitId, this.data);
 }
 
 class RecordMarketFeeEvent extends RevenueEvent {
-  final int panchayatId;
+  final int orgUnitId;
   final Map<String, dynamic> data;
-  const RecordMarketFeeEvent(this.panchayatId, this.data);
+  const RecordMarketFeeEvent(this.orgUnitId, this.data);
 }
 
 class MarketDataLoaded extends RevenueState {
@@ -503,9 +503,9 @@ class MarketBloc extends Bloc<RevenueEvent, RevenueState> {
     on<LoadMarketData>((event, emit) async {
       emit(RevenueLoading());
       try {
-        final days = await _service.getMarketDays(event.panchayatId);
-        final vendors = await _service.getMarketVendors(event.panchayatId);
-        final payments = await _service.getMarketPayments(event.panchayatId);
+        final days = await _service.getMarketDays(event.orgUnitId);
+        final vendors = await _service.getMarketVendors(event.orgUnitId);
+        final payments = await _service.getMarketPayments(event.orgUnitId);
         emit(MarketDataLoaded(marketDays: days, vendors: vendors, payments: payments));
       } catch (e) {
         emit(RevenueError(e.toString()));
@@ -516,7 +516,7 @@ class MarketBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createMarketDay(event.data);
-        add(LoadMarketData(event.panchayatId));
+        add(LoadMarketData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -526,7 +526,7 @@ class MarketBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.createMarketVendor(event.data);
-        add(LoadMarketData(event.panchayatId));
+        add(LoadMarketData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }
@@ -536,7 +536,7 @@ class MarketBloc extends Bloc<RevenueEvent, RevenueState> {
       emit(RevenueLoading());
       try {
         await _service.recordMarketFee(event.data);
-        add(LoadMarketData(event.panchayatId));
+        add(LoadMarketData(event.orgUnitId));
       } catch (e) {
         emit(RevenueError(e.toString()));
       }

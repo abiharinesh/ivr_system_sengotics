@@ -17,7 +17,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
@@ -38,7 +38,7 @@ export class CitizenController {
     body: {
       email: string;
       password_hash: string;
-      panchayat_id: number;
+      org_unit_id: number;
       phone_e164?: string;
     },
   ) {
@@ -51,22 +51,22 @@ export class CitizenController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('citizen', 'panchayat_admin', 'super_admin')
   listPoles(@Req() req: AuthenticatedRequest) {
-    const panchayatId = req.user.panchayat_id;
-    if (!panchayatId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new ForbiddenException('User is not associated with any panchayat');
     }
-    return this.service.listPoles(panchayatId);
+    return this.service.listPoles(orgUnitId);
   }
 
   @Get('complaints')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('citizen')
   listComplaints(@Req() req: AuthenticatedRequest) {
-    const panchayatId = req.user.panchayat_id;
-    if (!panchayatId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new ForbiddenException('User is not associated with any panchayat');
     }
-    return this.service.listComplaints(panchayatId);
+    return this.service.listComplaints(orgUnitId);
   }
 
   @Post('complaints')
@@ -82,10 +82,10 @@ export class CitizenController {
       urgency_level?: string;
     },
   ) {
-    const panchayatId = req.user.panchayat_id;
-    if (!panchayatId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new ForbiddenException('User is not associated with any panchayat');
     }
-    return this.service.createComplaint(panchayatId, body);
+    return this.service.createComplaint(orgUnitId, body);
   }
 }

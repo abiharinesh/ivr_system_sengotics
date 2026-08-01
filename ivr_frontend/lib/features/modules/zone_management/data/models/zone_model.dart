@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 /// Represents a zone/boundary area within a panchayat.
 class ZoneModel extends Equatable {
   final int id;
-  final int panchayatId;
+  final int orgUnitId;
   final String name;
   final Map<String, dynamic> boundaryGeojson;
   final String? color;
@@ -13,11 +13,11 @@ class ZoneModel extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   /// Only populated when fetched from the super admin endpoint.
-  final String? panchayatName;
+  final String? orgUnitName;
 
   const ZoneModel({
     required this.id,
-    required this.panchayatId,
+    required this.orgUnitId,
     required this.name,
     required this.boundaryGeojson,
     this.color,
@@ -26,14 +26,14 @@ class ZoneModel extends Equatable {
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
-    this.panchayatName,
+    this.orgUnitName,
   });
 
   factory ZoneModel.fromJson(Map<String, dynamic> json) {
-    final panchayat = json['panchayat'] as Map<String, dynamic>?;
+    final panchayat = json['org_unit'] as Map<String, dynamic>?;
     return ZoneModel(
       id: json['id'] as int,
-      panchayatId: json['panchayat_id'] as int,
+      orgUnitId: json['org_unit_id'] as int,
       name: json['name'] as String,
       boundaryGeojson: json['boundary_geojson'] as Map<String, dynamic>? ?? {},
       color: json['color'] as String?,
@@ -49,7 +49,7 @@ class ZoneModel extends Equatable {
       updatedAt: json['updated_at'] != null
           ? DateTime.tryParse(json['updated_at'] as String)
           : null,
-      panchayatName: panchayat?['name'] as String?,
+      orgUnitName: panchayat?['name'] as String?,
     );
   }
 
@@ -62,7 +62,7 @@ class ZoneModel extends Equatable {
       };
 
   @override
-  List<Object?> get props => [id, panchayatId, name, isActive];
+  List<Object?> get props => [id, orgUnitId, name, isActive];
 }
 
 /// A boundary search result from the OSM Nominatim API.

@@ -3521,7 +3521,7 @@ class _DocsTabState extends State<_DocsTab> {
   }
 
   String _structuredDocName(TenderDocumentSummary doc) {
-    final safePanchayat = (widget.detail.summary.panchayatName ?? 'panchayat')
+    final safePanchayat = (widget.detail.summary.orgUnitName ?? 'org_unit')
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'-+'), '-')

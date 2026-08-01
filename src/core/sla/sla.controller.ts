@@ -22,7 +22,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -38,16 +38,16 @@ export class SlaController {
 
   @Post()
   create(@Req() req: AuthenticatedRequest, @Body() body: any) {
-    const branchId = body.branch_id ?? req.user.panchayat_id;
+    const orgUnitId = body.org_unit_id ?? req.user.org_unit_id;
     return this.service.createPolicy(req.user.tenant_id, {
       ...body,
-      branch_id: branchId,
+      org_unit_id: orgUnitId,
     });
   }
 
   @Get()
-  list(@Req() req: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    const bid = branchId ? parseInt(branchId, 10) : undefined;
+  list(@Req() req: AuthenticatedRequest, @Query('orgUnitId') orgUnitId?: string) {
+    const bid = orgUnitId ? parseInt(orgUnitId, 10) : undefined;
     return this.service.getPolicies(
       req.user.tenant_id,
       isNaN(bid as number) ? undefined : bid,

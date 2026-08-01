@@ -35,7 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         role: response.user.role,
         email: response.user.email,
         userId: response.user.id,
-        panchayatId: response.user.panchayatId,
+        orgUnitId: response.user.orgUnitId,
       );
       await SecureStorageService.saveUserJson(jsonEncode(response.user.toJson()));
       emit(Authenticated(user: response.user, token: response.accessToken));
@@ -68,7 +68,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         role: response.user.role,
         email: response.user.email,
         userId: response.user.id,
-        panchayatId: response.user.panchayatId,
+        orgUnitId: response.user.orgUnitId,
       );
       await SecureStorageService.saveUserJson(jsonEncode(response.user.toJson()));
       emit(Authenticated(user: response.user, token: response.accessToken));
@@ -104,13 +104,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final role = await SecureStorageService.getRole();
         final email = await SecureStorageService.getEmail();
         final userId = await SecureStorageService.getUserId();
-        final panchayatId = await SecureStorageService.getPanchayatId();
+        final orgUnitId = await SecureStorageService.getPanchayatId();
         if (role != null && email != null && userId != null) {
           initialUser = UserModel(
             id: userId,
             email: email,
             role: role,
-            panchayatId: panchayatId,
+            orgUnitId: orgUnitId,
           );
         }
       }

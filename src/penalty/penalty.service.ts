@@ -22,7 +22,7 @@ export class PenaltyService {
       where: {
         status: { notIn: ['resolved', 'closed'] },
         assigned_at: { not: null },
-        panchayat_id: { not: null },
+        org_unit_id: { not: null },
         OR: [
           { assigned_electrician_id: { not: null } },
           { assigned_plumber_id: { not: null } },
@@ -37,13 +37,13 @@ export class PenaltyService {
       const assignedUserId = complaint.assigned_plumber_id || complaint.assigned_electrician_id;
       const role = complaint.assigned_plumber_id ? 'plumber' : 'electrician';
 
-      if (!assignedUserId || !complaint.panchayat_id || !complaint.assigned_at) continue;
+      if (!assignedUserId || !complaint.org_unit_id || !complaint.assigned_at) continue;
 
       // Fetch the SLA rule for this role + urgency
       const rule = await this.prisma.penaltyRule.findUnique({
         where: {
-          panchayat_id_role_urgency_level: {
-            panchayat_id: complaint.panchayat_id,
+          org_unit_id_role_urgency_level: {
+            org_unit_id: complaint.org_unit_id,
             role,
             urgency_level: complaint.urgency_level || 'medium',
           },
@@ -96,12 +96,12 @@ export class PenaltyService {
     const assignedUserId = complaint.assigned_plumber_id || complaint.assigned_electrician_id;
     const role = complaint.assigned_plumber_id ? 'plumber' : 'electrician';
 
-    if (!assignedUserId || !complaint.panchayat_id) return;
+    if (!assignedUserId || !complaint.org_unit_id) return;
 
     const rule = await this.prisma.penaltyRule.findUnique({
       where: {
-        panchayat_id_role_urgency_level: {
-          panchayat_id: complaint.panchayat_id,
+        org_unit_id_role_urgency_level: {
+          org_unit_id: complaint.org_unit_id,
           role,
           urgency_level: complaint.urgency_level || 'medium',
         },
@@ -149,15 +149,15 @@ export class PenaltyService {
 
   // ─── Penalty Rules CRUD ──────────────────────────────────────────────────────
 
-  async listRules(panchayatId: number) {
+  async listRules(orgUnitId: number) {
     return this.prisma.penaltyRule.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: [{ role: 'asc' }, { urgency_level: 'asc' }],
     });
   }
 
   async upsertRule(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     role: string;
     urgency_level: string;
     deadline_hours: number;
@@ -165,14 +165,14 @@ export class PenaltyService {
   }) {
     return this.prisma.penaltyRule.upsert({
       where: {
-        panchayat_id_role_urgency_level: {
-          panchayat_id: data.panchayat_id,
+        org_unit_id_role_urgency_level: {
+          org_unit_id: data.org_unit_id,
           role: data.role,
           urgency_level: data.urgency_level,
         },
       },
       create: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         role: data.role,
         urgency_level: data.urgency_level,
         deadline_hours: data.deadline_hours,
@@ -197,9 +197,9 @@ export class PenaltyService {
   }
 
   /** List all penalties for a panchayat. */
-  async listPenaltiesByPanchayat(panchayatId: number) {
+  async listPenaltiesByPanchayat(orgUnitId: number) {
     return this.prisma.userPenalty.findMany({
-      where: { complaint: { panchayat_id: panchayatId } },
+      where: { complaint: { org_unit_id: orgUnitId } },
       include: {
         user: { select: { id: true, email: true, role: true } },
         complaint: { select: { id: true, complaint_type: true, status: true } },
@@ -233,9 +233,9 @@ export class PenaltyService {
   // ─── Summary Dashboard ──────────────────────────────────────────────────────
 
   /** Get penalty summary for a panchayat. */
-  async getPenaltySummary(panchayatId: number) {
+  async getPenaltySummary(orgUnitId: number) {
     const penalties = await this.prisma.userPenalty.findMany({
-      where: { complaint: { panchayat_id: panchayatId } },
+      where: { complaint: { org_unit_id: orgUnitId } },
     });
 
     const total = penalties.length;

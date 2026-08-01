@@ -52,7 +52,7 @@ describe('TenderPublicService', () => {
         status: 'published',
         anchor_date: null,
         quotation_access_mode: 'invited_only',
-        panchayat: { id: 1, name: 'Test Panchayat' },
+        org_unit: { id: 1, name: 'Test Panchayat' },
       },
     });
     prisma.tenderLineItem.findMany.mockResolvedValue([]);
@@ -68,8 +68,8 @@ describe('TenderPublicService', () => {
     const { service, prisma } = makeService();
     prisma.tender.findUnique.mockResolvedValue({
       id: 5,
-      panchayat_id: 1,
-      panchayat: { id: 1, name: 'Panchayat' },
+      org_unit_id: 1,
+      org_unit: { id: 1, name: 'Panchayat' },
       status: 'published',
       quotation_access_mode: 'invited_only',
     });
@@ -88,8 +88,8 @@ describe('TenderPublicService', () => {
     const { service, prisma, milestones } = makeService();
     prisma.tender.findUnique.mockResolvedValue({
       id: 9,
-      panchayat_id: 1,
-      panchayat: { id: 1, name: 'Panchayat' },
+      org_unit_id: 1,
+      org_unit: { id: 1, name: 'Panchayat' },
       status: 'published',
       quotation_access_mode: 'open_with_phone',
     });

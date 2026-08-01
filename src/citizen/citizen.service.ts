@@ -23,7 +23,7 @@ export class CitizenService {
   async registerCitizen(data: {
     email: string;
     password_hash: string;
-    panchayat_id: number;
+    org_unit_id: number;
     phone_e164?: string;
   }) {
     const email = data.email.toLowerCase().trim();
@@ -36,7 +36,7 @@ export class CitizenService {
 
     // Verify panchayat exists
     const panchayat = await this.prisma.orgUnit.findUnique({
-      where: { id: data.panchayat_id },
+      where: { id: data.org_unit_id },
     });
     if (!panchayat) {
       throw new NotFoundException('Panchayat not found');
@@ -49,7 +49,7 @@ export class CitizenService {
         email,
         password_hash: hashed,
         role: 'citizen',
-        primary_org_unit_id: data.panchayat_id,
+        primary_org_unit_id: data.org_unit_id,
         phone_e164: data.phone_e164 || null,
       },
     });
@@ -58,19 +58,19 @@ export class CitizenService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      panchayat_id: user.primary_org_unit_id,
+      org_unit_id: user.primary_org_unit_id,
     };
 
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.primary_org_unit_id,
+      org_unit_id: user.primary_org_unit_id,
     };
   }
 
-  async listPoles(panchayatId: number) {
+  async listPoles(orgUnitId: number) {
     return this.prisma.electricPole.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { id: 'desc' },
       include: {
         _count: { select: { complaints: true } },
@@ -79,7 +79,7 @@ export class CitizenService {
   }
 
   async createComplaint(
-    panchayatId: number,
+    orgUnitId: number,
     data: {
       pole_id: number;
       complaint_type?: string;
@@ -91,14 +91,14 @@ export class CitizenService {
       where: { id: data.pole_id },
     });
     if (!pole) throw new NotFoundException(`Pole #${data.pole_id} not found`);
-    if (pole.panchayat_id !== panchayatId) {
+    if (pole.org_unit_id !== orgUnitId) {
       throw new ConflictException('Pole belongs to another panchayat');
     }
 
     return this.prisma.complaint.create({
       data: {
         pole_id: data.pole_id,
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         complaint_type: data.complaint_type?.trim() || 'citizen_reported',
         description: data.description?.trim() || null,
         urgency_level: data.urgency_level?.trim() || 'medium',
@@ -110,9 +110,9 @@ export class CitizenService {
     });
   }
 
-  async listComplaints(panchayatId: number) {
+  async listComplaints(orgUnitId: number) {
     return this.prisma.complaint.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
       include: {
         pole: true,

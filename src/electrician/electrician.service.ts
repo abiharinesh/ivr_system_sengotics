@@ -42,7 +42,7 @@ export class ElectricianService {
       },
       include: {
         pole: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -53,7 +53,7 @@ export class ElectricianService {
       where: { id: complaintId },
       include: {
         pole: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
         voice_call: {
           select: { id: true, transcript: true, transcript_english: true },
         },
@@ -76,7 +76,7 @@ export class ElectricianService {
     return this.prisma.complaint.update({
       where: { id: complaintId },
       data: { status: 'in_progress' },
-      include: { pole: true, panchayat: { select: { id: true, name: true } } },
+      include: { pole: true, org_unit: { select: { id: true, name: true } } },
     });
   }
 
@@ -190,7 +190,7 @@ export class ElectricianService {
       },
       include: {
         pole: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
     });
 

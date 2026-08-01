@@ -2480,7 +2480,7 @@ class _PipelineGridScreenState extends State<PipelineGridScreen> {
                 try {
                   await _repository.createPipeline({
                     'name': name,
-                    'panchayat_id': _panchayatId,
+                    'org_unit_id': _panchayatId,
                     'path_geojson': pathGeojson,
                     'diameter_mm': diameter,
                     'material': selectedMaterial,

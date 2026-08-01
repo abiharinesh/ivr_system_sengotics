@@ -22,16 +22,16 @@ export class PenaltyController {
 
   // ─── Penalty Rules ──────────────────────────────────────────────────────────
 
-  /** GET /penalties/rules?panchayat_id=1 */
+  /** GET /penalties/rules?org_unit_id=1 */
   @Get('rules')
-  async listRules(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.penaltyService.listRules(panchayatId);
+  async listRules(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.penaltyService.listRules(orgUnitId);
   }
 
   /** POST /penalties/rules */
   @Post('rules')
   async upsertRule(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     role: string;
     urgency_level: string;
     deadline_hours: number;
@@ -42,10 +42,10 @@ export class PenaltyController {
 
   // ─── Penalty Records ────────────────────────────────────────────────────────
 
-  /** GET /penalties?panchayat_id=1 */
+  /** GET /penalties?org_unit_id=1 */
   @Get()
-  async listPenalties(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.penaltyService.listPenaltiesByPanchayat(panchayatId);
+  async listPenalties(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.penaltyService.listPenaltiesByPanchayat(orgUnitId);
   }
 
   /** GET /penalties/user/:userId */
@@ -54,10 +54,10 @@ export class PenaltyController {
     return this.penaltyService.listPenaltiesByUser(userId);
   }
 
-  /** GET /penalties/summary?panchayat_id=1 */
+  /** GET /penalties/summary?org_unit_id=1 */
   @Get('summary')
-  async getSummary(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.penaltyService.getPenaltySummary(panchayatId);
+  async getSummary(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.penaltyService.getPenaltySummary(orgUnitId);
   }
 
   /** PUT /penalties/:id/waive */

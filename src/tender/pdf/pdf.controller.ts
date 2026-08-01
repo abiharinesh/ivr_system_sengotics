@@ -31,7 +31,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
@@ -76,11 +76,11 @@ export class TenderPdfController {
   ) {}
 
   private getPanchayatId(req: AuthenticatedRequest): number {
-    if (!req.user.panchayat_id)
+    if (!req.user.org_unit_id)
       throw new ForbiddenException(
         'Account is not associated with a panchayat',
       );
-    return req.user.panchayat_id;
+    return req.user.org_unit_id;
   }
 
   private clampTtl(raw: unknown): number {
@@ -104,7 +104,7 @@ export class TenderPdfController {
     } = {},
   ) {
     return this.service.generate({
-      panchayatId: this.getPanchayatId(req),
+      orgUnitId: this.getPanchayatId(req),
       tenderId: id,
       templateId,
       actorUserId: req.user.id,
@@ -165,15 +165,15 @@ export class TenderPdfController {
     @Query('format') format?: string,
   ) {
     try {
-      const panchayatId = this.getPanchayatId(req);
+      const orgUnitId = this.getPanchayatId(req);
       const doc = await this.prisma.tenderDocument.findUnique({
         where: { id: docId },
       });
       const tender = await this.prisma.tender.findUnique({
         where: { id },
-        include: { panchayat: { select: { name: true } } },
+        include: { org_unit: { select: { name: true } } },
       });
-      const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat');
+      const panchayat = slugify(tender?.org_unit?.name ?? 'panchayat');
       const template = slugify(doc?.template_id ?? 'document');
       const version = doc?.version ?? 1;
       const stamp = formatStamp(doc?.generated_at ?? new Date());
@@ -181,7 +181,7 @@ export class TenderPdfController {
       // Format-specific download (pdf | html | docx)
       if (format === 'pdf' || format === 'html' || format === 'docx') {
         const result = await this.service.getDocumentInFormat(
-          panchayatId,
+          orgUnitId,
           id,
           docId,
           format,
@@ -198,7 +198,7 @@ export class TenderPdfController {
 
       // Default: auto-detect from storage path
       const storagePath = await this.service.getDownloadStoragePath(
-        panchayatId,
+        orgUnitId,
         id,
         docId,
       );
@@ -252,7 +252,7 @@ export class TenderPdfController {
       throw new BadRequestException('html field is required');
     }
     return this.service.saveEditedHtml({
-      panchayatId: this.getPanchayatId(req),
+      orgUnitId: this.getPanchayatId(req),
       tenderId: id,
       docId,
       html: body.html,
@@ -277,7 +277,7 @@ export class TenderPdfController {
     @Body() body: { layers?: Array<Record<string, unknown>> } = {},
   ) {
     return this.service.saveCanvasState({
-      panchayatId: this.getPanchayatId(req),
+      orgUnitId: this.getPanchayatId(req),
       tenderId: id,
       docId,
       layers: body.layers ?? [],
@@ -293,7 +293,7 @@ export class TenderPdfController {
     @Body() body: { layers?: Array<Record<string, unknown>> } = {},
   ) {
     return this.service.mergeCanvasState({
-      panchayatId: this.getPanchayatId(req),
+      orgUnitId: this.getPanchayatId(req),
       tenderId: id,
       docId,
       layers: body.layers ?? [],
@@ -310,9 +310,9 @@ export class TenderPdfController {
     const pid = this.getPanchayatId(req);
     const tender = await this.prisma.tender.findUnique({
       where: { id },
-      include: { panchayat: { select: { name: true } } },
+      include: { org_unit: { select: { name: true } } },
     });
-    const panchayat = slugify(tender?.panchayat?.name ?? 'panchayat');
+    const panchayat = slugify(tender?.org_unit?.name ?? 'panchayat');
     const stamp = formatStamp(new Date());
     const zipName = `${panchayat}-${id}-documents-${stamp}.zip`;
     res.setHeader('Content-Type', 'application/zip');
@@ -328,11 +328,11 @@ export class TenderPdfController {
     @Param('docId', ParseIntPipe) docId: number,
     @Body() body: { ttl_minutes?: number } = {},
   ) {
-    const panchayatId = this.getPanchayatId(req);
+    const orgUnitId = this.getPanchayatId(req);
 
     // Verify ownership + readiness via the existing checked path resolver
     // (it throws Not Found / Forbidden / BadRequest in the right places).
-    await this.service.getDownloadStoragePath(panchayatId, id, docId);
+    await this.service.getDownloadStoragePath(orgUnitId, id, docId);
 
     const ttl = this.clampTtl(body?.ttl_minutes);
     const { token, expiresAt } = this.shareTokens.sign(
@@ -362,13 +362,13 @@ export class TenderPdfController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { ttl_minutes?: number } = {},
   ) {
-    const panchayatId = this.getPanchayatId(req);
+    const orgUnitId = this.getPanchayatId(req);
 
     // Ensure tender ownership before minting a zip link. Reuse `list`
     // which calls `ensureTenderOwned` internally.
     const tender = await this.prisma.tender.findUnique({ where: { id } });
     if (!tender) throw new NotFoundException('Tender not found');
-    if (tender.panchayat_id !== panchayatId) {
+    if (tender.org_unit_id !== orgUnitId) {
       throw new ForbiddenException('Tender belongs to another panchayat');
     }
 

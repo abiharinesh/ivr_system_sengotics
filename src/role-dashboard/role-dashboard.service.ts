@@ -8,20 +8,20 @@ export class RoleDashboardService {
   /**
    * Executive Summary for Municipal Commissioner
    */
-  async getCommissionerExecutiveSummary(panchayatId?: number) {
+  async getCommissionerExecutiveSummary(orgUnitId?: number) {
     const totalComplaints = await this.prisma.complaint.count({
-      where: panchayatId ? { panchayat_id: panchayatId } : undefined,
+      where: orgUnitId ? { org_unit_id: orgUnitId } : undefined,
     });
     const resolvedComplaints = await this.prisma.complaint.count({
       where: {
-        ...(panchayatId ? { panchayat_id: panchayatId } : {}),
+        ...(orgUnitId ? { org_unit_id: orgUnitId } : {}),
         status: { in: ['resolved', 'closed', 'RESOLVED', 'CLOSED'] },
       },
     });
 
     const activeTenders = await this.prisma.tender.count({
       where: {
-        ...(panchayatId ? { panchayat_id: panchayatId } : {}),
+        ...(orgUnitId ? { org_unit_id: orgUnitId } : {}),
         status: { in: ['PUBLISHED', 'EVALUATION', 'TECHNICAL_EVALUATION'] },
       },
     });
@@ -55,12 +55,12 @@ export class RoleDashboardService {
   /**
    * Capital Projects Summary for Municipal Engineer
    */
-  async getEngineeringCapitalProjects(panchayatId?: number) {
+  async getEngineeringCapitalProjects(orgUnitId?: number) {
     const totalPoles = await this.prisma.electricPole.count({
-      where: panchayatId ? { panchayat_id: panchayatId } : undefined,
+      where: orgUnitId ? { org_unit_id: orgUnitId } : undefined,
     }).catch(() => 156);
     const totalVendors = await this.prisma.vendor.count({
-      where: panchayatId ? { panchayat_id: panchayatId } : undefined,
+      where: orgUnitId ? { org_unit_id: orgUnitId } : undefined,
     }).catch(() => 6);
 
     return {
@@ -90,7 +90,7 @@ export class RoleDashboardService {
   /**
    * Consolidated Revenue Summary for Revenue Officer
    */
-  async getRevenueSummary(panchayatId?: number) {
+  async getRevenueSummary(orgUnitId?: number) {
     return {
       role: 'revenue_officer',
       title: 'Revenue Engine Overview',
@@ -118,7 +118,7 @@ export class RoleDashboardService {
   /**
    * Field Dispatches for Assistant & Junior Engineers
    */
-  async getFieldOpsDispatches(panchayatId?: number) {
+  async getFieldOpsDispatches(orgUnitId?: number) {
     return {
       role: 'assistant_engineer',
       title: 'Sub-Division Field Dispatches',

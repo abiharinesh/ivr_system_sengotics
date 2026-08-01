@@ -25,14 +25,14 @@ export class PanchayatAdminZoneController {
 
   @Get()
   listZones(@Req() req: any) {
-    const panchayatId = req.user?.panchayat_id;
-    if (!panchayatId) return [];
-    return this.zoneService.listByPanchayat(panchayatId);
+    const orgUnitId = req.user?.org_unit_id;
+    if (!orgUnitId) return [];
+    return this.zoneService.listByPanchayat(orgUnitId);
   }
 
   @Post()
   createZone(@Req() req: any, @Body() body: any) {
-    return this.zoneService.create(req.user.panchayat_id, body);
+    return this.zoneService.create(req.user.org_unit_id, body);
   }
 
   @Put(':id')
@@ -41,12 +41,12 @@ export class PanchayatAdminZoneController {
     @Param('id', ParseIntPipe) id: number,
     @Body() body: any,
   ) {
-    return this.zoneService.update(req.user.panchayat_id, id, body);
+    return this.zoneService.update(req.user.org_unit_id, id, body);
   }
 
   @Delete(':id')
   deleteZone(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
-    return this.zoneService.delete(req.user.panchayat_id, id);
+    return this.zoneService.delete(req.user.org_unit_id, id);
   }
 
   @Post('lookup-boundary')
@@ -67,36 +67,36 @@ export class SuperAdminZoneController {
     return this.zoneService.listAll();
   }
 
-  @Get(':panchayatId')
+  @Get(':orgUnitId')
   listZonesByPanchayat(
-    @Param('panchayatId', ParseIntPipe) panchayatId: number,
+    @Param('orgUnitId', ParseIntPipe) orgUnitId: number,
   ) {
-    return this.zoneService.listByPanchayat(panchayatId);
+    return this.zoneService.listByPanchayat(orgUnitId);
   }
 
-  @Post(':panchayatId')
+  @Post(':orgUnitId')
   createZone(
-    @Param('panchayatId', ParseIntPipe) panchayatId: number,
+    @Param('orgUnitId', ParseIntPipe) orgUnitId: number,
     @Body() body: any,
   ) {
-    return this.zoneService.create(panchayatId, body);
+    return this.zoneService.create(orgUnitId, body);
   }
 
-  @Put(':panchayatId/:id')
+  @Put(':orgUnitId/:id')
   updateZone(
-    @Param('panchayatId', ParseIntPipe) panchayatId: number,
+    @Param('orgUnitId', ParseIntPipe) orgUnitId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: any,
   ) {
-    return this.zoneService.update(panchayatId, id, body);
+    return this.zoneService.update(orgUnitId, id, body);
   }
 
-  @Delete(':panchayatId/:id')
+  @Delete(':orgUnitId/:id')
   deleteZone(
-    @Param('panchayatId', ParseIntPipe) panchayatId: number,
+    @Param('orgUnitId', ParseIntPipe) orgUnitId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.zoneService.delete(panchayatId, id);
+    return this.zoneService.delete(orgUnitId, id);
   }
 
   @Post('lookup-boundary')

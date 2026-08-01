@@ -3,87 +3,87 @@ import 'package:ivr_frontend/core/api/api_client.dart';
 class WaterRepository {
   final ApiClient _api = ApiClient.instance;
 
-  List<Map<String, dynamic>>? getCachedPipelines(int panchayatId) {
-    final cached = _api.getCached('/api/water-supply/pipelines', queryParams: {'panchayat_id': panchayatId});
+  List<Map<String, dynamic>>? getCachedPipelines(int orgUnitId) {
+    final cached = _api.getCached('/api/water-supply/pipelines', queryParams: {'org_unit_id': orgUnitId});
     if (cached == null) return null;
     final list = List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
-    if (list.isEmpty) return _mockPipelines(panchayatId);
+    if (list.isEmpty) return _mockPipelines(orgUnitId);
     return list;
   }
 
-  Future<List<Map<String, dynamic>>> getPipelines(int panchayatId, {bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getPipelines(int orgUnitId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/pipelines', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
+      final data = await _api.get('/api/water-supply/pipelines', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: forceRefresh);
       final list = List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
       if (list.isEmpty) {
-        return _mockPipelines(panchayatId);
+        return _mockPipelines(orgUnitId);
       }
       return list;
     } catch (e) {
-      return _mockPipelines(panchayatId);
+      return _mockPipelines(orgUnitId);
     }
   }
 
-  List<Map<String, dynamic>>? getCachedTanks(int panchayatId) {
-    final cached = _api.getCached('/api/water-supply/tanks', queryParams: {'panchayat_id': panchayatId});
+  List<Map<String, dynamic>>? getCachedTanks(int orgUnitId) {
+    final cached = _api.getCached('/api/water-supply/tanks', queryParams: {'org_unit_id': orgUnitId});
     if (cached == null) return null;
     final list = List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
-    if (list.isEmpty) return _mockTanks(panchayatId);
+    if (list.isEmpty) return _mockTanks(orgUnitId);
     return list;
   }
 
-  Future<List<Map<String, dynamic>>> getTanks(int panchayatId, {bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getTanks(int orgUnitId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/tanks', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
+      final data = await _api.get('/api/water-supply/tanks', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: forceRefresh);
       final list = List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
       if (list.isEmpty) {
-        return _mockTanks(panchayatId);
+        return _mockTanks(orgUnitId);
       }
       return list;
     } catch (e) {
-      return _mockTanks(panchayatId);
+      return _mockTanks(orgUnitId);
     }
   }
 
-  List<Map<String, dynamic>>? getCachedValves(int panchayatId) {
-    final cached = _api.getCached('/api/water-supply/valves', queryParams: {'panchayat_id': panchayatId});
+  List<Map<String, dynamic>>? getCachedValves(int orgUnitId) {
+    final cached = _api.getCached('/api/water-supply/valves', queryParams: {'org_unit_id': orgUnitId});
     if (cached == null) return null;
     final list = List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
-    if (list.isEmpty) return _mockValves(panchayatId);
+    if (list.isEmpty) return _mockValves(orgUnitId);
     return list;
   }
 
-  Future<List<Map<String, dynamic>>> getValves(int panchayatId, {bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getValves(int orgUnitId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/valves', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
+      final data = await _api.get('/api/water-supply/valves', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: forceRefresh);
       final list = List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
       if (list.isEmpty) {
-        return _mockValves(panchayatId);
+        return _mockValves(orgUnitId);
       }
       return list;
     } catch (e) {
-      return _mockValves(panchayatId);
+      return _mockValves(orgUnitId);
     }
   }
 
-  List<Map<String, dynamic>>? getCachedFlowLogs(int panchayatId) {
-    final cached = _api.getCached('/api/water-supply/flow-logs', queryParams: {'panchayat_id': panchayatId});
+  List<Map<String, dynamic>>? getCachedFlowLogs(int orgUnitId) {
+    final cached = _api.getCached('/api/water-supply/flow-logs', queryParams: {'org_unit_id': orgUnitId});
     if (cached == null) return null;
     final list = List<Map<String, dynamic>>.from((cached as List).map((e) => Map<String, dynamic>.from(e as Map)));
-    if (list.isEmpty) return _mockFlowLogs(panchayatId);
+    if (list.isEmpty) return _mockFlowLogs(orgUnitId);
     return list;
   }
 
-  Future<List<Map<String, dynamic>>> getFlowLogs(int panchayatId, {bool forceRefresh = false}) async {
+  Future<List<Map<String, dynamic>>> getFlowLogs(int orgUnitId, {bool forceRefresh = false}) async {
     try {
-      final data = await _api.get('/api/water-supply/flow-logs', queryParams: {'panchayat_id': panchayatId}, forceRefresh: forceRefresh);
+      final data = await _api.get('/api/water-supply/flow-logs', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: forceRefresh);
       final list = List<Map<String, dynamic>>.from((data as List).map((e) => Map<String, dynamic>.from(e as Map)));
       if (list.isEmpty) {
-        return _mockFlowLogs(panchayatId);
+        return _mockFlowLogs(orgUnitId);
       }
       return list;
     } catch (e) {
-      return _mockFlowLogs(panchayatId);
+      return _mockFlowLogs(orgUnitId);
     }
   }
 
@@ -144,12 +144,12 @@ class WaterRepository {
 
   // ── Mock Fallbacks ──────────────────────────────────────────────────
 
-  List<Map<String, dynamic>> _mockPipelines(int panchayatId) {
+  List<Map<String, dynamic>> _mockPipelines(int orgUnitId) {
     return [
       {
         'id': 1,
         'name': 'Annur-Coimbatore Main Trunk (Mock)',
-        'panchayat_id': panchayatId,
+        'org_unit_id': orgUnitId,
         'diameter_mm': 250.0,
         'material': 'Cast Iron',
         'status': 'leak_alert',
@@ -165,7 +165,7 @@ class WaterRepository {
       {
         'id': 2,
         'name': 'Annur-Tiruppur Secondary Conduit (Mock)',
-        'panchayat_id': panchayatId,
+        'org_unit_id': orgUnitId,
         'diameter_mm': 160.0,
         'material': 'HDPE',
         'status': 'active',
@@ -181,7 +181,7 @@ class WaterRepository {
       {
         'id': 3,
         'name': 'Alngkhal Distribution Grid (Mock)',
-        'panchayat_id': panchayatId,
+        'org_unit_id': orgUnitId,
         'diameter_mm': 110.0,
         'material': 'PVC',
         'status': 'active',
@@ -196,7 +196,7 @@ class WaterRepository {
     ];
   }
 
-  List<Map<String, dynamic>> _mockTanks(int panchayatId) {
+  List<Map<String, dynamic>> _mockTanks(int orgUnitId) {
     return [
       {
         'id': 1,
@@ -234,7 +234,7 @@ class WaterRepository {
     ];
   }
 
-  List<Map<String, dynamic>> _mockValves(int panchayatId) {
+  List<Map<String, dynamic>> _mockValves(int orgUnitId) {
     return [
       {
         'id': 1,
@@ -260,7 +260,7 @@ class WaterRepository {
     ];
   }
 
-  List<Map<String, dynamic>> _mockFlowLogs(int panchayatId) {
+  List<Map<String, dynamic>> _mockFlowLogs(int orgUnitId) {
     final now = DateTime.now();
     return List.generate(24, (index) {
       final time = now.subtract(Duration(hours: index));

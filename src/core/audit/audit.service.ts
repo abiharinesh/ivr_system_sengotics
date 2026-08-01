@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 
 export interface AuditEntry {
   tenantId: string;
-  branchId?: number;
+  orgUnitId?: number;
   userId?: number;
   module: string;
   entityType: string;
@@ -35,7 +35,7 @@ export class AuditService {
       await this.prisma.auditLog.create({
         data: {
           tenant_id: entry.tenantId,
-          branch_id: entry.branchId ?? null,
+          org_unit_id: entry.orgUnitId ?? null,
           user_id: entry.userId ?? null,
           module: entry.module,
           entity_type: entry.entityType,

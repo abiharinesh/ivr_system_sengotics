@@ -85,16 +85,16 @@ class SuperAdminRepository {
   }
 
   // ── Branch Branding ────────────────────────────────────────────────────
-  Future<Map<String, dynamic>> getBranchBranding(int branchId) async {
-    final data = await _api.get(ApiConfig.saBranding(branchId));
+  Future<Map<String, dynamic>> getBranchBranding(int orgUnitId) async {
+    final data = await _api.get(ApiConfig.saBranding(orgUnitId));
     return data as Map<String, dynamic>;
   }
 
   Future<Map<String, dynamic>> updateBranchBranding(
-    int branchId,
+    int orgUnitId,
     Map<String, dynamic> body,
   ) async {
-    final data = await _api.put(ApiConfig.saBranding(branchId), data: body);
+    final data = await _api.put(ApiConfig.saBranding(orgUnitId), data: body);
     return data as Map<String, dynamic>;
   }
 
@@ -129,8 +129,8 @@ class SuperAdminRepository {
         id: id,
         email: body['email'] as String? ?? 'admin@tn.gov.in',
         role: body['role'] as String? ?? 'panchayat_admin',
-        panchayatId: body['panchayat_id'] as int?,
-        panchayatName: body['panchayat_name'] as String? ?? 'Alandur Panchayat',
+        orgUnitId: body['org_unit_id'] as int?,
+        orgUnitName: body['org_unit_name'] as String? ?? 'Alandur Panchayat',
       );
     }
   }
@@ -142,11 +142,11 @@ class SuperAdminRepository {
   // ── Complaints ──────────────────────────────────────────────────────────
   List<ComplaintModel>? getCachedComplaints({
     String? status,
-    int? panchayatId,
+    int? orgUnitId,
   }) {
     final params = <String, dynamic>{};
     if (status != null) params['status'] = status;
-    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    if (orgUnitId != null) params['org_unit_id'] = orgUnitId.toString();
     final cached = _api.getCached(ApiConfig.saComplaints, queryParams: params.isEmpty ? null : params);
     if (cached == null) return null;
     return (cached as List).map((j) => ComplaintModel.fromJson(j)).toList();
@@ -154,12 +154,12 @@ class SuperAdminRepository {
 
   Future<List<ComplaintModel>> listComplaints({
     String? status,
-    int? panchayatId,
+    int? orgUnitId,
     bool forceRefresh = false,
   }) async {
     final params = <String, dynamic>{};
     if (status != null) params['status'] = status;
-    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    if (orgUnitId != null) params['org_unit_id'] = orgUnitId.toString();
     final data = await _api.get(ApiConfig.saComplaints, queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return (data as List).map((j) => ComplaintModel.fromJson(j)).toList();
   }
@@ -208,16 +208,16 @@ class SuperAdminRepository {
   }
 
   // ── Poles ───────────────────────────────────────────────────────────────
-  List<dynamic>? getCachedPoles({int? panchayatId}) {
+  List<dynamic>? getCachedPoles({int? orgUnitId}) {
     final params = <String, dynamic>{};
-    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    if (orgUnitId != null) params['org_unit_id'] = orgUnitId.toString();
     final cached = _api.getCached(ApiConfig.saPoles, queryParams: params.isEmpty ? null : params);
     return cached as List?;
   }
 
-  Future<List<dynamic>> listPoles({int? panchayatId, bool forceRefresh = false}) async {
+  Future<List<dynamic>> listPoles({int? orgUnitId, bool forceRefresh = false}) async {
     final params = <String, dynamic>{};
-    if (panchayatId != null) params['panchayat_id'] = panchayatId.toString();
+    if (orgUnitId != null) params['org_unit_id'] = orgUnitId.toString();
     final data = await _api.get(ApiConfig.saPoles, queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
     return data as List;
   }
@@ -289,22 +289,22 @@ class SuperAdminRepository {
     return data as Map<String, dynamic>;
   }
 
-  Future<List<dynamic>> listElectricians({int? panchayatId}) async {
+  Future<List<dynamic>> listElectricians({int? orgUnitId}) async {
     final data = await _api.get(
       ApiConfig.saElectricians,
-      queryParams: panchayatId != null ? {'panchayat_id': panchayatId.toString()} : null,
+      queryParams: orgUnitId != null ? {'org_unit_id': orgUnitId.toString()} : null,
     );
     return List<dynamic>.from(data as List);
   }
 
   Future<Map<String, dynamic>> createElectrician({
-    required int panchayatId,
+    required int orgUnitId,
     required String email,
     required String password,
     String? phoneE164,
   }) async {
     final data = await _api.post(ApiConfig.saElectricians, data: {
-      'panchayat_id': panchayatId,
+      'org_unit_id': orgUnitId,
       'email': email,
       'password': password,
       if (phoneE164 != null && phoneE164.isNotEmpty) 'phone_e164': phoneE164,
@@ -392,10 +392,10 @@ class SuperAdminRepository {
   }
 
   // ── RBAC: Roles ──────────────────────────────────────────────────────────
-  Future<List<dynamic>> listRoles({int? branchId}) async {
+  Future<List<dynamic>> listRoles({int? orgUnitId}) async {
     final data = await _api.get(
       '/api/superadmin/roles',
-      queryParams: branchId != null ? {'branch_id': branchId.toString()} : null,
+      queryParams: orgUnitId != null ? {'org_unit_id': orgUnitId.toString()} : null,
     );
     return List<dynamic>.from(data as List);
   }
@@ -423,13 +423,13 @@ class SuperAdminRepository {
   Future<Map<String, dynamic>> assignUserRole({
     required int userId,
     required int roleId,
-    required int branchId,
+    required int orgUnitId,
     bool isTemporary = false,
     String? validUntil,
   }) async {
     final data = await _api.post('/api/superadmin/users/$userId/roles', data: {
       'role_id': roleId,
-      'branch_id': branchId,
+      'org_unit_id': orgUnitId,
       'is_temporary': isTemporary,
       if (validUntil != null) 'valid_until': validUntil,
     });
@@ -441,16 +441,16 @@ class SuperAdminRepository {
   }
 
   // ── Branch Feature Config Toggles ───────────────────────────────────────
-  Future<Map<String, dynamic>> getFeatureConfig(int panchayatId) async {
-    final data = await _api.get('/api/superadmin/panchayats/$panchayatId/features');
+  Future<Map<String, dynamic>> getFeatureConfig(int orgUnitId) async {
+    final data = await _api.get('/api/superadmin/panchayats/$orgUnitId/features');
     return Map<String, dynamic>.from(data as Map);
   }
 
   Future<Map<String, dynamic>> updateFeatureConfig(
-    int panchayatId,
+    int orgUnitId,
     Map<String, dynamic> body,
   ) async {
-    final data = await _api.put('/api/superadmin/panchayats/$panchayatId/features', data: body);
+    final data = await _api.put('/api/superadmin/panchayats/$orgUnitId/features', data: body);
     return Map<String, dynamic>.from(data as Map);
   }
 }

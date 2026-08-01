@@ -202,7 +202,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
-                        user?.panchayatName ?? tagline,
+                        user?.orgUnitName ?? tagline,
                         style: TextStyle(
                           fontSize: 11,
                           color: AppTheme.textMuted,
@@ -430,7 +430,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  user?.panchayatName ?? widget.userEmail,
+                  user?.orgUnitName ?? widget.userEmail,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],

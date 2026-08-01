@@ -45,7 +45,7 @@ class _CommissionerDashboardScreenState
     final authState = context.watch<AuthBloc>().state;
     final user = authState is Authenticated ? authState.user : null;
     final softwareName = user?.dynamicSoftwareName ?? 'நகராட்சி குரல்';
-    final branchName = user?.panchayatName ?? '';
+    final branchName = user?.orgUnitName ?? '';
 
     return Container(
       padding: const EdgeInsets.all(24),

@@ -4,34 +4,34 @@
 
 class Vendor {
   final int id;
-  final int panchayatId;
+  final int orgUnitId;
   final String name;
   final String phoneE164;
   final String? place;
   final String? notes;
   final bool active;
-  final String? panchayatName;
+  final String? orgUnitName;
 
   const Vendor({
     required this.id,
-    required this.panchayatId,
+    required this.orgUnitId,
     required this.name,
     required this.phoneE164,
     this.place,
     this.notes,
     required this.active,
-    this.panchayatName,
+    this.orgUnitName,
   });
 
   factory Vendor.fromJson(Map<String, dynamic> j) => Vendor(
     id: j['id'] as int,
-    panchayatId: j['panchayat_id'] as int,
+    orgUnitId: j['org_unit_id'] as int,
     name: (j['name'] ?? '') as String,
     phoneE164: (j['phone_e164'] ?? '') as String,
     place: j['place'] as String?,
     notes: j['notes'] as String?,
     active: (j['active'] ?? true) as bool,
-    panchayatName: j['panchayat'] is Map ? (j['panchayat']['name'] as String?) : null,
+    orgUnitName: j['org_unit'] is Map ? (j['org_unit']['name'] as String?) : null,
   );
 }
 
@@ -348,7 +348,7 @@ class TenderSummary {
   final int invitesCount;
   final TenderQuotation? awarded;
   final VerificationProgress? verificationProgress;
-  final String? panchayatName;
+  final String? orgUnitName;
 
   const TenderSummary({
     required this.id,
@@ -363,7 +363,7 @@ class TenderSummary {
     required this.invitesCount,
     this.awarded,
     this.verificationProgress,
-    this.panchayatName,
+    this.orgUnitName,
   });
 
   factory TenderSummary.fromJson(Map<String, dynamic> j) {
@@ -399,7 +399,7 @@ class TenderSummary {
               }),
       verificationProgress:
           vpMap == null ? null : VerificationProgress.fromJson(vpMap),
-      panchayatName: j['panchayat'] is Map ? (j['panchayat']['name'] as String?) : null,
+      orgUnitName: j['org_unit'] is Map ? (j['org_unit']['name'] as String?) : null,
     );
   }
 }

@@ -21,9 +21,9 @@ export class PlumberOpsService {
   constructor(private readonly prisma: PrismaService) {}
 
   /** List plumbers in a specific panchayat (for panchayat admin). */
-  async listPlumbers(panchayatId: number) {
+  async listPlumbers(orgUnitId: number) {
     return this.prisma.user.findMany({
-      where: { primary_org_unit_id: panchayatId, role: 'plumber' },
+      where: { primary_org_unit_id: orgUnitId, role: 'plumber' },
       select: {
         id: true,
         email: true,
@@ -58,7 +58,7 @@ export class PlumberOpsService {
 
   /** Create a new plumber user for a panchayat. */
   async createPlumberForPanchayat(
-    panchayatId: number,
+    orgUnitId: number,
     data: { email: string; password: string; phone_e164?: string | null },
   ) {
     if (!data.password || data.password.length < 8) {
@@ -76,7 +76,7 @@ export class PlumberOpsService {
         email: data.email,
         password_hash,
         role: 'plumber',
-        primary_org_unit_id: panchayatId,
+        primary_org_unit_id: orgUnitId,
         phone_e164: data.phone_e164?.trim() || null,
       },
       select: {
@@ -154,7 +154,7 @@ export class PlumberOpsService {
    * Validates that the plumber belongs to the same panchayat.
    */
   async assignPlumber(
-    panchayatId: number,
+    orgUnitId: number,
     complaintId: number,
     plumberUserId: number,
   ) {
@@ -165,7 +165,7 @@ export class PlumberOpsService {
     if (!plumber || plumber.role !== 'plumber') {
       throw new BadRequestException('User is not a plumber');
     }
-    if (plumber.primary_org_unit_id !== panchayatId) {
+    if (plumber.primary_org_unit_id !== orgUnitId) {
       throw new ForbiddenException('Plumber belongs to another panchayat');
     }
 
@@ -174,7 +174,7 @@ export class PlumberOpsService {
     });
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (complaint.panchayat_id !== panchayatId) {
+    if (complaint.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
         'Access denied — complaint belongs to another panchayat',
       );

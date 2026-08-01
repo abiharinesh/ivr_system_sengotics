@@ -53,7 +53,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadPropertyTaxData(_panchayatId!, financialYear: _selectedYear));
       }
     }
@@ -140,7 +140,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreatePropertyEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'owner_name': ownerController.text.trim(),
                   'owner_phone': phoneController.text.trim(),
                   'door_number': doorController.text.trim(),
@@ -190,7 +190,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(GenerateDemandsEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   financialYear: yearController.text.trim(),
                   dueDate: dateController.text.trim(),
                 ));
@@ -251,7 +251,7 @@ class _PropertyTaxScreenState extends State<PropertyTaxScreen> with SingleTicker
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(RecordPaymentEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   paymentId: paymentId,
                   data: {
                     'paid_amount': double.tryParse(amountController.text) ?? 0.0,

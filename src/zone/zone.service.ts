@@ -38,25 +38,25 @@ export class ZoneService {
 
   // ── CRUD ───────────────────────────────────────────────────────────────
 
-  async listByPanchayat(panchayatId: number) {
+  async listByPanchayat(orgUnitId: number) {
     return this.prisma.panchayatZone.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
     });
   }
 
   async listAll() {
     return this.prisma.panchayatZone.findMany({
-      include: { panchayat: { select: { id: true, name: true } } },
+      include: { org_unit: { select: { id: true, name: true } } },
       orderBy: { created_at: 'desc' },
     });
   }
 
-  async create(panchayatId: number, dto: CreateZoneDto) {
+  async create(orgUnitId: number, dto: CreateZoneDto) {
     this.validateGeoJson(dto.boundary_geojson);
     return this.prisma.panchayatZone.create({
       data: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         name: dto.name,
         boundary_geojson: dto.boundary_geojson as any,
         color: dto.color ?? '#2563EB',
@@ -66,13 +66,13 @@ export class ZoneService {
     });
   }
 
-  async update(panchayatId: number, zoneId: number, dto: UpdateZoneDto) {
+  async update(orgUnitId: number, zoneId: number, dto: UpdateZoneDto) {
     const existing = await this.prisma.panchayatZone.findFirst({
-      where: { id: zoneId, panchayat_id: panchayatId },
+      where: { id: zoneId, org_unit_id: orgUnitId },
     });
     if (!existing) {
       throw new NotFoundException(
-        `Zone #${zoneId} not found in panchayat #${panchayatId}`,
+        `Zone #${zoneId} not found in panchayat #${orgUnitId}`,
       );
     }
 
@@ -95,13 +95,13 @@ export class ZoneService {
     });
   }
 
-  async delete(panchayatId: number, zoneId: number) {
+  async delete(orgUnitId: number, zoneId: number) {
     const existing = await this.prisma.panchayatZone.findFirst({
-      where: { id: zoneId, panchayat_id: panchayatId },
+      where: { id: zoneId, org_unit_id: orgUnitId },
     });
     if (!existing) {
       throw new NotFoundException(
-        `Zone #${zoneId} not found in panchayat #${panchayatId}`,
+        `Zone #${zoneId} not found in panchayat #${orgUnitId}`,
       );
     }
     await this.prisma.panchayatZone.delete({ where: { id: zoneId } });

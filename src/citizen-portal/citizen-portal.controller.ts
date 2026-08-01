@@ -25,7 +25,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -61,20 +61,20 @@ export class CitizenPortalController {
   @Roles('super_admin', 'panchayat_admin', 'i3c_staff')
   @Post('announcements')
   createAnnouncement(@Req() req: AuthenticatedRequest, @Body() dto: CreateAnnouncementDto) {
-    const branchId = dto.branchId ?? req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = dto.orgUnitId ?? req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Branch ID is required');
     }
     return this.service.createAnnouncement(
       req.user.tenant_id,
-      { ...dto, branchId },
+      { ...dto, orgUnitId },
       req.user.id,
     );
   }
 
   @Get('announcements')
-  listAnnouncements(@Req() req: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    const bId = branchId ? parseInt(branchId, 10) : req.user.panchayat_id;
+  listAnnouncements(@Req() req: AuthenticatedRequest, @Query('orgUnitId') orgUnitId?: string) {
+    const bId = orgUnitId ? parseInt(orgUnitId, 10) : req.user.org_unit_id;
     if (!bId) {
       throw new BadRequestException('Branch ID is required');
     }
@@ -85,21 +85,21 @@ export class CitizenPortalController {
 
   @Post('feedback')
   createFeedback(@Req() req: AuthenticatedRequest, @Body() dto: CreateFeedbackDto) {
-    const branchId = dto.branchId ?? req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = dto.orgUnitId ?? req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Branch ID is required');
     }
     return this.service.createFeedback(req.user.tenant_id, req.user.id, {
       ...dto,
-      branchId,
+      orgUnitId,
     });
   }
 
   @UseGuards(RolesGuard)
   @Roles('super_admin', 'panchayat_admin', 'i3c_staff')
   @Get('feedback')
-  listFeedback(@Req() req: AuthenticatedRequest, @Query('branchId') branchId?: string) {
-    const bId = branchId ? parseInt(branchId, 10) : req.user.panchayat_id;
+  listFeedback(@Req() req: AuthenticatedRequest, @Query('orgUnitId') orgUnitId?: string) {
+    const bId = orgUnitId ? parseInt(orgUnitId, 10) : req.user.org_unit_id;
     if (!bId) {
       throw new BadRequestException('Branch ID is required');
     }

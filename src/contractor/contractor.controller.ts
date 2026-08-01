@@ -23,7 +23,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -79,15 +79,15 @@ export class WorkOrderController {
 
   @Post()
   createWorkOrder(@Req() req: AuthenticatedRequest, @Body() dto: CreateWorkOrderDto) {
-    const branchId = dto.branchId ?? req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = dto.orgUnitId ?? req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Branch ID is required');
     }
     return this.service.createWorkOrder(
       req.user.tenant_id,
       {
         ...dto,
-        branchId,
+        orgUnitId,
         createdBy: req.user.id,
       },
       req.user.id,
@@ -100,15 +100,15 @@ export class WorkOrderController {
     @Query('status') status?: string,
     @Query('contractorId') contractorId?: string,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your user context has no branch associated');
     }
     const cid = contractorId ? parseInt(contractorId, 10) : undefined;
 
     return this.service.getWorkOrders(
       req.user.tenant_id,
-      branchId,
+      orgUnitId,
       req.user.access_scope,
       {
         status,

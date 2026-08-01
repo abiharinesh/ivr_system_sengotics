@@ -24,13 +24,13 @@ export class AdCampaignController {
 
   // ─── Public: Ad Serving (called from QR scan page) ───────────────────────────
 
-  /** GET /ad-campaigns/serve?pole_id=123&panchayat_id=1 */
+  /** GET /ad-campaigns/serve?pole_id=123&org_unit_id=1 */
   @Get('serve')
   async serveAd(
     @Query('pole_id', ParseIntPipe) poleId: number,
-    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('org_unit_id', ParseIntPipe) orgUnitId: number,
   ) {
-    const ad = await this.adCampaignService.getActiveAdForPole(poleId, panchayatId);
+    const ad = await this.adCampaignService.getActiveAdForPole(poleId, orgUnitId);
     if (!ad) return { ad: null };
     return {
       ad: {
@@ -65,10 +65,10 @@ export class AdCampaignController {
 
   // ─── Admin: Campaign Management ──────────────────────────────────────────────
 
-  /** GET /ad-campaigns?panchayat_id=1 */
+  /** GET /ad-campaigns?org_unit_id=1 */
   @Get()
-  async listCampaigns(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.adCampaignService.listCampaigns(panchayatId);
+  async listCampaigns(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.adCampaignService.listCampaigns(orgUnitId);
   }
 
   /** GET /ad-campaigns/:id */
@@ -86,7 +86,7 @@ export class AdCampaignController {
   /** POST /ad-campaigns */
   @Post()
   async createCampaign(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     advertiser_name: string;
     advertiser_phone?: string;
     title: string;

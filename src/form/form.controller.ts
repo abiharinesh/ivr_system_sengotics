@@ -19,7 +19,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -59,8 +59,8 @@ export class FormController {
       entity_id?: number;
     },
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your user context has no branch associated');
     }
     if (!body.data) {
@@ -68,7 +68,7 @@ export class FormController {
     }
     return this.service.submitForm(
       req.user.tenant_id,
-      branchId,
+      orgUnitId,
       id,
       req.user.id,
       body.data,

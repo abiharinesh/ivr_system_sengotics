@@ -31,7 +31,7 @@ class MapOverview extends StatefulWidget {
   final String faultMarkerAsset;
   final String activeMarkerAsset;
   final String inactiveMarkerAsset;
-  final int? panchayatId;
+  final int? orgUnitId;
 
   const MapOverview({
     super.key,
@@ -50,7 +50,7 @@ class MapOverview extends StatefulWidget {
     this.faultMarkerAsset = 'assets/map_markers/fault_red.png',
     this.activeMarkerAsset = 'assets/map_markers/active_green.png',
     this.inactiveMarkerAsset = 'assets/map_markers/inactive_yellow.png',
-    this.panchayatId,
+    this.orgUnitId,
   });
 
   @override
@@ -68,7 +68,7 @@ class _MapOverviewState extends State<MapOverview> {
   List<Map<String, dynamic>> _taps = [];
   Future<void> _loadWaterAssets() async {
     try {
-      final int pid = widget.panchayatId ?? await SecureStorageService.getPanchayatId() ?? 27;
+      final int pid = widget.orgUnitId ?? await SecureStorageService.getPanchayatId() ?? 27;
       final pipelines = await _waterRepository.getPipelines(pid);
       final capturedAssets = await _waterRepository.getCapturedAssets();
       final taps = capturedAssets.where((asset) =>

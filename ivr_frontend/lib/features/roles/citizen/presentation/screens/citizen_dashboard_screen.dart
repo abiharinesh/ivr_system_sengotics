@@ -66,7 +66,7 @@ class _CitizenDashboardViewState extends State<_CitizenDashboardView> {
       backgroundColor: AppTheme.bgDark,
       body: Column(
         children: [
-          _buildNavBar(context, currentUser?.email ?? 'Citizen', currentUser?.panchayatName ?? 'Panchayat'),
+          _buildNavBar(context, currentUser?.email ?? 'Citizen', currentUser?.orgUnitName ?? 'Panchayat'),
           Expanded(
             child: BlocListener<CitizenBloc, CitizenState>(
               listener: (context, state) {

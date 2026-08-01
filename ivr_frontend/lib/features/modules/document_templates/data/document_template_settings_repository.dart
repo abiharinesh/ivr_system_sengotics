@@ -42,13 +42,13 @@ class DocumentTemplateSettingsRepository {
     String templateId, {
     int? tenderId,
     int? vendorId,
-    int? panchayatId,
+    int? orgUnitId,
   }) async {
     final body = <String, dynamic>{};
     if (tenderId != null) body['tender_id'] = tenderId;
     if (vendorId != null) body['vendor_id'] = vendorId;
     if (isSuperAdmin) {
-      body['panchayat_id'] = panchayatId ?? 1;
+      body['org_unit_id'] = orgUnitId ?? 1;
     }
     return _api.postHtml('$_base/$templateId/preview', data: body);
   }

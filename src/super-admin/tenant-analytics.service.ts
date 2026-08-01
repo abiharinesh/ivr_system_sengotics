@@ -26,12 +26,12 @@ export class TenantAnalyticsService {
         where: { is_deleted: false },
       }),
       this.prisma.complaint.groupBy({
-        by: ['panchayat_id'],
+        by: ['org_unit_id'],
         _count: { _all: true },
       }),
     ]);
 
-    // Complaints are scoped by org_unit (panchayat_id), not tenant_id directly —
+    // Complaints are scoped by org_unit (org_unit_id), not tenant_id directly —
     // roll them up to tenant via each org unit's tenant_id.
     const orgUnits = await this.prisma.orgUnit.findMany({
       select: { id: true, tenant_id: true },
@@ -39,8 +39,8 @@ export class TenantAnalyticsService {
     const tenantByOrgUnit = new Map(orgUnits.map((o) => [o.id, o.tenant_id]));
     const complaintsPerTenant = new Map<string, number>();
     for (const row of complaintsByTenant) {
-      if (row.panchayat_id == null) continue;
-      const tenantId = tenantByOrgUnit.get(row.panchayat_id);
+      if (row.org_unit_id == null) continue;
+      const tenantId = tenantByOrgUnit.get(row.org_unit_id);
       if (!tenantId) continue;
       complaintsPerTenant.set(
         tenantId,

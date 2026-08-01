@@ -10,7 +10,7 @@ export class CreateInspectionTemplateDto {
 
 export class CreateFieldInspectionDto {
   templateId?: number;
-  branchId: number;
+  orgUnitId: number;
   inspectorUserId: number;
   assetId?: number;
   locationLat?: number;
@@ -93,7 +93,7 @@ export class InspectionService {
     const inspection = await this.prisma.fieldInspection.create({
       data: {
         tenant_id: tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         template_id: dto.templateId ?? null,
         inspector_user_id: dto.inspectorUserId,
         asset_id: dto.assetId ?? null,
@@ -114,21 +114,21 @@ export class InspectionService {
 
   async getInspections(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     accessScope: string,
     filters?: {
       templateId?: number;
       assetId?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_org_units'
-      ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
-      : [branchId];
+    const orgUnitIds = accessScope === 'child_org_units'
+      ? await this.hierarchy.getDescendantBranchIds(tenantId, orgUnitId)
+      : [orgUnitId];
 
     return this.prisma.fieldInspection.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: { in: branchIds },
+        org_unit_id: { in: orgUnitIds },
         ...(filters?.templateId && { template_id: filters.templateId }),
         ...(filters?.assetId && { asset_id: filters.assetId }),
       },

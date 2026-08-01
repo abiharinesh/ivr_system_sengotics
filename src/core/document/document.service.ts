@@ -6,7 +6,7 @@ import { PrismaService } from '../../prisma/prisma.service';
  */
 export interface FileUploadDto {
   tenantId: string;
-  branchId: number;
+  orgUnitId: number;
   title: string;
   fileName: string;
   buffer: Buffer;
@@ -66,7 +66,7 @@ export class DocumentService {
    */
   async upload(dto: FileUploadDto, parentDocId?: number): Promise<any> {
     const fileExtension = dto.fileName.split('.').pop() || '';
-    const uniqueKey = `${dto.tenantId}/${dto.branchId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
+    const uniqueKey = `${dto.tenantId}/${dto.orgUnitId}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExtension}`;
 
     // 1. Save to physical storage
     await this.storage.save(uniqueKey, dto.buffer);
@@ -86,7 +86,7 @@ export class DocumentService {
     const doc = await this.prisma.document.create({
       data: {
         tenant_id: dto.tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         folder_id: dto.folderId ?? null,
         title: dto.title,
         file_name: dto.fileName,

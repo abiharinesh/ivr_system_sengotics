@@ -6,7 +6,7 @@ class PoleModel extends Equatable {
   final String? keypadId;
   final double? latitude;
   final double? longitude;
-  final int? panchayatId;
+  final int? orgUnitId;
   final List<String> landmarks;
   final int complaintsCount;
   final Map<String, int> complaintStatusCounts;
@@ -17,7 +17,7 @@ class PoleModel extends Equatable {
     this.keypadId,
     this.latitude,
     this.longitude,
-    this.panchayatId,
+    this.orgUnitId,
     this.landmarks = const [],
     this.complaintsCount = 0,
     this.complaintStatusCounts = const {},
@@ -46,7 +46,7 @@ class PoleModel extends Equatable {
       keypadId: json['keypad_id'] as String?,
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      panchayatId: json['panchayat_id'] as int?,
+      orgUnitId: json['org_unit_id'] as int?,
       landmarks:
           (json['landmarks'] as List<dynamic>?)
               ?.map((e) => e.toString())

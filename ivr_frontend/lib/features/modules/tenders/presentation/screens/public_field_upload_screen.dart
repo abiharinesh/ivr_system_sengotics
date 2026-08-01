@@ -165,7 +165,7 @@ class _PublicFieldUploadScreenState extends State<PublicFieldUploadScreen> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                   Text(
-                    '${((session['panchayat'] ?? {}) as Map)['name']?.toString() ?? ''} • Tender #${session['tender_id']}',
+                    '${((session['org_unit'] ?? {}) as Map)['name']?.toString() ?? ''} • Tender #${session['tender_id']}',
                     style: const TextStyle(color: Colors.black54),
                   ),
                   if (session['expires_at'] != null)

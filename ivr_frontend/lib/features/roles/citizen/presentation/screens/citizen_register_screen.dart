@@ -107,7 +107,7 @@ class _CitizenRegisterScreenState extends State<CitizenRegisterScreen>
       final response = await _citizenRepository.registerCitizen(
         email: _emailController.text.trim(),
         password: _passwordController.text,
-        panchayatId: _selectedPanchayatId!,
+        orgUnitId: _selectedPanchayatId!,
         phone: _phoneController.text.trim(),
       );
 
@@ -117,7 +117,7 @@ class _CitizenRegisterScreenState extends State<CitizenRegisterScreen>
         role: response.user.role,
         email: response.user.email,
         userId: response.user.id,
-        panchayatId: response.user.panchayatId,
+        orgUnitId: response.user.orgUnitId,
       );
 
       if (!mounted) return;

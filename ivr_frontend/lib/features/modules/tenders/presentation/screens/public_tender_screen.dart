@@ -115,7 +115,7 @@ class _PublicTenderScreenState extends State<PublicTenderScreen> {
           }
           final data = snap.data!;
           final tender = (data['tender'] ?? {}) as Map<String, dynamic>;
-          final panchayat = (data['panchayat'] ?? {}) as Map<String, dynamic>;
+          final panchayat = (data['org_unit'] ?? {}) as Map<String, dynamic>;
           final timeline = (data['timeline'] ?? {}) as Map<String, dynamic>;
           final lineItems = ((data['line_items'] ?? []) as List).cast<Map<String, dynamic>>();
           final df = DateFormat.yMMMd();

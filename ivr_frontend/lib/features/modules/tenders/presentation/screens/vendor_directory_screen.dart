@@ -27,7 +27,7 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
   void _reload() {
     if (!mounted) return;
     setState(() {
-      _future = _repo.listVendors(panchayatId: _panchayatFilter);
+      _future = _repo.listVendors(orgUnitId: _panchayatFilter);
     });
   }
 
@@ -38,14 +38,14 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
     );
     if (result == null) return;
     try {
-      final pidStr = result['panchayat_id'];
+      final pidStr = result['org_unit_id'];
       final pid = pidStr != null && pidStr.isNotEmpty ? int.tryParse(pidStr) : null;
       await _repo.createVendor(
         name: result['name']!,
         phoneE164: result['phone']!,
         place: result['place'],
         notes: result['notes'],
-        panchayatId: pid,
+        orgUnitId: pid,
       );
       _reload();
     } catch (e) {
@@ -124,7 +124,7 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
               Expanded(
                 child: FutureBuilder<List<Vendor>>(
                   future: _future,
-                  initialData: _repo.getCachedVendors(panchayatId: _panchayatFilter),
+                  initialData: _repo.getCachedVendors(orgUnitId: _panchayatFilter),
                   builder: (context, snap) {
                     if (snap.connectionState == ConnectionState.waiting && !snap.hasData) {
                       return const AppLoadingState(
@@ -154,7 +154,7 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
                           title: Row(
                             children: [
                               Text(v.name),
-                              if (widget.isSuperAdmin && v.panchayatName != null) ...[
+                              if (widget.isSuperAdmin && v.orgUnitName != null) ...[
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -163,7 +163,7 @@ class _VendorDirectoryScreenState extends State<VendorDirectoryScreen> {
                                     borderRadius: BorderRadius.circular(4),
                                   ),
                                   child: Text(
-                                    v.panchayatName!,
+                                    v.orgUnitName!,
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.purple.shade700,
@@ -292,7 +292,7 @@ class _VendorDialogState extends State<_VendorDialog> {
             'phone': _phone.text.trim(),
             'place': _place.text.trim(),
             'notes': _notes.text.trim(),
-            'panchayat_id': _panchayatId?.toString() ?? '',
+            'org_unit_id': _panchayatId?.toString() ?? '',
           }),
           child: const Text('Add'),
         ),

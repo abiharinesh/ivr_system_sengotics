@@ -11,7 +11,7 @@ export class CertificateService {
   // ─── Certificate Application ───────────────────────────────────────────────
 
   async createRequest(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     certificate_type: string;
     applicant_name: string;
     applicant_phone?: string;
@@ -21,7 +21,7 @@ export class CertificateService {
   }) {
     return this.prisma.certificateRequest.create({
       data: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         certificate_type: data.certificate_type,
         applicant_name: data.applicant_name,
         applicant_phone: data.applicant_phone || null,
@@ -61,8 +61,8 @@ export class CertificateService {
     return request;
   }
 
-  async listRequestsByPanchayat(panchayatId: number, type?: string) {
-    const where: any = { panchayat_id: panchayatId };
+  async listRequestsByPanchayat(orgUnitId: number, type?: string) {
+    const where: any = { org_unit_id: orgUnitId };
     if (type) where.certificate_type = type;
 
     return this.prisma.certificateRequest.findMany({
@@ -117,7 +117,7 @@ export class CertificateService {
         payment_status: true,
         review_status: true,
         issued_at: true,
-        panchayat: { select: { name: true } },
+        org_unit: { select: { name: true } },
       },
     });
     if (!request) throw new NotFoundException('Certificate QR token is invalid or expired');

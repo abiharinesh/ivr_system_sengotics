@@ -45,7 +45,7 @@ describe('PenaltyService', () => {
     it('should upsert penalty rule for role and urgency level', async () => {
       mockPrisma.penaltyRule.upsert.mockResolvedValueOnce({
         id: 1,
-        panchayat_id: 10,
+        org_unit_id: 10,
         role: 'electrician',
         urgency_level: 'high',
         deadline_hours: 12,
@@ -53,7 +53,7 @@ describe('PenaltyService', () => {
       });
 
       const res = await service.upsertRule({
-        panchayat_id: 10,
+        org_unit_id: 10,
         role: 'electrician',
         urgency_level: 'high',
         deadline_hours: 12,

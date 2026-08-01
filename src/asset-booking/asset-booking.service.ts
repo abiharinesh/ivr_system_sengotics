@@ -9,9 +9,9 @@ export class AssetBookingService {
 
   // ─── Asset CRUD ─────────────────────────────────────────────────────────────
 
-  async listAssets(panchayatId: number) {
+  async listAssets(orgUnitId: number) {
     return this.prisma.panchayatAsset.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { name: 'asc' },
     });
   }
@@ -26,7 +26,7 @@ export class AssetBookingService {
   }
 
   async createAsset(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     name: string;
     asset_type: string;
     description?: string;
@@ -38,7 +38,7 @@ export class AssetBookingService {
   }) {
     return this.prisma.panchayatAsset.create({
       data: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         name: data.name,
         asset_type: data.asset_type,
         description: data.description || null,
@@ -184,9 +184,9 @@ export class AssetBookingService {
     });
   }
 
-  async getBookingsByPanchayat(panchayatId: number) {
+  async getBookingsByPanchayat(orgUnitId: number) {
     return this.prisma.assetBooking.findMany({
-      where: { asset: { panchayat_id: panchayatId } },
+      where: { asset: { org_unit_id: orgUnitId } },
       include: { asset: { select: { name: true, asset_type: true } } },
       orderBy: { start_date: 'desc' },
     });

@@ -17,7 +17,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -52,11 +52,11 @@ export class MunicipalityController {
     @Req() req: AuthenticatedRequest,
     @Param('featureKey') featureKey: string,
     @Body() body: any,
-    @Query('branch_id') branchIdQuery?: string,
+    @Query('org_unit_id') branchIdQuery?: string,
   ) {
-    const rawBranchId = branchIdQuery || body?.branch_id || req.user.panchayat_id;
-    const branchId = rawBranchId ? Number(rawBranchId) : null;
-    if (!branchId || isNaN(branchId)) {
+    const rawBranchId = branchIdQuery || body?.org_unit_id || req.user.org_unit_id;
+    const orgUnitId = rawBranchId ? Number(rawBranchId) : null;
+    if (!orgUnitId || isNaN(orgUnitId)) {
       throw new BadRequestException('Your user context has no branch associated');
     }
 
@@ -71,7 +71,7 @@ export class MunicipalityController {
 
     return this.service.recordTransaction(
       req.user.tenant_id,
-      branchId,
+      orgUnitId,
       feature,
       req.user.id,
       body,
@@ -82,11 +82,11 @@ export class MunicipalityController {
   getTransactions(
     @Req() req: AuthenticatedRequest,
     @Param('featureKey') featureKey: string,
-    @Query('branch_id') branchIdQuery?: string,
+    @Query('org_unit_id') branchIdQuery?: string,
   ) {
-    const rawBranchId = branchIdQuery || req.user.panchayat_id;
-    const branchId = rawBranchId ? Number(rawBranchId) : null;
-    if (!branchId || isNaN(branchId)) {
+    const rawBranchId = branchIdQuery || req.user.org_unit_id;
+    const orgUnitId = rawBranchId ? Number(rawBranchId) : null;
+    if (!orgUnitId || isNaN(orgUnitId)) {
       throw new BadRequestException('Your user context has no branch associated');
     }
 
@@ -95,7 +95,7 @@ export class MunicipalityController {
       throw new BadRequestException(`Invalid municipality feature key: ${featureKey}`);
     }
 
-    return this.service.getTransactions(req.user.tenant_id, branchId, feature);
+    return this.service.getTransactions(req.user.tenant_id, orgUnitId, feature);
   }
 }
 

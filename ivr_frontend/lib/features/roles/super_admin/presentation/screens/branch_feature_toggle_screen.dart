@@ -78,9 +78,9 @@ class _BranchFeatureToggleScreenState extends State<BranchFeatureToggleScreen> {
     }
   }
 
-  Future<void> _loadConfig(int panchayatId) async {
+  Future<void> _loadConfig(int orgUnitId) async {
     try {
-      final cfg = await _repo.getFeatureConfig(panchayatId);
+      final cfg = await _repo.getFeatureConfig(orgUnitId);
       setState(() { _config = cfg; });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

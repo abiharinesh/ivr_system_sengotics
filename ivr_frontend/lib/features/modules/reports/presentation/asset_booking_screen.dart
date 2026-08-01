@@ -52,7 +52,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadAssetBookings(_panchayatId!));
       }
     }
@@ -134,7 +134,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreateAssetEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'name': nameController.text.trim(),
                   'asset_type': typeController.text,
                   'description': descController.text.trim(),
@@ -240,7 +240,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(ConfirmBookingEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   bookingId: bookingId,
                   paymentRef: refController.text.trim(),
                 ));

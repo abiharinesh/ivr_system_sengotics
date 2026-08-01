@@ -7,7 +7,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -25,11 +25,11 @@ export class SyncController {
     @Req() req: AuthenticatedRequest,
     @Body() dto: SyncPayloadDto,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your user context has no branch associated');
     }
-    return this.service.processSyncUpload(req.user.tenant_id, branchId, req.user.id, dto);
+    return this.service.processSyncUpload(req.user.tenant_id, orgUnitId, req.user.id, dto);
   }
 
   @Get('delta')
@@ -37,13 +37,13 @@ export class SyncController {
     @Req() req: AuthenticatedRequest,
     @Query('lastSyncTime') lastSyncTime: string,
   ) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your user context has no branch associated');
     }
     if (!lastSyncTime) {
       throw new BadRequestException('lastSyncTime query parameter is required');
     }
-    return this.service.getSyncDelta(req.user.tenant_id, branchId, lastSyncTime);
+    return this.service.getSyncDelta(req.user.tenant_id, orgUnitId, lastSyncTime);
   }
 }

@@ -67,9 +67,9 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
     }
   }
 
-  Future<void> _loadVendorsForPanchayat(int panchayatId) async {
+  Future<void> _loadVendorsForPanchayat(int orgUnitId) async {
     try {
-      final vs = await _repo.listVendors(active: true, panchayatId: panchayatId);
+      final vs = await _repo.listVendors(active: true, orgUnitId: orgUnitId);
       if (!mounted) return;
       setState(() {
         _vendors = vs;
@@ -97,7 +97,7 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
         if (_anchorDate != null) 'anchor_date': _anchorDate!.toUtc().toIso8601String(),
         'invited_vendor_ids': _selectedVendorIds.toList(),
         'line_items': _lineItems.where((e) => e.hasContent).map((e) => e.toJson()).toList(),
-        if (widget.isSuperAdmin && _selectedPanchayatId != null) 'panchayat_id': _selectedPanchayatId,
+        if (widget.isSuperAdmin && _selectedPanchayatId != null) 'org_unit_id': _selectedPanchayatId,
       });
       if (!mounted) return;
       _justSaved = true;

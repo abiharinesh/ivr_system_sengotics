@@ -12,10 +12,10 @@ abstract class SAComplaintEvent extends Equatable {
 
 class LoadSAComplaints extends SAComplaintEvent {
   final String? status;
-  final int? panchayatId;
-  LoadSAComplaints({this.status, this.panchayatId});
+  final int? orgUnitId;
+  LoadSAComplaints({this.status, this.orgUnitId});
   @override
-  List<Object?> get props => [status, panchayatId];
+  List<Object?> get props => [status, orgUnitId];
 }
 
 class UpdateSAComplaintStatus extends SAComplaintEvent {
@@ -93,10 +93,10 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
     Emitter<SAComplaintState> emit,
   ) async {
     _currentFilter = event.status;
-    _currentPanchayatFilter = event.panchayatId;
+    _currentPanchayatFilter = event.orgUnitId;
     final cached = _repo.getCachedComplaints(
       status: event.status,
-      panchayatId: event.panchayatId,
+      orgUnitId: event.orgUnitId,
     );
     if (cached != null) {
       emit(SAComplaintLoaded(cached));
@@ -106,7 +106,7 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
     try {
       final data = await _repo.listComplaints(
         status: event.status,
-        panchayatId: event.panchayatId,
+        orgUnitId: event.orgUnitId,
         forceRefresh: cached == null,
       );
       emit(SAComplaintLoaded(data));
@@ -127,7 +127,7 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
       add(
         LoadSAComplaints(
           status: _currentFilter,
-          panchayatId: _currentPanchayatFilter,
+          orgUnitId: _currentPanchayatFilter,
         ),
       );
     } on ApiException catch (e) {
@@ -145,7 +145,7 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
       add(
         LoadSAComplaints(
           status: _currentFilter,
-          panchayatId: _currentPanchayatFilter,
+          orgUnitId: _currentPanchayatFilter,
         ),
       );
     } on ApiException catch (e) {
@@ -163,7 +163,7 @@ class SAComplaintBloc extends Bloc<SAComplaintEvent, SAComplaintState> {
       add(
         LoadSAComplaints(
           status: _currentFilter,
-          panchayatId: _currentPanchayatFilter,
+          orgUnitId: _currentPanchayatFilter,
         ),
       );
     } on ApiException catch (e) {

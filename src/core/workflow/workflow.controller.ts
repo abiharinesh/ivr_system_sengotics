@@ -19,7 +19,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -35,13 +35,13 @@ export class WorkflowController {
 
   @Post('templates')
   createTemplate(@Req() req: AuthenticatedRequest, @Body() body: any) {
-    const branchId = body.panchayat_id ?? req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = body.org_unit_id ?? req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Panchayat ID is required');
     }
     return this.service.createTemplate(req.user.tenant_id, {
       ...body,
-      panchayat_id: branchId,
+      org_unit_id: orgUnitId,
     });
   }
 
@@ -79,13 +79,13 @@ export class WorkflowController {
 
   @Get('pending')
   getPending(@Req() req: AuthenticatedRequest) {
-    const branchId = req.user.panchayat_id;
-    if (!branchId) {
+    const orgUnitId = req.user.org_unit_id;
+    if (!orgUnitId) {
       throw new BadRequestException('Your user context has no branch associated');
     }
     return this.service.getPendingForRole(
       req.user.tenant_id,
-      branchId,
+      orgUnitId,
       req.user.role,
     );
   }

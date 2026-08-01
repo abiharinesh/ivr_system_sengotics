@@ -248,8 +248,8 @@ class _TenderGridCardState extends State<TenderGridCard> {
                             ),
                           ),
                         ),
-                        if (t.panchayatName != null)
-                          _buildRow('Panchayat', t.panchayatName!),
+                        if (t.orgUnitName != null)
+                          _buildRow('Panchayat', t.orgUnitName!),
                       ],
                     ),
                   ),

@@ -22,10 +22,10 @@ export class AssetBookingController {
 
   // ─── Assets ────────────────────────────────────────────────────────────────
 
-  /** GET /asset-bookings/assets?panchayat_id=1 */
+  /** GET /asset-bookings/assets?org_unit_id=1 */
   @Get('assets')
-  async listAssets(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.assetBookingService.listAssets(panchayatId);
+  async listAssets(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.assetBookingService.listAssets(orgUnitId);
   }
 
   /** GET /asset-bookings/assets/:id */
@@ -37,7 +37,7 @@ export class AssetBookingController {
   /** POST /asset-bookings/assets */
   @Post('assets')
   async createAsset(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     name: string;
     asset_type: string;
     description?: string;
@@ -119,9 +119,9 @@ export class AssetBookingController {
     return this.assetBookingService.cancelBooking(id, body.cancellation_fee);
   }
 
-  /** GET /asset-bookings/list?panchayat_id=1 */
+  /** GET /asset-bookings/list?org_unit_id=1 */
   @Get('list')
-  async listBookings(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.assetBookingService.getBookingsByPanchayat(panchayatId);
+  async listBookings(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.assetBookingService.getBookingsByPanchayat(orgUnitId);
   }
 }

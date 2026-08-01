@@ -68,17 +68,17 @@ export class FieldVerificationService {
     return Number.isFinite(n) && n > 0 ? n : DEFAULT_RESOLUTION_RADIUS_M;
   }
 
-  private async ensureTender(panchayatId: number, tenderId: number) {
+  private async ensureTender(orgUnitId: number, tenderId: number) {
     const t = await this.prisma.tender.findUnique({ where: { id: tenderId } });
     if (!t) throw new NotFoundException(`Tender #${tenderId} not found`);
-    if (t.panchayat_id !== panchayatId)
+    if (t.org_unit_id !== orgUnitId)
       throw new ForbiddenException('Tender belongs to another panchayat');
     return t;
   }
 
   private async allowedPoleIdsForTender(
     tenderId: number,
-    panchayatId: number,
+    orgUnitId: number,
   ): Promise<Set<number>> {
     const lineItems = await this.prisma.tenderLineItem.findMany({
       where: { tender_id: tenderId, pole_id: { not: null } },
@@ -89,14 +89,14 @@ export class FieldVerificationService {
       .filter((n): n is number => n != null);
     if (ids.length === 0) return new Set();
     const poles = await this.prisma.electricPole.findMany({
-      where: { id: { in: ids }, panchayat_id: panchayatId },
+      where: { id: { in: ids }, org_unit_id: orgUnitId },
       select: { id: true },
     });
     return new Set(poles.map((p) => p.id));
   }
 
   async createSession(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: {
@@ -105,13 +105,13 @@ export class FieldVerificationService {
       expires_in_days?: number;
     },
   ) {
-    const t = await this.ensureTender(panchayatId, tenderId);
+    const t = await this.ensureTender(orgUnitId, tenderId);
     if (t.status === 'closed')
       throw new BadRequestException(
         'Cannot open verification on a closed tender',
       );
 
-    const allowed = await this.allowedPoleIdsForTender(tenderId, panchayatId);
+    const allowed = await this.allowedPoleIdsForTender(tenderId, orgUnitId);
     let subset = body.pole_subset_ids ?? [];
     if (body.pole_subset_ids !== undefined && subset.length === 0) {
       throw new BadRequestException(
@@ -185,8 +185,8 @@ export class FieldVerificationService {
     return session;
   }
 
-  listSessions(panchayatId: number, tenderId: number) {
-    return this.ensureTender(panchayatId, tenderId).then(() =>
+  listSessions(orgUnitId: number, tenderId: number) {
+    return this.ensureTender(orgUnitId, tenderId).then(() =>
       this.prisma.fieldVerificationSession.findMany({
         where: { tender_id: tenderId },
         orderBy: { id: 'desc' },
@@ -195,8 +195,8 @@ export class FieldVerificationService {
     );
   }
 
-  async getChecklist(panchayatId: number, tenderId: number) {
-    await this.ensureTender(panchayatId, tenderId);
+  async getChecklist(orgUnitId: number, tenderId: number) {
+    await this.ensureTender(orgUnitId, tenderId);
     return this.prisma.tenderFieldChecklistItem.findMany({
       where: { tender_id: tenderId },
       orderBy: { id: 'asc' },
@@ -205,7 +205,7 @@ export class FieldVerificationService {
   }
 
   async patchChecklistItem(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     itemId: number,
     actorUserId: number,
@@ -215,7 +215,7 @@ export class FieldVerificationService {
       notes?: string | null;
     },
   ) {
-    await this.ensureTender(panchayatId, tenderId);
+    await this.ensureTender(orgUnitId, tenderId);
     const item = await this.prisma.tenderFieldChecklistItem.findUnique({
       where: { id: itemId },
     });
@@ -258,13 +258,13 @@ export class FieldVerificationService {
   }
 
   async assignUpload(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     uploadId: number,
     actorUserId: number,
     body: { pole_id: number; approve?: boolean },
   ) {
-    await this.ensureTender(panchayatId, tenderId);
+    await this.ensureTender(orgUnitId, tenderId);
     const poleId = body.pole_id;
     if (!Number.isInteger(poleId)) {
       throw new BadRequestException('pole_id must be an integer');
@@ -278,7 +278,7 @@ export class FieldVerificationService {
       throw new NotFoundException(`Upload #${uploadId} not on this tender`);
     }
 
-    const allowed = await this.allowedPoleIdsForTender(tenderId, panchayatId);
+    const allowed = await this.allowedPoleIdsForTender(tenderId, orgUnitId);
     if (!allowed.has(poleId)) {
       throw new BadRequestException(
         `Pole #${poleId} is not linked to this tender`,
@@ -343,11 +343,11 @@ export class FieldVerificationService {
   }
 
   async confirmVerification(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
   ) {
-    const t = await this.ensureTender(panchayatId, tenderId);
+    const t = await this.ensureTender(orgUnitId, tenderId);
     if (t.status !== 'field_verification') {
       throw new BadRequestException(
         `Tender must be in field_verification (current: ${t.status})`,
@@ -456,7 +456,7 @@ export class FieldVerificationService {
       where: { token },
       include: {
         tender: {
-          include: { panchayat: { select: { id: true, name: true } } },
+          include: { org_unit: { select: { id: true, name: true } } },
         },
       },
     });
@@ -508,7 +508,7 @@ export class FieldVerificationService {
         label: session.label,
         expires_at: session.expires_at,
         tender_id: session.tender_id,
-        panchayat: session.tender.panchayat,
+        org_unit: session.tender.org_unit,
         upload_count: uploadCount,
       },
       poles,
@@ -692,7 +692,7 @@ export class FieldVerificationService {
           },
         })
       : this.prisma.electricPole.findMany({
-          where: { panchayat_id: session.tender.panchayat_id },
+          where: { org_unit_id: session.tender.org_unit_id },
           select: {
             id: true,
             latitude: true,

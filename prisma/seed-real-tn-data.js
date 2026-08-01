@@ -230,9 +230,9 @@ async function seedRealData() {
   for (const b of allBranches) {
     const isCorp = b.branch_type === 'MUNICIPAL_CORPORATION' || b.branch_type === 'MUNICIPALITY';
     await prisma.branchFeatureConfig.upsert({
-      where: { panchayat_id: b.id },
+      where: { org_unit_id: b.id },
       create: {
-        panchayat_id: b.id,
+        org_unit_id: b.id,
         street_light_mgmt: true,
         water_supply_mgmt: true,
         complaint_mgmt: true,
@@ -270,22 +270,22 @@ async function seedRealData() {
 async function upsertPanchayat(data) {
   let existing = null;
   if (data.branch_code) {
-    existing = await prisma.panchayat.findFirst({ where: { branch_code: data.branch_code } });
+    existing = await prisma.org_unit.findFirst({ where: { branch_code: data.branch_code } });
   }
   if (!existing && data.ivr_number) {
-    existing = await prisma.panchayat.findFirst({ where: { ivr_number: data.ivr_number } });
+    existing = await prisma.org_unit.findFirst({ where: { ivr_number: data.ivr_number } });
   }
   if (!existing && data.name) {
-    existing = await prisma.panchayat.findFirst({ where: { name: data.name } });
+    existing = await prisma.org_unit.findFirst({ where: { name: data.name } });
   }
 
   if (existing) {
-    return prisma.panchayat.update({
+    return prisma.org_unit.update({
       where: { id: existing.id },
       data: { ...data, tenant_id: TENANT_ID },
     });
   } else {
-    return prisma.panchayat.create({
+    return prisma.org_unit.create({
       data: { ...data, tenant_id: TENANT_ID },
     });
   }

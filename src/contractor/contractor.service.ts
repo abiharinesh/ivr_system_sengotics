@@ -16,7 +16,7 @@ export class CreateContractorDto {
 }
 
 export class CreateWorkOrderDto {
-  branchId: number;
+  orgUnitId: number;
   contractorId?: number;
   tenderId?: number;
   title: string;
@@ -141,12 +141,12 @@ export class ContractorService {
   // ── Work Order Operations ───────────────────────────────────────────────
 
   async createWorkOrder(tenantId: string, dto: CreateWorkOrderDto, userId?: number) {
-    const woNumber = await this.numberGen.next(tenantId, 'work_order', dto.branchId);
+    const woNumber = await this.numberGen.next(tenantId, 'work_order', dto.orgUnitId);
 
     const workOrder = await this.prisma.workOrder.create({
       data: {
         tenant_id: tenantId,
-        branch_id: dto.branchId,
+        org_unit_id: dto.orgUnitId,
         work_order_number: woNumber,
         contractor_id: dto.contractorId ?? null,
         tender_id: dto.tenderId ?? null,
@@ -177,21 +177,21 @@ export class ContractorService {
 
   async getWorkOrders(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     accessScope: string,
     filters?: {
       status?: string;
       contractorId?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_org_units'
-      ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
-      : [branchId];
+    const orgUnitIds = accessScope === 'child_org_units'
+      ? await this.hierarchy.getDescendantBranchIds(tenantId, orgUnitId)
+      : [orgUnitId];
 
     return this.prisma.workOrder.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: { in: branchIds },
+        org_unit_id: { in: orgUnitIds },
         ...(filters?.status && { status: filters.status }),
         ...(filters?.contractorId && { contractor_id: filters.contractorId }),
       },

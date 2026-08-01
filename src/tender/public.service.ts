@@ -31,7 +31,7 @@ export class TenderPublicService {
     if (!token?.trim()) throw new NotFoundException('Tender not found');
     const tender = await this.prisma.tender.findUnique({
       where: { public_token: token },
-      include: { panchayat: { select: { id: true, name: true } } },
+      include: { org_unit: { select: { id: true, name: true } } },
     });
     if (!tender) throw new NotFoundException('Tender not found');
     return tender;
@@ -49,7 +49,7 @@ export class TenderPublicService {
       include: {
         vendor: true,
         tender: {
-          include: { panchayat: { select: { id: true, name: true } } },
+          include: { org_unit: { select: { id: true, name: true } } },
         },
       },
     });
@@ -238,7 +238,7 @@ export class TenderPublicService {
         anchor_date: t.anchor_date,
         quotation_access_mode: t.quotation_access_mode,
       },
-      panchayat: t.panchayat,
+      org_unit: t.org_unit,
       line_items: shared.lineItems.map((li) => ({
         ...li,
         quantity: li.quantity != null ? String(li.quantity) : null,
@@ -284,7 +284,7 @@ export class TenderPublicService {
         anchor_date: invite.tender.anchor_date,
         quotation_access_mode: invite.tender.quotation_access_mode,
       },
-      panchayat: invite.tender.panchayat,
+      org_unit: invite.tender.org_unit,
       line_items: shared.lineItems.map((li) => ({
         ...li,
         quantity: li.quantity != null ? String(li.quantity) : null,
@@ -327,7 +327,7 @@ export class TenderPublicService {
 
     await this.enforceOpenAbuseGuards(t.id, args.ipAddress, phone);
     const stub = await this.vendors.upsertStubByPhone({
-      panchayatId: t.panchayat_id,
+      orgUnitId: t.org_unit_id,
       phoneE164: phone,
       name,
       place: null,
@@ -428,7 +428,7 @@ export class TenderPublicService {
         anchor_date: t.anchor_date,
         quotation_access_mode: t.quotation_access_mode,
       },
-      panchayat: t.panchayat,
+      org_unit: t.org_unit,
       line_items: shared.lineItems.map((li) => ({
         ...li,
         quantity: li.quantity != null ? String(li.quantity) : null,

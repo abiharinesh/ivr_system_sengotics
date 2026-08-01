@@ -32,13 +32,13 @@ export class PanchayatAdminService extends OrgScopedService {
 
   private async getBranchIdsScope(
     tenantId: string,
-    panchayatId: number,
+    orgUnitId: number,
     accessScope: string,
   ): Promise<number[]> {
     if (accessScope === 'child_org_units') {
-      return this.hierarchy.getDescendantBranchIds(tenantId, panchayatId);
+      return this.hierarchy.getDescendantBranchIds(tenantId, orgUnitId);
     }
-    return [panchayatId];
+    return [orgUnitId];
   }
 
   // ── Profile ────────────────────────────────────────────────────────────
@@ -83,10 +83,10 @@ export class PanchayatAdminService extends OrgScopedService {
 
     if (pid) {
       const [wardsCount, polesCount, pipelinesCount, resolvedCount, staffCount] = await Promise.all([
-        this.prisma.panchayatZone.count({ where: { panchayat_id: pid } }).catch(() => 0),
-        this.prisma.electricPole.count({ where: { panchayat_id: pid } }).catch(() => 0),
-        this.prisma.waterPipeline.count({ where: { panchayat_id: pid } }).catch(() => 0),
-        this.prisma.complaint.count({ where: { panchayat_id: pid, status: 'resolved' } }).catch(() => 0),
+        this.prisma.panchayatZone.count({ where: { org_unit_id: pid } }).catch(() => 0),
+        this.prisma.electricPole.count({ where: { org_unit_id: pid } }).catch(() => 0),
+        this.prisma.waterPipeline.count({ where: { org_unit_id: pid } }).catch(() => 0),
+        this.prisma.complaint.count({ where: { org_unit_id: pid, status: 'resolved' } }).catch(() => 0),
         this.prisma.user.count({
           where: { primary_org_unit_id: pid, role: { in: ['electrician', 'plumber', 'agent'] }, is_active: true },
         }).catch(() => 0),
@@ -113,7 +113,7 @@ export class PanchayatAdminService extends OrgScopedService {
       officer_name?: string;
       email?: string;
       phone?: string;
-      panchayat_name?: string;
+      org_unit_name?: string;
       photo_url?: string;
       // Branding & panchayat config fields
       logo_url?: string;
@@ -164,7 +164,7 @@ export class PanchayatAdminService extends OrgScopedService {
     // Update panchayat-level fields (name, branding, contact, etc.)
     if (user.primary_org_unit_id) {
       const panchayatUpdate: Record<string, any> = {};
-      if (data.panchayat_name) panchayatUpdate.name = data.panchayat_name.trim();
+      if (data.org_unit_name) panchayatUpdate.name = data.org_unit_name.trim();
       if (data.logo_url !== undefined) panchayatUpdate.logo_url = data.logo_url || null;
       if (data.secondary_logo_url !== undefined) panchayatUpdate.secondary_logo_url = data.secondary_logo_url || null;
       if (data.favicon_url !== undefined) panchayatUpdate.favicon_url = data.favicon_url || null;
@@ -201,9 +201,9 @@ export class PanchayatAdminService extends OrgScopedService {
 
   // ── Branding ────────────────────────────────────────────────────────────
 
-  async getBranding(panchayatId: number) {
+  async getBranding(orgUnitId: number) {
     const panchayat = await this.prisma.orgUnit.findUnique({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
       select: {
         id: true,
         name: true,
@@ -228,14 +228,14 @@ export class PanchayatAdminService extends OrgScopedService {
         welcome_audio_url: true,
       },
     });
-    if (!panchayat) throw new NotFoundException(`Panchayat #${panchayatId} not found`);
+    if (!panchayat) throw new NotFoundException(`Panchayat #${orgUnitId} not found`);
     return panchayat;
   }
 
   // ── Pole Management (scoped to their panchayat) ────────────────────────
 
   async createPole(
-    panchayatId: number,
+    orgUnitId: number,
     data: {
       pole_number?: string;
       keypad_id?: string;
@@ -251,7 +251,7 @@ export class PanchayatAdminService extends OrgScopedService {
         latitude: data.latitude,
         longitude: data.longitude,
         landmarks: data.landmarks ?? [],
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
       },
     });
 
@@ -266,10 +266,10 @@ export class PanchayatAdminService extends OrgScopedService {
     return pole;
   }
 
-  async listPoles(panchayatId: number, tenantId = 'default', accessScope = 'own_org_unit') {
-    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
+  async listPoles(orgUnitId: number, tenantId = 'default', accessScope = 'own_org_unit') {
+    const orgUnitIds = await this.getBranchIdsScope(tenantId, orgUnitId, accessScope);
     return this.prisma.electricPole.findMany({
-      where: { panchayat_id: { in: branchIds } },
+      where: { org_unit_id: { in: orgUnitIds } },
       include: {
         _count: { select: { complaints: true } },
         complaints: { select: { status: true } },
@@ -278,7 +278,7 @@ export class PanchayatAdminService extends OrgScopedService {
   }
 
   async updatePole(
-    panchayatId: number,
+    orgUnitId: number,
     poleId: number,
     data: {
       pole_number?: string;
@@ -293,7 +293,7 @@ export class PanchayatAdminService extends OrgScopedService {
     });
 
     if (!pole) throw new NotFoundException(`Pole #${poleId} not found`);
-    if (pole.panchayat_id !== panchayatId)
+    if (pole.org_unit_id !== orgUnitId)
       throw new ForbiddenException(
         'Access denied — pole belongs to another panchayat',
       );
@@ -315,13 +315,13 @@ export class PanchayatAdminService extends OrgScopedService {
     return updated;
   }
 
-  async deletePole(panchayatId: number, poleId: number) {
+  async deletePole(orgUnitId: number, poleId: number) {
     const pole = await this.prisma.electricPole.findUnique({
       where: { id: poleId },
     });
 
     if (!pole) throw new NotFoundException(`Pole #${poleId} not found`);
-    if (pole.panchayat_id !== panchayatId)
+    if (pole.org_unit_id !== orgUnitId)
       throw new ForbiddenException(
         'Access denied — pole belongs to another panchayat',
       );
@@ -332,10 +332,10 @@ export class PanchayatAdminService extends OrgScopedService {
 
   // ── Complaint Management (scoped to their panchayat) ──────────────────
 
-  async listComplaints(panchayatId: number, tenantId = 'default', accessScope = 'own_org_unit', status?: string) {
-    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
+  async listComplaints(orgUnitId: number, tenantId = 'default', accessScope = 'own_org_unit', status?: string) {
+    const orgUnitIds = await this.getBranchIdsScope(tenantId, orgUnitId, accessScope);
     return this.prisma.complaint.findMany({
-      where: { panchayat_id: { in: branchIds }, ...(status && { status }) },
+      where: { org_unit_id: { in: orgUnitIds }, ...(status && { status }) },
       include: {
         pole: true,
         voice_call: true,
@@ -349,7 +349,7 @@ export class PanchayatAdminService extends OrgScopedService {
   }
 
   async createComplaint(
-    panchayatId: number,
+    orgUnitId: number,
     data: {
       pole_id: number;
       complaint_type?: string;
@@ -363,7 +363,7 @@ export class PanchayatAdminService extends OrgScopedService {
       where: { id: data.pole_id },
     });
     if (!pole) throw new NotFoundException(`Pole #${data.pole_id} not found`);
-    if (pole.panchayat_id !== panchayatId) {
+    if (pole.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
         'Access denied — pole belongs to another panchayat',
       );
@@ -372,7 +372,7 @@ export class PanchayatAdminService extends OrgScopedService {
     const complaint = await this.prisma.complaint.create({
       data: {
         pole_id: data.pole_id,
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         complaint_type: data.complaint_type?.trim() || 'manual_reported',
         description: data.description?.trim() || null,
         urgency_level: data.urgency_level?.trim() || null,
@@ -386,11 +386,11 @@ export class PanchayatAdminService extends OrgScopedService {
       },
     });
 
-    return this.autoAssignComplaintRoundRobin(panchayatId, complaint.id);
+    return this.autoAssignComplaintRoundRobin(orgUnitId, complaint.id);
   }
 
   async updateComplaintStatus(
-    panchayatId: number,
+    orgUnitId: number,
     complaintId: number,
     status: string,
   ) {
@@ -402,7 +402,7 @@ export class PanchayatAdminService extends OrgScopedService {
 
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (complaint.panchayat_id !== panchayatId)
+    if (complaint.org_unit_id !== orgUnitId)
       throw new ForbiddenException(
         'Access denied — complaint belongs to another panchayat',
       );
@@ -430,7 +430,7 @@ export class PanchayatAdminService extends OrgScopedService {
    * Assign an open complaint to an electrician in the same panchayat.
    */
   async assignElectrician(
-    panchayatId: number,
+    orgUnitId: number,
     complaintId: number,
     electricianUserId: number,
   ) {
@@ -441,7 +441,7 @@ export class PanchayatAdminService extends OrgScopedService {
     if (!sparky || sparky.role !== 'electrician') {
       throw new BadRequestException('User is not an electrician');
     }
-    if (sparky.primary_org_unit_id !== panchayatId) {
+    if (sparky.primary_org_unit_id !== orgUnitId) {
       throw new ForbiddenException('Electrician belongs to another panchayat');
     }
 
@@ -450,7 +450,7 @@ export class PanchayatAdminService extends OrgScopedService {
     });
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (complaint.panchayat_id !== panchayatId) {
+    if (complaint.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
         'Access denied — complaint belongs to another panchayat',
       );
@@ -489,7 +489,7 @@ export class PanchayatAdminService extends OrgScopedService {
   }
 
   async autoAssignComplaintRoundRobin(
-    panchayatId: number,
+    orgUnitId: number,
     complaintId: number,
   ) {
     const complaint = await this.prisma.complaint.findUnique({
@@ -501,7 +501,7 @@ export class PanchayatAdminService extends OrgScopedService {
     });
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (complaint.panchayat_id !== panchayatId) {
+    if (complaint.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
         'Access denied — complaint belongs to another panchayat',
       );
@@ -511,20 +511,20 @@ export class PanchayatAdminService extends OrgScopedService {
     }
 
     const electricians = await this.prisma.user.findMany({
-      where: { role: 'electrician', primary_org_unit_id: panchayatId },
+      where: { role: 'electrician', primary_org_unit_id: orgUnitId },
       select: { id: true },
       orderBy: { id: 'asc' },
     });
     if (electricians.length === 0) {
       this.logger.warn(
-        `No electricians available for panchayat #${panchayatId}`,
+        `No electricians available for panchayat #${orgUnitId}`,
       );
       return complaint;
     }
 
     const latestAssignments = await this.prisma.complaint.findMany({
       where: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         assigned_electrician_id: { in: electricians.map((e) => e.id) },
         assigned_at: { not: null },
       },
@@ -555,7 +555,7 @@ export class PanchayatAdminService extends OrgScopedService {
     const selected = electricians[0];
     try {
       return await this.assignElectrician(
-        panchayatId,
+        orgUnitId,
         complaintId,
         selected.id,
       );
@@ -573,7 +573,7 @@ export class PanchayatAdminService extends OrgScopedService {
    * Auto-learns: saves the caller's landmark phrase to the pole.
    */
   async resolveComplaint(
-    panchayatId: number,
+    orgUnitId: number,
     complaintId: number,
     poleId: number,
   ) {
@@ -584,7 +584,7 @@ export class PanchayatAdminService extends OrgScopedService {
     });
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (complaint.panchayat_id !== panchayatId)
+    if (complaint.org_unit_id !== orgUnitId)
       throw new ForbiddenException(
         'Access denied — complaint belongs to another panchayat',
       );
@@ -599,7 +599,7 @@ export class PanchayatAdminService extends OrgScopedService {
       where: { id: poleId },
     });
     if (!pole) throw new NotFoundException(`Pole #${poleId} not found`);
-    if (pole.panchayat_id !== panchayatId)
+    if (pole.org_unit_id !== orgUnitId)
       throw new ForbiddenException(
         'Access denied — pole belongs to another panchayat',
       );
@@ -615,7 +615,7 @@ export class PanchayatAdminService extends OrgScopedService {
     await this.learnLandmark(complaint, pole);
 
     this.logger.log(`✅ Complaint #${complaintId} resolved → pole #${poleId}`);
-    return this.autoAssignComplaintRoundRobin(panchayatId, complaintId);
+    return this.autoAssignComplaintRoundRobin(orgUnitId, complaintId);
   }
 
   /** Learn new landmark phrases from resolved voice complaints. */
@@ -665,7 +665,7 @@ export class PanchayatAdminService extends OrgScopedService {
 
   // ── Stats (scoped to their panchayat) ─────────────────────────────────
 
-  async getDashboardInsights(panchayatId: number, tenantId = 'default', accessScope = 'own_org_unit') {
+  async getDashboardInsights(orgUnitId: number, tenantId = 'default', accessScope = 'own_org_unit') {
     const now = new Date();
     const currentWeekStart = utcMondayWeekStart(now);
     const lastWeekStart = new Date(currentWeekStart);
@@ -673,8 +673,8 @@ export class PanchayatAdminService extends OrgScopedService {
     const currentWeekEnd = new Date(currentWeekStart);
     currentWeekEnd.setUTCDate(currentWeekEnd.getUTCDate() + 7);
 
-    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
-    const scope = { panchayat_id: { in: branchIds } };
+    const orgUnitIds = await this.getBranchIdsScope(tenantId, orgUnitId, accessScope);
+    const scope = { org_unit_id: { in: orgUnitIds } };
     const trendOr = [
       { resolved_at: { gte: lastWeekStart, lt: currentWeekEnd } },
       {
@@ -770,20 +770,20 @@ export class PanchayatAdminService extends OrgScopedService {
     return { resolution_trend, by_category, recent_activity };
   }
 
-  async getStats(panchayatId: number, tenantId = 'default', accessScope = 'own_org_unit') {
-    const branchIds = await this.getBranchIdsScope(tenantId, panchayatId, accessScope);
+  async getStats(orgUnitId: number, tenantId = 'default', accessScope = 'own_org_unit') {
+    const orgUnitIds = await this.getBranchIdsScope(tenantId, orgUnitId, accessScope);
     const [total, pending, resolved, manual_review, poles] = await Promise.all([
-      this.prisma.complaint.count({ where: { panchayat_id: { in: branchIds } } }),
+      this.prisma.complaint.count({ where: { org_unit_id: { in: orgUnitIds } } }),
       this.prisma.complaint.count({
-        where: { panchayat_id: { in: branchIds }, status: 'pending' },
+        where: { org_unit_id: { in: orgUnitIds }, status: 'pending' },
       }),
       this.prisma.complaint.count({
-        where: { panchayat_id: { in: branchIds }, status: 'resolved' },
+        where: { org_unit_id: { in: orgUnitIds }, status: 'resolved' },
       }),
       this.prisma.complaint.count({
-        where: { panchayat_id: { in: branchIds }, status: 'manual_review' },
+        where: { org_unit_id: { in: orgUnitIds }, status: 'manual_review' },
       }),
-      this.prisma.electricPole.count({ where: { panchayat_id: { in: branchIds } } }),
+      this.prisma.electricPole.count({ where: { org_unit_id: { in: orgUnitIds } } }),
     ]);
     return {
       total_complaints: total,

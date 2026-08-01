@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
 
 class BranchGisDrawerScreen extends StatefulWidget {
-  final String branchId;
-  const BranchGisDrawerScreen({super.key, this.branchId = 'USL-BLK-12'});
+  final String orgUnitId;
+  const BranchGisDrawerScreen({super.key, this.orgUnitId = 'USL-BLK-12'});
 
   @override
   State<BranchGisDrawerScreen> createState() => _BranchGisDrawerScreenState();
@@ -91,7 +91,7 @@ class _BranchGisDrawerScreenState extends State<BranchGisDrawerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Spatial GIS Attributes — ${widget.branchId}',
+                  'Spatial GIS Attributes — ${widget.orgUnitId}',
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 4),

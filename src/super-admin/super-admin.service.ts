@@ -38,11 +38,11 @@ export class SuperAdminService {
     });
     if (!complaint)
       throw new NotFoundException(`Complaint #${complaintId} not found`);
-    if (!complaint.panchayat_id) {
+    if (!complaint.org_unit_id) {
       throw new BadRequestException('Complaint has no panchayat context');
     }
     return this.panchayatAdmin.assignElectrician(
-      complaint.panchayat_id,
+      complaint.org_unit_id,
       complaintId,
       electricianUserId,
     );
@@ -142,7 +142,7 @@ export class SuperAdminService {
     await this.prisma.branchLifecycleEvent.create({
       data: {
         tenant_id: branch.tenant_id,
-        branch_id: branch.id,
+        org_unit_id: branch.id,
         event_type: 'created',
         to_status: branch.branch_status,
         effective_date: new Date(),
@@ -265,7 +265,7 @@ export class SuperAdminService {
       await this.prisma.branchLifecycleEvent.create({
         data: {
           tenant_id: updated.tenant_id,
-          branch_id: updated.id,
+          org_unit_id: updated.id,
           event_type: 'status_changed',
           from_status: existing.branch_status,
           to_status: updated.branch_status,
@@ -313,25 +313,25 @@ export class SuperAdminService {
     'vehicle_fleet_mgmt', 'cemetery_mgmt', 'encroachment_mgmt',
   ]);
 
-  async getFeatureConfig(branchId: number) {
-    await this.ensurePanchayatExists(branchId);
+  async getFeatureConfig(orgUnitId: number) {
+    await this.ensurePanchayatExists(orgUnitId);
     let config = await this.prisma.branchFeatureConfig.findUnique({
-      where: { org_unit_id: branchId },
+      where: { org_unit_id: orgUnitId },
     });
     if (!config) {
       config = await this.prisma.branchFeatureConfig.create({
-        data: { org_unit_id: branchId },
+        data: { org_unit_id: orgUnitId },
       });
     }
     return config;
   }
 
-  async updateFeatureConfig(branchId: number, data: any) {
-    await this.ensurePanchayatExists(branchId);
+  async updateFeatureConfig(orgUnitId: number, data: any) {
+    await this.ensurePanchayatExists(orgUnitId);
 
     // Strip non-feature fields
     delete data.id;
-    delete data.panchayat_id;
+    delete data.org_unit_id;
     delete data.org_unit_id;
     delete data.created_at;
     delete data.updated_at;
@@ -355,7 +355,7 @@ export class SuperAdminService {
 
     // A branch may only enable a module its tenant's subscription ceiling allows.
     const branch = await this.prisma.orgUnit.findUnique({
-      where: { id: branchId },
+      where: { id: orgUnitId },
       select: { tenant_id: true },
     });
     const ceiling = branch
@@ -373,22 +373,22 @@ export class SuperAdminService {
 
     // Auto-create config if it doesn't exist
     const existing = await this.prisma.branchFeatureConfig.findUnique({
-      where: { org_unit_id: branchId },
+      where: { org_unit_id: orgUnitId },
     });
     if (!existing) {
       return this.prisma.branchFeatureConfig.create({
-        data: { org_unit_id: branchId, ...cleanData },
+        data: { org_unit_id: orgUnitId, ...cleanData },
       });
     }
 
     return this.prisma.branchFeatureConfig.update({
-      where: { org_unit_id: branchId },
+      where: { org_unit_id: orgUnitId },
       data: cleanData,
     });
   }
 
   /** Apply a feature template to multiple branches at once. */
-  async bulkUpdateFeatureConfig(branchIds: number[], data: Record<string, boolean>) {
+  async bulkUpdateFeatureConfig(orgUnitIds: number[], data: Record<string, boolean>) {
     const cleanData: Record<string, boolean> = {};
     for (const [key, value] of Object.entries(data)) {
       if (SuperAdminService.VALID_FEATURE_KEYS.has(key)) {
@@ -396,15 +396,15 @@ export class SuperAdminService {
       }
     }
 
-    const results: Array<{ branch_id: number; success: boolean; error?: string }> = [];
+    const results: Array<{ org_unit_id: number; success: boolean; error?: string }> = [];
 
-    for (const branchId of branchIds) {
+    for (const orgUnitId of orgUnitIds) {
       try {
-        await this.updateFeatureConfig(branchId, { ...cleanData });
-        results.push({ branch_id: branchId, success: true });
+        await this.updateFeatureConfig(orgUnitId, { ...cleanData });
+        results.push({ org_unit_id: orgUnitId, success: true });
       } catch (err) {
         results.push({
-          branch_id: branchId,
+          org_unit_id: orgUnitId,
           success: false,
           error: (err as Error).message,
         });
@@ -416,10 +416,10 @@ export class SuperAdminService {
 
   // ── Branch Lifecycle Events ──────────────────────────────────────────────
 
-  async getLifecycleEvents(tenantId: string, branchId: number) {
-    await this.ensurePanchayatExists(branchId);
+  async getLifecycleEvents(tenantId: string, orgUnitId: number) {
+    await this.ensurePanchayatExists(orgUnitId);
     return this.prisma.branchLifecycleEvent.findMany({
-      where: { tenant_id: tenantId, branch_id: branchId },
+      where: { tenant_id: tenantId, org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
     });
   }
@@ -438,18 +438,18 @@ export class SuperAdminService {
 
   // ── Poles (all) ────────────────────────────────────────────────────────
   async createPole(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     pole_number?: string;
     keypad_id?: string;
     latitude?: number;
     longitude?: number;
     landmarks?: string[];
   }) {
-    await this.ensurePanchayatExists(data.panchayat_id);
+    await this.ensurePanchayatExists(data.org_unit_id);
 
     const pole = await this.prisma.electricPole.create({
       data: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         pole_number: data.pole_number,
         keypad_id: data.keypad_id,
         latitude: data.latitude,
@@ -469,14 +469,14 @@ export class SuperAdminService {
     return pole;
   }
 
-  async listPoles(panchayatId?: number) {
+  async listPoles(orgUnitId?: number) {
     return this.prisma.electricPole.findMany({
       where: {
-        ...(panchayatId &&
-          !isNaN(panchayatId) && { panchayat_id: panchayatId }),
+        ...(orgUnitId &&
+          !isNaN(orgUnitId) && { org_unit_id: orgUnitId }),
       },
       include: {
-        panchayat: true,
+        org_unit: true,
         _count: { select: { complaints: true } },
         complaints: { select: { status: true } },
       },
@@ -487,7 +487,7 @@ export class SuperAdminService {
   async updatePole(
     poleId: number,
     data: {
-      panchayat_id?: number;
+      org_unit_id?: number;
       pole_number?: string;
       keypad_id?: string;
       latitude?: number;
@@ -500,8 +500,8 @@ export class SuperAdminService {
     });
     if (!existing) throw new NotFoundException(`Pole #${poleId} not found`);
 
-    if (data.panchayat_id) {
-      await this.ensurePanchayatExists(data.panchayat_id);
+    if (data.org_unit_id) {
+      await this.ensurePanchayatExists(data.org_unit_id);
     }
 
     const updated = await this.prisma.electricPole.update({
@@ -541,7 +541,7 @@ export class SuperAdminService {
   async createPanchayatAdmin(data: {
     email: string;
     password: string;
-    panchayat_id: number;
+    org_unit_id: number;
   }) {
     // Password strength check
     if (!data.password || data.password.length < 8) {
@@ -550,7 +550,7 @@ export class SuperAdminService {
       );
     }
 
-    await this.ensurePanchayatExists(data.panchayat_id);
+    await this.ensurePanchayatExists(data.org_unit_id);
 
     const existing = await this.prisma.user.findFirst({
       where: { email: data.email },
@@ -563,7 +563,7 @@ export class SuperAdminService {
         email: data.email,
         password_hash,
         role: 'panchayat_admin',
-        primary_org_unit_id: data.panchayat_id,
+        primary_org_unit_id: data.org_unit_id,
       },
       select: {
         id: true,
@@ -580,7 +580,7 @@ export class SuperAdminService {
     email: string;
     password: string;
     role: string;
-    panchayat_id: number;
+    org_unit_id: number;
     phone_e164?: string | null;
   }) {
     if (!STAFF_ROLES.includes(data.role as (typeof STAFF_ROLES)[number])) {
@@ -593,7 +593,7 @@ export class SuperAdminService {
         'Password must be at least 8 characters long',
       );
     }
-    await this.ensurePanchayatExists(data.panchayat_id);
+    await this.ensurePanchayatExists(data.org_unit_id);
     const existing = await this.prisma.user.findFirst({
       where: { email: data.email },
     });
@@ -604,7 +604,7 @@ export class SuperAdminService {
         email: data.email,
         password_hash,
         role: data.role,
-        primary_org_unit_id: data.panchayat_id,
+        primary_org_unit_id: data.org_unit_id,
         phone_e164: data.phone_e164?.trim() || null,
       },
       select: {
@@ -655,18 +655,18 @@ export class SuperAdminService {
 
   // ── Complaints (all) ───────────────────────────────────────────────────
 
-  async listComplaints(status?: string, panchayatId?: number) {
+  async listComplaints(status?: string, orgUnitId?: number) {
     if (status) validateComplaintStatus(status);
 
     return this.prisma.complaint.findMany({
       where: {
         ...(status && { status }),
-        ...(panchayatId &&
-          !isNaN(panchayatId) && { panchayat_id: panchayatId }),
+        ...(orgUnitId &&
+          !isNaN(orgUnitId) && { org_unit_id: orgUnitId }),
       },
       include: {
         pole: true,
-        panchayat: true,
+        org_unit: true,
         voice_call: true,
         assigned_electrician: { select: { id: true, email: true } },
       },
@@ -686,14 +686,14 @@ export class SuperAdminService {
       where: { id: data.pole_id },
     });
     if (!pole) throw new NotFoundException(`Pole #${data.pole_id} not found`);
-    if (!pole.panchayat_id) {
+    if (!pole.org_unit_id) {
       throw new BadRequestException('Selected pole has no panchayat context');
     }
 
     const complaint = await this.prisma.complaint.create({
       data: {
         pole_id: data.pole_id,
-        panchayat_id: pole.panchayat_id,
+        org_unit_id: pole.org_unit_id,
         complaint_type: data.complaint_type?.trim() || 'manual_reported',
         description: data.description?.trim() || null,
         urgency_level: data.urgency_level?.trim() || null,
@@ -703,13 +703,13 @@ export class SuperAdminService {
       },
       include: {
         pole: true,
-        panchayat: true,
+        org_unit: true,
         assigned_electrician: { select: { id: true, email: true } },
       },
     });
 
     return this.panchayatAdmin.autoAssignComplaintRoundRobin(
-      pole.panchayat_id,
+      pole.org_unit_id,
       complaint.id,
     );
   }
@@ -769,21 +769,21 @@ export class SuperAdminService {
       where: { id: complaintId },
       data: {
         pole_id: poleId,
-        panchayat_id: pole.panchayat_id,
+        org_unit_id: pole.org_unit_id,
         status: 'pending',
       },
-      include: { pole: true, panchayat: true },
+      include: { pole: true, org_unit: true },
     });
 
     // 4. Auto-learn: extract landmark from voice call and save to pole
     await this.learnLandmark(complaint, pole);
 
     this.logger.log(`✅ Complaint #${complaintId} resolved → pole #${poleId}`);
-    if (!pole.panchayat_id) {
+    if (!pole.org_unit_id) {
       return updated;
     }
     return this.panchayatAdmin.autoAssignComplaintRoundRobin(
-      pole.panchayat_id,
+      pole.org_unit_id,
       complaintId,
     );
   }
@@ -1178,11 +1178,11 @@ export class SuperAdminService {
 
   // ── RBAC: Roles ───────────────────────────────────────────────────────
 
-  async listRoles(tenantId = 'default', branchId?: number) {
+  async listRoles(tenantId = 'default', orgUnitId?: number) {
     return this.prisma.role.findMany({
       where: {
         tenant_id: tenantId,
-        ...(branchId != null && { org_unit_id: branchId }),
+        ...(orgUnitId != null && { org_unit_id: orgUnitId }),
       },
       include: {
         org_unit: { select: { id: true, name: true } },
@@ -1200,7 +1200,7 @@ export class SuperAdminService {
     permission_group_id?: number;
     inherits_from_role_id?: number;
     can_approve?: boolean;
-    branch_id?: number;
+    org_unit_id?: number;
     tenant_id?: string;
   }) {
     if (!data.name?.trim()) {
@@ -1209,8 +1209,8 @@ export class SuperAdminService {
     if (!data.display_name?.trim()) {
       throw new BadRequestException('Display name is required');
     }
-    if (data.branch_id) {
-      await this.ensurePanchayatExists(data.branch_id);
+    if (data.org_unit_id) {
+      await this.ensurePanchayatExists(data.org_unit_id);
     }
     return this.prisma.role.create({
       data: {
@@ -1223,7 +1223,7 @@ export class SuperAdminService {
         permission_group_id: data.permission_group_id ?? null,
         inherits_from_role_id: data.inherits_from_role_id ?? null,
         can_approve: data.can_approve ?? false,
-        org_unit_id: data.branch_id ?? null,
+        org_unit_id: data.org_unit_id ?? null,
       },
       include: {
         org_unit: { select: { id: true, name: true } },
@@ -1280,7 +1280,7 @@ export class SuperAdminService {
   async assignUserRole(data: {
     user_id: number;
     role_id: number;
-    branch_id: number;
+    org_unit_id: number;
     is_temporary?: boolean;
     valid_until?: string;
     granted_by?: number;
@@ -1298,14 +1298,14 @@ export class SuperAdminService {
     if (!role) throw new NotFoundException(`Role #${data.role_id} not found`);
 
     // Validate branch exists
-    await this.ensurePanchayatExists(data.branch_id);
+    await this.ensurePanchayatExists(data.org_unit_id);
 
     // Check for duplicate
     const existing = await this.prisma.userRole.findFirst({
       where: {
         user_id: data.user_id,
         role_id: data.role_id,
-        org_unit_id: data.branch_id,
+        org_unit_id: data.org_unit_id,
         department_id: null,
       },
     });
@@ -1319,7 +1319,7 @@ export class SuperAdminService {
       data: {
         user_id: data.user_id,
         role_id: data.role_id,
-        org_unit_id: data.branch_id,
+        org_unit_id: data.org_unit_id,
         is_temporary: data.is_temporary ?? false,
         valid_until: data.valid_until ? new Date(data.valid_until) : null,
         granted_by: data.granted_by ?? null,

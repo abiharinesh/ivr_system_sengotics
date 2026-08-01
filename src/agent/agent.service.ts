@@ -15,10 +15,10 @@ export class AgentService {
     private readonly files: LocalFilesService,
   ) {}
 
-  async listPoles(panchayatId: number, search?: string) {
+  async listPoles(orgUnitId: number, search?: string) {
     return this.prisma.electricPole.findMany({
       where: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         ...(search?.trim() && {
           OR: [
             { pole_number: { contains: search.trim(), mode: 'insensitive' } },
@@ -33,12 +33,12 @@ export class AgentService {
     });
   }
 
-  async getPole(panchayatId: number, poleId: number) {
+  async getPole(orgUnitId: number, poleId: number) {
     const pole = await this.prisma.electricPole.findUnique({
       where: { id: poleId },
     });
     if (!pole) throw new NotFoundException(`Pole #${poleId} not found`);
-    if (pole.panchayat_id !== panchayatId) {
+    if (pole.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
         'Access denied — pole belongs to another panchayat',
       );
@@ -47,7 +47,7 @@ export class AgentService {
   }
 
   async createPole(
-    panchayatId: number,
+    orgUnitId: number,
     _userId: number,
     data: {
       pole_number?: string;
@@ -64,7 +64,7 @@ export class AgentService {
         latitude: data.latitude,
         longitude: data.longitude,
         landmarks: data.landmarks ?? [],
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
       },
     });
     if (data.latitude != null && data.longitude != null) {
@@ -78,13 +78,13 @@ export class AgentService {
   }
 
   async attachPoleImage(
-    panchayatId: number,
+    orgUnitId: number,
     agentUserId: number,
     poleId: number,
     file: UploadedImageFile,
     geo: { latitude: number; longitude: number; capturedAt: Date },
   ) {
-    const pole = await this.getPole(panchayatId, poleId);
+    const pole = await this.getPole(orgUnitId, poleId);
     const url = await this.files.saveBuffer(
       'poles',
       file.buffer,
@@ -115,7 +115,7 @@ export class AgentService {
   }
 
   async createPoleWithImage(
-    panchayatId: number,
+    orgUnitId: number,
     agentUserId: number,
     data: {
       pole_number?: string;
@@ -128,13 +128,13 @@ export class AgentService {
     if (!data.keypad_id?.trim() && !data.pole_number?.trim()) {
       throw new BadRequestException('Provide keypad_id and/or pole_number');
     }
-    const pole = await this.createPole(panchayatId, agentUserId, {
+    const pole = await this.createPole(orgUnitId, agentUserId, {
       pole_number: data.pole_number,
       keypad_id: data.keypad_id,
       latitude: geo.latitude,
       longitude: geo.longitude,
       landmarks: data.landmarks,
     });
-    return this.attachPoleImage(panchayatId, agentUserId, pole.id, file, geo);
+    return this.attachPoleImage(orgUnitId, agentUserId, pole.id, file, geo);
   }
 }

@@ -51,7 +51,7 @@ class _CertificateReviewScreenState extends State<CertificateReviewScreen> {
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadCertificates(_panchayatId!, type: _selectedCategory));
       }
     }
@@ -94,7 +94,7 @@ class _CertificateReviewScreenState extends State<CertificateReviewScreen> {
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(ApproveCertificateEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   id: id,
                   data: {
                     'reviewer_notes': notesController.text.trim(),
@@ -134,7 +134,7 @@ class _CertificateReviewScreenState extends State<CertificateReviewScreen> {
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(RejectCertificateEvent(
-                  panchayatId: _panchayatId!,
+                  orgUnitId: _panchayatId!,
                   id: id,
                   notes: notesController.text.trim(),
                 ));

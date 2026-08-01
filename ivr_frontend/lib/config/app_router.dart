@@ -719,13 +719,13 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/admin/branches/:id/lifecycle',
             builder: (context, state) => BranchLifecycleScreen(
-              branchId: state.pathParameters['id'] ?? 'USL-BLK-12',
+              orgUnitId: state.pathParameters['id'] ?? 'USL-BLK-12',
             ),
           ),
           GoRoute(
             path: '/admin/branches/:id/gis',
             builder: (context, state) => BranchGisDrawerScreen(
-              branchId: state.pathParameters['id'] ?? 'USL-BLK-12',
+              orgUnitId: state.pathParameters['id'] ?? 'USL-BLK-12',
             ),
           ),
           GoRoute(

@@ -20,14 +20,14 @@ export class MunicipalityService {
   /**
    * Check if a specific municipality feature is enabled for the branch.
    */
-  async checkFeatureEnabled(branchId: number, feature: MunicipalityFeature): Promise<boolean> {
+  async checkFeatureEnabled(orgUnitId: number, feature: MunicipalityFeature): Promise<boolean> {
     const config = await this.prisma.branchFeatureConfig.findUnique({
-      where: { org_unit_id: branchId },
+      where: { org_unit_id: orgUnitId },
     });
 
     if (!config || !config[feature]) {
       throw new ForbiddenException(
-        `Feature "${feature}" is currently disabled for branch ID ${branchId}. Contact Super Admin for provisioning.`,
+        `Feature "${feature}" is currently disabled for branch ID ${orgUnitId}. Contact Super Admin for provisioning.`,
       );
     }
     return true;
@@ -39,13 +39,13 @@ export class MunicipalityService {
    */
   async recordTransaction(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     feature: MunicipalityFeature,
     userId: number,
     data: any,
   ) {
     // 1. Enforce feature gating check
-    await this.checkFeatureEnabled(branchId, feature);
+    await this.checkFeatureEnabled(orgUnitId, feature);
 
     // 2. Submit details to FormSubmission (re-using Phase 5 builder engine)
     // Find or create a default form template for the feature if it doesn't exist
@@ -69,7 +69,7 @@ export class MunicipalityService {
     const submission = await this.prisma.formSubmission.create({
       data: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         template_id: template.id,
         submitted_by: userId,
         data: data as any,
@@ -84,8 +84,8 @@ export class MunicipalityService {
   /**
    * List logged transactions for a specific municipality feature.
    */
-  async getTransactions(tenantId: string, branchId: number, feature: MunicipalityFeature) {
-    await this.checkFeatureEnabled(branchId, feature);
+  async getTransactions(tenantId: string, orgUnitId: number, feature: MunicipalityFeature) {
+    await this.checkFeatureEnabled(orgUnitId, feature);
 
     const template = await this.prisma.formTemplate.findFirst({
       where: { tenant_id: tenantId, code: `muni_${feature}` },
@@ -96,7 +96,7 @@ export class MunicipalityService {
     return this.prisma.formSubmission.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         template_id: template.id,
       },
       orderBy: { submitted_at: 'desc' },

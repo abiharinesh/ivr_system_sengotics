@@ -38,7 +38,7 @@ describe('MunicipalityService', () => {
   describe('checkFeatureEnabled', () => {
     it('should return true if feature is enabled', async () => {
       mockPrisma.branchFeatureConfig.findUnique.mockResolvedValueOnce({
-        panchayat_id: 1,
+        org_unit_id: 1,
         solid_waste_mgmt: true,
       });
 

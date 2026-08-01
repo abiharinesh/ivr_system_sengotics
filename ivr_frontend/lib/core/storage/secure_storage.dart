@@ -9,7 +9,7 @@ class SecureStorageService {
   static const _roleKey = 'user_role';
   static const _emailKey = 'user_email';
   static const _userIdKey = 'user_id';
-  static const _panchayatIdKey = 'panchayat_id';
+  static const _panchayatIdKey = 'org_unit_id';
   static const _userJsonKey = 'user_json';
 
   // Token
@@ -25,13 +25,13 @@ class SecureStorageService {
     required String role,
     required String email,
     required int userId,
-    int? panchayatId,
+    int? orgUnitId,
   }) async {
     await _storage.write(key: _roleKey, value: role);
     await _storage.write(key: _emailKey, value: email);
     await _storage.write(key: _userIdKey, value: userId.toString());
-    if (panchayatId != null) {
-      await _storage.write(key: _panchayatIdKey, value: panchayatId.toString());
+    if (orgUnitId != null) {
+      await _storage.write(key: _panchayatIdKey, value: orgUnitId.toString());
     }
   }
 

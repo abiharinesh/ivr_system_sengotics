@@ -22,23 +22,23 @@ export class WaterSupplyController {
   constructor(private readonly waterSupplyService: WaterSupplyService) {}
 
   @Get('pipelines')
-  async getPipelines(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.waterSupplyService.findPipelines(panchayatId);
+  async getPipelines(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.waterSupplyService.findPipelines(orgUnitId);
   }
 
   @Get('tanks')
-  async getTanks(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.waterSupplyService.findTanks(panchayatId);
+  async getTanks(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.waterSupplyService.findTanks(orgUnitId);
   }
 
   @Get('valves')
-  async getValves(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.waterSupplyService.findValves(panchayatId);
+  async getValves(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.waterSupplyService.findValves(orgUnitId);
   }
 
   @Get('flow-logs')
-  async getFlowLogs(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    const logs = await this.waterSupplyService.findFlowLogs(panchayatId);
+  async getFlowLogs(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    const logs = await this.waterSupplyService.findFlowLogs(orgUnitId);
     return logs.map((log) => ({
       ...log,
       id: Number(log.id),
@@ -67,7 +67,7 @@ export class WaterSupplyController {
     @Body()
     body: {
       name?: string;
-      panchayat_id: number;
+      org_unit_id: number;
       path_geojson: any;
       diameter_mm?: number;
       material?: string;

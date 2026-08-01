@@ -73,7 +73,7 @@ export class DbSetupService {
                 email TEXT UNIQUE,
                 password_hash TEXT,
                 role TEXT NOT NULL DEFAULT 'panchayat_admin',
-                panchayat_id INTEGER NULL,
+                org_unit_id INTEGER NULL,
                 phone_e164 TEXT NULL,
                 created_at TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
@@ -86,7 +86,7 @@ export class DbSetupService {
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT NOT NULL DEFAULT 'panchayat_admin';`,
     );
     await execSafe(
-      `ALTER TABLE users ADD COLUMN IF NOT EXISTS panchayat_id INTEGER;`,
+      `ALTER TABLE users ADD COLUMN IF NOT EXISTS org_unit_id INTEGER;`,
     );
     await execSafe(
       `ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_e164 TEXT;`,
@@ -105,7 +105,7 @@ export class DbSetupService {
                 ) THEN
                     ALTER TABLE users
                         ADD CONSTRAINT users_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                        FOREIGN KEY (org_unit_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
                 END IF;
             END $$;
         `);
@@ -153,7 +153,7 @@ export class DbSetupService {
     );
     await execSafe(`
             CREATE UNIQUE INDEX IF NOT EXISTS electric_poles_panchayat_id_keypad_id_key
-            ON electric_poles(panchayat_id, keypad_id);
+            ON electric_poles(org_unit_id, keypad_id);
         `);
     await execSafe(`
             DO $$
@@ -270,7 +270,7 @@ export class DbSetupService {
             CREATE TABLE IF NOT EXISTS export_jobs (
                 id SERIAL PRIMARY KEY,
                 created_by_user_id INTEGER NOT NULL,
-                panchayat_id INTEGER NULL,
+                org_unit_id INTEGER NULL,
                 electrician_user_id INTEGER NOT NULL,
                 range_from TIMESTAMP(3) NOT NULL,
                 range_to TIMESTAMP(3) NOT NULL,
@@ -304,7 +304,7 @@ export class DbSetupService {
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_jobs_panchayat_id_fkey') THEN
                     ALTER TABLE export_jobs
                         ADD CONSTRAINT export_jobs_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                        FOREIGN KEY (org_unit_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
                 END IF;
             END $$;
         `);
@@ -320,7 +320,7 @@ export class DbSetupService {
     await execSafe(`
             CREATE TABLE IF NOT EXISTS vendors (
                 id SERIAL PRIMARY KEY,
-                panchayat_id INTEGER NOT NULL,
+                org_unit_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 phone_e164 TEXT NOT NULL,
                 place TEXT,
@@ -330,16 +330,16 @@ export class DbSetupService {
             );
         `);
     await execSafe(
-      `CREATE UNIQUE INDEX IF NOT EXISTS vendors_panchayat_id_phone_e164_key ON vendors(panchayat_id, phone_e164);`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS vendors_panchayat_id_phone_e164_key ON vendors(org_unit_id, phone_e164);`,
     );
     await execSafe(
-      `CREATE INDEX IF NOT EXISTS vendors_panchayat_id_idx ON vendors(panchayat_id);`,
+      `CREATE INDEX IF NOT EXISTS vendors_panchayat_id_idx ON vendors(org_unit_id);`,
     );
 
     await execSafe(`
             CREATE TABLE IF NOT EXISTS tenders (
                 id SERIAL PRIMARY KEY,
-                panchayat_id INTEGER NOT NULL,
+                org_unit_id INTEGER NOT NULL,
                 status TEXT NOT NULL DEFAULT 'draft',
                 title_ta TEXT,
                 title_en TEXT,
@@ -369,7 +369,7 @@ export class DbSetupService {
       `CREATE UNIQUE INDEX IF NOT EXISTS tenders_awarded_quotation_id_key ON tenders(awarded_quotation_id);`,
     );
     await execSafe(
-      `CREATE INDEX IF NOT EXISTS tenders_panchayat_id_status_idx ON tenders(panchayat_id, status);`,
+      `CREATE INDEX IF NOT EXISTS tenders_panchayat_id_status_idx ON tenders(org_unit_id, status);`,
     );
 
     await execSafe(`
@@ -594,12 +594,12 @@ export class DbSetupService {
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'vendors_panchayat_id_fkey') THEN
                     ALTER TABLE vendors ADD CONSTRAINT vendors_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                        FOREIGN KEY (org_unit_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
                 END IF;
 
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenders_panchayat_id_fkey') THEN
                     ALTER TABLE tenders ADD CONSTRAINT tenders_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                        FOREIGN KEY (org_unit_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenders_created_by_user_id_fkey') THEN
                     ALTER TABLE tenders ADD CONSTRAINT tenders_created_by_user_id_fkey

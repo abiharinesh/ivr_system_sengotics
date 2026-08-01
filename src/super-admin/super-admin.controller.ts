@@ -178,7 +178,7 @@ export class SuperAdminController {
   createPole(
     @Body()
     body: {
-      panchayat_id: number;
+      org_unit_id: number;
       pole_number?: string;
       keypad_id?: string;
       latitude?: number;
@@ -190,10 +190,10 @@ export class SuperAdminController {
   }
 
   @Get('poles')
-  listPoles(@Query('panchayat_id') pid?: string) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+  listPoles(@Query('org_unit_id') pid?: string) {
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.superAdminService.listPoles(
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
     );
   }
 
@@ -202,7 +202,7 @@ export class SuperAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body()
     body: {
-      panchayat_id?: number;
+      org_unit_id?: number;
       pole_number?: string;
       keypad_id?: string;
       latitude?: number;
@@ -221,7 +221,7 @@ export class SuperAdminController {
   // ── Admin User Management ──────────────────────────────────────────────
   @Post('users')
   createPanchayatAdmin(
-    @Body() body: { email: string; password: string; panchayat_id: number },
+    @Body() body: { email: string; password: string; org_unit_id: number },
   ) {
     return this.superAdminService.createPanchayatAdmin(body);
   }
@@ -233,7 +233,7 @@ export class SuperAdminController {
       email: string;
       password: string;
       role: string;
-      panchayat_id: number;
+      org_unit_id: number;
       phone_e164?: string;
     },
   ) {
@@ -254,12 +254,12 @@ export class SuperAdminController {
   @Get('complaints')
   listComplaints(
     @Query('status') status?: string,
-    @Query('panchayat_id') pid?: string,
+    @Query('org_unit_id') pid?: string,
   ) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.superAdminService.listComplaints(
       status,
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
     );
   }
 
@@ -364,19 +364,19 @@ export class SuperAdminController {
     @Param('templateId') templateId: string,
     @Body()
     body: {
-      panchayat_id?: number;
+      org_unit_id?: number;
       tender_id?: number;
       vendor_id?: number;
     } = {},
     @Res() res: Response,
   ) {
     validateTemplateId(templateId);
-    const panchayatId = body.panchayat_id ?? 1;
-    if (!Number.isFinite(panchayatId) || panchayatId <= 0) {
-      throw new BadRequestException('panchayat_id is required for preview');
+    const orgUnitId = body.org_unit_id ?? 1;
+    if (!Number.isFinite(orgUnitId) || orgUnitId <= 0) {
+      throw new BadRequestException('org_unit_id is required for preview');
     }
     const html = await this.documentTemplateSettings.buildPreviewHtml(
-      Math.floor(panchayatId),
+      Math.floor(orgUnitId),
       templateId,
       { tender_id: body.tender_id, vendor_id: body.vendor_id },
     );
@@ -403,10 +403,10 @@ export class SuperAdminController {
 
   // ── Electricians & ZIP exports (global) ─────────────────────────────
   @Get('electricians')
-  listElectricians(@Query('panchayat_id') pid?: string) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+  listElectricians(@Query('org_unit_id') pid?: string) {
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.electricianOps.listAllElectricians(
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
     );
   }
 
@@ -414,14 +414,14 @@ export class SuperAdminController {
   createElectricianGlobal(
     @Body()
     body: {
-      panchayat_id: number;
+      org_unit_id: number;
       email: string;
       password: string;
       phone_e164?: string;
     },
   ) {
     return this.electricianOps.createElectricianForPanchayat(
-      body.panchayat_id,
+      body.org_unit_id,
       {
         email: body.email,
         password: body.password,
@@ -473,7 +473,7 @@ export class SuperAdminController {
     return this.electricianOps.getExportJob(jobId, {
       id: req.user?.id,
       role: req.user?.role,
-      panchayat_id: req.user?.panchayat_id,
+      org_unit_id: req.user?.org_unit_id,
     });
   }
 
@@ -486,7 +486,7 @@ export class SuperAdminController {
     const meta = await this.electricianOps.getExportJob(jobId, {
       id: req.user?.id,
       role: req.user?.role,
-      panchayat_id: req.user?.panchayat_id,
+      org_unit_id: req.user?.org_unit_id,
     });
     if (meta.status !== 'ready' || !meta.download_url) {
       throw new BadRequestException('Export not ready or failed');
@@ -499,10 +499,10 @@ export class SuperAdminController {
 
   // ── Plumbers (global) ──────────────────────────────────────────────────
   @Get('plumbers')
-  listPlumbers(@Query('panchayat_id') pid?: string) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+  listPlumbers(@Query('org_unit_id') pid?: string) {
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.plumberOps.listAllPlumbers(
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
     );
   }
 
@@ -510,14 +510,14 @@ export class SuperAdminController {
   createPlumberGlobal(
     @Body()
     body: {
-      panchayat_id: number;
+      org_unit_id: number;
       email: string;
       password: string;
       phone_e164?: string;
     },
   ) {
     return this.plumberOps.createPlumberForPanchayat(
-      body.panchayat_id,
+      body.org_unit_id,
       {
         email: body.email,
         password: body.password,
@@ -546,10 +546,10 @@ export class SuperAdminController {
   @Patch('complaints/:id/assign-plumber')
   assignPlumberSa(
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { plumber_user_id: number; panchayat_id: number },
+    @Body() body: { plumber_user_id: number; org_unit_id: number },
   ) {
     return this.plumberOps.assignPlumber(
-      body.panchayat_id,
+      body.org_unit_id,
       id,
       body.plumber_user_id,
     );
@@ -559,13 +559,13 @@ export class SuperAdminController {
   private async getTenderPanchayatId(tenderId: number): Promise<number> {
     const t = await this.prisma.tender.findUnique({ where: { id: tenderId } });
     if (!t) throw new NotFoundException(`Tender #${tenderId} not found`);
-    return t.panchayat_id;
+    return t.org_unit_id;
   }
 
   private async getVendorPanchayatId(vendorId: number): Promise<number> {
     const v = await this.prisma.vendor.findUnique({ where: { id: vendorId } });
     if (!v) throw new NotFoundException(`Vendor #${vendorId} not found`);
-    return v.panchayat_id;
+    return v.org_unit_id;
   }
 
   private clampTtl(raw: unknown): number {
@@ -580,21 +580,21 @@ export class SuperAdminController {
   // ── Vendor Management (Global) ───────────────────────────────────────────
   @Get('vendors')
   listVendors(
-    @Query('panchayat_id') pid?: string,
+    @Query('org_unit_id') pid?: string,
     @Query('active') active?: string,
   ) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.vendors.list(
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
       { active: active == null ? undefined : active === 'true' },
     );
   }
 
   @Post('vendors')
   createVendor(@Body() body: any) {
-    if (!body.panchayat_id)
-      throw new BadRequestException('panchayat_id is required');
-    return this.vendors.create(body.panchayat_id, body);
+    if (!body.org_unit_id)
+      throw new BadRequestException('org_unit_id is required');
+    return this.vendors.create(body.org_unit_id, body);
   }
 
   @Get('vendors/:id')
@@ -618,21 +618,21 @@ export class SuperAdminController {
   // ── Tender Management (Global) ───────────────────────────────────────────
   @Get('tenders')
   listTenders(
-    @Query('panchayat_id') pid?: string,
+    @Query('org_unit_id') pid?: string,
     @Query('status') status?: string,
   ) {
-    const panchayatId = pid ? parseInt(pid, 10) : undefined;
+    const orgUnitId = pid ? parseInt(pid, 10) : undefined;
     return this.tenders.list(
-      isNaN(panchayatId as number) ? undefined : panchayatId,
+      isNaN(orgUnitId as number) ? undefined : orgUnitId,
       { status },
     );
   }
 
   @Post('tenders')
   createTender(@Req() req: any, @Body() body: any) {
-    if (!body.panchayat_id)
-      throw new BadRequestException('panchayat_id is required');
-    return this.tenders.create(body.panchayat_id, req.user.id, body);
+    if (!body.org_unit_id)
+      throw new BadRequestException('org_unit_id is required');
+    return this.tenders.create(body.org_unit_id, req.user.id, body);
   }
 
   @Get('tenders/:id')
@@ -796,7 +796,7 @@ export class SuperAdminController {
   ) {
     const pid = await this.getTenderPanchayatId(id);
     return this.pdfService.generate({
-      panchayatId: pid,
+      orgUnitId: pid,
       tenderId: id,
       actorUserId: req.user.id,
       templateId,
@@ -859,9 +859,9 @@ export class SuperAdminController {
       });
       const tender = await this.prisma.tender.findUnique({
         where: { id },
-        include: { panchayat: { select: { name: true } } },
+        include: { org_unit: { select: { name: true } } },
       });
-      const panchayatName = slugify(tender?.panchayat?.name ?? 'panchayat');
+      const panchayatName = slugify(tender?.org_unit?.name ?? 'panchayat');
       const templateName = slugify(doc?.template_id ?? 'document');
       const version = doc?.version ?? 1;
       const stamp = formatStamp(doc?.generated_at ?? new Date());
@@ -932,7 +932,7 @@ export class SuperAdminController {
     }
     const pid = await this.getTenderPanchayatId(id);
     return this.pdfService.saveEditedHtml({
-      panchayatId: pid,
+      orgUnitId: pid,
       tenderId: id,
       docId,
       html: body.html,
@@ -958,7 +958,7 @@ export class SuperAdminController {
   ) {
     const pid = await this.getTenderPanchayatId(id);
     return this.pdfService.saveCanvasState({
-      panchayatId: pid,
+      orgUnitId: pid,
       tenderId: id,
       docId,
       layers: body.layers ?? [],
@@ -975,7 +975,7 @@ export class SuperAdminController {
   ) {
     const pid = await this.getTenderPanchayatId(id);
     return this.pdfService.mergeCanvasState({
-      panchayatId: pid,
+      orgUnitId: pid,
       tenderId: id,
       docId,
       layers: body.layers ?? [],
@@ -988,9 +988,9 @@ export class SuperAdminController {
     const pid = await this.getTenderPanchayatId(id);
     const tender = await this.prisma.tender.findUnique({
       where: { id },
-      include: { panchayat: { select: { name: true } } },
+      include: { org_unit: { select: { name: true } } },
     });
-    const panchayatName = slugify(tender?.panchayat?.name ?? 'panchayat');
+    const panchayatName = slugify(tender?.org_unit?.name ?? 'panchayat');
     const stamp = formatStamp(new Date());
     const zipName = `${panchayatName}-${id}-documents-${stamp}.zip`;
     res.setHeader('Content-Type', 'application/zip');
@@ -1146,8 +1146,8 @@ export class SuperAdminController {
 
   // ── RBAC: Roles ───────────────────────────────────────────────────────
   @Get('roles')
-  listRoles(@Query('branch_id') branchId?: string) {
-    const bid = branchId ? parseInt(branchId, 10) : undefined;
+  listRoles(@Query('org_unit_id') orgUnitId?: string) {
+    const bid = orgUnitId ? parseInt(orgUnitId, 10) : undefined;
     return this.superAdminService.listRoles(
       'default',
       isNaN(bid as number) ? undefined : bid,
@@ -1185,7 +1185,7 @@ export class SuperAdminController {
     @Body()
     body: {
       role_id: number;
-      branch_id: number;
+      org_unit_id: number;
       is_temporary?: boolean;
       valid_until?: string;
     },
@@ -1193,7 +1193,7 @@ export class SuperAdminController {
     return this.superAdminService.assignUserRole({
       user_id: userId,
       role_id: body.role_id,
-      branch_id: body.branch_id,
+      org_unit_id: body.org_unit_id,
       is_temporary: body.is_temporary,
       valid_until: body.valid_until,
       granted_by: req.user?.id,

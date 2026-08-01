@@ -201,13 +201,13 @@ class TemplateSettingsEntry {
       global: json['global'] is Map
           ? DocumentTemplateConfig.fromJson(json['global'] as Map<String, dynamic>)
           : null,
-      panchayatOverride: json['panchayat_override'] is Map
+      panchayatOverride: json['org_unit_override'] is Map
           ? DocumentTemplateConfig.fromJson(
-              json['panchayat_override'] as Map<String, dynamic>,
+              json['org_unit_override'] as Map<String, dynamic>,
             )
           : null,
       hasGlobal: sources['global'] == true,
-      hasPanchayat: sources['panchayat'] == true,
+      hasPanchayat: sources['org_unit'] == true,
     );
   }
 }

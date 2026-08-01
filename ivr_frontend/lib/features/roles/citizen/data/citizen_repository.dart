@@ -15,7 +15,7 @@ class CitizenRepository {
   Future<AuthResponse> registerCitizen({
     required String email,
     required String password,
-    required int panchayatId,
+    required int orgUnitId,
     String? phone,
   }) async {
     final data = await _api.post(
@@ -23,7 +23,7 @@ class CitizenRepository {
       data: {
         'email': email,
         'password_hash': password, // Backend hashes this string
-        'panchayat_id': panchayatId,
+        'org_unit_id': orgUnitId,
         if (phone != null && phone.isNotEmpty) 'phone_e164': phone,
       },
     );

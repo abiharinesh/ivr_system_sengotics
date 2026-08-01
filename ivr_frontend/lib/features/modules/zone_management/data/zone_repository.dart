@@ -12,9 +12,9 @@ class ZoneRepository {
   String get _basePath => isSuperAdmin ? '/api/superadmin/zones' : '/api/admin/zones';
 
   /// Synchronously retrieve cached zones if available
-  List<ZoneModel>? getCachedZones({int? panchayatId}) {
-    final path = isSuperAdmin && panchayatId != null
-        ? '$_basePath/$panchayatId'
+  List<ZoneModel>? getCachedZones({int? orgUnitId}) {
+    final path = isSuperAdmin && orgUnitId != null
+        ? '$_basePath/$orgUnitId'
         : _basePath;
     final cached = _api.getCached(path);
     if (cached == null) return null;
@@ -24,9 +24,9 @@ class ZoneRepository {
   }
 
   /// List all zones for the current user's scope.
-  Future<List<ZoneModel>> listZones({int? panchayatId, bool forceRefresh = false}) async {
-    final path = isSuperAdmin && panchayatId != null
-        ? '$_basePath/$panchayatId'
+  Future<List<ZoneModel>> listZones({int? orgUnitId, bool forceRefresh = false}) async {
+    final path = isSuperAdmin && orgUnitId != null
+        ? '$_basePath/$orgUnitId'
         : _basePath;
     final resp = await _api.get(path, forceRefresh: forceRefresh);
     return (resp as List)
@@ -41,10 +41,10 @@ class ZoneRepository {
     String? color,
     double? opacity,
     List<String>? places,
-    int? panchayatId,
+    int? orgUnitId,
   }) async {
-    final path = isSuperAdmin && panchayatId != null
-        ? '$_basePath/$panchayatId'
+    final path = isSuperAdmin && orgUnitId != null
+        ? '$_basePath/$orgUnitId'
         : _basePath;
     final resp = await _api.post(path, data: {
       'name': name,
@@ -65,10 +65,10 @@ class ZoneRepository {
     double? opacity,
     List<String>? places,
     bool? isActive,
-    int? panchayatId,
+    int? orgUnitId,
   }) async {
-    final path = isSuperAdmin && panchayatId != null
-        ? '$_basePath/$panchayatId/$zoneId'
+    final path = isSuperAdmin && orgUnitId != null
+        ? '$_basePath/$orgUnitId/$zoneId'
         : '$_basePath/$zoneId';
     final resp = await _api.put(path, data: {
       if (name != null) 'name': name,
@@ -82,9 +82,9 @@ class ZoneRepository {
   }
 
   /// Delete a zone.
-  Future<void> deleteZone(int zoneId, {int? panchayatId}) async {
-    final path = isSuperAdmin && panchayatId != null
-        ? '$_basePath/$panchayatId/$zoneId'
+  Future<void> deleteZone(int zoneId, {int? orgUnitId}) async {
+    final path = isSuperAdmin && orgUnitId != null
+        ? '$_basePath/$orgUnitId/$zoneId'
         : '$_basePath/$zoneId';
     await _api.delete(path);
   }

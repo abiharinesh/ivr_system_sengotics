@@ -15,10 +15,10 @@ class TenderRepository {
   String get _base => isSuperAdmin ? '/api/superadmin' : '/api/admin';
 
   // ── Vendors ─────────────────────────────────────────────────────────
-  List<Vendor>? getCachedVendors({bool? active, int? panchayatId}) {
+  List<Vendor>? getCachedVendors({bool? active, int? orgUnitId}) {
     final params = <String, dynamic>{
       if (active != null) 'active': active.toString(),
-      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+      if (orgUnitId != null) 'org_unit_id': orgUnitId.toString(),
     };
     final cached = _api.getCached('$_base/vendors',
         queryParams: params.isEmpty ? null : params);
@@ -28,10 +28,10 @@ class TenderRepository {
         .toList();
   }
 
-  Future<List<Vendor>> listVendors({bool? active, int? panchayatId, bool forceRefresh = false}) async {
+  Future<List<Vendor>> listVendors({bool? active, int? orgUnitId, bool forceRefresh = false}) async {
     final params = <String, dynamic>{
       if (active != null) 'active': active.toString(),
-      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+      if (orgUnitId != null) 'org_unit_id': orgUnitId.toString(),
     };
     final res = await _api.get('$_base/vendors',
         queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);
@@ -45,14 +45,14 @@ class TenderRepository {
     required String phoneE164,
     String? place,
     String? notes,
-    int? panchayatId,
+    int? orgUnitId,
   }) async {
     final res = await _api.post('$_base/vendors', data: {
       'name': name,
       'phone_e164': phoneE164,
       if (place != null) 'place': place,
       if (notes != null) 'notes': notes,
-      if (panchayatId != null) 'panchayat_id': panchayatId,
+      if (orgUnitId != null) 'org_unit_id': orgUnitId,
     });
     return Vendor.fromJson(res as Map<String, dynamic>);
   }
@@ -67,10 +67,10 @@ class TenderRepository {
   }
 
   // ── Tenders ─────────────────────────────────────────────────────────
-  List<TenderSummary>? getCachedTenders({String? status, int? panchayatId}) {
+  List<TenderSummary>? getCachedTenders({String? status, int? orgUnitId}) {
     final params = <String, dynamic>{
       if (status != null) 'status': status,
-      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+      if (orgUnitId != null) 'org_unit_id': orgUnitId.toString(),
     };
     final cached = _api.getCached('$_base/tenders',
         queryParams: params.isEmpty ? null : params);
@@ -80,10 +80,10 @@ class TenderRepository {
         .toList();
   }
 
-  Future<List<TenderSummary>> listTenders({String? status, int? panchayatId, bool forceRefresh = false}) async {
+  Future<List<TenderSummary>> listTenders({String? status, int? orgUnitId, bool forceRefresh = false}) async {
     final params = <String, dynamic>{
       if (status != null) 'status': status,
-      if (panchayatId != null) 'panchayat_id': panchayatId.toString(),
+      if (orgUnitId != null) 'org_unit_id': orgUnitId.toString(),
     };
     final res = await _api.get('$_base/tenders',
         queryParams: params.isEmpty ? null : params, forceRefresh: forceRefresh);

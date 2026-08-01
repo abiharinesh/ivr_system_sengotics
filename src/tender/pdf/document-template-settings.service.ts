@@ -48,13 +48,13 @@ export class DocumentTemplateSettingsService {
   }
 
   private async loadPanchayatMap(
-    panchayatId: number,
+    orgUnitId: number,
   ): Promise<TemplateSettingsMap> {
     const p = await this.prisma.orgUnit.findUnique({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
       select: { document_template_settings: true },
     });
-    if (!p) throw new NotFoundException(`Panchayat #${panchayatId} not found`);
+    if (!p) throw new NotFoundException(`Panchayat #${orgUnitId} not found`);
     return parsePanchayatSettingsJson(p.document_template_settings);
   }
 
@@ -91,38 +91,38 @@ export class DocumentTemplateSettingsService {
     };
   }
 
-  async getPanchayatSettings(panchayatId: number) {
+  async getPanchayatSettings(orgUnitId: number) {
     const global = await this.loadGlobalMap();
-    const panchayat = await this.loadPanchayatMap(panchayatId);
+    const org_unit = await this.loadPanchayatMap(orgUnitId);
     return {
       scope: 'panchayat' as const,
-      panchayat_id: panchayatId,
-      templates: this.packAllTemplates(global, panchayat),
+      org_unit_id: orgUnitId,
+      templates: this.packAllTemplates(global, org_unit),
       global_templates: global,
-      panchayat_overrides: panchayat,
-      updated_at: await this.panchayatUpdatedAt(panchayatId),
+      org_unit_overrides: org_unit,
+      updated_at: await this.panchayatUpdatedAt(orgUnitId),
     };
   }
 
   async updatePanchayatSettings(
-    panchayatId: number,
+    orgUnitId: number,
     patch: { templates?: unknown },
   ) {
     if (!patch?.templates) {
       throw new BadRequestException('templates object is required');
     }
     const sanitized = sanitizeSettingsMap(patch.templates);
-    const existing = await this.loadPanchayatMap(panchayatId);
+    const existing = await this.loadPanchayatMap(orgUnitId);
     const merged = this.mergeSettingsMaps(existing, sanitized);
     const p = await this.prisma.orgUnit.update({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
       data: { document_template_settings: merged as any },
       select: { id: true, document_template_settings: true },
     });
     const global = await this.loadGlobalMap();
     return {
       scope: 'panchayat' as const,
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
       templates: this.packAllTemplates(
         global,
         parsePanchayatSettingsJson(p.document_template_settings),
@@ -157,26 +157,26 @@ export class DocumentTemplateSettingsService {
   }
 
   async savePanchayatDesign(
-    panchayatId: number,
+    orgUnitId: number,
     templateId: string,
     body: { fabric_scene?: unknown; overlay_svg?: unknown },
   ) {
     const tpl = validateTemplateId(templateId);
-    const existing = await this.loadPanchayatMap(panchayatId);
+    const existing = await this.loadPanchayatMap(orgUnitId);
     const patch = this.designPatchForTemplate(existing[tpl], body);
     const merged = this.mergeSettingsMaps(existing, { [tpl]: patch });
     const p = await this.prisma.orgUnit.update({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
       data: { document_template_settings: merged as any },
       select: { id: true, document_template_settings: true },
     });
     const global = await this.loadGlobalMap();
     this.logger.log(
-      `Document template design updated (panchayat ${panchayatId}): ${tpl}`,
+      `Document template design updated (panchayat ${orgUnitId}): ${tpl}`,
     );
     return {
       scope: 'panchayat' as const,
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
       template_id: tpl,
       templates: this.packAllTemplates(
         global,
@@ -209,38 +209,38 @@ export class DocumentTemplateSettingsService {
     });
   }
 
-  async resetPanchayatTemplate(panchayatId: number, templateId: string) {
+  async resetPanchayatTemplate(orgUnitId: number, templateId: string) {
     const tpl = validateTemplateId(templateId);
-    const existing = await this.loadPanchayatMap(panchayatId);
+    const existing = await this.loadPanchayatMap(orgUnitId);
     delete existing[tpl];
     await this.prisma.orgUnit.update({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
       data: {
         document_template_settings: Object.keys(existing).length
           ? (existing as any)
           : null,
       },
     });
-    return this.getPanchayatSettings(panchayatId);
+    return this.getPanchayatSettings(orgUnitId);
   }
 
   async resolveMergedLayout(
-    panchayatId: number,
+    orgUnitId: number,
     templateId: DocumentTemplateId,
   ): Promise<TemplateLayoutConfig> {
-    const [global, panchayat] = await Promise.all([
+    const [global, org_unit] = await Promise.all([
       this.loadGlobalMap(),
-      this.loadPanchayatMap(panchayatId),
+      this.loadPanchayatMap(orgUnitId),
     ]);
-    return getMergedLayout(templateId, global, panchayat);
+    return getMergedLayout(templateId, global, org_unit);
   }
 
   async resolveMergedFieldOverrides(
-    panchayatId: number,
+    orgUnitId: number,
     templateId: DocumentTemplateId,
     documentOverrides: Record<string, unknown> | null,
   ): Promise<Record<string, unknown>> {
-    const layout = await this.resolveMergedLayout(panchayatId, templateId);
+    const layout = await this.resolveMergedLayout(orgUnitId, templateId);
     const defaults = layout.defaults ?? {};
     const { defaults: _d, ...layoutWithoutDefaults } = layout;
     void _d;
@@ -249,7 +249,7 @@ export class DocumentTemplateSettingsService {
   }
 
   async buildPreviewHtml(
-    panchayatId: number,
+    orgUnitId: number,
     templateId: string,
     options?: { tender_id?: number; vendor_id?: number },
   ): Promise<string> {
@@ -258,12 +258,12 @@ export class DocumentTemplateSettingsService {
       options?.tender_id != null
         ? await this.buildContextFromTender(
             options.tender_id,
-            panchayatId,
+            orgUnitId,
             tpl,
             options.vendor_id ?? null,
           )
         : await this.buildSampleContext(
-            panchayatId,
+            orgUnitId,
             tpl,
             options?.vendor_id ?? null,
           );
@@ -285,12 +285,12 @@ export class DocumentTemplateSettingsService {
 
   private packAllTemplates(
     global: TemplateSettingsMap,
-    panchayat: TemplateSettingsMap,
+    org_unit: TemplateSettingsMap,
   ) {
     return DOCUMENT_TEMPLATE_IDS.map((id) => {
-      const effective = getMergedLayout(id, global, panchayat);
+      const effective = getMergedLayout(id, global, org_unit);
       const hasPanchayatOverride = Boolean(
-        panchayat[id] && Object.keys(panchayat[id]).length,
+        org_unit[id] && Object.keys(org_unit[id]).length,
       );
       const hasGlobalOverride = Boolean(
         global[id] && Object.keys(global[id]).length,
@@ -300,12 +300,12 @@ export class DocumentTemplateSettingsService {
         label: TEMPLATE_LABELS[id],
         effective,
         global: global[id] ?? null,
-        panchayat_override: panchayat[id] ?? null,
+        org_unit_override: org_unit[id] ?? null,
         builtin: builtinDefaultsMap()[id],
         sources: {
           builtin: true,
           global: hasGlobalOverride,
-          panchayat: hasPanchayatOverride,
+          org_unit: hasPanchayatOverride,
         },
       };
     });
@@ -323,21 +323,21 @@ export class DocumentTemplateSettingsService {
   }
 
   private async buildSampleContext(
-    panchayatId: number,
+    orgUnitId: number,
     templateId: DocumentTemplateId,
     vendorId: number | null,
   ): Promise<TemplateContext> {
     const panchayat = await this.prisma.orgUnit.findUnique({
-      where: { id: panchayatId },
+      where: { id: orgUnitId },
     });
     if (!panchayat)
-      throw new NotFoundException(`Panchayat #${panchayatId} not found`);
+      throw new NotFoundException(`Panchayat #${orgUnitId} not found`);
 
-    const layout = await this.resolveMergedLayout(panchayatId, templateId);
+    const layout = await this.resolveMergedLayout(orgUnitId, templateId);
     const fieldOverrides = mergeFieldOverrides(layout.defaults ?? {});
 
     return {
-      panchayat: { id: panchayat.id, name: panchayat.name },
+      org_unit: { id: panchayat.id, name: panchayat.name },
       tender: {
         id: 0,
         title_ta: 'மாதிரி பணி — தண்ணீர் குழாய் போடுதல்',
@@ -406,17 +406,17 @@ export class DocumentTemplateSettingsService {
 
   private async buildContextFromTender(
     tenderId: number,
-    panchayatId: number,
+    orgUnitId: number,
     templateId: DocumentTemplateId,
     vendorId: number | null,
   ): Promise<TemplateContext> {
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
-      include: { panchayat: true },
+      include: { org_unit: true },
     });
-    if (!tender || !tender.panchayat)
+    if (!tender || !tender.org_unit)
       throw new NotFoundException(`Tender #${tenderId} not found`);
-    if (tender.panchayat_id !== panchayatId) {
+    if (tender.org_unit_id !== orgUnitId) {
       throw new BadRequestException('Tender belongs to another panchayat');
     }
 
@@ -435,11 +435,11 @@ export class DocumentTemplateSettingsService {
       }),
     ]);
     const timeline = await this.milestones.resolveForTender(tenderId);
-    const layout = await this.resolveMergedLayout(panchayatId, templateId);
+    const layout = await this.resolveMergedLayout(orgUnitId, templateId);
     const fieldOverrides = mergeFieldOverrides(layout.defaults ?? {});
 
     return {
-      panchayat: { id: tender.panchayat.id, name: tender.panchayat.name },
+      org_unit: { id: tender.org_unit.id, name: tender.org_unit.name },
       tender: {
         id: tender.id,
         title_ta: tender.title_ta,

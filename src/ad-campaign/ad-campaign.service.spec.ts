@@ -65,7 +65,7 @@ describe('AdCampaignService', () => {
   describe('createCampaign', () => {
     it('should create campaign with default standard type', async () => {
       const data = {
-        panchayat_id: 1,
+        org_unit_id: 1,
         advertiser_name: 'Test Advertiser',
         title: 'Launch Offer',
         amount_paid: 1500,

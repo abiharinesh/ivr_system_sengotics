@@ -171,9 +171,9 @@ class _MunicipalityTransactionsScreenState extends State<MunicipalityTransaction
           user = await ApiClient.instance.get('/api/admin/me');
         } catch (_) {}
       }
-      final branchId = user != null && user['panchayat_id'] != null ? user['panchayat_id'] : null;
-      final uri = branchId != null
-          ? '/api/municipality/${widget.module.key}/records?branch_id=$branchId'
+      final orgUnitId = user != null && user['org_unit_id'] != null ? user['org_unit_id'] : null;
+      final uri = orgUnitId != null
+          ? '/api/municipality/${widget.module.key}/records?org_unit_id=$orgUnitId'
           : '/api/municipality/${widget.module.key}/records';
       final res = await ApiClient.instance.get(uri);
       final list = res is List ? List<dynamic>.from(res) : (res is Map && res['data'] is List ? List<dynamic>.from(res['data']) : []);

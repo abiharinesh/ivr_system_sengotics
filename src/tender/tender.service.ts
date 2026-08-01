@@ -85,7 +85,7 @@ export class TenderService {
 
   private async resolvePoleId(
     db: PrismaTx,
-    panchayatId: number,
+    orgUnitId: number,
     ref?: string | number | null,
   ): Promise<number | null> {
     if (ref == null) return null;
@@ -93,14 +93,14 @@ export class TenderService {
     if (!refStr) return null;
 
     const byNumber = await db.electricPole.findFirst({
-      where: { panchayat_id: panchayatId, pole_number: refStr },
+      where: { org_unit_id: orgUnitId, pole_number: refStr },
     });
     if (byNumber) return byNumber.id;
 
     const asInt = Number(refStr);
     if (Number.isInteger(asInt) && asInt > 0 && String(asInt) === refStr) {
       const byId = await db.electricPole.findFirst({
-        where: { id: asInt, panchayat_id: panchayatId },
+        where: { id: asInt, org_unit_id: orgUnitId },
       });
       if (byId) return byId.id;
     }
@@ -112,12 +112,12 @@ export class TenderService {
 
   private async resolveComplaintId(
     db: PrismaTx,
-    panchayatId: number,
+    orgUnitId: number,
     complaintId?: number | null,
   ): Promise<number | null> {
     if (complaintId == null) return null;
     const complaint = await db.complaint.findFirst({
-      where: { id: complaintId, panchayat_id: panchayatId },
+      where: { id: complaintId, org_unit_id: orgUnitId },
     });
     if (!complaint) {
       throw new BadRequestException(
@@ -129,25 +129,25 @@ export class TenderService {
 
   private async resolveLineItemRefs(
     db: PrismaTx,
-    panchayatId: number,
+    orgUnitId: number,
     body: TenderLineItemBody,
   ): Promise<{ pole_id: number | null; complaint_id: number | null }> {
     const poleRef = body.pole_ref ?? body.pole_id;
-    const pole_id = await this.resolvePoleId(db, panchayatId, poleRef);
+    const pole_id = await this.resolvePoleId(db, orgUnitId, poleRef);
     const complaint_id = await this.resolveComplaintId(
       db,
-      panchayatId,
+      orgUnitId,
       body.complaint_id,
     );
     return { pole_id, complaint_id };
   }
 
-  private async loadOwned(panchayatId: number, tenderId: number) {
+  private async loadOwned(orgUnitId: number, tenderId: number) {
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
     });
     if (!tender) throw new NotFoundException(`Tender #${tenderId} not found`);
-    if (tender.panchayat_id !== panchayatId) {
+    if (tender.org_unit_id !== orgUnitId) {
       throw new ForbiddenException('Tender belongs to another panchayat');
     }
     return tender;
@@ -179,10 +179,10 @@ export class TenderService {
 
   // ── tender CRUD ──────────────────────────────────────────────────────
 
-  async list(panchayatId?: number, opts: { status?: string } = {}) {
+  async list(orgUnitId?: number, opts: { status?: string } = {}) {
     const tenders = await this.prisma.tender.findMany({
       where: {
-        ...(panchayatId ? { panchayat_id: panchayatId } : {}),
+        ...(orgUnitId ? { org_unit_id: orgUnitId } : {}),
         ...(opts.status && TENDER_STATUSES.includes(opts.status as TenderStatus)
           ? { status: opts.status }
           : {}),
@@ -205,7 +205,7 @@ export class TenderService {
             amount: true,
           },
         },
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
     });
 
@@ -244,8 +244,8 @@ export class TenderService {
     }));
   }
 
-  async getDetail(panchayatId: number, tenderId: number) {
-    const tender = await this.loadOwned(panchayatId, tenderId);
+  async getDetail(orgUnitId: number, tenderId: number) {
+    const tender = await this.loadOwned(orgUnitId, tenderId);
     await this.backfillInviteTokensIfNeeded(tenderId, tender.status);
     const [lineItems, quotations, invites, documents, sessions] =
       await Promise.all([
@@ -286,7 +286,7 @@ export class TenderService {
   }
 
   async create(
-    panchayatId: number,
+    orgUnitId: number,
     actorUserId: number,
     body: TenderCreateBody,
   ) {
@@ -308,7 +308,7 @@ export class TenderService {
       const tx = rawTx as PrismaTx;
       const tender = await tx.tender.create({
         data: {
-          panchayat_id: panchayatId,
+          org_unit_id: orgUnitId,
           status: 'draft',
           title_ta: body.title_ta?.trim() || null,
           title_en: body.title_en?.trim() || null,
@@ -326,7 +326,7 @@ export class TenderService {
       if (body.line_items?.length) {
         let seq = 1;
         for (const li of body.line_items) {
-          const refs = await this.resolveLineItemRefs(tx, panchayatId, li);
+          const refs = await this.resolveLineItemRefs(tx, orgUnitId, li);
           await tx.tenderLineItem.create({
             data: {
               tender_id: tender.id,
@@ -345,7 +345,7 @@ export class TenderService {
       if (body.invited_vendor_ids?.length) {
         for (const vid of body.invited_vendor_ids) {
           const v = await tx.vendor.findUnique({ where: { id: vid } });
-          if (!v || v.panchayat_id !== panchayatId) {
+          if (!v || v.org_unit_id !== orgUnitId) {
             throw new BadRequestException(`Vendor #${vid} not in panchayat`);
           }
           await tx.tenderVendorInvite.upsert({
@@ -379,12 +379,12 @@ export class TenderService {
   }
 
   async patch(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: Partial<TenderCreateBody>,
   ) {
-    const existing = await this.loadOwned(panchayatId, tenderId);
+    const existing = await this.loadOwned(orgUnitId, tenderId);
     if (existing.status === 'closed') {
       throw new BadRequestException('Cannot edit a closed tender');
     }
@@ -442,12 +442,12 @@ export class TenderService {
 
   /** Change who may submit via the public tender link (any non-closed status). */
   async setQuotationAccessMode(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     mode: string,
   ) {
-    const existing = await this.loadOwned(panchayatId, tenderId);
+    const existing = await this.loadOwned(orgUnitId, tenderId);
     if (existing.status === 'closed') {
       throw new BadRequestException(
         'Cannot change quotation access mode on a closed tender',
@@ -473,12 +473,12 @@ export class TenderService {
   // ── line items ───────────────────────────────────────────────────────
 
   async addLineItem(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: TenderLineItemBody,
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (t.status === 'closed')
       throw new BadRequestException('Cannot edit a closed tender');
     const last = await this.prisma.tenderLineItem.findFirst({
@@ -487,7 +487,7 @@ export class TenderService {
     });
     const refs = await this.resolveLineItemRefs(
       this.prisma as unknown as PrismaTx,
-      panchayatId,
+      orgUnitId,
       body,
     );
     const created = await this.prisma.tenderLineItem.create({
@@ -512,13 +512,13 @@ export class TenderService {
   }
 
   async updateLineItem(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     lineItemId: number,
     actorUserId: number,
     body: TenderLineItemBody,
   ) {
-    await this.loadOwned(panchayatId, tenderId);
+    await this.loadOwned(orgUnitId, tenderId);
     const li = await this.prisma.tenderLineItem.findUnique({
       where: { id: lineItemId },
     });
@@ -539,14 +539,14 @@ export class TenderService {
     if (body.pole_ref !== undefined || body.pole_id !== undefined) {
       data.pole_id = await this.resolvePoleId(
         db,
-        panchayatId,
+        orgUnitId,
         body.pole_ref ?? body.pole_id,
       );
     }
     if (body.complaint_id !== undefined) {
       data.complaint_id = await this.resolveComplaintId(
         db,
-        panchayatId,
+        orgUnitId,
         body.complaint_id,
       );
     }
@@ -564,12 +564,12 @@ export class TenderService {
   }
 
   async deleteLineItem(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     lineItemId: number,
     actorUserId: number,
   ) {
-    await this.loadOwned(panchayatId, tenderId);
+    await this.loadOwned(orgUnitId, tenderId);
     const li = await this.prisma.tenderLineItem.findUnique({
       where: { id: lineItemId },
     });
@@ -590,12 +590,12 @@ export class TenderService {
   // ── invites ──────────────────────────────────────────────────────────
 
   async setInvites(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     vendorIds: number[],
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (t.status === 'closed')
       throw new BadRequestException('Cannot edit a closed tender');
     const ids = Array.from(
@@ -605,7 +605,7 @@ export class TenderService {
       where: { id: { in: ids } },
     });
     for (const v of vendors) {
-      if (v.panchayat_id !== panchayatId) {
+      if (v.org_unit_id !== orgUnitId) {
         throw new BadRequestException(`Vendor #${v.id} not in this panchayat`);
       }
     }
@@ -643,8 +643,8 @@ export class TenderService {
 
   // ── publish / status ─────────────────────────────────────────────────
 
-  async publish(panchayatId: number, tenderId: number, actorUserId: number) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+  async publish(orgUnitId: number, tenderId: number, actorUserId: number) {
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (t.status !== 'draft') {
       throw new BadRequestException(`Cannot publish from status ${t.status}`);
     }
@@ -693,11 +693,11 @@ export class TenderService {
   }
 
   async closeQuotations(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
   ) {
-    await this.loadOwned(panchayatId, tenderId);
+    await this.loadOwned(orgUnitId, tenderId);
     await this.setStatus(tenderId, 'quotations_closed', actorUserId);
     await this.prisma.tenderVendorInvite.updateMany({
       where: { tender_id: tenderId, invite_revoked_at: null },
@@ -707,12 +707,12 @@ export class TenderService {
   }
 
   async award(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     quotationId: number,
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (t.status !== 'quotations_closed' && t.status !== 'vendor_selected') {
       throw new BadRequestException(
         'Tender must be in quotations_closed (or vendor_selected to re-award) to award',
@@ -749,12 +749,12 @@ export class TenderService {
   }
 
   async recordWorkCompletion(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: { work_completed_at?: string; inspection_notes?: string },
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (!['vendor_selected', 'field_verification'].includes(t.status)) {
       throw new BadRequestException(
         'Tender must be vendor_selected or in field_verification to record completion',
@@ -784,12 +784,12 @@ export class TenderService {
   }
 
   async recordPayment(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: { payment_meta: Record<string, unknown>; close?: boolean },
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (
       !['field_verification', 'vendor_selected', 'closed'].includes(t.status)
     ) {
@@ -808,7 +808,7 @@ export class TenderService {
 
     // Auto-fill voucher_serial when missing.
     if (!meta.voucher_serial) {
-      meta.voucher_serial = await this.nextVoucherSerial(panchayatId);
+      meta.voucher_serial = await this.nextVoucherSerial(orgUnitId);
     }
 
     const data: Record<string, unknown> = { payment_meta: meta };
@@ -836,7 +836,7 @@ export class TenderService {
   }
 
   /** Fiscal-year-aware voucher serial: `<count_in_panchayat_in_fy>/<fyShort>-<fyShortNext>`. */
-  private async nextVoucherSerial(panchayatId: number): Promise<string> {
+  private async nextVoucherSerial(orgUnitId: number): Promise<string> {
     const now = new Date();
     // Indian FY starts April 1.
     const month = now.getUTCMonth() + 1;
@@ -846,7 +846,7 @@ export class TenderService {
     const fyEnd = new Date(Date.UTC(yearStart + 1, 3, 1));
     const used = await this.prisma.tender.count({
       where: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         payment_meta: { not: null as any },
         updated_at: { gte: fyStart, lt: fyEnd },
       },
@@ -860,7 +860,7 @@ export class TenderService {
   // ── officer offline quotation entry ──────────────────────────────────
 
   async addOfficerQuotation(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     actorUserId: number,
     body: {
@@ -872,7 +872,7 @@ export class TenderService {
       screening_outcome?: string;
     },
   ) {
-    const t = await this.loadOwned(panchayatId, tenderId);
+    const t = await this.loadOwned(orgUnitId, tenderId);
     if (t.status === 'closed')
       throw new BadRequestException('Cannot add quotations to a closed tender');
 
@@ -883,7 +883,7 @@ export class TenderService {
       const v = await this.prisma.vendor.findUnique({
         where: { id: body.vendor_id },
       });
-      if (!v || v.panchayat_id !== panchayatId)
+      if (!v || v.org_unit_id !== orgUnitId)
         throw new BadRequestException(
           `Vendor #${body.vendor_id} not in panchayat`,
         );

@@ -78,14 +78,14 @@ export class WorkflowService {
    */
   async startWorkflow(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     templateName: string,
     entityType: string,
     entityId: number,
   ) {
     const template = await this.prisma.workflowTemplate.findFirst({
       where: {
-        panchayat_id: branchId,
+        org_unit_id: orgUnitId,
         name: templateName,
         status: 'published',
         is_active: true,
@@ -95,7 +95,7 @@ export class WorkflowService {
     });
 
     if (!template) {
-      this.logger.warn(`No published workflow template "${templateName}" for branch ${branchId}`);
+      this.logger.warn(`No published workflow template "${templateName}" for branch ${orgUnitId}`);
       return null;
     }
 
@@ -337,7 +337,7 @@ export class WorkflowService {
     });
   }
 
-  async getPendingForRole(tenantId: string, branchId: number, roleName: string) {
+  async getPendingForRole(tenantId: string, orgUnitId: number, roleName: string) {
     const steps = await this.prisma.workflowStep.findMany({
       where: { role_name: roleName },
       select: { id: true, step_order: true, template_id: true },

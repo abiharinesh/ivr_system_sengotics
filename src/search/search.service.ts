@@ -8,7 +8,7 @@ export class SearchService {
   /**
    * Search across Complaints, Assets, Tenders, WorkOrders, and Contractors.
    */
-  async universalSearch(tenantId: string, query: string, branchId?: number) {
+  async universalSearch(tenantId: string, query: string, orgUnitId?: number) {
     if (!query || query.trim() === '') {
       return {
         complaints: [],
@@ -25,7 +25,7 @@ export class SearchService {
     const [complaints, assets, tenders, workOrders, contractors] = await Promise.all([
       this.prisma.complaint.findMany({
         where: {
-          ...(branchId && { panchayat_id: branchId }),
+          ...(orgUnitId && { org_unit_id: orgUnitId }),
           OR: [
             { category: { contains: query, mode: 'insensitive' } },
             { description: { contains: query, mode: 'insensitive' } },
@@ -38,7 +38,7 @@ export class SearchService {
       this.prisma.asset.findMany({
         where: {
           tenant_id: tenantId,
-          ...(branchId && { branch_id: branchId }),
+          ...(orgUnitId && { org_unit_id: orgUnitId }),
           OR: [
             { asset_code: { contains: query, mode: 'insensitive' } },
             { name: { contains: query, mode: 'insensitive' } },
@@ -49,7 +49,7 @@ export class SearchService {
       }),
       this.prisma.tender.findMany({
         where: {
-          ...(branchId && { panchayat_id: branchId }),
+          ...(orgUnitId && { org_unit_id: orgUnitId }),
           OR: [
             { title_en: { contains: query, mode: 'insensitive' } },
             { title_ta: { contains: query, mode: 'insensitive' } },
@@ -62,7 +62,7 @@ export class SearchService {
       this.prisma.workOrder.findMany({
         where: {
           tenant_id: tenantId,
-          ...(branchId && { branch_id: branchId }),
+          ...(orgUnitId && { org_unit_id: orgUnitId }),
           OR: [
             { work_order_number: { contains: query, mode: 'insensitive' } },
             { title: { contains: query, mode: 'insensitive' } },

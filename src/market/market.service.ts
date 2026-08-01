@@ -9,14 +9,14 @@ export class MarketService {
 
   // ─── Market Days ────────────────────────────────────────────────────────────
 
-  async listMarketDays(panchayatId: number) {
+  async listMarketDays(orgUnitId: number) {
     return this.prisma.marketDay.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
     });
   }
 
   async createMarketDay(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     name: string;
     location?: string;
     day_of_week: number;
@@ -30,9 +30,9 @@ export class MarketService {
 
   // ─── Market Vendors ─────────────────────────────────────────────────────────
 
-  async listVendors(panchayatId: number) {
+  async listVendors(orgUnitId: number) {
     return this.prisma.marketVendor.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       orderBy: { vendor_name: 'asc' },
     });
   }
@@ -41,7 +41,7 @@ export class MarketService {
     const vendor = await this.prisma.marketVendor.findUnique({
       where: { vendor_token: token },
       include: {
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
         payments: { orderBy: { paid_at: 'desc' }, take: 10 },
       },
     });
@@ -50,7 +50,7 @@ export class MarketService {
   }
 
   async createVendor(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     vendor_name: string;
     vendor_phone: string;
     business_type?: string;
@@ -58,7 +58,7 @@ export class MarketService {
   }) {
     // Check if phone already registered in this panchayat
     const existing = await this.prisma.marketVendor.findFirst({
-      where: { panchayat_id: data.panchayat_id, vendor_phone: data.vendor_phone },
+      where: { org_unit_id: data.org_unit_id, vendor_phone: data.vendor_phone },
     });
     if (existing) {
       throw new BadRequestException('A vendor with this phone number is already registered in this panchayat.');
@@ -66,7 +66,7 @@ export class MarketService {
 
     return this.prisma.marketVendor.create({
       data: {
-        panchayat_id: data.panchayat_id,
+        org_unit_id: data.org_unit_id,
         vendor_name: data.vendor_name,
         vendor_phone: data.vendor_phone,
         business_type: data.business_type || null,
@@ -139,9 +139,9 @@ export class MarketService {
     });
   }
 
-  async getPaymentsByPanchayat(panchayatId: number) {
+  async getPaymentsByPanchayat(orgUnitId: number) {
     return this.prisma.marketVendorPayment.findMany({
-      where: { vendor: { panchayat_id: panchayatId } },
+      where: { vendor: { org_unit_id: orgUnitId } },
       include: {
         vendor: { select: { vendor_name: true, vendor_phone: true } },
         market_day: { select: { name: true } },

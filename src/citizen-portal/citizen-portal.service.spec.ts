@@ -40,17 +40,17 @@ describe('CitizenPortalService', () => {
         id: 1,
         full_name: 'Sundar Pitchai',
         phone: '9876543210',
-        branch_id: 1,
+        org_unit_id: 1,
       });
 
-      const dto = { fullName: 'Sundar Pitchai', phone: '9876543210', branchId: 1 };
+      const dto = { fullName: 'Sundar Pitchai', phone: '9876543210', orgUnitId: 1 };
       const res = await service.createProfile('default', 10, dto);
       expect(res.full_name).toBe('Sundar Pitchai');
     });
 
     it('should throw BadRequestException if profile already exists', async () => {
       mockPrisma.citizenProfile.findUnique.mockResolvedValueOnce({ id: 1 });
-      const dto = { fullName: 'Sundar Pitchai', phone: '9876543210', branchId: 1 };
+      const dto = { fullName: 'Sundar Pitchai', phone: '9876543210', orgUnitId: 1 };
 
       await expect(service.createProfile('default', 10, dto)).rejects.toThrow(BadRequestException);
     });

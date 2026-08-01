@@ -12,7 +12,7 @@ Future<int?> showAssignElectricianDialog({
 }) async {
   late Future<List<dynamic>> loadFuture;
   if (isSuperAdmin) {
-    final pid = complaint.panchayatId;
+    final pid = complaint.orgUnitId;
     if (pid == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -25,7 +25,7 @@ Future<int?> showAssignElectricianDialog({
       }
       return null;
     }
-    loadFuture = SuperAdminRepository().listElectricians(panchayatId: pid);
+    loadFuture = SuperAdminRepository().listElectricians(orgUnitId: pid);
   } else {
     loadFuture = PanchayatAdminRepository().listElectricians();
   }

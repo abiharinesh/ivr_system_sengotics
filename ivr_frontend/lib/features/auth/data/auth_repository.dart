@@ -21,13 +21,13 @@ class AuthRepository {
     return data as Map<String, dynamic>;
   }
 
-  Future<AuthResponse> verifyOtp(String phone, String otp, {int? panchayatId}) async {
+  Future<AuthResponse> verifyOtp(String phone, String otp, {int? orgUnitId}) async {
     final data = await _apiClient.post(
       ApiConfig.verifyOtp,
       data: {
         'phone': phone,
         'otp': otp,
-        if (panchayatId != null) 'panchayat_id': panchayatId,
+        if (orgUnitId != null) 'org_unit_id': orgUnitId,
       },
     );
     return AuthResponse.fromJson(data as Map<String, dynamic>);

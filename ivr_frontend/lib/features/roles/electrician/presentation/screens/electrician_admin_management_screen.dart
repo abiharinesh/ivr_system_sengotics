@@ -96,7 +96,7 @@ class _ElectricianAdminManagementScreenState
     final emailC = TextEditingController();
     final passC = TextEditingController();
     final phoneC = TextEditingController();
-    int? panchayatId;
+    int? orgUnitId;
     List<DropdownMenuItem<int>>? pItems;
 
     if (widget.forSuperAdmin) {
@@ -106,7 +106,7 @@ class _ElectricianAdminManagementScreenState
             ps
                 .map((x) => DropdownMenuItem(value: x.id, child: Text(x.name)))
                 .toList();
-        if (ps.isNotEmpty) panchayatId = ps.first.id;
+        if (ps.isNotEmpty) orgUnitId = ps.first.id;
         if (ps.isEmpty) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
@@ -141,12 +141,12 @@ class _ElectricianAdminManagementScreenState
                   children: [
                     if (pItems != null && pItems.isNotEmpty) ...[
                       DropdownButtonFormField<int>(
-                        initialValue: panchayatId,
+                        initialValue: orgUnitId,
                         decoration: const InputDecoration(
                           labelText: 'Panchayat',
                         ),
                         items: pItems,
-                        onChanged: (v) => setSt(() => panchayatId = v),
+                        onChanged: (v) => setSt(() => orgUnitId = v),
                       ),
                       const SizedBox(height: 12),
                     ],
@@ -191,7 +191,7 @@ class _ElectricianAdminManagementScreenState
       },
     );
     if (ok != true || !mounted) return;
-    if (widget.forSuperAdmin && (panchayatId == null)) {
+    if (widget.forSuperAdmin && (orgUnitId == null)) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Select a panchayat')));
@@ -201,7 +201,7 @@ class _ElectricianAdminManagementScreenState
     try {
       if (widget.forSuperAdmin) {
         await _sa.createElectrician(
-          panchayatId: panchayatId!,
+          orgUnitId: orgUnitId!,
           email: emailC.text.trim(),
           password: passC.text,
           phoneE164: phone.isEmpty ? null : phone,
@@ -402,8 +402,8 @@ class _ElectricianAdminManagementScreenState
     final email = m['email']?.toString() ?? '$id';
     final phone = m['phone_e164']?.toString();
     final pName =
-        m['panchayat'] is Map
-            ? (m['panchayat'] as Map)['name']?.toString()
+        m['org_unit'] is Map
+            ? (m['org_unit'] as Map)['name']?.toString()
             : null;
     final expanded = _expanded.contains(id) || showDetailsDirectly;
 

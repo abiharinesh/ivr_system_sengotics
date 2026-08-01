@@ -28,7 +28,7 @@ interface AuthReq {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 

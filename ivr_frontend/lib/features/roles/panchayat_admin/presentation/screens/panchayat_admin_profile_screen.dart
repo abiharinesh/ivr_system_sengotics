@@ -76,7 +76,7 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
     try {
       final res = await ApiClient.instance.get(ApiConfig.paMe);
       final map = res is Map<String, dynamic> ? res : <String, dynamic>{};
-      final panchayat = map['panchayat'] as Map<String, dynamic>?;
+      final panchayat = map['org_unit'] as Map<String, dynamic>?;
       final employee = map['employee'] as Map<String, dynamic>?;
       final stats = map['stats'] as Map<String, dynamic>?;
 
@@ -438,7 +438,7 @@ class _PanchayatAdminProfileScreenState extends State<PanchayatAdminProfileScree
                               'email': emailC.text.trim(),
                               'phone': phoneC.text.trim(),
                               'photo_url': photoUrlC.text.trim(),
-                              'panchayat_name': panchayatC.text.trim(),
+                              'org_unit_name': panchayatC.text.trim(),
                               // Branding
                               'software_name_ta': softwareNameTaC.text.trim(),
                               'software_name_en': softwareNameEnC.text.trim(),

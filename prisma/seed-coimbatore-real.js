@@ -17,12 +17,12 @@ const prisma = new PrismaClient({ adapter });
 const TENANT_ID = 'default';
 
 async function upsertPanchayat(data) {
-  const existing = await prisma.panchayat.findFirst({
+  const existing = await prisma.org_unit.findFirst({
     where: { branch_code: data.branch_code },
   });
 
   if (existing) {
-    return prisma.panchayat.update({
+    return prisma.org_unit.update({
       where: { id: existing.id },
       data: {
         name: data.name,
@@ -42,7 +42,7 @@ async function upsertPanchayat(data) {
     });
   }
 
-  return prisma.panchayat.create({
+  return prisma.org_unit.create({
     data: {
       tenant_id: TENANT_ID,
       name: data.name,
@@ -63,11 +63,11 @@ async function upsertPanchayat(data) {
   });
 }
 
-async function enableAllFeatures(panchayatId) {
+async function enableAllFeatures(orgUnitId) {
   await prisma.branchFeatureConfig.upsert({
-    where: { panchayat_id: panchayatId },
+    where: { org_unit_id: orgUnitId },
     create: {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
       street_light_mgmt: true,
       water_supply_mgmt: true,
       complaint_mgmt: true,
@@ -116,13 +116,13 @@ async function enableAllFeatures(panchayatId) {
   });
 }
 
-async function createUser(email, password, role, panchayatId) {
+async function createUser(email, password, role, orgUnitId) {
   const password_hash = await bcrypt.hash(password, 10);
   const existing = await prisma.user.findFirst({ where: { email } });
   if (existing) {
     return prisma.user.update({
       where: { id: existing.id },
-      data: { role, panchayat_id: panchayatId, password_hash },
+      data: { role, org_unit_id: orgUnitId, password_hash },
     });
   }
   return prisma.user.create({
@@ -130,7 +130,7 @@ async function createUser(email, password, role, panchayatId) {
       email,
       password_hash,
       role,
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
       tenant_id: TENANT_ID,
     },
   });
@@ -383,13 +383,13 @@ async function seedCoimbatoreData() {
   if (unionMap['PU-KND-001']) await createUser('admin.kinathukadavu@tn.gov.in', defaultPass, 'panchayat_admin', unionMap['PU-KND-001'].id);
 
   // Village Panchayat Admins
-  const thayanur = await prisma.panchayat.findFirst({ where: { name: { contains: 'Thayanur' } } });
+  const thayanur = await prisma.org_unit.findFirst({ where: { name: { contains: 'Thayanur' } } });
   if (thayanur) await createUser('admin@thayanur.tn.gov.in', defaultPass, 'panchayat_admin', thayanur.id);
 
-  const kalangal = await prisma.panchayat.findFirst({ where: { name: { contains: 'Kalangal' } } });
+  const kalangal = await prisma.org_unit.findFirst({ where: { name: { contains: 'Kalangal' } } });
   if (kalangal) await createUser('admin.kalangal@tn.gov.in', defaultPass, 'panchayat_admin', kalangal.id);
 
-  const neelambur = await prisma.panchayat.findFirst({ where: { name: { contains: 'Neelambur' } } });
+  const neelambur = await prisma.org_unit.findFirst({ where: { name: { contains: 'Neelambur' } } });
   if (neelambur) await createUser('admin.neelambur@tn.gov.in', defaultPass, 'panchayat_admin', neelambur.id);
 
   console.log('\n🎉 COIMBATORE DISTRICT LOCAL BODIES SEEDED SUCCESSFULLY!');

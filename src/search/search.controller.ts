@@ -7,7 +7,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -22,7 +22,7 @@ export class SearchController {
 
   @Get()
   search(@Req() req: AuthenticatedRequest, @Query('q') query: string) {
-    const branchId = req.user.panchayat_id ?? undefined;
-    return this.service.universalSearch(req.user.tenant_id, query, branchId);
+    const orgUnitId = req.user.org_unit_id ?? undefined;
+    return this.service.universalSearch(req.user.tenant_id, query, orgUnitId);
   }
 }

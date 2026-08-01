@@ -19,37 +19,37 @@ export interface VendorCreateBody {
 export class VendorService {
   constructor(private readonly prisma: PrismaService) {}
 
-  list(panchayatId?: number, opts: { active?: boolean } = {}) {
+  list(orgUnitId?: number, opts: { active?: boolean } = {}) {
     return this.prisma.vendor.findMany({
       where: {
-        ...(panchayatId ? { panchayat_id: panchayatId } : {}),
+        ...(orgUnitId ? { org_unit_id: orgUnitId } : {}),
         ...(opts.active != null ? { active: opts.active } : {}),
       },
       orderBy: [{ active: 'desc' }, { name: 'asc' }],
       include: {
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
     });
   }
 
-  async get(panchayatId: number, vendorId: number) {
+  async get(orgUnitId: number, vendorId: number) {
     const vendor = await this.prisma.vendor.findUnique({
       where: { id: vendorId },
     });
     if (!vendor) throw new NotFoundException(`Vendor #${vendorId} not found`);
-    if (vendor.panchayat_id !== panchayatId) {
+    if (vendor.org_unit_id !== orgUnitId) {
       throw new ForbiddenException('Vendor belongs to another panchayat');
     }
     return vendor;
   }
 
-  async create(panchayatId: number, data: VendorCreateBody) {
+  async create(orgUnitId: number, data: VendorCreateBody) {
     const name = data.name?.trim();
     if (!name) throw new BadRequestException('name is required');
     const phone = normalizePhoneE164(data.phone_e164);
 
     const existing = await this.prisma.vendor.findFirst({
-      where: { panchayat_id: panchayatId, phone_e164: phone },
+      where: { org_unit_id: orgUnitId, phone_e164: phone },
     });
     if (existing)
       throw new BadRequestException(
@@ -58,7 +58,7 @@ export class VendorService {
 
     return this.prisma.vendor.create({
       data: {
-        panchayat_id: panchayatId,
+        org_unit_id: orgUnitId,
         name,
         phone_e164: phone,
         place: data.place?.trim() || null,
@@ -68,8 +68,8 @@ export class VendorService {
     });
   }
 
-  async update(panchayatId: number, vendorId: number, patch: VendorCreateBody) {
-    await this.get(panchayatId, vendorId);
+  async update(orgUnitId: number, vendorId: number, patch: VendorCreateBody) {
+    await this.get(orgUnitId, vendorId);
     const data: Record<string, unknown> = {};
     if (patch.name !== undefined) data.name = patch.name.trim() || null;
     if (patch.phone_e164 !== undefined)
@@ -80,8 +80,8 @@ export class VendorService {
     return this.prisma.vendor.update({ where: { id: vendorId }, data });
   }
 
-  async deactivate(panchayatId: number, vendorId: number) {
-    await this.get(panchayatId, vendorId);
+  async deactivate(orgUnitId: number, vendorId: number) {
+    await this.get(orgUnitId, vendorId);
     return this.prisma.vendor.update({
       where: { id: vendorId },
       data: { active: false },
@@ -90,13 +90,13 @@ export class VendorService {
 
   /** Idempotent helper for public-with-phone tenders: upsert vendor stub by phone. */
   async upsertStubByPhone(args: {
-    panchayatId: number;
+    orgUnitId: number;
     phoneE164: string;
     name: string;
     place?: string | null;
   }) {
     const existing = await this.prisma.vendor.findFirst({
-      where: { panchayat_id: args.panchayatId, phone_e164: args.phoneE164 },
+      where: { org_unit_id: args.orgUnitId, phone_e164: args.phoneE164 },
     });
     if (existing) {
       // Best-effort name backfill if previously empty.
@@ -110,7 +110,7 @@ export class VendorService {
     }
     return this.prisma.vendor.create({
       data: {
-        panchayat_id: args.panchayatId,
+        org_unit_id: args.orgUnitId,
         phone_e164: args.phoneE164,
         name: args.name || 'Public submitter',
         place: args.place ?? null,

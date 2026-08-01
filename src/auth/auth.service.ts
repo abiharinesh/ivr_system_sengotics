@@ -32,10 +32,10 @@ export class AuthService {
     }).catch(() => { /* non-critical */ });
 
     // Fetch org unit branding safely with fallback for un-migrated production DBs
-    let panchayat: any = null;
+    let org_unit: any = null;
     if (user.primary_org_unit_id) {
       try {
-        panchayat = await this.prisma.orgUnit.findUnique({
+        org_unit = await this.prisma.orgUnit.findUnique({
           where: { id: user.primary_org_unit_id },
           select: {
             id: true,
@@ -66,12 +66,12 @@ export class AuthService {
           `Panchayat branding fetch fallback (DB schema may pending migration): ${(err as Error).message}`,
         );
         try {
-          panchayat = await this.prisma.orgUnit.findUnique({
+          org_unit = await this.prisma.orgUnit.findUnique({
             where: { id: user.primary_org_unit_id },
             select: { id: true, name: true, logo_url: true },
           });
         } catch (_) {
-          panchayat = null;
+          org_unit = null;
         }
       }
     }
@@ -81,9 +81,9 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.primary_org_unit_id,
+      org_unit_id: user.primary_org_unit_id,
       user_type: user.user_type,
-      panchayat,
+      org_unit,
     };
   }
 
@@ -119,7 +119,7 @@ export class AuthService {
     };
   }
 
-  async verifyOtp(phone: string, otp: string, panchayat_id?: number) {
+  async verifyOtp(phone: string, otp: string, org_unit_id?: number) {
     let formattedPhone = phone.trim().replace(/\s+/g, '');
     if (!formattedPhone.startsWith('+')) {
       if (formattedPhone.length === 10) {
@@ -146,7 +146,7 @@ export class AuthService {
     });
 
     if (!user) {
-      if (!panchayat_id) {
+      if (!org_unit_id) {
         throw new NotFoundException(
           `No account registered with phone number ${formattedPhone}. Please register first.`,
         );
@@ -161,7 +161,7 @@ export class AuthService {
           email,
           password_hash: hashed,
           role: 'citizen',
-          primary_org_unit_id: panchayat_id,
+          primary_org_unit_id: org_unit_id,
           phone_e164: formattedPhone,
           user_type: 'citizen',
         },
@@ -169,10 +169,10 @@ export class AuthService {
       this.logger.log(`[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`);
     }
 
-    let panchayat: any = null;
+    let org_unit: any = null;
     if (user.primary_org_unit_id) {
       try {
-        panchayat = await this.prisma.orgUnit.findUnique({
+        org_unit = await this.prisma.orgUnit.findUnique({
           where: { id: user.primary_org_unit_id },
           select: {
             id: true,
@@ -200,12 +200,12 @@ export class AuthService {
         });
       } catch (err) {
         try {
-          panchayat = await this.prisma.orgUnit.findUnique({
+          org_unit = await this.prisma.orgUnit.findUnique({
             where: { id: user.primary_org_unit_id },
             select: { id: true, name: true, logo_url: true },
           });
         } catch (_) {
-          panchayat = null;
+          org_unit = null;
         }
       }
     }
@@ -215,9 +215,9 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.primary_org_unit_id,
+      org_unit_id: user.primary_org_unit_id,
       user_type: user.user_type,
-      panchayat,
+      org_unit,
     };
   }
 
@@ -304,7 +304,7 @@ export class AuthService {
       email: user.email,
       role: user.role, // Legacy field — kept for backward compatibility
       is_super_admin: isSuperAdmin,
-      panchayat_id: user.primary_org_unit_id,
+      org_unit_id: user.primary_org_unit_id,
       tenant_id: user.tenant_id,
       user_type: user.user_type,
       employee_id: employee?.id || null,

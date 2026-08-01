@@ -277,10 +277,10 @@ class _UserManagementState extends State<UserManagement> {
                                       ),
                                     ),
                                   ),
-                                  if (user.panchayatName != null) ...[
+                                  if (user.orgUnitName != null) ...[
                                     const SizedBox(height: 4),
                                     Text(
-                                      user.panchayatName!,
+                                      user.orgUnitName!,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: AppTheme.textMuted,
@@ -337,7 +337,7 @@ class _UserManagementState extends State<UserManagement> {
 
   Future<void> _showEditUserDialog(BuildContext context, UserModel user) async {
     final emailC = TextEditingController(text: user.email);
-    int? selectedPanchayatId = user.panchayatId;
+    int? selectedPanchayatId = user.orgUnitId;
     String selectedRole = user.role;
     final formKey = GlobalKey<FormState>();
 
@@ -418,7 +418,7 @@ class _UserManagementState extends State<UserManagement> {
                   final payload = <String, dynamic>{
                     'email': emailC.text.trim(),
                     'role': selectedRole,
-                    if (selectedPanchayatId != null) 'panchayat_id': selectedPanchayatId,
+                    if (selectedPanchayatId != null) 'org_unit_id': selectedPanchayatId,
                   };
                   context.read<UserMgmtBloc>().add(UpdateUser(user.id, payload));
                   Navigator.pop(ctx);
@@ -564,7 +564,7 @@ class _UserManagementState extends State<UserManagement> {
                           final payload = <String, dynamic>{
                             'email': emailC.text.trim(),
                             'password': passC.text,
-                            'panchayat_id': selectedPanchayatId,
+                            'org_unit_id': selectedPanchayatId,
                           };
                           if (selectedRole == 'agent' ||
                               selectedRole == 'electrician') {

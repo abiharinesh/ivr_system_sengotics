@@ -16,8 +16,8 @@ async function seedWater() {
             console.error('❌ Panchayat Thayanur not found! Please run the main seed first.');
             return;
         }
-        const panchayatId = panchayats[0].id;
-        console.log(`Found Thayanur Panchayat with ID: ${panchayatId}`);
+        const orgUnitId = panchayats[0].id;
+        console.log(`Found Thayanur Panchayat with ID: ${orgUnitId}`);
 
         // 2. Clear existing water data
         console.log('Cleaning existing water supply infrastructure data...');
@@ -53,55 +53,55 @@ async function seedWater() {
         };
 
         const { rows: pipeline1 } = await client.query(
-            `INSERT INTO water_pipelines (name, panchayat_id, diameter_mm, material, status, path_geojson, updated_at)
+            `INSERT INTO water_pipelines (name, org_unit_id, diameter_mm, material, status, path_geojson, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
-            ['Annur-Coimbatore Main Trunk', panchayatId, 250.0, 'Cast Iron', 'leak_alert', JSON.stringify(pipeline1Path)]
+            ['Annur-Coimbatore Main Trunk', orgUnitId, 250.0, 'Cast Iron', 'leak_alert', JSON.stringify(pipeline1Path)]
         );
         const pipeline1Id = pipeline1[0].id;
 
         const { rows: pipeline2 } = await client.query(
-            `INSERT INTO water_pipelines (name, panchayat_id, diameter_mm, material, status, path_geojson, updated_at)
+            `INSERT INTO water_pipelines (name, org_unit_id, diameter_mm, material, status, path_geojson, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, NOW()) RETURNING id`,
-            ['Annur-Tiruppur Secondary Conduit', panchayatId, 160.0, 'HDPE', 'active', JSON.stringify(pipeline2Path)]
+            ['Annur-Tiruppur Secondary Conduit', orgUnitId, 160.0, 'HDPE', 'active', JSON.stringify(pipeline2Path)]
         );
         const pipeline2Id = pipeline2[0].id;
 
         await client.query(
-            `INSERT INTO water_pipelines (name, panchayat_id, diameter_mm, material, status, path_geojson, updated_at)
+            `INSERT INTO water_pipelines (name, org_unit_id, diameter_mm, material, status, path_geojson, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-            ['Alngkhal Distribution Grid', panchayatId, 110.0, 'PVC', 'active', JSON.stringify(pipeline3Path)]
+            ['Alngkhal Distribution Grid', orgUnitId, 110.0, 'PVC', 'active', JSON.stringify(pipeline3Path)]
         );
 
         // 4. Insert Tanks & Borewells
         console.log('Inserting water tanks & borewells...');
         const { rows: tank1 } = await client.query(
-            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, panchayat_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
+            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, org_unit_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW()) RETURNING id`,
-            ['Annur Main Elevated Reservoir', 'overhead_tank', 11.2341, 77.1025, panchayatId, 500000.0, 82.5, 'active', 'on']
+            ['Annur Main Elevated Reservoir', 'overhead_tank', 11.2341, 77.1025, orgUnitId, 500000.0, 82.5, 'active', 'on']
         );
         const tank1Id = tank1[0].id;
 
         await client.query(
-            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, panchayat_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
+            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, org_unit_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
-            ['Coimbatore Central Reservoirs', 'overhead_tank', 11.0168, 76.9616, panchayatId, 1200000.0, 100.0, 'active', 'off']
+            ['Coimbatore Central Reservoirs', 'overhead_tank', 11.0168, 76.9616, orgUnitId, 1200000.0, 100.0, 'active', 'off']
         );
 
         await client.query(
-            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, panchayat_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
+            `INSERT INTO water_tank_borewells (name, type, latitude, longitude, org_unit_id, capacity_liters, current_level_pct, status, pump_status, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())`,
-            ['Alngkhal Deep Borewell Pump', 'borewell_pump', 11.0921, 77.1232, panchayatId, 0.0, 0.0, 'active', 'on']
+            ['Alngkhal Deep Borewell Pump', 'borewell_pump', 11.0921, 77.1232, orgUnitId, 0.0, 0.0, 'active', 'on']
         );
 
         // 5. Insert Valves
         console.log('Inserting water valves...');
         await client.query(
-            `INSERT INTO water_valves (valve_number, latitude, longitude, panchayat_id, status, updated_at)
+            `INSERT INTO water_valves (valve_number, latitude, longitude, org_unit_id, status, updated_at)
              VALUES 
              ('V-AN-01', 11.1678, 77.0984, $1, 'open', NOW()),
              ('V-CO-12', 11.0850, 77.0123, $1, 'open', NOW()),
              ('V-TP-04', 11.1890, 77.1892, $1, 'closed', NOW())`,
-            [panchayatId]
+            [orgUnitId]
         );
 
         // 6. Insert Flow Logs

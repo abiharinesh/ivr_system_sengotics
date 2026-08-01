@@ -22,16 +22,16 @@ export class MarketController {
 
   // ─── Market Days ────────────────────────────────────────────────────────────
 
-  /** GET /markets/days?panchayat_id=1 */
+  /** GET /markets/days?org_unit_id=1 */
   @Get('days')
-  async listMarketDays(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.marketService.listMarketDays(panchayatId);
+  async listMarketDays(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.marketService.listMarketDays(orgUnitId);
   }
 
   /** POST /markets/days */
   @Post('days')
   async createMarketDay(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     name: string;
     location?: string;
     day_of_week: number;
@@ -42,10 +42,10 @@ export class MarketController {
 
   // ─── Vendors ───────────────────────────────────────────────────────────────
 
-  /** GET /markets/vendors?panchayat_id=1 */
+  /** GET /markets/vendors?org_unit_id=1 */
   @Get('vendors')
-  async listVendors(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.marketService.listVendors(panchayatId);
+  async listVendors(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.marketService.listVendors(orgUnitId);
   }
 
   /** GET /markets/vendors/qr/:token */
@@ -57,7 +57,7 @@ export class MarketController {
   /** POST /markets/vendors */
   @Post('vendors')
   async createVendor(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     vendor_name: string;
     vendor_phone: string;
     business_type?: string;
@@ -95,9 +95,9 @@ export class MarketController {
     return this.marketService.recordFeePayment(body);
   }
 
-  /** GET /markets/payments?panchayat_id=1 */
+  /** GET /markets/payments?org_unit_id=1 */
   @Get('payments')
-  async getPayments(@Query('panchayat_id', ParseIntPipe) panchayatId: number) {
-    return this.marketService.getPaymentsByPanchayat(panchayatId);
+  async getPayments(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
+    return this.marketService.getPaymentsByPanchayat(orgUnitId);
   }
 }

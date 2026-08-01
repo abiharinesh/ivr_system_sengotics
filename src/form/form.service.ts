@@ -189,7 +189,7 @@ export class FormService {
    */
   async submitForm(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     templateId: number,
     submittedBy: number | null,
     data: Record<string, any>,
@@ -205,7 +205,7 @@ export class FormService {
     const submission = await this.prisma.formSubmission.create({
       data: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         template_id: templateId,
         submitted_by: submittedBy,
         data: data as any,

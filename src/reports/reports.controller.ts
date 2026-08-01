@@ -24,7 +24,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
@@ -39,12 +39,12 @@ export class ReportsController {
       // Super admins default to a generic admin ID or from query
       return 1;
     }
-    if (!req.user.panchayat_id) {
+    if (!req.user.org_unit_id) {
       throw new ForbiddenException(
         'Your account is not associated with any panchayat',
       );
     }
-    return req.user.panchayat_id;
+    return req.user.org_unit_id;
   }
 
   @Get('preview')
@@ -183,8 +183,8 @@ export class ReportsController {
 
   @Post('saved')
   createSavedReport(@Req() req: AuthenticatedRequest, @Body() dto: CreateSavedReportDto) {
-    const branchId = req.user.panchayat_id ?? 1;
-    return this.service.createSavedReport('default', branchId, {
+    const orgUnitId = req.user.org_unit_id ?? 1;
+    return this.service.createSavedReport('default', orgUnitId, {
       ...dto,
       created_by: req.user.id,
     });
@@ -192,8 +192,8 @@ export class ReportsController {
 
   @Get('saved')
   listSavedReports(@Req() req: AuthenticatedRequest) {
-    const branchId = req.user.panchayat_id ?? 1;
-    return this.service.getSavedReports('default', branchId);
+    const orgUnitId = req.user.org_unit_id ?? 1;
+    return this.service.getSavedReports('default', orgUnitId);
   }
 
   @Post('saved/:id/generate')

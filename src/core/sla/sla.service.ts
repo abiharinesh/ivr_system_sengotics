@@ -19,14 +19,14 @@ export class SlaService {
    */
   async calculateTargetDate(
     tenantId: string,
-    branchId: number | null,
+    orgUnitId: number | null,
     startDate: Date,
     hoursToAdd: number,
   ): Promise<Date> {
     const calendar = await this.prisma.workingCalendar.findFirst({
-      where: { tenant_id: tenantId, branch_id: branchId },
+      where: { tenant_id: tenantId, org_unit_id: orgUnitId },
     }) || await this.prisma.workingCalendar.findFirst({
-      where: { tenant_id: tenantId, branch_id: null, is_default: true },
+      where: { tenant_id: tenantId, org_unit_id: null, is_default: true },
     }) || {
       working_days: [1, 2, 3, 4, 5, 6], // Mon-Sat
       working_hours_start: '09:30',
@@ -36,7 +36,7 @@ export class SlaService {
     const holidays = await this.prisma.holiday.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId ?? undefined,
+        org_unit_id: orgUnitId ?? undefined,
         date: { gte: startDate },
         is_active: true,
       },
@@ -100,7 +100,7 @@ export class SlaService {
    */
   async startTracker(
     tenantId: string,
-    branchId: number,
+    orgUnitId: number,
     entityType: string,
     entityId: number,
     category: string,
@@ -109,7 +109,7 @@ export class SlaService {
     const policy = await this.prisma.slaPolicy.findFirst({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         entity_type: entityType,
         category,
         urgency_level: urgency,
@@ -118,7 +118,7 @@ export class SlaService {
     }) || await this.prisma.slaPolicy.findFirst({
       where: {
         tenant_id: tenantId,
-        branch_id: null,
+        org_unit_id: null,
         entity_type: entityType,
         category,
         urgency_level: urgency,
@@ -134,19 +134,19 @@ export class SlaService {
     const start = new Date();
     const target = policy.is_24x7
       ? new Date(start.getTime() + policy.target_hours * 60 * 60 * 1000)
-      : await this.calculateTargetDate(tenantId, branchId, start, policy.target_hours);
+      : await this.calculateTargetDate(tenantId, orgUnitId, start, policy.target_hours);
 
     const warning = policy.is_24x7
       ? new Date(start.getTime() + policy.warning_hours * 60 * 60 * 1000)
-      : await this.calculateTargetDate(tenantId, branchId, start, policy.warning_hours);
+      : await this.calculateTargetDate(tenantId, orgUnitId, start, policy.warning_hours);
 
     const escalation = policy.is_24x7
       ? new Date(start.getTime() + policy.escalation_hours * 60 * 60 * 1000)
-      : await this.calculateTargetDate(tenantId, branchId, start, policy.escalation_hours);
+      : await this.calculateTargetDate(tenantId, orgUnitId, start, policy.escalation_hours);
 
     const breach = policy.is_24x7
       ? new Date(start.getTime() + policy.breach_hours * 60 * 60 * 1000)
-      : await this.calculateTargetDate(tenantId, branchId, start, policy.breach_hours);
+      : await this.calculateTargetDate(tenantId, orgUnitId, start, policy.breach_hours);
 
     return this.prisma.slaTracker.create({
       data: {
@@ -200,7 +200,7 @@ export class SlaService {
             const escalations = await this.prisma.userRole.findMany({
               where: {
                 org_unit_id: tracker.entity_type === 'complaint'
-                  ? (await this.prisma.complaint.findUnique({ where: { id: tracker.entity_id } }))?.panchayat_id || 0
+                  ? (await this.prisma.complaint.findUnique({ where: { id: tracker.entity_id } }))?.org_unit_id || 0
                   : 0,
                 role_id: role.id,
               },
@@ -245,11 +245,11 @@ export class SlaService {
     });
   }
 
-  async getPolicies(tenantId: string, branchId?: number) {
+  async getPolicies(tenantId: string, orgUnitId?: number) {
     return this.prisma.slaPolicy.findMany({
       where: {
         tenant_id: tenantId,
-        ...(branchId !== undefined && { branch_id: branchId }),
+        ...(orgUnitId !== undefined && { org_unit_id: orgUnitId }),
         is_active: true,
       },
     });

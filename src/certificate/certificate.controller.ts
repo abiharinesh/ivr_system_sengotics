@@ -25,7 +25,7 @@ export class CertificateController {
   /** POST /certificates/apply */
   @Post('apply')
   async apply(@Body() body: {
-    panchayat_id: number;
+    org_unit_id: number;
     certificate_type: string;
     applicant_name: string;
     applicant_phone?: string;
@@ -55,13 +55,13 @@ export class CertificateController {
 
   // ─── Administrative Workflow ──────────────────────────────────────────────
 
-  /** GET /certificates?panchayat_id=1&type=birth */
+  /** GET /certificates?org_unit_id=1&type=birth */
   @Get()
   async listRequests(
-    @Query('panchayat_id', ParseIntPipe) panchayatId: number,
+    @Query('org_unit_id', ParseIntPipe) orgUnitId: number,
     @Query('type') type?: string,
   ) {
-    return this.certificateService.listRequestsByPanchayat(panchayatId, type);
+    return this.certificateService.listRequestsByPanchayat(orgUnitId, type);
   }
 
   /** GET /certificates/:id */

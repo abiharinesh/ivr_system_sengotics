@@ -548,7 +548,7 @@ export class VoiceProcessingService {
     poleId: number | null,
     pipelineId: number | null,
     tankId: number | null,
-    panchayatId: number,
+    orgUnitId: number,
     extracted: ExtractedLocation,
     audioUrl: string,
   ): Promise<{ id: number } | null> {
@@ -571,7 +571,7 @@ export class VoiceProcessingService {
           pole_id: poleId,
           pipeline_id: pipelineId,
           tank_id: tankId,
-          panchayat_id: panchayatId,
+          org_unit_id: orgUnitId,
           complaint_type: extracted.complaint_type || 'street_light',
           description:
             extracted.call_summary ||
@@ -611,7 +611,7 @@ export class VoiceProcessingService {
     poleId: number | null,
     pipelineId: number | null,
     tankId: number | null,
-    panchayatId: number,
+    orgUnitId: number,
     extracted: ExtractedLocation,
     audioUrl: string,
   ): Promise<void> {
@@ -638,7 +638,7 @@ export class VoiceProcessingService {
           pole_id: poleId,
           pipeline_id: pipelineId,
           tank_id: tankId,
-          panchayat_id: panchayatId,
+          org_unit_id: orgUnitId,
           complaint_type: extracted.complaint_type || 'street_light',
           description:
             extracted.call_summary ||
@@ -673,7 +673,7 @@ export class VoiceProcessingService {
     callSid: string,
     voiceCallId: number,
     audioUrl: string,
-    panchayatId: number | undefined,
+    orgUnitId: number | undefined,
     transcript: string,
     transcriptEnglish: string,
   ): Promise<void> {
@@ -702,7 +702,7 @@ export class VoiceProcessingService {
       const complaint = await tx.complaint.create({
         data: {
           voice_call_id: voiceCallId,
-          panchayat_id: panchayatId ?? null,
+          org_unit_id: orgUnitId ?? null,
           complaint_type: 'street_light',
           description:
             transcriptEnglish || transcript || 'Auto flagged for review',
@@ -783,13 +783,13 @@ export class VoiceProcessingService {
     complaintId: number,
     voiceCallId: number,
     transcriptEnglish: string,
-    panchayatId: number,
+    orgUnitId: number,
   ): Promise<void> {
     try {
       const knownLandmarks =
-        await this.geoMatching.getLandmarksForPanchayat(panchayatId);
+        await this.geoMatching.getLandmarksForPanchayat(orgUnitId);
       const panchayat = await this.prisma.orgUnit.findUnique({
-        where: { id: panchayatId },
+        where: { id: orgUnitId },
         select: { name: true },
       });
       const extractedRaw = await this.locationExtraction.extractLocation(

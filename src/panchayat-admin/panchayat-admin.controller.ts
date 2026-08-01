@@ -28,7 +28,7 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
     employee_id: number | null;
@@ -54,12 +54,12 @@ export class PanchayatAdminController {
    * wrong tenant's data.
    */
   private getPanchayatId(req: AuthenticatedRequest): number {
-    if (!req.user.panchayat_id) {
+    if (!req.user.org_unit_id) {
       throw new ForbiddenException(
         'Your account has no assigned panchayat/branch. Contact your administrator.',
       );
     }
-    return req.user.panchayat_id;
+    return req.user.org_unit_id;
   }
 
   // ── Profile ────────────────────────────────────────────────────────────
@@ -82,7 +82,7 @@ export class PanchayatAdminController {
       officer_name?: string;
       email?: string;
       phone?: string;
-      panchayat_name?: string;
+      org_unit_name?: string;
       photo_url?: string;
       // Branding & panchayat config fields
       logo_url?: string;
@@ -325,7 +325,7 @@ export class PanchayatAdminController {
     return this.electricianOps.getExportJob(jobId, {
       id: req.user.id,
       role: req.user.role,
-      panchayat_id: req.user.panchayat_id,
+      org_unit_id: req.user.org_unit_id,
     });
   }
 
@@ -338,7 +338,7 @@ export class PanchayatAdminController {
     const meta = await this.electricianOps.getExportJob(jobId, {
       id: req.user.id,
       role: req.user.role,
-      panchayat_id: req.user.panchayat_id,
+      org_unit_id: req.user.org_unit_id,
     });
     if (meta.status !== 'ready' || !meta.download_url) {
       throw new BadRequestException('Export not ready or failed');

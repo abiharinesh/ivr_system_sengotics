@@ -34,9 +34,9 @@ export class ReportsService {
   constructor(private readonly prisma: PrismaService) {}
 
   // ── 1. COMPLAINTS REPORT ──────────────────────────────────────────────
-  async getComplaintsData(panchayatId: number, filters: any) {
+  async getComplaintsData(orgUnitId: number, filters: any) {
     const whereClause: any = {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
     };
 
     if (filters.startDate && filters.endDate) {
@@ -177,9 +177,9 @@ export class ReportsService {
   }
 
   // ── 3. POLE ASSETS REPORT ─────────────────────────────────────────────
-  async getPolesData(panchayatId: number, filters: any) {
+  async getPolesData(orgUnitId: number, filters: any) {
     const whereClause: any = {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
     };
 
     const list = await this.prisma.electricPole.findMany({
@@ -251,9 +251,9 @@ export class ReportsService {
   }
 
   // ── 4. TENDERS REPORT ─────────────────────────────────────────────────
-  async getTendersData(panchayatId: number, filters: any) {
+  async getTendersData(orgUnitId: number, filters: any) {
     const whereClause: any = {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
     };
 
     if (filters.status && filters.status !== 'All') {
@@ -320,9 +320,9 @@ export class ReportsService {
   }
 
   // ── 5. FIELD STAFF REPORT ─────────────────────────────────────────────
-  async getFieldStaffData(panchayatId: number, filters: any) {
+  async getFieldStaffData(orgUnitId: number, filters: any) {
     const whereClause: any = {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
       role: { in: ['electrician', 'agent'] },
     };
 
@@ -391,9 +391,9 @@ export class ReportsService {
   }
 
   // ── 6. ZONES REPORT ───────────────────────────────────────────────────
-  async getZonesData(panchayatId: number, filters: any) {
+  async getZonesData(orgUnitId: number, filters: any) {
     const whereClause: any = {
-      panchayat_id: panchayatId,
+      org_unit_id: orgUnitId,
     };
 
     if (filters.activeOnly) {
@@ -442,13 +442,13 @@ export class ReportsService {
   }
 
   // ── 7. WATER SUPPLY REPORT ────────────────────────────────────────────
-  async getWaterSupplyReportData(panchayatId: number, filters: any) {
+  async getWaterSupplyReportData(orgUnitId: number, filters: any) {
     const pipelines = await this.prisma.waterPipeline.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       include: { complaints: true },
     });
     const tanks = await this.prisma.waterTankBorewell.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       include: { complaints: true },
     });
 
@@ -490,13 +490,13 @@ export class ReportsService {
   // ── CSV EXPORT BUILDER ────────────────────────────────────────────────
   async buildCSV(
     service: string,
-    panchayatId: number,
+    orgUnitId: number,
     filters: any,
   ): Promise<string> {
     const buffer: string[] = [];
 
     if (service === 'complaints') {
-      const { list } = await this.getComplaintsData(panchayatId, filters);
+      const { list } = await this.getComplaintsData(orgUnitId, filters);
       buffer.push(
         'Complaint ID,Category,Urgency,Status,Created At,Assigned Electrician,Resolved At,Resolution Distance (m),Geotag Valid',
       );
@@ -535,7 +535,7 @@ export class ReportsService {
         );
       });
     } else if (service === 'poles') {
-      const { list } = await this.getPolesData(panchayatId, filters);
+      const { list } = await this.getPolesData(orgUnitId, filters);
       buffer.push(
         'Pole ID,Pole Number,Keypad ID,Latitude,Longitude,Landmarks,Image URL,Last Verified At',
       );
@@ -554,7 +554,7 @@ export class ReportsService {
         );
       });
     } else if (service === 'tenders') {
-      const { list } = await this.getTendersData(panchayatId, filters);
+      const { list } = await this.getTendersData(orgUnitId, filters);
       buffer.push(
         'Tender ID,Title (Tamil),Status,Anchor Date,Quotation Access Mode,Awardee Vendor Name,Award Amount,Work Order Date,Voucher Number',
       );
@@ -575,7 +575,7 @@ export class ReportsService {
         );
       });
     } else if (service === 'fieldOps') {
-      const { list } = await this.getFieldStaffData(panchayatId, filters);
+      const { list } = await this.getFieldStaffData(orgUnitId, filters);
       buffer.push(
         'User ID,Email,Role,Phone,Created At,Total Assigned Complaints',
       );
@@ -592,7 +592,7 @@ export class ReportsService {
         );
       });
     } else if (service === 'zones') {
-      const { list } = await this.getZonesData(panchayatId, filters);
+      const { list } = await this.getZonesData(orgUnitId, filters);
       buffer.push(
         'Zone ID,Zone Name,Places Covered,Color Code,Opacity,Active State,Created At',
       );
@@ -611,7 +611,7 @@ export class ReportsService {
       });
     } else if (service === 'waterSupply') {
       const { list } = await this.getWaterSupplyReportData(
-        panchayatId,
+        orgUnitId,
         filters,
       );
       buffer.push(
@@ -653,7 +653,7 @@ export class ReportsService {
   // ── HTML EXPORT BUILDER ───────────────────────────────────────────────
   async buildHTML(
     service: string,
-    panchayatId: number,
+    orgUnitId: number,
     filters: any,
   ): Promise<string> {
     let title = '';
@@ -665,7 +665,7 @@ export class ReportsService {
       title = 'Complaints Summary & Lifecycle Report';
       headersHtml =
         '<th>ID</th><th>Category</th><th>Urgency</th><th>Status</th><th>Created At</th><th>Staff Email</th><th>Resolved At</th><th>Geotag Status</th>';
-      const { list } = await this.getComplaintsData(panchayatId, filters);
+      const { list } = await this.getComplaintsData(orgUnitId, filters);
       rowsHtml = list
         .map(
           (c) => `
@@ -706,7 +706,7 @@ export class ReportsService {
       title = 'Pole Assets & Geotags Report';
       headersHtml =
         '<th>Pole ID</th><th>Pole Number</th><th>Keypad ID</th><th>Coordinates</th><th>Landmarks</th><th>Active Complaints</th>';
-      const { list } = await this.getPolesData(panchayatId, filters);
+      const { list } = await this.getPolesData(orgUnitId, filters);
       rowsHtml = list
         .map(
           (p) => `
@@ -725,7 +725,7 @@ export class ReportsService {
       title = 'Tenders & Procurement Report';
       headersHtml =
         '<th>Tender ID</th><th>Title (Tamil)</th><th>Anchor Date</th><th>Quotation Mode</th><th>L1 Contractor</th><th>Award Amount</th><th>Status</th>';
-      const { list } = await this.getTendersData(panchayatId, filters);
+      const { list } = await this.getTendersData(orgUnitId, filters);
       rowsHtml = list
         .map(
           (t) => `
@@ -745,7 +745,7 @@ export class ReportsService {
       title = 'Field Staff & Electrician Performance Report';
       headersHtml =
         '<th>User ID</th><th>Email</th><th>Role</th><th>Phone</th><th>Created At</th><th>Assigned Jobs</th>';
-      const { list } = await this.getFieldStaffData(panchayatId, filters);
+      const { list } = await this.getFieldStaffData(orgUnitId, filters);
       rowsHtml = list
         .map(
           (s) => `
@@ -764,7 +764,7 @@ export class ReportsService {
       title = 'Administrative Zones & Ward boundaries';
       headersHtml =
         '<th>Zone ID</th><th>Zone Name</th><th>Covered Areas</th><th>Opacity</th><th>Color Code</th><th>Status</th>';
-      const { list } = await this.getZonesData(panchayatId, filters);
+      const { list } = await this.getZonesData(orgUnitId, filters);
       rowsHtml = list
         .map(
           (z) => `
@@ -784,7 +784,7 @@ export class ReportsService {
       headersHtml =
         '<th>Asset ID</th><th>Type</th><th>Name</th><th>Capacity / Dim</th><th>Material / Pump</th><th>Coordinates</th><th>Status</th>';
       const { list } = await this.getWaterSupplyReportData(
-        panchayatId,
+        orgUnitId,
         filters,
       );
 
@@ -1014,11 +1014,11 @@ export class ReportsService {
   }
 
   // ── 10. SAVED REPORTS CRUD & SCHEDULING ────────────────────────────────
-  async createSavedReport(tenantId: string, branchId: number, dto: CreateSavedReportDto) {
+  async createSavedReport(tenantId: string, orgUnitId: number, dto: CreateSavedReportDto) {
     return this.prisma.savedReport.create({
       data: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         name: dto.name,
         report_type: dto.report_type,
         format: dto.format ?? 'pdf',
@@ -1030,9 +1030,9 @@ export class ReportsService {
     });
   }
 
-  async getSavedReports(tenantId: string, branchId: number) {
+  async getSavedReports(tenantId: string, orgUnitId: number) {
     return this.prisma.savedReport.findMany({
-      where: { tenant_id: tenantId, branch_id: branchId },
+      where: { tenant_id: tenantId, org_unit_id: orgUnitId },
     });
   }
 
@@ -1044,9 +1044,9 @@ export class ReportsService {
 
     let payload = '';
     if (report.format === 'csv') {
-      payload = await this.buildCSV(report.report_type, report.branch_id ?? 1, report.filters || {});
+      payload = await this.buildCSV(report.report_type, report.org_unit_id ?? 1, report.filters || {});
     } else {
-      payload = await this.buildHTML(report.report_type, report.branch_id ?? 1, report.filters || {});
+      payload = await this.buildHTML(report.report_type, report.org_unit_id ?? 1, report.filters || {});
     }
 
     const updated = await this.prisma.savedReport.update({

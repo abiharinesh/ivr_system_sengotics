@@ -18,19 +18,19 @@ export class NumberGenService {
    * Generate the next number for a given entity type.
    * @param tenantId - Tenant scope
    * @param entityType - "complaint", "work_order", "asset", "tender", etc.
-   * @param branchId - Optional branch-level scoping
+   * @param orgUnitId - Optional branch-level scoping
    * @returns Formatted number string, e.g., "CMP-2026-000042"
    */
   async next(
     tenantId: string,
     entityType: string,
-    branchId?: number,
+    orgUnitId?: number,
   ): Promise<string> {
     // Find or create sequence config
     let config = await this.prisma.sequenceConfig.findFirst({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId ?? null,
+        org_unit_id: orgUnitId ?? null,
         entity_type: entityType,
       },
     });
@@ -40,7 +40,7 @@ export class NumberGenService {
       config = await this.prisma.sequenceConfig.findFirst({
         where: {
           tenant_id: tenantId,
-          branch_id: null,
+          org_unit_id: null,
           entity_type: entityType,
         },
       });
@@ -52,7 +52,7 @@ export class NumberGenService {
       config = await this.prisma.sequenceConfig.create({
         data: {
           tenant_id: tenantId,
-          branch_id: branchId ?? null,
+          org_unit_id: orgUnitId ?? null,
           entity_type: entityType,
           prefix: defaults.prefix,
           format: defaults.format,

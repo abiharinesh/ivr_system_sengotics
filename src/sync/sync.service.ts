@@ -27,7 +27,7 @@ export class SyncService {
   /**
    * Process a batch of offline client operations (crude transactions & server-wins conflict resolution).
    */
-  async processSyncUpload(tenantId: string, branchId: number, userId: number, dto: SyncPayloadDto) {
+  async processSyncUpload(tenantId: string, orgUnitId: number, userId: number, dto: SyncPayloadDto) {
     const results: any[] = [];
     const clientSyncTime = new Date(dto.lastSyncTime);
 
@@ -37,7 +37,7 @@ export class SyncService {
           if (op.action === 'create') {
             const complaint = await this.prisma.complaint.create({
               data: {
-                panchayat_id: branchId,
+                org_unit_id: orgUnitId,
                 complaint_type: op.data.complaint_type ?? 'offline_reported',
                 description: op.data.description ?? null,
                 urgency_level: op.data.urgency_level ?? 'medium',
@@ -81,7 +81,7 @@ export class SyncService {
           if (op.action === 'create') {
             const inspection = await this.inspections.createInspection(tenantId, {
               templateId: op.data.template_id,
-              branchId: branchId,
+              orgUnitId: orgUnitId,
               inspectorUserId: userId,
               assetId: op.data.asset_id,
               locationLat: op.data.location_lat,
@@ -111,13 +111,13 @@ export class SyncService {
   /**
    * Fetch updates (delta changes) across key tables since lastSyncTime.
    */
-  async getSyncDelta(tenantId: string, branchId: number, lastSyncTime: string) {
+  async getSyncDelta(tenantId: string, orgUnitId: number, lastSyncTime: string) {
     const syncDate = new Date(lastSyncTime);
 
     // Fetch newly created or updated assets & complaints since last sync time
     const complaints = await this.prisma.complaint.findMany({
       where: {
-        panchayat_id: branchId,
+        org_unit_id: orgUnitId,
         created_at: { gte: syncDate },
       },
     });
@@ -125,7 +125,7 @@ export class SyncService {
     const assets = await this.prisma.asset.findMany({
       where: {
         tenant_id: tenantId,
-        branch_id: branchId,
+        org_unit_id: orgUnitId,
         created_at: { gte: syncDate },
       },
     });

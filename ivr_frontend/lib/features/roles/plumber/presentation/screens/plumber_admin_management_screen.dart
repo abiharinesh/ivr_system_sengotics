@@ -323,8 +323,8 @@ class _PlumberAdminManagementScreenState
     final email = m['email']?.toString() ?? '$id';
     final phone = m['phone_e164']?.toString();
     final pName =
-        m['panchayat'] is Map
-            ? (m['panchayat'] as Map)['name']?.toString()
+        m['org_unit'] is Map
+            ? (m['org_unit'] as Map)['name']?.toString()
             : null;
     final expanded = _expanded.contains(id) || showDetailsDirectly;
 

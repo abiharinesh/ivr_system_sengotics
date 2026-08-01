@@ -53,7 +53,7 @@ class _AdCampaignScreenState extends State<AdCampaignScreen> {
           }
         }
       } else {
-        _panchayatId = authState.user.panchayatId ?? 1;
+        _panchayatId = authState.user.orgUnitId ?? 1;
         _bloc.add(LoadAdCampaigns(_panchayatId!));
       }
     }
@@ -123,7 +123,7 @@ class _AdCampaignScreenState extends State<AdCampaignScreen> {
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreateCampaignEvent(_panchayatId!, {
-                  'panchayat_id': _panchayatId!,
+                  'org_unit_id': _panchayatId!,
                   'advertiser_name': advertiserController.text.trim(),
                   'title': titleController.text.trim(),
                   'description': descController.text.trim(),

@@ -290,8 +290,8 @@ class _PublicPoleReportScreenState extends State<PublicPoleReportScreen>
   }
 
   Widget _buildFormView() {
-    final panchayatName =
-        _poleInfo?['panchayat']?['name'] as String? ?? 'Unknown';
+    final orgUnitName =
+        _poleInfo?['org_unit']?['name'] as String? ?? 'Unknown';
     final poleNumber = _poleInfo?['pole_number'] as String? ?? 'N/A';
     final landmarks = (_poleInfo?['landmarks'] as List<dynamic>?)
             ?.map((e) => e.toString())
@@ -331,7 +331,7 @@ class _PublicPoleReportScreenState extends State<PublicPoleReportScreen>
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${_t('Panchayat', 'ஊராட்சி')}: $panchayatName',
+                  '${_t('Panchayat', 'ஊராட்சி')}: $orgUnitName',
                   style: TextStyle(
                     color: AppTheme.textSecondary,
                     fontSize: 13,

@@ -40,10 +40,10 @@ export class TenderPdfService {
       .replace(/\\/g, '/');
   }
 
-  private async ensureTenderOwned(panchayatId: number, tenderId: number) {
+  private async ensureTenderOwned(orgUnitId: number, tenderId: number) {
     const t = await this.prisma.tender.findUnique({ where: { id: tenderId } });
     if (!t) throw new NotFoundException(`Tender #${tenderId} not found`);
-    if (t.panchayat_id !== panchayatId)
+    if (t.org_unit_id !== orgUnitId)
       throw new ForbiddenException('Tender belongs to another panchayat');
     return t;
   }
@@ -124,9 +124,9 @@ export class TenderPdfService {
   ): Promise<TemplateContext> {
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
-      include: { panchayat: true },
+      include: { org_unit: true },
     });
-    if (!tender || !tender.panchayat)
+    if (!tender || !tender.org_unit)
       throw new NotFoundException(`Tender #${tenderId} not found`);
 
     const [lineItems, invites, quotations] = await Promise.all([
@@ -145,18 +145,18 @@ export class TenderPdfService {
     ]);
     const timeline = await this.milestones.resolveForTender(tenderId);
     const layout = await this.templateSettings.resolveMergedLayout(
-      tender.panchayat.id,
+      tender.org_unit.id,
       templateId,
     );
     const mergedOverrides =
       await this.templateSettings.resolveMergedFieldOverrides(
-        tender.panchayat.id,
+        tender.org_unit.id,
         templateId,
         fieldOverrides,
       );
 
     return {
-      panchayat: { id: tender.panchayat.id, name: tender.panchayat.name },
+      org_unit: { id: tender.org_unit.id, name: tender.org_unit.name },
       tender: {
         id: tender.id,
         title_ta: tender.title_ta,
@@ -210,7 +210,7 @@ export class TenderPdfService {
 
   /** Generate (or regenerate) a document. Returns the new TenderDocument row. */
   async generate(args: {
-    panchayatId: number;
+    orgUnitId: number;
     tenderId: number;
     templateId: string;
     actorUserId: number;
@@ -218,7 +218,7 @@ export class TenderPdfService {
     fieldOverrides?: Record<string, unknown> | null;
   }) {
     const tpl = validateTemplateId(args.templateId);
-    await this.ensureTenderOwned(args.panchayatId, args.tenderId);
+    await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
     let vendorId = args.vendorId ?? null;
     if (tpl === 'quotation' && vendorId == null) {
       vendorId = await this.resolveQuotationVendorId(args.tenderId);
@@ -430,11 +430,11 @@ export class TenderPdfService {
 
   /** Stream a zip bundle of the latest version of every template. */
   async streamLatestZip(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     out: NodeJS.WritableStream,
   ) {
-    await this.ensureTenderOwned(panchayatId, tenderId);
+    await this.ensureTenderOwned(orgUnitId, tenderId);
     return this.streamLatestZipUnchecked(tenderId, out);
   }
 
@@ -472,11 +472,11 @@ export class TenderPdfService {
 
   // Legacy flow retained for compatibility with existing call sites.
   async getDownloadStoragePath(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     docId: number,
   ): Promise<string> {
-    await this.ensureTenderOwned(panchayatId, tenderId);
+    await this.ensureTenderOwned(orgUnitId, tenderId);
     return this.resolveDocStoragePath(tenderId, docId);
   }
 
@@ -488,11 +488,11 @@ export class TenderPdfService {
 
   /** Fetch the HTML source of a document for inline editing. */
   async getHtmlContent(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     docId: number,
   ): Promise<string> {
-    await this.ensureTenderOwned(panchayatId, tenderId);
+    await this.ensureTenderOwned(orgUnitId, tenderId);
     const doc = await this.prisma.tenderDocument.findUnique({
       where: { id: docId },
     });
@@ -523,13 +523,13 @@ export class TenderPdfService {
 
   /** Persist user-edited HTML and regenerate the PDF artefact. */
   async saveEditedHtml(args: {
-    panchayatId: number;
+    orgUnitId: number;
     tenderId: number;
     docId: number;
     html: string;
     actorUserId: number;
   }) {
-    await this.ensureTenderOwned(args.panchayatId, args.tenderId);
+    await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
     const doc = await this.prisma.tenderDocument.findUnique({
       where: { id: args.docId },
     });
@@ -581,13 +581,13 @@ export class TenderPdfService {
 
   /** Return document bytes in the requested format (pdf | html | docx). */
   async getDocumentInFormat(
-    panchayatId: number,
+    orgUnitId: number,
     tenderId: number,
     docId: number,
     format: 'pdf' | 'html' | 'docx',
   ): Promise<{ bytes: Buffer; contentType: string; ext: string }> {
     const storagePath = await this.getDownloadStoragePath(
-      panchayatId,
+      orgUnitId,
       tenderId,
       docId,
     );
@@ -664,8 +664,8 @@ ${bodyContent}
 </html>`;
   }
 
-  async getCanvasState(panchayatId: number, tenderId: number, docId: number) {
-    await this.ensureTenderOwned(panchayatId, tenderId);
+  async getCanvasState(orgUnitId: number, tenderId: number, docId: number) {
+    await this.ensureTenderOwned(orgUnitId, tenderId);
     const doc = await this.prisma.tenderDocument.findUnique({
       where: { id: docId },
     });
@@ -689,13 +689,13 @@ ${bodyContent}
   }
 
   async saveCanvasState(args: {
-    panchayatId: number;
+    orgUnitId: number;
     tenderId: number;
     docId: number;
     layers: Array<Record<string, unknown>>;
     actorUserId?: number;
   }) {
-    await this.ensureTenderOwned(args.panchayatId, args.tenderId);
+    await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
     const doc = await this.prisma.tenderDocument.findUnique({
       where: { id: args.docId },
     });
@@ -732,13 +732,13 @@ ${bodyContent}
   }
 
   async mergeCanvasState(args: {
-    panchayatId: number;
+    orgUnitId: number;
     tenderId: number;
     docId: number;
     layers: Array<Record<string, unknown>>;
     actorUserId?: number;
   }) {
-    await this.ensureTenderOwned(args.panchayatId, args.tenderId);
+    await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
     const doc = await this.prisma.tenderDocument.findUnique({
       where: { id: args.docId },
     });
@@ -799,8 +799,8 @@ ${bodyContent}
       layers_count: layers.length,
     };
   }
-  list(panchayatId: number, tenderId: number) {
-    return this.ensureTenderOwned(panchayatId, tenderId).then(() =>
+  list(orgUnitId: number, tenderId: number) {
+    return this.ensureTenderOwned(orgUnitId, tenderId).then(() =>
       this.prisma.tenderDocument.findMany({
         where: { tender_id: tenderId },
         orderBy: [{ template_id: 'asc' }, { version: 'desc' }],

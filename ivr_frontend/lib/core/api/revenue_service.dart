@@ -5,8 +5,8 @@ class RevenueService {
 
   // ─── Ad Campaigns ──────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getCampaigns(int panchayatId) async {
-    final response = await _api.get('/ad-campaigns', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getCampaigns(int orgUnitId) async {
+    final response = await _api.get('/ad-campaigns', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -28,8 +28,8 @@ class RevenueService {
 
   // ─── Penalties & SLA Rules ──────────────────────────────────────────────────
 
-  Future<List<dynamic>> getRules(int panchayatId) async {
-    final response = await _api.get('/penalties/rules', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getRules(int orgUnitId) async {
+    final response = await _api.get('/penalties/rules', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -37,13 +37,13 @@ class RevenueService {
     return _api.post('/penalties/rules', data: data);
   }
 
-  Future<List<dynamic>> getPenalties(int panchayatId) async {
-    final response = await _api.get('/penalties', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getPenalties(int orgUnitId) async {
+    final response = await _api.get('/penalties', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
-  Future<dynamic> getPenaltySummary(int panchayatId) async {
-    return _api.get('/penalties/summary', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<dynamic> getPenaltySummary(int orgUnitId) async {
+    return _api.get('/penalties/summary', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
   }
 
   Future<dynamic> waivePenalty(int id, String reason) async {
@@ -56,8 +56,8 @@ class RevenueService {
 
   // ─── Property Tax ──────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getProperties(int panchayatId) async {
-    final response = await _api.get('/property-tax/properties', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getProperties(int orgUnitId) async {
+    final response = await _api.get('/property-tax/properties', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -73,23 +73,23 @@ class RevenueService {
     return _api.post('/property-tax/payments/$paymentId/pay', data: data);
   }
 
-  Future<List<dynamic>> getTaxDefaulters(int panchayatId, {String? financialYear}) async {
-    final params = <String, dynamic>{'panchayat_id': panchayatId};
+  Future<List<dynamic>> getTaxDefaulters(int orgUnitId, {String? financialYear}) async {
+    final params = <String, dynamic>{'org_unit_id': orgUnitId};
     if (financialYear != null) params['financial_year'] = financialYear;
     final response = await _api.get('/property-tax/defaulters', queryParams: params, forceRefresh: true);
     return response as List<dynamic>;
   }
 
-  Future<dynamic> getTaxSummary(int panchayatId, {String? financialYear}) async {
-    final params = <String, dynamic>{'panchayat_id': panchayatId};
+  Future<dynamic> getTaxSummary(int orgUnitId, {String? financialYear}) async {
+    final params = <String, dynamic>{'org_unit_id': orgUnitId};
     if (financialYear != null) params['financial_year'] = financialYear;
     return _api.get('/property-tax/revenue-summary', queryParams: params, forceRefresh: true);
   }
 
   // ─── Certificates ──────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getCertificateRequests(int panchayatId, {String? type}) async {
-    final params = <String, dynamic>{'panchayat_id': panchayatId};
+  Future<List<dynamic>> getCertificateRequests(int orgUnitId, {String? type}) async {
+    final params = <String, dynamic>{'org_unit_id': orgUnitId};
     if (type != null) params['type'] = type;
     final response = await _api.get('/certificates', queryParams: params, forceRefresh: true);
     return response as List<dynamic>;
@@ -105,8 +105,8 @@ class RevenueService {
 
   // ─── Asset Bookings ─────────────────────────────────────────────────────────
 
-  Future<List<dynamic>> getAssets(int panchayatId) async {
-    final response = await _api.get('/asset-bookings/assets', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getAssets(int orgUnitId) async {
+    final response = await _api.get('/asset-bookings/assets', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -114,8 +114,8 @@ class RevenueService {
     return _api.post('/asset-bookings/assets', data: data);
   }
 
-  Future<List<dynamic>> getBookings(int panchayatId) async {
-    final response = await _api.get('/asset-bookings/list', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getBookings(int orgUnitId) async {
+    final response = await _api.get('/asset-bookings/list', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -137,8 +137,8 @@ class RevenueService {
 
   // ─── Markets & Stall Fees ──────────────────────────────────────────────────
 
-  Future<List<dynamic>> getMarketDays(int panchayatId) async {
-    final response = await _api.get('/markets/days', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getMarketDays(int orgUnitId) async {
+    final response = await _api.get('/markets/days', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -146,8 +146,8 @@ class RevenueService {
     return _api.post('/markets/days', data: data);
   }
 
-  Future<List<dynamic>> getMarketVendors(int panchayatId) async {
-    final response = await _api.get('/markets/vendors', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getMarketVendors(int orgUnitId) async {
+    final response = await _api.get('/markets/vendors', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 
@@ -159,8 +159,8 @@ class RevenueService {
     return _api.post('/markets/payments/pay', data: data);
   }
 
-  Future<List<dynamic>> getMarketPayments(int panchayatId) async {
-    final response = await _api.get('/markets/payments', queryParams: {'panchayat_id': panchayatId}, forceRefresh: true);
+  Future<List<dynamic>> getMarketPayments(int orgUnitId) async {
+    final response = await _api.get('/markets/payments', queryParams: {'org_unit_id': orgUnitId}, forceRefresh: true);
     return response as List<dynamic>;
   }
 }

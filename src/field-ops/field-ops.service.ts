@@ -32,9 +32,9 @@ export class ElectricianOpsService {
 
   constructor(private readonly prisma: PrismaService) {}
 
-  async listElectricians(panchayatId: number) {
+  async listElectricians(orgUnitId: number) {
     return this.prisma.user.findMany({
-      where: { primary_org_unit_id: panchayatId, role: 'electrician' },
+      where: { primary_org_unit_id: orgUnitId, role: 'electrician' },
       select: {
         id: true,
         email: true,
@@ -67,7 +67,7 @@ export class ElectricianOpsService {
   }
 
   async createElectricianForPanchayat(
-    panchayatId: number,
+    orgUnitId: number,
     data: { email: string; password: string; phone_e164?: string | null },
   ) {
     if (!data.password || data.password.length < 8) {
@@ -85,7 +85,7 @@ export class ElectricianOpsService {
         email: data.email,
         password_hash,
         role: 'electrician',
-        primary_org_unit_id: panchayatId,
+        primary_org_unit_id: orgUnitId,
         phone_e164: data.phone_e164?.trim() || null,
       },
       select: {
@@ -101,14 +101,14 @@ export class ElectricianOpsService {
 
   private async ensureElectricianInPanchayat(
     electricianId: number,
-    panchayatId: number,
+    orgUnitId: number,
   ) {
     const u = await this.prisma.user.findUnique({
       where: { id: electricianId },
     });
     if (!u || u.role !== 'electrician')
       throw new BadRequestException('Not an electrician');
-    if (u.primary_org_unit_id !== panchayatId)
+    if (u.primary_org_unit_id !== orgUnitId)
       throw new ForbiddenException('Electrician is in another panchayat');
     return u;
   }
@@ -200,7 +200,7 @@ export class ElectricianOpsService {
     const job = await this.prisma.exportJob.create({
       data: {
         created_by_user_id: args.createdByUserId,
-        panchayat_id: u.primary_org_unit_id,
+        org_unit_id: u.primary_org_unit_id,
         electrician_user_id: args.electricianId,
         range_from: from,
         range_to: to,
@@ -217,7 +217,7 @@ export class ElectricianOpsService {
 
   async getExportJob(
     jobId: number,
-    requester: { id: number; role: string; panchayat_id: number | null },
+    requester: { id: number; role: string; org_unit_id: number | null },
   ) {
     const job = await this.prisma.exportJob.findUnique({
       where: { id: jobId },
@@ -228,7 +228,7 @@ export class ElectricianOpsService {
     if (!job) throw new NotFoundException('Export job not found');
 
     if (requester.role === 'panchayat_admin') {
-      if (job.panchayat_id !== requester.panchayat_id) {
+      if (job.org_unit_id !== requester.org_unit_id) {
         throw new ForbiddenException('Wrong panchayat');
       }
     } else if (requester.role !== 'super_admin') {
@@ -279,7 +279,7 @@ export class ElectricianOpsService {
         },
         include: {
           pole: true,
-          panchayat: { select: { id: true, name: true } },
+          org_unit: { select: { id: true, name: true } },
         },
         orderBy: { resolved_at: 'asc' },
         take: MAX_EXPORT_ROWS,
@@ -332,7 +332,7 @@ export class ElectricianOpsService {
           [
             c.id,
             c.pole_id ?? '',
-            csvEscape(c.panchayat?.name ?? ''),
+            csvEscape(c.org_unit?.name ?? ''),
             csvEscape(c.category ?? ''),
             c.resolved_at?.toISOString() ?? '',
             c.resolution_image_latitude ?? '',

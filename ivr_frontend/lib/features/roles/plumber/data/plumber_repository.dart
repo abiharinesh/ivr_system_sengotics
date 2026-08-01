@@ -10,19 +10,19 @@ class PlumberRepository {
       'id': 101,
       'email': 'magesh.plumber@ooraatchi.in',
       'phone_e164': '+919876543210',
-      'panchayat': {'name': 'Alandur Panchayat'},
+      'org_unit': {'name': 'Alandur Panchayat'},
     },
     {
       'id': 102,
       'email': 'karthik.plumber@ooraatchi.in',
       'phone_e164': '+919876543211',
-      'panchayat': {'name': 'Alandur Panchayat'},
+      'org_unit': {'name': 'Alandur Panchayat'},
     },
     {
       'id': 103,
       'email': 'selvam.plumbing@ooraatchi.in',
       'phone_e164': '+919876543212',
-      'panchayat': {'name': 'Alandur Panchayat'},
+      'org_unit': {'name': 'Alandur Panchayat'},
     }
   ];
 
@@ -54,7 +54,7 @@ class PlumberRepository {
         'id': 100 + _mockPlumbers.length + 1,
         'email': email,
         'phone_e164': phoneE164 ?? '',
-        'panchayat': {'name': 'Your Panchayat'},
+        'org_unit': {'name': 'Your Panchayat'},
       };
       _mockPlumbers.add(newPlumber);
       return newPlumber;

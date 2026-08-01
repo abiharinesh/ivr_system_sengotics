@@ -21,8 +21,8 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body() body: { phone: string; otp: string; panchayat_id?: number }) {
-    return this.authService.verifyOtp(body.phone, body.otp, body.panchayat_id);
+  async verifyOtp(@Body() body: { phone: string; otp: string; org_unit_id?: number }) {
+    return this.authService.verifyOtp(body.phone, body.otp, body.org_unit_id);
   }
 
   /**

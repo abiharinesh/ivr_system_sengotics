@@ -49,7 +49,7 @@ export class PlumberService {
         pole: true,
         pipeline: true,
         tank: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
       orderBy: { created_at: 'desc' },
     });
@@ -62,7 +62,7 @@ export class PlumberService {
         pole: true,
         pipeline: true,
         tank: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
         voice_call: {
           select: { id: true, transcript: true, transcript_english: true },
         },
@@ -88,7 +88,7 @@ export class PlumberService {
       include: {
         pole: true,
         pipeline: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
     });
   }
@@ -233,7 +233,7 @@ export class PlumberService {
       include: {
         pole: true,
         pipeline: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit: { select: { id: true, name: true } },
       },
     });
 

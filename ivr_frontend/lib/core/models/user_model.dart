@@ -51,8 +51,8 @@ class UserModel extends Equatable {
   final String email;
   final String role;
   final String? phone;
-  final int? panchayatId;
-  final String? panchayatName;
+  final int? orgUnitId;
+  final String? orgUnitName;
   final String? branchType;
   final String? softwareNameTa;
   final String? softwareNameEn;
@@ -81,8 +81,8 @@ class UserModel extends Equatable {
     required this.email,
     required this.role,
     this.phone,
-    this.panchayatId,
-    this.panchayatName,
+    this.orgUnitId,
+    this.orgUnitName,
     this.branchType,
     this.softwareNameTa,
     this.softwareNameEn,
@@ -108,7 +108,7 @@ class UserModel extends Equatable {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
-    final panchayat = json['panchayat'] as Map<String, dynamic>?;
+    final panchayat = json['org_unit'] as Map<String, dynamic>?;
     final employee = json['employee'] as Map<String, dynamic>?;
     final rbacRoles = json['rbac_roles'] as List<dynamic>?;
     return UserModel(
@@ -116,14 +116,14 @@ class UserModel extends Equatable {
       email: (json['email'] as String?) ?? '',
       role: (json['role'] as String?) ?? 'user',
       phone: json['phone_e164'] as String?,
-      panchayatId: _jsonIntOpt(json['panchayat_id']),
+      orgUnitId: _jsonIntOpt(json['org_unit_id']),
       roleAssignments: rbacRoles
               ?.map((r) => UserRoleAssignment.fromJson(r as Map<String, dynamic>))
               .toList() ??
           const [],
       accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
       permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
-      panchayatName: panchayat?['name'] as String?,
+      orgUnitName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
       softwareNameTa: panchayat?['software_name_ta'] as String?,
       softwareNameEn: panchayat?['software_name_en'] as String?,
@@ -196,7 +196,7 @@ class UserModel extends Equatable {
   bool get isI3cStaff => role == 'i3c_staff';
   bool get isContractor => role == 'contractor';
 
-  /// Panchayat-scoped field roles share the same panchayat_id as admins.
+  /// Org-unit-scoped field roles share the same org_unit_id as admins.
   bool get isFieldStaff => isAgent || isElectrician || isPlumber || isJuniorEngineer;
 
   /// Executive-level roles that get the admin shell with full sidebar.
@@ -230,7 +230,7 @@ class UserModel extends Equatable {
       'email': email,
       'role': role,
       'phone_e164': phone,
-      'panchayat_id': panchayatId,
+      'org_unit_id': orgUnitId,
       'created_at': createdAt?.toIso8601String(),
       'employee': {
         'employee_code': employeeCode,
@@ -239,8 +239,8 @@ class UserModel extends Equatable {
         'service_book_number': serviceBookNumber,
         'photo_url': photoUrl,
       },
-      'panchayat': {
-        'name': panchayatName,
+      'org_unit': {
+        'name': orgUnitName,
         'branch_type': branchType,
         'software_name_ta': softwareNameTa,
         'software_name_en': softwareNameEn,
@@ -264,8 +264,8 @@ class UserModel extends Equatable {
         email,
         role,
         phone,
-        panchayatId,
-        panchayatName,
+        orgUnitId,
+        orgUnitName,
         branchType,
         softwareNameTa,
         softwareNameEn,
@@ -315,9 +315,9 @@ class AuthResponse {
         'id': _jsonInt(payload['sub']),
         'email': '${payload['email'] ?? json['email'] ?? ''}',
         'role': '${json['role'] ?? payload['role'] ?? 'user'}',
-        'panchayat_id':
-            _jsonIntOpt(json['panchayat_id']) ?? _jsonIntOpt(payload['panchayat_id']),
-        'panchayat': json['panchayat'],
+        'org_unit_id':
+            _jsonIntOpt(json['org_unit_id']) ?? _jsonIntOpt(payload['org_unit_id']),
+        'org_unit': json['org_unit'],
         'rbac_roles': payload['rbac_roles'],
         'access_scope': payload['access_scope'],
         'permissions': payload['permissions'],

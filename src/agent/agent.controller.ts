@@ -29,14 +29,14 @@ interface AuthReq {
     id: number;
     email: string;
     role: string;
-    panchayat_id: number | null;
+    org_unit_id: number | null;
   };
 }
 
 const IMAGE_LIMIT = 12 * 1024 * 1024;
 
 function requirePanchayatId(req: AuthReq): number {
-  const id = req.user.panchayat_id;
+  const id = req.user.org_unit_id;
   if (id == null)
     throw new BadRequestException(
       'Your account is not associated with any panchayat',
@@ -71,13 +71,13 @@ export class AgentController {
     @UploadedFile() file: UploadedImageFile | undefined,
     @Body() body: Record<string, unknown>,
   ) {
-    const panchayatId = requirePanchayatId(req);
+    const orgUnitId = requirePanchayatId(req);
     const landmarks = normalizeLandmarksField(body);
 
     if (file?.buffer?.length) {
       const geo = parseGeoFromBody(body);
       return this.agentService.createPoleWithImage(
-        panchayatId,
+        orgUnitId,
         req.user.id,
         {
           pole_number: strFieldOptional(body, 'pole_number'),
@@ -106,7 +106,7 @@ export class AgentController {
       );
     }
 
-    return this.agentService.createPole(panchayatId, req.user.id, {
+    return this.agentService.createPole(orgUnitId, req.user.id, {
       pole_number: strFieldOptional(body, 'pole_number'),
       keypad_id: strFieldOptional(body, 'keypad_id'),
       latitude,

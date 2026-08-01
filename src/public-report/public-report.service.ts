@@ -31,16 +31,16 @@ export class PublicReportService {
         longitude: true,
         landmarks: true,
         public_report_token: true,
-        panchayat_id: true,
-        panchayat: { select: { id: true, name: true } },
+        org_unit_id: true,
+        org_unit: { select: { id: true, name: true } },
       },
     });
     if (!pole) throw new NotFoundException('Pole not found or invalid QR code');
 
     let activeAd: any = null;
-    if (pole.panchayat_id) {
+    if (pole.org_unit_id) {
       try {
-        activeAd = await this.adCampaignService.getActiveAdForPole(pole.id, pole.panchayat_id);
+        activeAd = await this.adCampaignService.getActiveAdForPole(pole.id, pole.org_unit_id);
         if (activeAd) {
           // Record impression asynchronously (fire-and-forget/non-blocking)
           this.adCampaignService.recordImpression(activeAd.id, pole.id).catch(err => {
@@ -79,10 +79,10 @@ export class PublicReportService {
   ) {
     const pole = await this.prisma.electricPole.findUnique({
       where: { public_report_token: token },
-      select: { id: true, panchayat_id: true },
+      select: { id: true, org_unit_id: true },
     });
     if (!pole) throw new NotFoundException('Invalid pole token');
-    if (!pole.panchayat_id) {
+    if (!pole.org_unit_id) {
       throw new BadRequestException('Pole is not assigned to a panchayat');
     }
 
@@ -91,7 +91,7 @@ export class PublicReportService {
     const complaint = await this.prisma.complaint.create({
       data: {
         pole_id: pole.id,
-        panchayat_id: pole.panchayat_id,
+        org_unit_id: pole.org_unit_id,
         complaint_type: data.complaint_type?.trim() || 'citizen_reported',
         description: data.description?.trim() || null,
         urgency_level: data.urgency_level?.trim() || 'medium',
@@ -136,7 +136,7 @@ export class PublicReportService {
             landmarks: true,
           },
         },
-        panchayat: {
+        org_unit: {
           select: { name: true },
         },
       },

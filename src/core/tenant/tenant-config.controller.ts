@@ -11,10 +11,10 @@ import { PrismaService } from '../../prisma/prisma.service';
 export class TenantConfigController {
   constructor(private readonly prisma: PrismaService) {}
 
-  @Get('branding/:branchId')
-  async getTenantBranding(@Param('branchId', ParseIntPipe) branchId: number) {
+  @Get('branding/:orgUnitId')
+  async getTenantBranding(@Param('orgUnitId', ParseIntPipe) orgUnitId: number) {
     const branch = await this.prisma.orgUnit.findUnique({
-      where: { id: branchId },
+      where: { id: orgUnitId },
       select: {
         id: true,
         name: true,
@@ -37,7 +37,7 @@ export class TenantConfigController {
     });
 
     if (!branch) {
-      throw new NotFoundException(`Branch #${branchId} not found`);
+      throw new NotFoundException(`Branch #${orgUnitId} not found`);
     }
 
     return branch;

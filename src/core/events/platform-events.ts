@@ -8,7 +8,7 @@
 export class ComplaintCreatedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly complaintId: number,
     public readonly assetId?: number,
     public readonly assignedTo?: number,
@@ -19,7 +19,7 @@ export class ComplaintCreatedEvent {
 export class ComplaintAssignedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly complaintId: number,
     public readonly assignedTo: number,
     public readonly assignedBy?: number,
@@ -29,7 +29,7 @@ export class ComplaintAssignedEvent {
 export class ComplaintClosedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly complaintId: number,
     public readonly resolvedBy?: number,
     public readonly assetId?: number,
@@ -40,7 +40,7 @@ export class ComplaintClosedEvent {
 export class AssetCreatedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly assetId: number,
     public readonly assetTypeCode: string,
   ) {}
@@ -49,7 +49,7 @@ export class AssetCreatedEvent {
 export class AssetInspectedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly assetId: number,
     public readonly inspectionId: number,
     public readonly score?: number,
@@ -90,7 +90,7 @@ export class SlaBreachedEvent {
 export class BranchStatusChangedEvent {
   constructor(
     public readonly tenantId: string,
-    public readonly branchId: number,
+    public readonly orgUnitId: number,
     public readonly fromStatus: string,
     public readonly toStatus: string,
   ) {}

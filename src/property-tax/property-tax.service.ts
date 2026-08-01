@@ -10,9 +10,9 @@ export class PropertyTaxService {
 
   // ─── Property CRUD ──────────────────────────────────────────────────────────
 
-  async listProperties(panchayatId: number) {
+  async listProperties(orgUnitId: number) {
     return this.prisma.property.findMany({
-      where: { panchayat_id: panchayatId },
+      where: { org_unit_id: orgUnitId },
       include: {
         tax_payments: { orderBy: { financial_year: 'desc' }, take: 3 },
       },
@@ -30,7 +30,7 @@ export class PropertyTaxService {
   }
 
   async createProperty(data: {
-    panchayat_id: number;
+    org_unit_id: number;
     owner_name: string;
     owner_phone?: string;
     door_number?: string;
@@ -73,9 +73,9 @@ export class PropertyTaxService {
   // ─── Tax Demand Generation ──────────────────────────────────────────────────
 
   /** Generate tax demands for all active properties in a panchayat for a given year. */
-  async generateTaxDemands(panchayatId: number, financialYear: string, dueDate: string) {
+  async generateTaxDemands(orgUnitId: number, financialYear: string, dueDate: string) {
     const properties = await this.prisma.property.findMany({
-      where: { panchayat_id: panchayatId, status: 'active' },
+      where: { org_unit_id: orgUnitId, status: 'active' },
     });
 
     const dueDateObj = new Date(dueDate);
@@ -166,10 +166,10 @@ export class PropertyTaxService {
 
   // ─── Defaulters Report ──────────────────────────────────────────────────────
 
-  async getDefaulters(panchayatId: number, financialYear?: string) {
+  async getDefaulters(orgUnitId: number, financialYear?: string) {
     const where: any = {
       status: { in: ['unpaid', 'overdue'] },
-      property: { panchayat_id: panchayatId },
+      property: { org_unit_id: orgUnitId },
     };
     if (financialYear) where.financial_year = financialYear;
 
@@ -192,8 +192,8 @@ export class PropertyTaxService {
 
   // ─── Revenue Summary ───────────────────────────────────────────────────────
 
-  async getRevenueSummary(panchayatId: number, financialYear?: string) {
-    const where: any = { property: { panchayat_id: panchayatId } };
+  async getRevenueSummary(orgUnitId: number, financialYear?: string) {
+    const where: any = { property: { org_unit_id: orgUnitId } };
     if (financialYear) where.financial_year = financialYear;
 
     const payments = await this.prisma.taxPayment.findMany({ where });
