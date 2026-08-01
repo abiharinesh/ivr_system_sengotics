@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InspectionService } from './inspection.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
+import { OrgHierarchyService } from '../core/tenant/org-hierarchy.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('InspectionService', () => {
@@ -27,7 +27,7 @@ describe('InspectionService', () => {
       providers: [
         InspectionService,
         { provide: PrismaService, useValue: mockPrisma },
-        { provide: BranchHierarchyService, useValue: mockHierarchy },
+        { provide: OrgHierarchyService, useValue: mockHierarchy },
       ],
     }).compile();
 

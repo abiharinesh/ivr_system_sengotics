@@ -39,7 +39,7 @@ async function main() {
 
   const createdPanchayats: any[] = [];
   for (const p of panchayatsData) {
-    let panchayat = await prisma.panchayat.findFirst({
+    let panchayat = await prisma.orgUnit.findFirst({
       where: {
         OR: [
           { ivr_number: p.ivr_number },
@@ -49,7 +49,7 @@ async function main() {
       },
     });
     if (!panchayat) {
-      panchayat = await prisma.panchayat.create({
+      panchayat = await prisma.orgUnit.create({
         data: {
           tenant_id: tenantId,
           name: p.name,

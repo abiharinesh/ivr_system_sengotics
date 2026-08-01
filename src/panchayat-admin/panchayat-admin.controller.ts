@@ -46,9 +46,20 @@ export class PanchayatAdminController {
     private readonly plumberOps: PlumberOpsService,
   ) {}
 
-  /** Extract and validate panchayat_id from the JWT user (defaults to 1 for super admin). */
+  /**
+   * Extract the caller's org unit id from the JWT user.
+   * Throws rather than silently defaulting — a null primary_org_unit_id means
+   * the account is misconfigured (or is a super admin with no org-unit
+   * context), and defaulting to org unit #1 would silently leak/mutate the
+   * wrong tenant's data.
+   */
   private getPanchayatId(req: AuthenticatedRequest): number {
-    return req.user.panchayat_id || 1;
+    if (!req.user.panchayat_id) {
+      throw new ForbiddenException(
+        'Your account has no assigned panchayat/branch. Contact your administrator.',
+      );
+    }
+    return req.user.panchayat_id;
   }
 
   // ── Profile ────────────────────────────────────────────────────────────

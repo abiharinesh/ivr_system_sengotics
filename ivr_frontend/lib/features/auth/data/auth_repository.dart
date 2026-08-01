@@ -32,4 +32,14 @@ class AuthRepository {
     );
     return AuthResponse.fromJson(data as Map<String, dynamic>);
   }
+
+  /// Switches the active role/org-unit context for a user holding multiple
+  /// UserRole assignments — reissues a JWT scoped to the chosen one.
+  Future<AuthResponse> switchContext(int userRoleId) async {
+    final data = await _apiClient.post(
+      ApiConfig.switchContext,
+      data: {'user_role_id': userRoleId},
+    );
+    return AuthResponse.fromJson(data as Map<String, dynamic>);
+  }
 }

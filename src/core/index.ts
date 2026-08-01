@@ -5,7 +5,7 @@
  */
 export { TenantModule } from './tenant/tenant.module';
 export { TenantService } from './tenant/tenant.service';
-export { BranchHierarchyService } from './tenant/branch-hierarchy.service';
+export { OrgHierarchyService } from './tenant/org-hierarchy.service';
 
 export { AuditModule } from './audit/audit.module';
 export { AuditService } from './audit/audit.service';

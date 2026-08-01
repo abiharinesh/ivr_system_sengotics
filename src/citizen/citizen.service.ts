@@ -11,7 +11,7 @@ export class CitizenService {
   ) {}
 
   async listPanchayats() {
-    return this.prisma.panchayat.findMany({
+    return this.prisma.orgUnit.findMany({
       select: {
         id: true,
         name: true,
@@ -35,7 +35,7 @@ export class CitizenService {
     }
 
     // Verify panchayat exists
-    const panchayat = await this.prisma.panchayat.findUnique({
+    const panchayat = await this.prisma.orgUnit.findUnique({
       where: { id: data.panchayat_id },
     });
     if (!panchayat) {
@@ -49,7 +49,7 @@ export class CitizenService {
         email,
         password_hash: hashed,
         role: 'citizen',
-        panchayat_id: data.panchayat_id,
+        primary_org_unit_id: data.panchayat_id,
         phone_e164: data.phone_e164 || null,
       },
     });
@@ -58,13 +58,13 @@ export class CitizenService {
       sub: user.id,
       email: user.email,
       role: user.role,
-      panchayat_id: user.panchayat_id,
+      panchayat_id: user.primary_org_unit_id,
     };
 
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.panchayat_id,
+      panchayat_id: user.primary_org_unit_id,
     };
   }
 

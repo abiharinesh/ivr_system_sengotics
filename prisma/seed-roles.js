@@ -1,7 +1,18 @@
 /**
- * Seed: Permissions, Permission Groups, and System Roles
- * 
- * Run: node prisma/seed-permissions.js
+ * Seed: Permissions, Permission Groups, and the single merged Role vocabulary.
+ *
+ * Replaces prisma/seed-permissions.js — that file's SYSTEM_ROLES list had
+ * drifted from the role strings actually used in @Roles() decorators across
+ * the NestJS controllers (e.g. it had "commissioner"/"clerk"/"district_collector"
+ * while the code checks "municipal_commissioner"/"revenue_officer"/"i3c_staff"/
+ * "contractor"). This file is the single source of truth going forward: every
+ * role name here matches a real @Roles() string, plus a few reserved
+ * (is_active: false) designations kept for future controllers to adopt.
+ *
+ * Role.tenant_id = "__system__" marks these as global templates available to
+ * every tenant, distinct from any tenant-specific Role customization.
+ *
+ * Run: node prisma/seed-roles.js
  */
 
 require('dotenv').config();
@@ -13,7 +24,7 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-const TENANT_ID = 'default';
+const TENANT_ID = '__system__';
 
 // ── 1. Permission Definitions ────────────────────────────────────────────────
 const PERMISSIONS = [
@@ -219,8 +230,11 @@ const SYSTEM_ROLES = [
     hierarchy_level: 1,
     can_approve: true,
     is_system: true,
+    is_super_admin: true,
     permission_group_name: 'Super Admin Full Access',
   },
+  // ── Reserved designations (real TN designations, not yet gated by any
+  // controller's @Roles() list) — kept inactive until a controller adopts them.
   {
     name: 'district_collector',
     display_name: 'District Collector',
@@ -229,22 +243,24 @@ const SYSTEM_ROLES = [
     hierarchy_level: 2,
     can_approve: true,
     is_system: true,
+    is_active: false,
     permission_group_name: 'Super Admin Full Access',
-  },
-  {
-    name: 'commissioner',
-    display_name: 'Municipal Commissioner',
-    display_name_ta: 'நகராட்சி ஆணையர்',
-    department: 'administration',
-    hierarchy_level: 3,
-    can_approve: true,
-    is_system: true,
-    permission_group_name: 'Branch Admin Access',
   },
   {
     name: 'panchayat_secretary',
     display_name: 'Panchayat Secretary',
     display_name_ta: 'ஊராட்சி செயலாளர்',
+    department: 'administration',
+    hierarchy_level: 3,
+    can_approve: true,
+    is_system: true,
+    is_active: false,
+    permission_group_name: 'Branch Admin Access',
+  },
+  {
+    name: 'municipal_commissioner',
+    display_name: 'Municipal Commissioner',
+    display_name_ta: 'நகராட்சி ஆணையர்',
     department: 'administration',
     hierarchy_level: 3,
     can_approve: true,
@@ -302,6 +318,16 @@ const SYSTEM_ROLES = [
     permission_group_name: 'Branch Admin Access',
   },
   {
+    name: 'revenue_officer',
+    display_name: 'Revenue Officer',
+    display_name_ta: 'வருவாய் அலுவலர்',
+    department: 'revenue',
+    hierarchy_level: 4,
+    can_approve: true,
+    is_system: true,
+    permission_group_name: 'Revenue Access',
+  },
+  {
     name: 'revenue_inspector',
     display_name: 'Revenue Inspector',
     display_name_ta: 'வருவாய் ஆய்வாளர்',
@@ -312,6 +338,27 @@ const SYSTEM_ROLES = [
     permission_group_name: 'Revenue Access',
   },
   {
+    name: 'i3c_staff',
+    display_name: 'I3C Command Center Staff',
+    display_name_ta: 'I3C கட்டுப்பாட்டு மைய பணியாளர்',
+    department: 'administration',
+    hierarchy_level: 5,
+    can_approve: false,
+    is_system: true,
+    permission_group_name: 'Branch Admin Access',
+  },
+  {
+    name: 'contractor',
+    display_name: 'Contractor / Vendor',
+    display_name_ta: 'ஒப்பந்தக்காரர்',
+    department: null,
+    hierarchy_level: 9,
+    can_approve: false,
+    is_system: true,
+    permission_group_name: 'Field Staff Access',
+  },
+  // ── Reserved (not yet gated by any controller's @Roles() list) ──
+  {
     name: 'clerk',
     display_name: 'Office Clerk',
     display_name_ta: 'அலுவலக எழுத்தர்',
@@ -319,6 +366,7 @@ const SYSTEM_ROLES = [
     hierarchy_level: 7,
     can_approve: false,
     is_system: false,
+    is_active: false,
     permission_group_name: 'Clerk Access',
   },
   {
@@ -359,6 +407,7 @@ const SYSTEM_ROLES = [
     hierarchy_level: 7,
     can_approve: false,
     is_system: false,
+    is_active: false,
     permission_group_name: 'Field Staff Access',
   },
   {
@@ -409,7 +458,22 @@ async function main() {
   }
   console.log('');
 
-  // ── Step 3: Seed System Roles ─────────────────────────────────────────────
+  // ── Step 3: Ensure the __system__ tenant exists (role templates need a real FK) ──
+  console.log('🏢 Ensuring __system__ tenant...');
+  await prisma.tenant.upsert({
+    where: { id: TENANT_ID },
+    update: {},
+    create: {
+      id: TENANT_ID,
+      slug: 'system',
+      name: 'System Role Templates',
+      subscription: 'enterprise',
+      max_branches: 1000,
+    },
+  });
+  console.log('   ✅ __system__ tenant ready\n');
+
+  // ── Step 4: Seed the merged System Role vocabulary ────────────────────────
   console.log('👤 Seeding system roles...');
   for (const role of SYSTEM_ROLES) {
     const permGroupId = role.permission_group_name ? groupMap[role.permission_group_name] : null;
@@ -417,56 +481,32 @@ async function main() {
     const existingRole = await prisma.role.findFirst({
       where: {
         tenant_id: TENANT_ID,
-        branch_id: null,
+        org_unit_id: null,
         name: role.name,
       },
     });
 
+    const data = {
+      display_name: role.display_name,
+      display_name_ta: role.display_name_ta,
+      department: role.department,
+      hierarchy_level: role.hierarchy_level,
+      can_approve: role.can_approve,
+      is_system: role.is_system,
+      is_super_admin: role.is_super_admin ?? false,
+      is_active: role.is_active ?? true,
+      permission_group_id: permGroupId,
+    };
+
     if (existingRole) {
-      await prisma.role.update({
-        where: { id: existingRole.id },
-        data: {
-          display_name: role.display_name,
-          display_name_ta: role.display_name_ta,
-          department: role.department,
-          hierarchy_level: role.hierarchy_level,
-          can_approve: role.can_approve,
-          is_system: role.is_system,
-          permission_group_id: permGroupId,
-        },
-      });
+      await prisma.role.update({ where: { id: existingRole.id }, data });
     } else {
       await prisma.role.create({
-        data: {
-          tenant_id: TENANT_ID,
-          name: role.name,
-          display_name: role.display_name,
-          display_name_ta: role.display_name_ta,
-          department: role.department,
-          hierarchy_level: role.hierarchy_level,
-          can_approve: role.can_approve,
-          is_system: role.is_system,
-          permission_group_id: permGroupId,
-          branch_id: null,
-        },
+        data: { tenant_id: TENANT_ID, name: role.name, org_unit_id: null, ...data },
       });
     }
-    console.log(`   ✅ "${role.display_name}" (level ${role.hierarchy_level})`);
+    console.log(`   ✅ "${role.display_name}" (level ${role.hierarchy_level}${role.is_active === false ? ', reserved' : ''})`);
   }
-
-  // ── Step 4: Ensure default tenant exists ──────────────────────────────────
-  console.log('\n🏢 Ensuring default tenant...');
-  await prisma.tenant.upsert({
-    where: { id: TENANT_ID },
-    update: {},
-    create: {
-      id: TENANT_ID,
-      name: 'Default Tenant',
-      subscription: 'enterprise',
-      max_branches: 1000,
-    },
-  });
-  console.log('   ✅ Default tenant ready');
 
   console.log('\n✅ All seed data inserted successfully!\n');
 }

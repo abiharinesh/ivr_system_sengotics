@@ -10,7 +10,7 @@ async function bootstrap() {
     const prisma = app.get(PrismaService);
 
     console.log('Fetching a valid Panchayat...');
-    const panchayat = await prisma.panchayat.findFirst({
+    const panchayat = await prisma.orgUnit.findFirst({
         where: { ivr_number: '04440115434' } // Tholampalay
     });
 

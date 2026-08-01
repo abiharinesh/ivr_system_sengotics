@@ -29,3 +29,13 @@ class UpdateAuthUser extends AuthEvent {
   @override
   List<Object?> get props => [user];
 }
+
+/// Switch the active role/org-unit context to one of the user's other
+/// UserRole assignments (see [UserModel.roleAssignments]).
+class SwitchContextRequested extends AuthEvent {
+  final int userRoleId;
+  const SwitchContextRequested(this.userRoleId);
+
+  @override
+  List<Object?> get props => [userRoleId];
+}

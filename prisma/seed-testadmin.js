@@ -12,16 +12,16 @@ async function main() {
     const email = 'admin@sengotics.com'
     const password = 'Admin@1234'
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findFirst({ where: { email } })
     if (existing) {
         console.log('✅ Admin already exists:', email)
         return
     }
 
-    const panchayat = await prisma.panchayat.findFirst({ where: { name: 'Thayanur' } })
+    const panchayat = await prisma.orgUnit.findFirst({ where: { name: 'Thayanur' } })
 
     if (!panchayat) {
-        throw new Error('Panchayat not found. Please run seed.js first.')
+        throw new Error('Org unit not found. Please run seed.js first.')
     }
 
     const password_hash = await bcrypt.hash(password, 10)
@@ -30,7 +30,8 @@ async function main() {
             email,
             password_hash,
             role: 'panchayat_admin',
-            panchayat_id: panchayat.id
+            tenant_id: panchayat.tenant_id,
+            primary_org_unit_id: panchayat.id
         }
     })
     console.log('🎉 Panchayat Admin created!')

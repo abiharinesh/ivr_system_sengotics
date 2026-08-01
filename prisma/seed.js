@@ -29,20 +29,37 @@ async function main() {
     }
 
     // ══════════════════════════════════════════════════════════════════════
-    //  PANCHAYATS
+    //  TENANTS
     // ══════════════════════════════════════════════════════════════════════
 
-    console.log('🏘️  Creating panchayats...');
+    console.log('🏢 Creating tenants...');
 
-    const thayanur = await prisma.panchayat.create({
-        data: { name: 'Thayanur', ivr_number: '04440115043', center_lat: 11.0168, center_lng: 76.9558 }
+    // "__system__" holds global role templates shared by every tenant.
+    await prisma.tenant.create({
+        data: { id: '__system__', slug: 'system', name: 'System Role Templates', is_active: true },
     });
 
-    const tholampalay = await prisma.panchayat.create({
-        data: { name: 'Tholampalay', ivr_number: '04440115434', center_lat: 11.2420, center_lng: 76.9520 }
+    const defaultTenant = await prisma.tenant.create({
+        data: { id: 'default', slug: 'default-demo', name: 'Default Demo Tenant', is_active: true },
     });
 
-    console.log(`✅ Created 2 panchayats (Thayanur, Tholampalay)`);
+    console.log(`✅ Created 2 tenants (__system__, default)`);
+
+    // ══════════════════════════════════════════════════════════════════════
+    //  ORG UNITS (panchayats, municipalities, etc.)
+    // ══════════════════════════════════════════════════════════════════════
+
+    console.log('🏘️  Creating org units...');
+
+    const thayanur = await prisma.orgUnit.create({
+        data: { name: 'Thayanur', tenant_id: defaultTenant.id, ivr_number: '04440115043', center_lat: 11.0168, center_lng: 76.9558 }
+    });
+
+    const tholampalay = await prisma.orgUnit.create({
+        data: { name: 'Tholampalay', tenant_id: defaultTenant.id, ivr_number: '04440115434', center_lat: 11.2420, center_lng: 76.9520 }
+    });
+
+    console.log(`✅ Created 2 org units (Thayanur, Tholampalay)`);
 
     // ══════════════════════════════════════════════════════════════════════
     //  ELECTRIC POLES (with landmarks in Tamil + Tanglish + English)

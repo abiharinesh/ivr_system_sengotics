@@ -1,7 +1,8 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('api/auth')
 export class AuthController {
@@ -22,6 +23,18 @@ export class AuthController {
   @Post('verify-otp')
   async verifyOtp(@Body() body: { phone: string; otp: string; panchayat_id?: number }) {
     return this.authService.verifyOtp(body.phone, body.otp, body.panchayat_id);
+  }
+
+  /**
+   * Switch the active context for a user holding multiple role/org-unit
+   * assignments — reissues a JWT scoped to a different one of their own
+   * UserRole rows. This is the backend counterpart to the frontend's
+   * context-selector screen.
+   */
+  @Post('switch-context')
+  @UseGuards(JwtAuthGuard)
+  async switchContext(@Req() req: { user: { id: number } }, @Body() body: { user_role_id: number }) {
+    return this.authService.switchContext(req.user.id, body.user_role_id);
   }
 }
 

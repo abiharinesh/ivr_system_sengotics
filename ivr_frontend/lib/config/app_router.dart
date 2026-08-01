@@ -28,6 +28,7 @@ import '../features/super_admin/bloc/panchayat_bloc.dart';
 import '../features/super_admin/bloc/user_bloc.dart';
 import '../features/super_admin/bloc/complaint_bloc.dart';
 import '../features/super_admin/bloc/settings_bloc.dart';
+import '../features/super_admin/bloc/tenant_bloc.dart';
 import '../features/super_admin/presentation/screens/super_admin_dashboard.dart';
 import '../features/super_admin/presentation/screens/panchayat_management.dart';
 import '../features/super_admin/presentation/screens/user_management.dart';
@@ -723,7 +724,10 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/admin/tenants',
-            builder: (context, state) => const TenantManagementScreen(),
+            builder: (context, state) => BlocProvider(
+              create: (_) => TenantBloc()..add(LoadTenants()),
+              child: const TenantManagementScreen(),
+            ),
           ),
           GoRoute(
             path: '/admin/branches/tree',

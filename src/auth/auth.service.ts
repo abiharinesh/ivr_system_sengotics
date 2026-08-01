@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,12 +31,12 @@ export class AuthService {
       },
     }).catch(() => { /* non-critical */ });
 
-    // Fetch panchayat branding safely with fallback for un-migrated production DBs
+    // Fetch org unit branding safely with fallback for un-migrated production DBs
     let panchayat: any = null;
-    if (user.panchayat_id) {
+    if (user.primary_org_unit_id) {
       try {
-        panchayat = await this.prisma.panchayat.findUnique({
-          where: { id: user.panchayat_id },
+        panchayat = await this.prisma.orgUnit.findUnique({
+          where: { id: user.primary_org_unit_id },
           select: {
             id: true,
             name: true,
@@ -66,8 +66,8 @@ export class AuthService {
           `Panchayat branding fetch fallback (DB schema may pending migration): ${(err as Error).message}`,
         );
         try {
-          panchayat = await this.prisma.panchayat.findUnique({
-            where: { id: user.panchayat_id },
+          panchayat = await this.prisma.orgUnit.findUnique({
+            where: { id: user.primary_org_unit_id },
             select: { id: true, name: true, logo_url: true },
           });
         } catch (_) {
@@ -81,7 +81,7 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.panchayat_id,
+      panchayat_id: user.primary_org_unit_id,
       user_type: user.user_type,
       panchayat,
     };
@@ -161,7 +161,7 @@ export class AuthService {
           email,
           password_hash: hashed,
           role: 'citizen',
-          panchayat_id,
+          primary_org_unit_id: panchayat_id,
           phone_e164: formattedPhone,
           user_type: 'citizen',
         },
@@ -170,10 +170,10 @@ export class AuthService {
     }
 
     let panchayat: any = null;
-    if (user.panchayat_id) {
+    if (user.primary_org_unit_id) {
       try {
-        panchayat = await this.prisma.panchayat.findUnique({
-          where: { id: user.panchayat_id },
+        panchayat = await this.prisma.orgUnit.findUnique({
+          where: { id: user.primary_org_unit_id },
           select: {
             id: true,
             name: true,
@@ -200,8 +200,8 @@ export class AuthService {
         });
       } catch (err) {
         try {
-          panchayat = await this.prisma.panchayat.findUnique({
-            where: { id: user.panchayat_id },
+          panchayat = await this.prisma.orgUnit.findUnique({
+            where: { id: user.primary_org_unit_id },
             select: { id: true, name: true, logo_url: true },
           });
         } catch (_) {
@@ -215,10 +215,46 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload),
       role: user.role,
-      panchayat_id: user.panchayat_id,
+      panchayat_id: user.primary_org_unit_id,
       user_type: user.user_type,
       panchayat,
     };
+  }
+
+  /**
+   * Re-issues a JWT scoped to a different one of the caller's own UserRole
+   * assignments (a user with multiple role/org-unit assignments switching
+   * "context" — e.g. a district-level officer also holding a role at a
+   * specific municipality). Marks the chosen assignment `is_primary` so
+   * subsequent plain logins land back in this context.
+   */
+  async switchContext(userId: number, userRoleId: number) {
+    const targetRole = await this.prisma.userRole.findFirst({
+      where: { id: userRoleId, user_id: userId },
+    });
+    if (!targetRole) {
+      throw new ForbiddenException('That role assignment does not belong to you');
+    }
+
+    await this.prisma.userRole.updateMany({
+      where: { user_id: userId, is_primary: true },
+      data: { is_primary: false },
+    });
+    await this.prisma.userRole.update({
+      where: { id: targetRole.id },
+      data: { is_primary: true },
+    });
+
+    // Keep User.primary_org_unit_id (the login/home context) in sync with
+    // whichever UserRole is now primary, so the JWT's org-unit context and
+    // subsequent plain logins reflect the switch.
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { primary_org_unit_id: targetRole.org_unit_id },
+    });
+
+    const payload = await this.buildJwtPayload(user);
+    return { access_token: this.jwtService.sign(payload) };
   }
 
   // ── RBAC-Aware JWT Payload Builder ──────────────────────────────────────────
@@ -231,16 +267,16 @@ export class AuthService {
     id: number;
     email: string | null;
     role: string;
-    panchayat_id: number | null;
+    primary_org_unit_id: number | null;
     tenant_id: string;
     user_type: string;
   }) {
-    // Get employee record if exists
-    let employee: { id: number; access_scope: string } | null = null;
+    // Get employee record if exists (posting identity only — access_scope now lives on UserRole)
+    let employee: { id: number } | null = null;
     try {
       employee = await this.prisma.employee.findFirst({
         where: { user_id: user.id },
-        select: { id: true, access_scope: true },
+        select: { id: true },
       });
     } catch {
       // Employee table may not exist pre-migration
@@ -249,15 +285,30 @@ export class AuthService {
     // Get RBAC roles and permissions
     const { rbacRoles, permissions } = await this.resolveUserRbac(user.id);
 
+    // Access scope comes from the user's primary UserRole assignment
+    let accessScope = 'own_org_unit';
+    try {
+      const primaryRole = await this.prisma.userRole.findFirst({
+        where: { user_id: user.id, is_primary: true },
+        select: { access_scope: true },
+      });
+      if (primaryRole) accessScope = primaryRole.access_scope;
+    } catch {
+      // UserRole table may not exist pre-migration
+    }
+
+    const isSuperAdmin = user.role === 'super_admin' || rbacRoles.some((r) => r.is_super_admin);
+
     return {
       sub: user.id,
       email: user.email,
       role: user.role, // Legacy field — kept for backward compatibility
-      panchayat_id: user.panchayat_id,
+      is_super_admin: isSuperAdmin,
+      panchayat_id: user.primary_org_unit_id,
       tenant_id: user.tenant_id,
       user_type: user.user_type,
       employee_id: employee?.id || null,
-      access_scope: employee?.access_scope || 'own_branch',
+      access_scope: accessScope,
       // RBAC fields
       rbac_roles: rbacRoles,
       permissions: permissions,
@@ -269,7 +320,7 @@ export class AuthService {
    * Returns empty arrays if RBAC tables don't exist yet.
    */
   private async resolveUserRbac(userId: number): Promise<{
-    rbacRoles: Array<{ id: number; name: string; branch_id: number | null }>;
+    rbacRoles: Array<{ id: number; name: string; org_unit_id: number | null; is_super_admin: boolean }>;
     permissions: string[];
   }> {
     try {
@@ -293,7 +344,7 @@ export class AuthService {
       const roleIds = userRoles.map((ur) => ur.role_id);
       const roles = await this.prisma.role.findMany({
         where: { id: { in: roleIds }, is_active: true },
-        select: { id: true, name: true, permission_group_id: true },
+        select: { id: true, name: true, permission_group_id: true, is_super_admin: true },
       });
 
       const rbacRoles = roles.map((r) => {
@@ -301,7 +352,8 @@ export class AuthService {
         return {
           id: r.id,
           name: r.name,
-          branch_id: userRole?.branch_id ?? null,
+          org_unit_id: userRole?.org_unit_id ?? null,
+          is_super_admin: r.is_super_admin,
         };
       });
 

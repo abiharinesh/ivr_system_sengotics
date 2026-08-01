@@ -37,7 +37,7 @@ export class DbSetupService {
       await this.ensureSchema();
 
       // 3. Check if we need to seed
-      const panchayatCount = await this.prisma.panchayat.count();
+      const panchayatCount = await this.prisma.orgUnit.count();
 
       if (panchayatCount === 0) {
         console.log('🌱 Database is empty. Starting auto-seed...');
@@ -105,7 +105,7 @@ export class DbSetupService {
                 ) THEN
                     ALTER TABLE users
                         ADD CONSTRAINT users_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
                 END IF;
             END $$;
         `);
@@ -304,7 +304,7 @@ export class DbSetupService {
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'export_jobs_panchayat_id_fkey') THEN
                     ALTER TABLE export_jobs
                         ADD CONSTRAINT export_jobs_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE SET NULL ON UPDATE CASCADE;
+                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE SET NULL ON UPDATE CASCADE;
                 END IF;
             END $$;
         `);
@@ -585,7 +585,7 @@ export class DbSetupService {
     );
 
     await execSafe(
-      `ALTER TABLE panchayats ADD COLUMN IF NOT EXISTS document_template_settings JSONB;`,
+      `ALTER TABLE org_units ADD COLUMN IF NOT EXISTS document_template_settings JSONB;`,
     );
 
     // Foreign keys
@@ -594,12 +594,12 @@ export class DbSetupService {
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'vendors_panchayat_id_fkey') THEN
                     ALTER TABLE vendors ADD CONSTRAINT vendors_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
                 END IF;
 
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenders_panchayat_id_fkey') THEN
                     ALTER TABLE tenders ADD CONSTRAINT tenders_panchayat_id_fkey
-                        FOREIGN KEY (panchayat_id) REFERENCES panchayats(id) ON DELETE RESTRICT ON UPDATE CASCADE;
+                        FOREIGN KEY (panchayat_id) REFERENCES org_units(id) ON DELETE RESTRICT ON UPDATE CASCADE;
                 END IF;
                 IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tenders_created_by_user_id_fkey') THEN
                     ALTER TABLE tenders ADD CONSTRAINT tenders_created_by_user_id_fkey
@@ -718,7 +718,7 @@ export class DbSetupService {
       '⚠️  Running minimal auto-seed. For full data, run: npx prisma db seed',
     );
 
-    await this.prisma.panchayat.create({
+    await this.prisma.orgUnit.create({
       data: {
         name: 'Thayanur',
         center_lat: 11.0168,
@@ -727,7 +727,7 @@ export class DbSetupService {
       },
     });
 
-    await this.prisma.panchayat.create({
+    await this.prisma.orgUnit.create({
       data: {
         name: 'Tholampalay',
         center_lat: 11.242,

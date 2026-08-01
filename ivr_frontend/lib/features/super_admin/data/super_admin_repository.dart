@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../core/api/api_client.dart';
 import '../../../config/api_config.dart';
 import '../../../core/models/panchayat_model.dart';
+import '../../../core/models/tenant_model.dart';
 import 'models/complaint_model.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/models/stats_model.dart';
@@ -10,6 +11,37 @@ import '../../../core/models/dashboard_insights_model.dart';
 
 class SuperAdminRepository {
   final ApiClient _api = ApiClient.instance;
+
+  // ── Tenants (top-level clients) ──────────────────────────────────────────
+  List<TenantModel>? getCachedTenants() {
+    final cached = _api.getCached(ApiConfig.saTenants);
+    if (cached == null) return null;
+    return (cached as List).map((j) => TenantModel.fromJson(j)).toList();
+  }
+
+  Future<List<TenantModel>> listTenants({bool forceRefresh = false}) async {
+    final data = await _api.get(ApiConfig.saTenants, forceRefresh: forceRefresh);
+    return (data as List).map((j) => TenantModel.fromJson(j)).toList();
+  }
+
+  Future<TenantModel> getTenant(String id) async {
+    final data = await _api.get(ApiConfig.saTenant(id));
+    return TenantModel.fromJson(data);
+  }
+
+  Future<TenantProvisionResult> provisionTenant(Map<String, dynamic> body) async {
+    final data = await _api.post(ApiConfig.saTenantsProvision, data: body);
+    return TenantProvisionResult.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  Future<TenantModel> updateTenant(String id, Map<String, dynamic> body) async {
+    final data = await _api.patch(ApiConfig.saTenant(id), data: body);
+    return TenantModel.fromJson(data);
+  }
+
+  Future<void> deactivateTenant(String id) async {
+    await _api.patch(ApiConfig.saTenantDeactivate(id), data: {});
+  }
 
   // ── Panchayats ──────────────────────────────────────────────────────────
   List<PanchayatModel>? getCachedPanchayats() {

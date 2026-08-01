@@ -81,6 +81,17 @@ class ApiConfig {
   static const String citizenPoles = '/api/citizen/poles';
   static const String citizenComplaints = '/api/citizen/complaints';
 
+  // Super Admin — Tenants (the top-level client boundary; distinct from
+  // saPanchayats, which manages the org-unit hierarchy WITHIN a tenant)
+  static const String saTenants = '/api/superadmin/tenants';
+  static const String saTenantsProvision = '/api/superadmin/tenants/provision';
+  static String saTenant(String id) => '/api/superadmin/tenants/$id';
+  static String saTenantDeactivate(String id) =>
+      '/api/superadmin/tenants/$id/deactivate';
+
+  // Auth — context switching
+  static const String switchContext = '/api/auth/switch-context';
+
   // Super Admin
   static const String saPanchayats = '/api/superadmin/panchayats';
   static const String saUsers = '/api/superadmin/users';

@@ -19,6 +19,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<LogoutRequested>(_onLogout);
     on<AuthCheckRequested>(_onAuthCheck);
     on<UpdateAuthUser>(_onUpdateUser);
+    on<SwitchContextRequested>(_onSwitchContext);
+  }
+
+  Future<void> _onSwitchContext(
+    SwitchContextRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! Authenticated) return;
+    try {
+      final response = await _authRepository.switchContext(event.userRoleId);
+      await SecureStorageService.saveToken(response.accessToken);
+      await SecureStorageService.saveUserInfo(
+        role: response.user.role,
+        email: response.user.email,
+        userId: response.user.id,
+        panchayatId: response.user.panchayatId,
+      );
+      await SecureStorageService.saveUserJson(jsonEncode(response.user.toJson()));
+      emit(Authenticated(user: response.user, token: response.accessToken));
+    } on ApiException catch (e) {
+      emit(AuthError(e.message));
+      emit(currentState);
+    }
   }
 
   Future<void> _onUpdateUser(UpdateAuthUser event, Emitter<AuthState> emit) async {

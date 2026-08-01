@@ -199,7 +199,7 @@ export class SlaService {
           if (role) {
             const escalations = await this.prisma.userRole.findMany({
               where: {
-                branch_id: tracker.entity_type === 'complaint'
+                org_unit_id: tracker.entity_type === 'complaint'
                   ? (await this.prisma.complaint.findUnique({ where: { id: tracker.entity_id } }))?.panchayat_id || 0
                   : 0,
                 role_id: role.id,

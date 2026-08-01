@@ -3,7 +3,7 @@ import { ContractorService } from './contractor.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NumberGenService } from '../core/number-gen/number-gen.service';
 import { AuditService } from '../core/audit/audit.service';
-import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
+import { OrgHierarchyService } from '../core/tenant/org-hierarchy.service';
 
 describe('ContractorService', () => {
   let service: ContractorService;
@@ -34,7 +34,7 @@ describe('ContractorService', () => {
         { provide: PrismaService, useValue: mockPrisma },
         { provide: NumberGenService, useValue: mockNumberGen },
         { provide: AuditService, useValue: mockAudit },
-        { provide: BranchHierarchyService, useValue: mockHierarchy },
+        { provide: OrgHierarchyService, useValue: mockHierarchy },
       ],
     }).compile();
 

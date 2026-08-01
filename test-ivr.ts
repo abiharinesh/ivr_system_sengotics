@@ -28,7 +28,7 @@ async function run() {
 
     // ── 1. Show Panchayats ────────────────────────────────────────────────────
     console.log('📋 PANCHAYATS IN DB:')
-    const panchayats = await prisma.panchayat.findMany()
+    const panchayats = await prisma.orgUnit.findMany()
     if (panchayats.length === 0) {
         console.log('  ❌ No panchayats found! Please seed the DB first.')
         process.exit(1)

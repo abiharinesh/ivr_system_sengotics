@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { PrismaService } from '../prisma/prisma.service';
 import { NumberGenService } from '../core/number-gen/number-gen.service';
 import { AuditService } from '../core/audit/audit.service';
-import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
+import { OrgHierarchyService } from '../core/tenant/org-hierarchy.service';
 import { StorageAdapter } from '../core/document/document.service';
 import * as exifr from 'exifr';
 import sharp from 'sharp';
@@ -34,7 +34,7 @@ export class AssetService {
     private prisma: PrismaService,
     private numberGen: NumberGenService,
     private audit: AuditService,
-    private hierarchy: BranchHierarchyService,
+    private hierarchy: OrgHierarchyService,
     private storage: StorageAdapter,
   ) {}
 
@@ -105,7 +105,7 @@ export class AssetService {
       skip?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_branches'
+    const branchIds = accessScope === 'child_org_units'
       ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
       : [branchId];
 

@@ -34,13 +34,13 @@ export class ElectricianOpsService {
 
   async listElectricians(panchayatId: number) {
     return this.prisma.user.findMany({
-      where: { panchayat_id: panchayatId, role: 'electrician' },
+      where: { primary_org_unit_id: panchayatId, role: 'electrician' },
       select: {
         id: true,
         email: true,
         phone_e164: true,
         created_at: true,
-        panchayat_id: true,
+        primary_org_unit_id: true,
       },
       orderBy: { id: 'asc' },
     });
@@ -51,7 +51,7 @@ export class ElectricianOpsService {
       where: {
         role: 'electrician',
         ...(panchayatFilterId != null && !Number.isNaN(panchayatFilterId)
-          ? { panchayat_id: panchayatFilterId }
+          ? { primary_org_unit_id: panchayatFilterId }
           : {}),
       },
       select: {
@@ -59,10 +59,10 @@ export class ElectricianOpsService {
         email: true,
         phone_e164: true,
         created_at: true,
-        panchayat_id: true,
-        panchayat: { select: { id: true, name: true } },
+        primary_org_unit_id: true,
+        primary_org_unit: { select: { id: true, name: true } },
       },
-      orderBy: [{ panchayat_id: 'asc' }, { id: 'asc' }],
+      orderBy: [{ primary_org_unit_id: 'asc' }, { id: 'asc' }],
     });
   }
 
@@ -85,7 +85,7 @@ export class ElectricianOpsService {
         email: data.email,
         password_hash,
         role: 'electrician',
-        panchayat_id: panchayatId,
+        primary_org_unit_id: panchayatId,
         phone_e164: data.phone_e164?.trim() || null,
       },
       select: {
@@ -93,7 +93,7 @@ export class ElectricianOpsService {
         email: true,
         phone_e164: true,
         role: true,
-        panchayat_id: true,
+        primary_org_unit_id: true,
         created_at: true,
       },
     });
@@ -108,7 +108,7 @@ export class ElectricianOpsService {
     });
     if (!u || u.role !== 'electrician')
       throw new BadRequestException('Not an electrician');
-    if (u.panchayat_id !== panchayatId)
+    if (u.primary_org_unit_id !== panchayatId)
       throw new ForbiddenException('Electrician is in another panchayat');
     return u;
   }
@@ -125,7 +125,7 @@ export class ElectricianOpsService {
     });
     if (!u || u.role !== 'electrician')
       throw new NotFoundException('Electrician not found');
-    if (scopedPanchayatId != null && u.panchayat_id !== scopedPanchayatId) {
+    if (scopedPanchayatId != null && u.primary_org_unit_id !== scopedPanchayatId) {
       throw new ForbiddenException('Electrician belongs to another panchayat');
     }
 
@@ -186,7 +186,7 @@ export class ElectricianOpsService {
       throw new BadRequestException('Invalid electrician');
     if (
       args.scopedPanchayatId != null &&
-      u.panchayat_id !== args.scopedPanchayatId
+      u.primary_org_unit_id !== args.scopedPanchayatId
     ) {
       throw new ForbiddenException('Electrician belongs to another panchayat');
     }
@@ -200,7 +200,7 @@ export class ElectricianOpsService {
     const job = await this.prisma.exportJob.create({
       data: {
         created_by_user_id: args.createdByUserId,
-        panchayat_id: u.panchayat_id,
+        panchayat_id: u.primary_org_unit_id,
         electrician_user_id: args.electricianId,
         range_from: from,
         range_to: to,

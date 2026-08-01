@@ -1,18 +1,21 @@
-import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
-import { TenantMiddleware } from './tenant.middleware';
+import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TenantService } from './tenant.service';
-import { BranchHierarchyService } from './branch-hierarchy.service';
+import { OrgHierarchyService } from './org-hierarchy.service';
 import { TenantConfigController } from './tenant-config.controller';
+import { TenantContext } from './tenant-context';
+import { TenantContextInterceptor } from './tenant-context.interceptor';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Module({
   imports: [PrismaModule],
   controllers: [TenantConfigController],
-  providers: [TenantService, BranchHierarchyService],
-  exports: [TenantService, BranchHierarchyService],
+  providers: [
+    TenantService,
+    OrgHierarchyService,
+    TenantContext,
+    { provide: APP_INTERCEPTOR, useClass: TenantContextInterceptor },
+  ],
+  exports: [TenantService, OrgHierarchyService, TenantContext],
 })
-export class TenantModule implements NestModule {
-  configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('*');
-  }
-}
+export class TenantModule {}

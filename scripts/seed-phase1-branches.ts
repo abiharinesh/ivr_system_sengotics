@@ -15,7 +15,7 @@ async function main() {
   const tenantId = 'default';
 
   // 1. Create District Panchayat (Root)
-  const district = await prisma.panchayat.create({
+  const district = await prisma.orgUnit.create({
     data: {
       tenant_id: tenantId,
       name: 'Coimbatore District Panchayat',
@@ -29,7 +29,7 @@ async function main() {
   console.log(`✅ Created Root District Branch: ${district.name} (ID: ${district.id})`);
 
   // 2. Create Panchayat Unions under District (Children)
-  const unionSulur = await prisma.panchayat.create({
+  const unionSulur = await prisma.orgUnit.create({
     data: {
       tenant_id: tenantId,
       name: 'Sulur Panchayat Union',
@@ -44,7 +44,7 @@ async function main() {
   });
   console.log(`✅ Created Union Branch: ${unionSulur.name} (ID: ${unionSulur.id}, Parent: ${district.name})`);
 
-  const unionAnnur = await prisma.panchayat.create({
+  const unionAnnur = await prisma.orgUnit.create({
     data: {
       tenant_id: tenantId,
       name: 'Annur Panchayat Union',
@@ -60,7 +60,7 @@ async function main() {
   console.log(`✅ Created Union Branch: ${unionAnnur.name} (ID: ${unionAnnur.id}, Parent: ${district.name})`);
 
   // 3. Create Village Panchayats under Unions (Grandchildren)
-  const villageThayanur = await prisma.panchayat.create({
+  const villageThayanur = await prisma.orgUnit.create({
     data: {
       tenant_id: tenantId,
       name: 'Thayanur Village Panchayat',
@@ -76,7 +76,7 @@ async function main() {
   });
   console.log(`✅ Created Village Branch: ${villageThayanur.name} (ID: ${villageThayanur.id}, Parent: ${unionSulur.name})`);
 
-  const villageTholampalay = await prisma.panchayat.create({
+  const villageTholampalay = await prisma.orgUnit.create({
     data: {
       tenant_id: tenantId,
       name: 'Tholampalay Village Panchayat',

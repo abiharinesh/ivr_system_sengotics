@@ -13,7 +13,7 @@ export class TenantConfigController {
 
   @Get('branding/:branchId')
   async getTenantBranding(@Param('branchId', ParseIntPipe) branchId: number) {
-    const branch = await this.prisma.panchayat.findUnique({
+    const branch = await this.prisma.orgUnit.findUnique({
       where: { id: branchId },
       select: {
         id: true,
@@ -45,7 +45,7 @@ export class TenantConfigController {
 
   @Get('branding/by-phone/:ivrNumber')
   async getTenantBrandingByPhone(@Param('ivrNumber') ivrNumber: string) {
-    const branch = await this.prisma.panchayat.findFirst({
+    const branch = await this.prisma.orgUnit.findFirst({
       where: { ivr_number: ivrNumber },
       select: {
         id: true,

@@ -86,13 +86,13 @@ async function main() {
   await safeDelete('User', () => prisma.user.deleteMany({}));
 
   // 8. Clear Panchayats
-  await prisma.panchayat.updateMany({
+  await prisma.orgUnit.updateMany({
     data: { parent_branch_id: null, merged_into_id: null, upgraded_to_id: null },
   }).catch(() => {});
-  await safeDelete('Panchayat', () => prisma.panchayat.deleteMany({}));
+  await safeDelete('Panchayat', () => prisma.orgUnit.deleteMany({}));
 
   // 9. Seed 1 Primary Panchayat
-  const primaryPanchayat = await prisma.panchayat.create({
+  const primaryPanchayat = await prisma.orgUnit.create({
     data: {
       name: 'ஆலந்தூர் கிராம ஊராட்சி',
       branch_code: 'TN-PNC-01',
@@ -166,7 +166,7 @@ async function main() {
   console.log('✅ Employee service record linked to Panchayat Admin.');
 
   // Final summary check
-  const finalPanchayatCount = await prisma.panchayat.count();
+  const finalPanchayatCount = await prisma.orgUnit.count();
   const finalUserCount = await prisma.user.count();
 
   console.log('\n=============================================================');

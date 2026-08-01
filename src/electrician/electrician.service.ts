@@ -26,8 +26,8 @@ export class ElectricianService {
         id: true,
         email: true,
         role: true,
-        panchayat_id: true,
-        panchayat: { select: { id: true, name: true } },
+        primary_org_unit_id: true,
+        primary_org_unit: { select: { id: true, name: true } },
       },
     });
     if (!user) throw new NotFoundException('User not found');

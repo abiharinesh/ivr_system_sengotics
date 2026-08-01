@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, Logger } from '@nes
 import { PrismaService } from '../prisma/prisma.service';
 import { NumberGenService } from '../core/number-gen/number-gen.service';
 import { AuditService } from '../core/audit/audit.service';
-import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
+import { OrgHierarchyService } from '../core/tenant/org-hierarchy.service';
 
 export class CreateContractorDto {
   name: string;
@@ -37,7 +37,7 @@ export class ContractorService {
     private prisma: PrismaService,
     private numberGen: NumberGenService,
     private audit: AuditService,
-    private hierarchy: BranchHierarchyService,
+    private hierarchy: OrgHierarchyService,
   ) {}
 
   // ── Contractor Operations ───────────────────────────────────────────────
@@ -184,7 +184,7 @@ export class ContractorService {
       contractorId?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_branches'
+    const branchIds = accessScope === 'child_org_units'
       ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
       : [branchId];
 

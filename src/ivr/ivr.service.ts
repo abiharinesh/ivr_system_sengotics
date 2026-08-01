@@ -156,7 +156,7 @@ export class IvrService {
     );
 
     // ── Lookup Panchayat by the IVR number dialed ─────────────────────────
-    const panchayat = await this.prisma.panchayat.findFirst({
+    const panchayat = await this.prisma.orgUnit.findFirst({
       where: { ivr_number: callTo },
     });
 

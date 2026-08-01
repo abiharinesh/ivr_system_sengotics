@@ -17,6 +17,35 @@ int? _jsonIntOpt(dynamic v) {
   return null;
 }
 
+/// One role/org-unit assignment a user holds (mirrors backend `UserRole`).
+/// A user can hold several of these; [UserModel.role] always reflects the
+/// currently active one (kept in sync via /api/auth/switch-context).
+class UserRoleAssignment extends Equatable {
+  final int id;
+  final String roleName;
+  final int? orgUnitId;
+  final bool isSuperAdmin;
+
+  const UserRoleAssignment({
+    required this.id,
+    required this.roleName,
+    this.orgUnitId,
+    this.isSuperAdmin = false,
+  });
+
+  factory UserRoleAssignment.fromJson(Map<String, dynamic> json) {
+    return UserRoleAssignment(
+      id: _jsonInt(json['id']),
+      roleName: (json['name'] as String?) ?? '',
+      orgUnitId: _jsonIntOpt(json['org_unit_id']),
+      isSuperAdmin: json['is_super_admin'] == true,
+    );
+  }
+
+  @override
+  List<Object?> get props => [id, roleName, orgUnitId, isSuperAdmin];
+}
+
 class UserModel extends Equatable {
   final int id;
   final String email;
@@ -43,6 +72,9 @@ class UserModel extends Equatable {
   final String? serviceBookNumber;
   final String? photoUrl;
   final DateTime? createdAt;
+  final List<UserRoleAssignment> roleAssignments;
+  final String accessScope;
+  final List<String> permissions;
 
   const UserModel({
     required this.id,
@@ -70,17 +102,27 @@ class UserModel extends Equatable {
     this.serviceBookNumber,
     this.photoUrl,
     this.createdAt,
+    this.roleAssignments = const [],
+    this.accessScope = 'own_org_unit',
+    this.permissions = const [],
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final panchayat = json['panchayat'] as Map<String, dynamic>?;
     final employee = json['employee'] as Map<String, dynamic>?;
+    final rbacRoles = json['rbac_roles'] as List<dynamic>?;
     return UserModel(
       id: _jsonInt(json['id']),
       email: (json['email'] as String?) ?? '',
       role: (json['role'] as String?) ?? 'user',
       phone: json['phone_e164'] as String?,
       panchayatId: _jsonIntOpt(json['panchayat_id']),
+      roleAssignments: rbacRoles
+              ?.map((r) => UserRoleAssignment.fromJson(r as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
+      permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
       panchayatName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
       softwareNameTa: panchayat?['software_name_ta'] as String?,
@@ -131,7 +173,14 @@ class UserModel extends Equatable {
     }
   }
 
-  bool get isSuperAdmin => role == 'super_admin';
+  /// Currently active role assignment (matches the switched/primary context).
+  UserRoleAssignment? get activeRoleAssignment =>
+      roleAssignments.isEmpty ? null : roleAssignments.first;
+
+  bool hasPermission(String code) => permissions.contains(code);
+
+  bool get isSuperAdmin =>
+      role == 'super_admin' || roleAssignments.any((r) => r.isSuperAdmin);
   bool get isPanchayatAdmin => role == 'panchayat_admin';
   bool get isAgent => role == 'agent';
   bool get isElectrician => role == 'electrician';
@@ -236,6 +285,9 @@ class UserModel extends Equatable {
         serviceBookNumber,
         photoUrl,
         createdAt,
+        roleAssignments,
+        accessScope,
+        permissions,
       ];
 }
 
@@ -266,6 +318,9 @@ class AuthResponse {
         'panchayat_id':
             _jsonIntOpt(json['panchayat_id']) ?? _jsonIntOpt(payload['panchayat_id']),
         'panchayat': json['panchayat'],
+        'rbac_roles': payload['rbac_roles'],
+        'access_scope': payload['access_scope'],
+        'permissions': payload['permissions'],
       }),
     );
   }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { BranchHierarchyService } from '../core/tenant/branch-hierarchy.service';
+import { OrgHierarchyService } from '../core/tenant/org-hierarchy.service';
 
 export class CreateInspectionTemplateDto {
   name: string;
@@ -28,7 +28,7 @@ export class InspectionService {
 
   constructor(
     private prisma: PrismaService,
-    private hierarchy: BranchHierarchyService,
+    private hierarchy: OrgHierarchyService,
   ) {}
 
   // ── Template CRUD ────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ export class InspectionService {
       assetId?: number;
     },
   ) {
-    const branchIds = accessScope === 'child_branches'
+    const branchIds = accessScope === 'child_org_units'
       ? await this.hierarchy.getDescendantBranchIds(tenantId, branchId)
       : [branchId];
 

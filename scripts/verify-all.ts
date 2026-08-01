@@ -62,12 +62,12 @@ async function runVerification() {
   // ==========================================
   console.log('\n🔹 2. Verifying Employee-User Separation & Transfers...');
   // Find or create test branches
-  const parentBranch = await prisma.panchayat.findFirst();
+  const parentBranch = await prisma.orgUnit.findFirst();
   if (!parentBranch) {
     console.error('❌ FAIL: Seeding branches missing.');
     return;
   }
-  const testBranchB = await prisma.panchayat.create({
+  const testBranchB = await prisma.orgUnit.create({
     data: {
       tenant_id: tA.id,
       name: 'Sulur Secondary Office',
@@ -233,7 +233,7 @@ async function runVerification() {
 
   // Since ElectricPole doesn't have an is_deleted field in schema (wait, line 265 does not show is_deleted, Panchayat does!)
   // Let's test with Panchayat soft delete! Line 146 has is_deleted for Panchayat.
-  const testPanchayat = await prisma.panchayat.create({
+  const testPanchayat = await prisma.orgUnit.create({
     data: {
       tenant_id: tA.id,
       name: 'Soft Delete Panchayat',
@@ -245,12 +245,12 @@ async function runVerification() {
   });
 
   // Default query simulation (filters is_deleted: false)
-  const defaultPanchayats = await prisma.panchayat.findMany({
+  const defaultPanchayats = await prisma.orgUnit.findMany({
     where: { tenant_id: tA.id, is_deleted: false }
   });
 
   // Admin query simulation (shows all)
-  const adminPanchayats = await prisma.panchayat.findMany({
+  const adminPanchayats = await prisma.orgUnit.findMany({
     where: { tenant_id: tA.id }
   });
 
@@ -328,8 +328,8 @@ async function runVerification() {
   await prisma.employee.delete({ where: { id: employee.id } });
   await prisma.user.delete({ where: { id: empUser.id } });
   await prisma.electricPole.delete({ where: { id: testPole.id } });
-  await prisma.panchayat.delete({ where: { id: testPanchayat.id } });
-  await prisma.panchayat.delete({ where: { id: testBranchB.id } });
+  await prisma.orgUnit.delete({ where: { id: testPanchayat.id } });
+  await prisma.orgUnit.delete({ where: { id: testBranchB.id } });
 
   console.log('\n🎉 All checks executed. Verification Suite Completed successfully.');
 

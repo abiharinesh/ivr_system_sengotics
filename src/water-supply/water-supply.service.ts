@@ -200,7 +200,7 @@ export class WaterSupplyService {
     });
 
     if (asset.type === 'main_pipeline') {
-      const panchayat = await this.prisma.panchayat.findFirst();
+      const panchayat = await this.prisma.orgUnit.findFirst();
       const panchayatId = panchayat ? panchayat.id : 1;
 
       const pathGeojson = {

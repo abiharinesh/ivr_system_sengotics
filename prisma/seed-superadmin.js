@@ -12,7 +12,7 @@ async function main() {
     const email = 'superadmin@sengotics.com'
     const password = 'Admin@1234'
 
-    const existing = await prisma.user.findUnique({ where: { email } })
+    const existing = await prisma.user.findFirst({ where: { email } })
     if (existing) {
         console.log('✅ Super admin already exists:', email)
         return
@@ -24,7 +24,8 @@ async function main() {
             email,
             password_hash,
             role: 'super_admin',
-            panchayat_id: null
+            tenant_id: '__system__',
+            primary_org_unit_id: null
         }
     })
     console.log('🎉 Super admin created!')

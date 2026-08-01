@@ -15,7 +15,7 @@ async function main() {
   const tenantId = 'default';
 
   // 1. Fetch Thayanur Village Panchayat (seeded in Phase 1)
-  const branch = await prisma.panchayat.findFirst({
+  const branch = await prisma.orgUnit.findFirst({
     where: { tenant_id: tenantId, name: 'Thayanur Village Panchayat' },
   });
 

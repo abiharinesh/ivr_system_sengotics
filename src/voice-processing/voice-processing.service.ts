@@ -788,7 +788,7 @@ export class VoiceProcessingService {
     try {
       const knownLandmarks =
         await this.geoMatching.getLandmarksForPanchayat(panchayatId);
-      const panchayat = await this.prisma.panchayat.findUnique({
+      const panchayat = await this.prisma.orgUnit.findUnique({
         where: { id: panchayatId },
         select: { name: true },
       });

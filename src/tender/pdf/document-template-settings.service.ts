@@ -50,7 +50,7 @@ export class DocumentTemplateSettingsService {
   private async loadPanchayatMap(
     panchayatId: number,
   ): Promise<TemplateSettingsMap> {
-    const p = await this.prisma.panchayat.findUnique({
+    const p = await this.prisma.orgUnit.findUnique({
       where: { id: panchayatId },
       select: { document_template_settings: true },
     });
@@ -114,7 +114,7 @@ export class DocumentTemplateSettingsService {
     const sanitized = sanitizeSettingsMap(patch.templates);
     const existing = await this.loadPanchayatMap(panchayatId);
     const merged = this.mergeSettingsMaps(existing, sanitized);
-    const p = await this.prisma.panchayat.update({
+    const p = await this.prisma.orgUnit.update({
       where: { id: panchayatId },
       data: { document_template_settings: merged as any },
       select: { id: true, document_template_settings: true },
@@ -165,7 +165,7 @@ export class DocumentTemplateSettingsService {
     const existing = await this.loadPanchayatMap(panchayatId);
     const patch = this.designPatchForTemplate(existing[tpl], body);
     const merged = this.mergeSettingsMaps(existing, { [tpl]: patch });
-    const p = await this.prisma.panchayat.update({
+    const p = await this.prisma.orgUnit.update({
       where: { id: panchayatId },
       data: { document_template_settings: merged as any },
       select: { id: true, document_template_settings: true },
@@ -213,7 +213,7 @@ export class DocumentTemplateSettingsService {
     const tpl = validateTemplateId(templateId);
     const existing = await this.loadPanchayatMap(panchayatId);
     delete existing[tpl];
-    await this.prisma.panchayat.update({
+    await this.prisma.orgUnit.update({
       where: { id: panchayatId },
       data: {
         document_template_settings: Object.keys(existing).length
@@ -327,7 +327,7 @@ export class DocumentTemplateSettingsService {
     templateId: DocumentTemplateId,
     vendorId: number | null,
   ): Promise<TemplateContext> {
-    const panchayat = await this.prisma.panchayat.findUnique({
+    const panchayat = await this.prisma.orgUnit.findUnique({
       where: { id: panchayatId },
     });
     if (!panchayat)

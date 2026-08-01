@@ -23,13 +23,13 @@ export class PlumberOpsService {
   /** List plumbers in a specific panchayat (for panchayat admin). */
   async listPlumbers(panchayatId: number) {
     return this.prisma.user.findMany({
-      where: { panchayat_id: panchayatId, role: 'plumber' },
+      where: { primary_org_unit_id: panchayatId, role: 'plumber' },
       select: {
         id: true,
         email: true,
         phone_e164: true,
         created_at: true,
-        panchayat_id: true,
+        primary_org_unit_id: true,
       },
       orderBy: { id: 'asc' },
     });
@@ -41,7 +41,7 @@ export class PlumberOpsService {
       where: {
         role: 'plumber',
         ...(panchayatFilterId != null && !Number.isNaN(panchayatFilterId)
-          ? { panchayat_id: panchayatFilterId }
+          ? { primary_org_unit_id: panchayatFilterId }
           : {}),
       },
       select: {
@@ -49,10 +49,10 @@ export class PlumberOpsService {
         email: true,
         phone_e164: true,
         created_at: true,
-        panchayat_id: true,
-        panchayat: { select: { id: true, name: true } },
+        primary_org_unit_id: true,
+        primary_org_unit: { select: { id: true, name: true } },
       },
-      orderBy: [{ panchayat_id: 'asc' }, { id: 'asc' }],
+      orderBy: [{ primary_org_unit_id: 'asc' }, { id: 'asc' }],
     });
   }
 
@@ -76,7 +76,7 @@ export class PlumberOpsService {
         email: data.email,
         password_hash,
         role: 'plumber',
-        panchayat_id: panchayatId,
+        primary_org_unit_id: panchayatId,
         phone_e164: data.phone_e164?.trim() || null,
       },
       select: {
@@ -84,7 +84,7 @@ export class PlumberOpsService {
         email: true,
         phone_e164: true,
         role: true,
-        panchayat_id: true,
+        primary_org_unit_id: true,
         created_at: true,
       },
     });
@@ -103,7 +103,7 @@ export class PlumberOpsService {
     });
     if (!u || u.role !== 'plumber')
       throw new NotFoundException('Plumber not found');
-    if (scopedPanchayatId != null && u.panchayat_id !== scopedPanchayatId) {
+    if (scopedPanchayatId != null && u.primary_org_unit_id !== scopedPanchayatId) {
       throw new ForbiddenException('Plumber belongs to another panchayat');
     }
 
@@ -160,12 +160,12 @@ export class PlumberOpsService {
   ) {
     const plumber = await this.prisma.user.findUnique({
       where: { id: plumberUserId },
-      select: { id: true, role: true, panchayat_id: true, phone_e164: true },
+      select: { id: true, role: true, primary_org_unit_id: true, phone_e164: true },
     });
     if (!plumber || plumber.role !== 'plumber') {
       throw new BadRequestException('User is not a plumber');
     }
-    if (plumber.panchayat_id !== panchayatId) {
+    if (plumber.primary_org_unit_id !== panchayatId) {
       throw new ForbiddenException('Plumber belongs to another panchayat');
     }
 

@@ -166,7 +166,7 @@ export class PublicReportService {
 
     if (!result || result.length === 0) {
       // Fallback: find nearest panchayat by center_lat/center_lng
-      const nearest = await this.prisma.panchayat.findFirst({
+      const nearest = await this.prisma.orgUnit.findFirst({
         where: {
           center_lat: { not: null },
           center_lng: { not: null },

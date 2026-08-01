@@ -13,7 +13,7 @@ async function run() {
     const ivrNumber = '04440115434' // User requested IVR
 
     // Find the panchayat for this IVR number
-    const panchayat = await prisma.panchayat.findFirst({ where: { ivr_number: ivrNumber } })
+    const panchayat = await prisma.orgUnit.findFirst({ where: { ivr_number: ivrNumber } })
 
     if (!panchayat) {
         console.log(`No panchayat found for IVR number: ${ivrNumber}. Exiting.`)

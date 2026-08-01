@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaClient } from '@prisma/client';
+import { createTenantScopedClient } from '../core/tenant/tenant-scoped-client';
 
 /** Use inside `$transaction` callbacks when Prisma 7 omits model delegates on `tx`. */
 export type PrismaTx = PrismaClient;
@@ -37,6 +38,14 @@ export class PrismaService
    */
   getPool(): Pool {
     return this.pool;
+  }
+
+  /**
+   * Opt-in tenant-scoped client — auto-filters read queries to one tenant.
+   * See `createTenantScopedClient` for exactly which operations it covers.
+   */
+  scopedToTenant(tenantId: string) {
+    return createTenantScopedClient(this, tenantId);
   }
 
   async onModuleInit() {

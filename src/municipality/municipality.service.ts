@@ -22,7 +22,7 @@ export class MunicipalityService {
    */
   async checkFeatureEnabled(branchId: number, feature: MunicipalityFeature): Promise<boolean> {
     const config = await this.prisma.branchFeatureConfig.findUnique({
-      where: { panchayat_id: branchId },
+      where: { org_unit_id: branchId },
     });
 
     if (!config || !config[feature]) {

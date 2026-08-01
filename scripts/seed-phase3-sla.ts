@@ -61,7 +61,7 @@ async function main() {
   console.log(`✅ Verified SLA Policy for critical electric_pole complaints. Target: ${policy.target_hours} business hours.`);
 
   // 3. Create a mock complaint and associate an SlaTracker
-  const branch = await prisma.panchayat.findFirst({
+  const branch = await prisma.orgUnit.findFirst({
     where: { tenant_id: tenantId, name: 'Thayanur Village Panchayat' },
   });
 
