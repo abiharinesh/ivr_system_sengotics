@@ -134,11 +134,13 @@ class _ContextSelectorScreenState extends State<ContextSelectorScreen> {
                               ),
                               child: Row(
                                 children: [
-                                  Radio<int>(
-                                    value: assignment.id,
-                                    groupValue: _selectedRoleId,
-                                    onChanged: (v) => setState(() => _selectedRoleId = v),
-                                    activeColor: AppTheme.primary,
+                                  // Selection is driven by the surrounding InkWell,
+                                  // so this is a presentational indicator only.
+                                  Icon(
+                                    isSel
+                                        ? Icons.radio_button_checked
+                                        : Icons.radio_button_unchecked,
+                                    color: isSel ? AppTheme.primary : AppTheme.textMuted,
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(

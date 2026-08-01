@@ -89,7 +89,6 @@ class RoleNavigationConfig {
     title: 'PLATFORM',
     items: [
       NavSpec(icon: Icons.corporate_fare_rounded, label: 'Tenants (Clients)', route: '/admin/tenants'),
-      NavSpec(icon: Icons.account_tree_rounded, label: 'Branch Hierarchy', route: '/admin/branches/tree'),
       NavSpec(icon: Icons.badge_rounded, label: 'Employee Directory', route: '/admin/employees'),
       NavSpec(icon: Icons.assignment_ind_rounded, label: 'Role Assignments', route: '/admin/rbac/user-assignments'),
     ],

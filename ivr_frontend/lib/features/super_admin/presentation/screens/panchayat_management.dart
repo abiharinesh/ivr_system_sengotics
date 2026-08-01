@@ -734,7 +734,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             // Quick preset chips
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.auto_awesome,
                                 label: 'Quick Presets'),
                             const SizedBox(height: 8),
@@ -845,7 +845,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             ),
                             const SizedBox(height: 16),
 
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.translate_rounded,
                                 label: 'Software Name'),
                             const SizedBox(height: 10),
@@ -876,7 +876,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             ),
                             const SizedBox(height: 14),
 
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.subtitles_rounded,
                                 label: 'Taglines'),
                             const SizedBox(height: 10),
@@ -907,7 +907,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             ),
                             const SizedBox(height: 14),
 
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.image_outlined,
                                 label: 'Logo & Assets'),
                             const SizedBox(height: 10),
@@ -925,7 +925,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             ),
                             const SizedBox(height: 14),
 
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.palette_rounded,
                                 label: 'Theme Colors'),
                             const SizedBox(height: 10),
@@ -974,7 +974,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
                             ),
                             const SizedBox(height: 14),
 
-                            _SectionLabel(
+                            const _SectionLabel(
                                 icon: Icons.record_voice_over_rounded,
                                 label: 'IVR Voice Greeting'),
                             const SizedBox(height: 10),
@@ -1217,7 +1217,7 @@ class _PanchayatManagementState extends State<PanchayatManagement> {
       builder: (ctx) => AlertDialog(
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
+        title: const Row(
           children: [
             const Icon(Icons.warning_amber_rounded,
                 color: AppTheme.error, size: 24),

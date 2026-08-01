@@ -5,15 +5,14 @@ import { Prisma, PrismaClient } from '@prisma/client';
  * `scopedToTenant()` below — keep in sync with schema.prisma.
  */
 const TENANT_SCOPED_MODELS = new Set([
-  'Announcement', 'AppConfig', 'Asset', 'AssetInspection', 'AssetMaintenanceLog',
-  'AuditLog', 'BranchLifecycleEvent', 'CallsMaster', 'CitizenFeedback', 'CitizenProfile',
-  'Comment', 'Contractor', 'DashboardWidget', 'DataRetentionPolicy', 'Department',
-  'Document', 'DocumentFolder', 'Employee', 'FieldInspection', 'FinancialYear',
-  'FormSubmission', 'FormTemplate', 'Holiday', 'InspectionTemplate', 'IntegrationConfig',
-  'LocalizationKey', 'MasterCategory', 'Notification', 'NotificationTemplate',
-  'OrgUnit', 'PermissionGroup', 'Role', 'RoleDashboard', 'SavedReport',
-  'ScheduledJob', 'SequenceConfig', 'SlaPolicy', 'SlaTracker', 'TenantFeatureConfig',
-  'User', 'WorkOrder', 'WorkflowInstance', 'WorkflowTemplate', 'WorkingCalendar',
+  'Announcement', 'Asset', 'AuditLog', 'BranchLifecycleEvent', 'CallsMaster',
+  'CitizenFeedback', 'CitizenProfile', 'Comment', 'Contractor', 'DashboardWidget',
+  'Department', 'Document', 'DocumentFolder', 'Employee', 'FieldInspection',
+  'FormSubmission', 'FormTemplate', 'Holiday', 'InspectionTemplate',
+  'Notification', 'NotificationTemplate', 'OrgUnit', 'PermissionGroup',
+  'Role', 'RoleDashboard', 'SavedReport', 'SequenceConfig', 'SlaPolicy',
+  'SlaTracker', 'TenantFeatureConfig', 'User', 'WorkOrder', 'WorkflowInstance',
+  'WorkflowTemplate', 'WorkingCalendar',
 ]);
 
 /**

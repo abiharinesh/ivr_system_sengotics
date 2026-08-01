@@ -138,9 +138,6 @@ export class AssetService {
       where: { id, tenant_id: tenantId, is_deleted: false },
       include: {
         images: true,
-        maintenance_logs: { orderBy: { performed_at: 'desc' } },
-        inspections: { orderBy: { inspected_at: 'desc' } },
-        warranties: { where: { is_active: true } },
       },
     });
     if (!asset) throw new NotFoundException(`Asset #${id} not found`);
