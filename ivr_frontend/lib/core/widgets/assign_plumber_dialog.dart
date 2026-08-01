@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../features/plumber/data/plumber_repository.dart';
-import '../../features/super_admin/data/models/complaint_model.dart';
+import 'package:ivr_frontend/features/roles/plumber/data/plumber_repository.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/models/complaint_model.dart';
 
 /// Returns selected plumber user id, or null if cancelled / error / empty list.
 Future<int?> showAssignPlumberDialog({

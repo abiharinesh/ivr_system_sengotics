@@ -4,8 +4,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-import '../../features/agent/data/agent_repository.dart';
-import '../../features/electrician/data/electrician_repository.dart';
+import 'package:ivr_frontend/features/roles/agent/data/agent_repository.dart';
+import 'package:ivr_frontend/features/roles/electrician/data/electrician_repository.dart';
 
 /// Persists field upload jobs when offline; clear after successful sync.
 class FieldOutbox {

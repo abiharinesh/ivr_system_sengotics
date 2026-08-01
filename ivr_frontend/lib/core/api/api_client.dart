@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
-import '../../config/api_config.dart';
-import '../storage/secure_storage.dart';
+import 'package:ivr_frontend/config/api_config.dart';
+import 'package:ivr_frontend/core/storage/secure_storage.dart';
 import 'api_exceptions.dart';
 
 class CacheEntry {

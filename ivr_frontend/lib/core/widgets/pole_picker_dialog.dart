@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../config/app_theme.dart';
-import '../models/pole_model.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/models/pole_model.dart';
 import 'map_overview.dart';
 
 Future<PoleModel?> showPolePickerDialog({

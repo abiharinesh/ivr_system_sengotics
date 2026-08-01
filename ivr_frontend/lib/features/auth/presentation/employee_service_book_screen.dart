@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 
 class EmployeeServiceBookScreen extends StatefulWidget {
   const EmployeeServiceBookScreen({super.key});

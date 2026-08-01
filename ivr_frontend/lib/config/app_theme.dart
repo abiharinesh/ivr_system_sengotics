@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../core/customization/admin_customization_provider.dart';
-import '../core/customization/dynamic_theme_builder.dart';
+import 'package:ivr_frontend/core/customization/admin_customization_provider.dart';
+import 'package:ivr_frontend/core/customization/dynamic_theme_builder.dart';
 
 class AppTheme {
   static const double spaceXs = 8;

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gmap;
-import '../../config/app_theme.dart';
-import '../env_maps_loader.dart';
-import '../map/map_theme_provider.dart';
-import '../models/pole_model.dart';
-import '../../features/water_supply/data/water_repository.dart';
-import '../../app.dart';
-import '../storage/secure_storage.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/env_maps_loader.dart';
+import 'package:ivr_frontend/core/map/map_theme_provider.dart';
+import 'package:ivr_frontend/core/models/pole_model.dart';
+import 'package:ivr_frontend/features/modules/water_supply/data/water_repository.dart';
+import 'package:ivr_frontend/app.dart';
+import 'package:ivr_frontend/core/storage/secure_storage.dart';
 
 enum PoleMarkerStatus { active, inactive, fault }
 

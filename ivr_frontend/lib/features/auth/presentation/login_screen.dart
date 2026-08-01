@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 import 'package:go_router/go_router.dart';
-import '../bloc/auth_bloc.dart';
-import '../bloc/auth_event.dart';
-import '../bloc/auth_state.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_bloc.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

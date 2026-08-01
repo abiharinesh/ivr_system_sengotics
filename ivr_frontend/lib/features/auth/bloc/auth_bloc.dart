@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../core/api/api_client.dart';
-import '../../../core/api/api_exceptions.dart';
-import '../../../config/api_config.dart';
-import '../../../core/storage/secure_storage.dart';
-import '../../../core/models/user_model.dart';
-import '../data/auth_repository.dart';
+import 'package:ivr_frontend/core/api/api_client.dart';
+import 'package:ivr_frontend/core/api/api_exceptions.dart';
+import 'package:ivr_frontend/config/api_config.dart';
+import 'package:ivr_frontend/core/storage/secure_storage.dart';
+import 'package:ivr_frontend/core/models/user_model.dart';
+import 'package:ivr_frontend/features/auth/data/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
 

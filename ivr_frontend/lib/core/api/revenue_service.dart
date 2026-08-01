@@ -1,4 +1,4 @@
-import '../../core/api/api_client.dart';
+import 'package:ivr_frontend/core/api/api_client.dart';
 
 class RevenueService {
   final ApiClient _api = ApiClient.instance;

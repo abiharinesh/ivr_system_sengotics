@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../../../config/app_theme.dart';
-import '../../../../core/customization/admin_customization_provider.dart';
-import '../../../../core/widgets/map_theme_picker.dart';
-import '../../../../app.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/customization/admin_customization_provider.dart';
+import 'package:ivr_frontend/core/widgets/map_theme_picker.dart';
+import 'package:ivr_frontend/app.dart';
 
 /// Full admin customization settings screen with sections for
 /// appearance, typography, map settings, dashboard widgets, and sidebar.

@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
-import '../api/api_client.dart';
+import 'package:ivr_frontend/core/api/api_client.dart';
 
 /// Loads `/uploads/...` files via the API client (works on Flutter web; avoids
 /// cross-origin Image.network failures against the NestJS static host).

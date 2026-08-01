@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../app.dart';
-import '../../config/app_theme.dart';
-import '../../config/api_config.dart';
-import '../../features/auth/bloc/auth_bloc.dart';
-import '../../features/auth/bloc/auth_state.dart';
-import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
-import '../../features/super_admin/data/super_admin_repository.dart';
-import '../models/dashboard_insights_model.dart';
-import '../models/pole_model.dart';
-import '../navigation/role_navigation_config.dart';
+import 'package:ivr_frontend/app.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/config/api_config.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_bloc.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
+import 'package:ivr_frontend/features/roles/panchayat_admin/data/panchayat_admin_repository.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/super_admin_repository.dart';
+import 'package:ivr_frontend/core/models/dashboard_insights_model.dart';
+import 'package:ivr_frontend/core/models/pole_model.dart';
+import 'package:ivr_frontend/core/navigation/role_navigation_config.dart';
 import 'nav_guard.dart';
 import 'pole_picker_dialog.dart';
 

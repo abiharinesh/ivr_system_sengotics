@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 
 class AppStatusBadge extends StatelessWidget {
   final String status;

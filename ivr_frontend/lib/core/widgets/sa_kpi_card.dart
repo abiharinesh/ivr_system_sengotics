@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 import 'app_shimmer.dart';
 
 /// A KPI card for the SuperAdmin dashboard — displays a title, large value,

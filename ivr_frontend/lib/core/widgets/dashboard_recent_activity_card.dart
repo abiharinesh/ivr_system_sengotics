@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../config/app_theme.dart';
-import '../models/dashboard_insights_model.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/models/dashboard_insights_model.dart';
 import 'app_shimmer.dart';
 
 String formatActivityTime(DateTime at) {

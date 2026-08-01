@@ -4,8 +4,8 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
-import '../../features/agent/data/agent_repository.dart';
-import '../../features/electrician/data/electrician_repository.dart';
+import 'package:ivr_frontend/features/roles/agent/data/agent_repository.dart';
+import 'package:ivr_frontend/features/roles/electrician/data/electrician_repository.dart';
 import 'field_outbox.dart';
 
 /// Replays queued field jobs when the app resumes or network is restored.

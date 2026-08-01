@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../config/app_theme.dart';
-import '../map/map_themes.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/map/map_themes.dart';
 
 /// A horizontal scrollable widget that displays all available map themes
 /// as interactive preview cards. The selected theme is highlighted.

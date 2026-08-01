@@ -1,6 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import '../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 
 class DashboardPanel extends StatelessWidget {
   final String title;

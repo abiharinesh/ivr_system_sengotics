@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../config/app_theme.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 import 'app_card.dart';
 
 class AppErrorState extends StatelessWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../features/panchayat_admin/data/panchayat_admin_repository.dart';
-import '../../features/super_admin/data/super_admin_repository.dart';
-import '../../features/super_admin/data/models/complaint_model.dart';
+import 'package:ivr_frontend/features/roles/panchayat_admin/data/panchayat_admin_repository.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/super_admin_repository.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/models/complaint_model.dart';
 
 /// Returns selected electrician user id, or null if cancelled / error / empty list.
 Future<int?> showAssignElectricianDialog({
