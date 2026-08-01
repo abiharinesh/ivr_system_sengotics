@@ -115,7 +115,6 @@ class RoleNavigationConfig {
       NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
       NavSpec(icon: Icons.insights_rounded, label: 'SLA Analytics', route: '/analytics/sla'),
       NavSpec(icon: Icons.dashboard_customize_rounded, label: 'Executive View', route: '/dashboard/executive'),
-      NavSpec(icon: Icons.approval_rounded, label: 'Approvals Inbox', route: '/approvals'),
     ],
     'municipal_engineer': [
       NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/municipal-engineer'),

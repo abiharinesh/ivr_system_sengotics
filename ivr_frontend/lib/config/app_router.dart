@@ -98,44 +98,21 @@ import 'package:ivr_frontend/features/modules/municipality/presentation/municipa
 
 // Screen Plan Modules
 import 'package:ivr_frontend/features/roles/panchayat_admin/presentation/screens/panchayat_admin_profile_screen.dart';
-import 'package:ivr_frontend/features/auth/presentation/otp_verification_screen.dart';
 import 'package:ivr_frontend/features/auth/presentation/context_selector_screen.dart';
 import 'package:ivr_frontend/features/auth/presentation/employee_service_book_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/tenant_management_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/branch_lifecycle_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/branch_gis_drawer_screen.dart';
-import 'package:ivr_frontend/features/modules/master_data/presentation/working_calendar_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/employee_directory_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/designation_transfer_timeline_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/user_role_assignment_screen.dart';
 import 'package:ivr_frontend/features/modules/assets/presentation/asset_registration_screen.dart';
-import 'package:ivr_frontend/features/modules/assets/presentation/asset_detail_screen.dart';
-import 'package:ivr_frontend/features/modules/assets/presentation/asset_inspection_screen.dart';
-import 'package:ivr_frontend/features/modules/assets/presentation/asset_maintenance_log_screen.dart';
-import 'package:ivr_frontend/features/modules/complaints/presentation/citizen_grievance_registration_screen.dart';
-import 'package:ivr_frontend/features/modules/complaints/presentation/employee_grievance_kanban_screen.dart';
 import 'package:ivr_frontend/features/modules/complaints/presentation/sla_analytics_screen.dart';
-import 'package:ivr_frontend/features/modules/workflows/presentation/workflow_template_builder_screen.dart';
-import 'package:ivr_frontend/features/modules/dynamic_forms/presentation/form_template_builder_screen.dart';
 import 'package:ivr_frontend/features/modules/dynamic_forms/presentation/dynamic_form_runtime_renderer.dart';
 import 'package:ivr_frontend/features/modules/contractor/presentation/work_order_creation_screen.dart';
-import 'package:ivr_frontend/features/modules/inspection/presentation/inspector_route_dashboard_screen.dart';
-import 'package:ivr_frontend/features/modules/inspection/presentation/offline_field_inspection_screen.dart';
-import 'package:ivr_frontend/features/modules/inspection/presentation/offline_sync_center_screen.dart';
 import 'package:ivr_frontend/features/modules/reports/presentation/executive_dashboard_screen.dart';
-import 'package:ivr_frontend/features/modules/reports/presentation/dynamic_report_builder_screen.dart';
 import 'package:ivr_frontend/features/modules/dms/presentation/dms_explorer_screen.dart';
 import 'package:ivr_frontend/features/modules/audit/presentation/audit_log_inspector_screen.dart';
 import 'package:ivr_frontend/features/modules/municipality/presentation/solid_waste_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/potholes_monitoring_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/drainage_flood_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/parks_open_spaces_screen.dart';
 import 'package:ivr_frontend/features/modules/municipality/presentation/public_health_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/building_permits_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/vital_events_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/fleet_fuel_tracking_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/encroachment_removal_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/cemetery_management_screen.dart';
 
 import 'package:ivr_frontend/core/widgets/app_scaffold.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
@@ -698,10 +675,6 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const PanchayatAdminProfileScreen(),
           ),
           GoRoute(
-            path: '/verify-otp',
-            builder: (context, state) => const OtpVerificationScreen(),
-          ),
-          GoRoute(
             path: '/select-context',
             builder: (context, state) => const ContextSelectorScreen(),
           ),
@@ -715,22 +688,6 @@ GoRouter createRouter(AuthBloc authBloc) {
               create: (_) => TenantBloc()..add(LoadTenants()),
               child: const TenantManagementScreen(),
             ),
-          ),
-          GoRoute(
-            path: '/admin/branches/:id/lifecycle',
-            builder: (context, state) => BranchLifecycleScreen(
-              orgUnitId: state.pathParameters['id'] ?? 'USL-BLK-12',
-            ),
-          ),
-          GoRoute(
-            path: '/admin/branches/:id/gis',
-            builder: (context, state) => BranchGisDrawerScreen(
-              orgUnitId: state.pathParameters['id'] ?? 'USL-BLK-12',
-            ),
-          ),
-          GoRoute(
-            path: '/admin/calendars',
-            builder: (context, state) => const WorkingCalendarScreen(),
           ),
           GoRoute(
             path: '/admin/employees',
@@ -751,42 +708,8 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const AssetRegistrationScreen(),
           ),
           GoRoute(
-            path: '/assets/:id',
-            builder: (context, state) => AssetDetailScreen(
-              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
-            ),
-          ),
-          GoRoute(
-            path: '/assets/:id/inspect',
-            builder: (context, state) => AssetInspectionScreen(
-              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
-            ),
-          ),
-          GoRoute(
-            path: '/assets/:id/maintenance/new',
-            builder: (context, state) => AssetMaintenanceLogScreen(
-              assetId: state.pathParameters['id'] ?? 'SL-MDU-Z3-042',
-            ),
-          ),
-          GoRoute(
-            path: '/complaints/new',
-            builder: (context, state) => const CitizenGrievanceRegistrationScreen(),
-          ),
-          GoRoute(
-            path: '/complaints/inbox',
-            builder: (context, state) => const EmployeeGrievanceKanbanScreen(),
-          ),
-          GoRoute(
             path: '/analytics/sla',
             builder: (context, state) => const SlaAnalyticsScreen(),
-          ),
-          GoRoute(
-            path: '/admin/workflows/builder',
-            builder: (context, state) => const WorkflowTemplateBuilderScreen(),
-          ),
-          GoRoute(
-            path: '/admin/form-builder',
-            builder: (context, state) => const FormTemplateBuilderScreen(),
           ),
           GoRoute(
             path: '/forms/render',
@@ -797,24 +720,8 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const WorkOrderCreationScreen(),
           ),
           GoRoute(
-            path: '/mobile/dashboard',
-            builder: (context, state) => const InspectorRouteDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/mobile/inspection/execute',
-            builder: (context, state) => const OfflineFieldInspectionScreen(),
-          ),
-          GoRoute(
-            path: '/mobile/sync-center',
-            builder: (context, state) => const OfflineSyncCenterScreen(),
-          ),
-          GoRoute(
             path: '/dashboard/executive',
             builder: (context, state) => const ExecutiveDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/reports/builder',
-            builder: (context, state) => const DynamicReportBuilderScreen(),
           ),
           GoRoute(
             path: '/documents',
@@ -829,40 +736,8 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const SolidWasteScreen(),
           ),
           GoRoute(
-            path: '/municipality/potholes',
-            builder: (context, state) => const PotholesMonitoringScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/drainage',
-            builder: (context, state) => const DrainageFloodScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/parks',
-            builder: (context, state) => const ParksOpenSpacesScreen(),
-          ),
-          GoRoute(
             path: '/municipality/health',
             builder: (context, state) => const PublicHealthScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/building-permits',
-            builder: (context, state) => const BuildingPermitsScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/vital-events',
-            builder: (context, state) => const VitalEventsScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/fleet',
-            builder: (context, state) => const FleetFuelTrackingScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/encroachment',
-            builder: (context, state) => const EncroachmentRemovalScreen(),
-          ),
-          GoRoute(
-            path: '/municipality/cemeteries',
-            builder: (context, state) => const CemeteryManagementScreen(),
           ),
         ],
       ),
