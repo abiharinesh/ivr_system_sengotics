@@ -31,7 +31,7 @@ export interface TenderCreateBody {
   milestone_rules?: MilestoneRule[];
   auto_resolve_linked_complaints?: boolean;
   officer_self_inspection?: boolean;
-  invited_vendor_ids?: number[];
+  invited_contractor_ids?: number[];
   line_items?: TenderLineItemBody[];
 }
 
@@ -62,13 +62,13 @@ export class TenderService {
 
   /** Mint missing per-vendor invite tokens (does not clear revocation). */
   private async ensureInviteTokens(tx: PrismaTx, tenderId: number) {
-    const invites = await tx.tenderVendorInvite.findMany({
+    const invites = await tx.tenderInvite.findMany({
       where: { tender_id: tenderId },
       select: { id: true, invite_token: true },
     });
     for (const invite of invites) {
       if (invite.invite_token) continue;
-      await tx.tenderVendorInvite.update({
+      await tx.tenderInvite.update({
         where: { id: invite.id },
         data: { invite_token: this.mintInviteToken() },
       });
@@ -200,7 +200,7 @@ export class TenderService {
         awarded_quotation: {
           select: {
             id: true,
-            vendor_id: true,
+            contractor_id: true,
             submitter_name: true,
             amount: true,
           },
@@ -257,11 +257,11 @@ export class TenderService {
         this.prisma.tenderQuotation.findMany({
           where: { tender_id: tenderId },
           orderBy: { submitted_at: 'asc' },
-          include: { vendor: true },
+          include: { contractor: true },
         }),
-        this.prisma.tenderVendorInvite.findMany({
+        this.prisma.tenderInvite.findMany({
           where: { tender_id: tenderId },
-          include: { vendor: true },
+          include: { contractor: true },
         }),
         this.prisma.tenderDocument.findMany({
           where: { tender_id: tenderId },
@@ -342,19 +342,19 @@ export class TenderService {
         }
       }
 
-      if (body.invited_vendor_ids?.length) {
-        for (const vid of body.invited_vendor_ids) {
-          const v = await tx.vendor.findUnique({ where: { id: vid } });
+      if (body.invited_contractor_ids?.length) {
+        for (const vid of body.invited_contractor_ids) {
+          const v = await tx.contractor.findUnique({ where: { id: vid } });
           if (!v || v.org_unit_id !== orgUnitId) {
             throw new BadRequestException(`Vendor #${vid} not in panchayat`);
           }
-          await tx.tenderVendorInvite.upsert({
+          await tx.tenderInvite.upsert({
             where: {
-              tender_id_vendor_id: { tender_id: tender.id, vendor_id: vid },
+              tender_id_contractor_id: { tender_id: tender.id, contractor_id: vid },
             },
             create: {
               tender_id: tender.id,
-              vendor_id: vid,
+              contractor_id: vid,
               invite_token: this.mintInviteToken(),
               invite_revoked_at: null,
             },
@@ -372,7 +372,7 @@ export class TenderService {
       event: 'created',
       payload: {
         line_items: body.line_items?.length ?? 0,
-        invited: body.invited_vendor_ids?.length ?? 0,
+        invited: body.invited_contractor_ids?.length ?? 0,
       },
     });
     return result;
@@ -601,7 +601,7 @@ export class TenderService {
     const ids = Array.from(
       new Set(vendorIds.filter((n) => Number.isInteger(n) && n > 0)),
     );
-    const vendors = await this.prisma.vendor.findMany({
+    const vendors = await this.prisma.contractor.findMany({
       where: { id: { in: ids } },
     });
     for (const v of vendors) {
@@ -610,14 +610,14 @@ export class TenderService {
       }
     }
     await this.prisma.$transaction([
-      this.prisma.tenderVendorInvite.deleteMany({
+      this.prisma.tenderInvite.deleteMany({
         where: { tender_id: tenderId },
       }),
       ...ids.map((vid) =>
-        this.prisma.tenderVendorInvite.create({
+        this.prisma.tenderInvite.create({
           data: {
             tender_id: tenderId,
-            vendor_id: vid,
+            contractor_id: vid,
             invite_token: this.mintInviteToken(),
             invite_revoked_at: null,
             invite_opened_at: null,
@@ -633,11 +633,11 @@ export class TenderService {
       tenderId,
       actorUserId,
       event: 'invites:set',
-      payload: { vendor_ids: ids },
+      payload: { contractor_ids: ids },
     });
-    return this.prisma.tenderVendorInvite.findMany({
+    return this.prisma.tenderInvite.findMany({
       where: { tender_id: tenderId },
-      include: { vendor: true },
+      include: { contractor: true },
     });
   }
 
@@ -656,7 +656,7 @@ export class TenderService {
         'Tender needs at least one line item before publishing',
       );
     if (t.quotation_access_mode === 'invited_only') {
-      const inviteCount = await this.prisma.tenderVendorInvite.count({
+      const inviteCount = await this.prisma.tenderInvite.count({
         where: { tender_id: tenderId },
       });
       if (inviteCount === 0) {
@@ -677,7 +677,7 @@ export class TenderService {
         },
       });
       await this.ensureInviteTokens(tx, tenderId);
-      await tx.tenderVendorInvite.updateMany({
+      await tx.tenderInvite.updateMany({
         where: { tender_id: tenderId, invite_revoked_at: { not: null } },
         data: { invite_revoked_at: null },
       });
@@ -699,7 +699,7 @@ export class TenderService {
   ) {
     await this.loadOwned(orgUnitId, tenderId);
     await this.setStatus(tenderId, 'quotations_closed', actorUserId);
-    await this.prisma.tenderVendorInvite.updateMany({
+    await this.prisma.tenderInvite.updateMany({
       where: { tender_id: tenderId, invite_revoked_at: null },
       data: { invite_revoked_at: new Date() },
     });
@@ -742,7 +742,7 @@ export class TenderService {
       payload: {
         quotation_id: quotationId,
         amount: String(q.amount),
-        vendor_id: q.vendor_id,
+        contractor_id: q.contractor_id,
       },
     });
     return updated;
@@ -821,7 +821,7 @@ export class TenderService {
       data,
     });
     if (body.close) {
-      await this.prisma.tenderVendorInvite.updateMany({
+      await this.prisma.tenderInvite.updateMany({
         where: { tender_id: tenderId, invite_revoked_at: null },
         data: { invite_revoked_at: new Date() },
       });
@@ -864,7 +864,7 @@ export class TenderService {
     tenderId: number,
     actorUserId: number,
     body: {
-      vendor_id?: number;
+      contractor_id?: number;
       submitter_name?: string;
       phone?: string;
       amount: number | string;
@@ -876,24 +876,24 @@ export class TenderService {
     if (t.status === 'closed')
       throw new BadRequestException('Cannot add quotations to a closed tender');
 
-    let vendorId: number | null = null;
+    let contractorId: number | null = null;
     let name = body.submitter_name?.trim() || '';
     let phone = body.phone ? normalizePhoneE164(body.phone) : '';
-    if (body.vendor_id) {
-      const v = await this.prisma.vendor.findUnique({
-        where: { id: body.vendor_id },
+    if (body.contractor_id) {
+      const v = await this.prisma.contractor.findUnique({
+        where: { id: body.contractor_id },
       });
       if (!v || v.org_unit_id !== orgUnitId)
         throw new BadRequestException(
-          `Vendor #${body.vendor_id} not in panchayat`,
+          `Vendor #${body.contractor_id} not in panchayat`,
         );
-      vendorId = v.id;
+      contractorId = v.id;
       if (!name) name = v.name;
-      if (!phone) phone = v.phone_e164;
+      if (!phone) phone = v.phone;
     }
     if (!name)
-      throw new BadRequestException('submitter_name or vendor_id required');
-    if (!phone) throw new BadRequestException('phone or vendor_id required');
+      throw new BadRequestException('submitter_name or contractor_id required');
+    if (!phone) throw new BadRequestException('phone or contractor_id required');
 
     const amountStr = String(body.amount).trim();
     if (
@@ -917,7 +917,7 @@ export class TenderService {
     const created = await this.prisma.tenderQuotation.create({
       data: {
         tender_id: tenderId,
-        vendor_id: vendorId,
+        contractor_id: contractorId,
         submitter_name: name,
         submitter_phone_e164: phone,
         amount: amountStr,
@@ -938,7 +938,7 @@ export class TenderService {
       event: 'quotation:officer_entry',
       payload: {
         quotation_id: created.id,
-        vendor_id: vendorId,
+        contractor_id: contractorId,
         amount: amountStr,
         prior_id: prior?.id ?? null,
       },

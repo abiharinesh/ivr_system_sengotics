@@ -40,12 +40,12 @@ export interface TemplateContext {
   invited_vendors: Array<{
     id: number;
     name: string;
-    phone_e164: string;
+    phone: string;
     place: string | null;
   }>;
   quotations: Array<{
     id: number;
-    vendor_id: number | null;
+    contractor_id: number | null;
     submitter_name: string;
     submitter_phone_e164: string;
     amount: string;
@@ -58,7 +58,7 @@ export interface TemplateContext {
   document: {
     template_id: string;
     version: number;
-    vendor_id: number | null;
+    contractor_id: number | null;
     field_overrides: Record<string, unknown> | null;
   };
   generated_at: Date;
@@ -269,7 +269,7 @@ export function renderRfq(ctx: TemplateContext): string {
     ? ctx.invited_vendors
         .map(
           (v) =>
-            `<li>${escape(v.name)}${v.place ? `, ${escape(v.place)}` : ''} (${escape(v.phone_e164)})</li>`,
+            `<li>${escape(v.name)}${v.place ? `, ${escape(v.place)}` : ''} (${escape(v.phone)})</li>`,
         )
         .join('')
     : '<li class="muted">(No invited vendors)</li>';
@@ -302,17 +302,17 @@ ${editorNoteSection(ctx)}
 
 // ── 2. Quotation letter (per bidder) ──────────────────────────────────────
 export function renderQuotation(ctx: TemplateContext): string {
-  const targetVendorId = ctx.document.vendor_id;
+  const targetVendorId = ctx.document.contractor_id;
   const q =
-    ctx.quotations.find((x) => x.vendor_id === targetVendorId) ||
+    ctx.quotations.find((x) => x.contractor_id === targetVendorId) ||
     ctx.quotations[0];
   const vendor =
     ctx.invited_vendors.find((v) => v.id === targetVendorId) ||
     (q
       ? {
-          id: q.vendor_id ?? 0,
+          id: q.contractor_id ?? 0,
           name: q.submitter_name,
-          phone_e164: q.submitter_phone_e164,
+          phone: q.submitter_phone_e164,
           place: null,
         }
       : null);
@@ -338,7 +338,7 @@ export function renderQuotation(ctx: TemplateContext): string {
   const body = `
 ${header(ctx, 'கொட்டேஷன்', 'Quotation')}
 <div class="grid">
-  <div><strong class="ta">அனுப்புனர் / From:</strong><br/>${escape(vendor.name)}${vendor.place ? `, ${escape(vendor.place)}` : ''}<br/>${escape(vendor.phone_e164)}</div>
+  <div><strong class="ta">அனுப்புனர் / From:</strong><br/>${escape(vendor.name)}${vendor.place ? `, ${escape(vendor.place)}` : ''}<br/>${escape(vendor.phone)}</div>
   <div><strong class="ta">பெறுநர் / To:</strong><br/>${escape(ctx.org_unit.name)} Panchayat</div>
 </div>
 <p><strong>Reference:</strong> Tender #${ctx.tender.id} <span class="ta"> (${escape(ctx.tender.title_ta ?? '')})</span></p>

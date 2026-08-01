@@ -95,7 +95,7 @@ class _TenderCreateScreenState extends State<TenderCreateScreen>
         'auto_resolve_linked_complaints': _autoResolve,
         'officer_self_inspection': _officerSelfInspection,
         if (_anchorDate != null) 'anchor_date': _anchorDate!.toUtc().toIso8601String(),
-        'invited_vendor_ids': _selectedVendorIds.toList(),
+        'invited_contractor_ids': _selectedVendorIds.toList(),
         'line_items': _lineItems.where((e) => e.hasContent).map((e) => e.toJson()).toList(),
         if (widget.isSuperAdmin && _selectedPanchayatId != null) 'org_unit_id': _selectedPanchayatId,
       });

@@ -366,7 +366,7 @@ export class SuperAdminController {
     body: {
       org_unit_id?: number;
       tender_id?: number;
-      vendor_id?: number;
+      contractor_id?: number;
     } = {},
     @Res() res: Response,
   ) {
@@ -378,7 +378,7 @@ export class SuperAdminController {
     const html = await this.documentTemplateSettings.buildPreviewHtml(
       Math.floor(orgUnitId),
       templateId,
-      { tender_id: body.tender_id, vendor_id: body.vendor_id },
+      { tender_id: body.tender_id, contractor_id: body.contractor_id },
     );
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     res.send(html);
@@ -562,9 +562,17 @@ export class SuperAdminController {
     return t.org_unit_id;
   }
 
-  private async getVendorPanchayatId(vendorId: number): Promise<number> {
-    const v = await this.prisma.vendor.findUnique({ where: { id: vendorId } });
-    if (!v) throw new NotFoundException(`Vendor #${vendorId} not found`);
+  private async getVendorPanchayatId(contractorId: number): Promise<number> {
+    const v = await this.prisma.contractor.findUnique({ where: { id: contractorId } });
+    if (!v) throw new NotFoundException(`Contractor #${contractorId} not found`);
+    // org_unit_id is nullable since the Vendor/Contractor merge: null means the
+    // contractor is empanelled tenant-wide rather than at one org unit, so it
+    // has no single org unit to scope a share token to.
+    if (v.org_unit_id == null) {
+      throw new BadRequestException(
+        `Contractor #${contractorId} is empanelled tenant-wide and is not scoped to a single org unit`,
+      );
+    }
     return v.org_unit_id;
   }
 
@@ -717,12 +725,12 @@ export class SuperAdminController {
   async setInvites(
     @Req() req: any,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { vendor_ids: number[] },
+    @Body() body: { contractor_ids: number[] },
   ) {
-    if (!Array.isArray(body?.vendor_ids))
-      throw new BadRequestException('vendor_ids array required');
+    if (!Array.isArray(body?.contractor_ids))
+      throw new BadRequestException('contractor_ids array required');
     const pid = await this.getTenderPanchayatId(id);
-    return this.tenders.setInvites(pid, id, req.user.id, body.vendor_ids);
+    return this.tenders.setInvites(pid, id, req.user.id, body.contractor_ids);
   }
 
   @Post('tenders/:id/publish')
@@ -790,7 +798,7 @@ export class SuperAdminController {
     @Param('templateId') templateId: string,
     @Body()
     body: {
-      vendor_id?: number;
+      contractor_id?: number;
       field_overrides?: Record<string, unknown>;
     } = {},
   ) {
@@ -800,7 +808,7 @@ export class SuperAdminController {
       tenderId: id,
       actorUserId: req.user.id,
       templateId,
-      vendorId: body.vendor_id ?? null,
+      contractorId: body.contractor_id ?? null,
       fieldOverrides: body.field_overrides ?? null,
     });
   }

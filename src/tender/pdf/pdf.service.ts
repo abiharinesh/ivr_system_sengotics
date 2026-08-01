@@ -54,22 +54,22 @@ export class TenderPdfService {
   ): Promise<number | null> {
     const activeQuotes = await this.prisma.tenderQuotation.findMany({
       where: { tender_id: tenderId, superseded_by_id: null },
-      select: { vendor_id: true },
+      select: { contractor_id: true },
     });
     const fromQuotes = [
       ...new Set(
         activeQuotes
-          .map((q) => q.vendor_id)
+          .map((q) => q.contractor_id)
           .filter((id): id is number => id != null),
       ),
     ];
     if (fromQuotes.length === 1) return fromQuotes[0];
 
-    const invites = await this.prisma.tenderVendorInvite.findMany({
+    const invites = await this.prisma.tenderInvite.findMany({
       where: { tender_id: tenderId },
-      select: { vendor_id: true },
+      select: { contractor_id: true },
     });
-    const fromInvites = [...new Set(invites.map((i) => i.vendor_id))];
+    const fromInvites = [...new Set(invites.map((i) => i.contractor_id))];
     if (fromInvites.length === 1) return fromInvites[0];
 
     return null;
@@ -119,7 +119,7 @@ export class TenderPdfService {
     tenderId: number,
     templateId: DocumentTemplateId,
     version: number,
-    vendorId: number | null,
+    contractorId: number | null,
     fieldOverrides: Record<string, unknown> | null,
   ): Promise<TemplateContext> {
     const tender = await this.prisma.tender.findUnique({
@@ -134,9 +134,9 @@ export class TenderPdfService {
         where: { tender_id: tenderId },
         orderBy: { seq: 'asc' },
       }),
-      this.prisma.tenderVendorInvite.findMany({
+      this.prisma.tenderInvite.findMany({
         where: { tender_id: tenderId },
-        include: { vendor: true },
+        include: { contractor: true },
       }),
       this.prisma.tenderQuotation.findMany({
         where: { tender_id: tenderId },
@@ -179,14 +179,14 @@ export class TenderPdfService {
         unit: li.unit,
       })),
       invited_vendors: invites.map((inv) => ({
-        id: inv.vendor.id,
-        name: inv.vendor.name,
-        phone_e164: inv.vendor.phone_e164,
-        place: inv.vendor.place,
+        id: inv.contractor.id,
+        name: inv.contractor.name,
+        phone: inv.contractor.phone,
+        place: inv.contractor.place,
       })),
       quotations: quotations.map((q) => ({
         id: q.id,
-        vendor_id: q.vendor_id,
+        contractor_id: q.contractor_id,
         submitter_name: q.submitter_name,
         submitter_phone_e164: q.submitter_phone_e164,
         amount: String(q.amount),
@@ -200,7 +200,7 @@ export class TenderPdfService {
       document: {
         template_id: templateId,
         version,
-        vendor_id: vendorId,
+        contractor_id: contractorId,
         field_overrides: mergedOverrides,
       },
       generated_at: new Date(),
@@ -214,18 +214,18 @@ export class TenderPdfService {
     tenderId: number;
     templateId: string;
     actorUserId: number;
-    vendorId?: number | null;
+    contractorId?: number | null;
     fieldOverrides?: Record<string, unknown> | null;
   }) {
     const tpl = validateTemplateId(args.templateId);
     await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
-    let vendorId = args.vendorId ?? null;
-    if (tpl === 'quotation' && vendorId == null) {
-      vendorId = await this.resolveQuotationVendorId(args.tenderId);
+    let contractorId = args.contractorId ?? null;
+    if (tpl === 'quotation' && contractorId == null) {
+      contractorId = await this.resolveQuotationVendorId(args.tenderId);
     }
-    if (tpl === 'quotation' && vendorId == null) {
+    if (tpl === 'quotation' && contractorId == null) {
       throw new BadRequestException(
-        'vendor_id is required for quotation template. Select a vendor or add an invite / quotation first.',
+        'contractor_id is required for quotation template. Select a vendor or add an invite / quotation first.',
       );
     }
 
@@ -233,7 +233,7 @@ export class TenderPdfService {
       where: {
         tender_id: args.tenderId,
         template_id: tpl,
-        ...(tpl === 'quotation' ? { vendor_id: vendorId } : {}),
+        ...(tpl === 'quotation' ? { contractor_id: contractorId } : {}),
       },
       orderBy: { version: 'desc' },
       select: { version: true },
@@ -244,7 +244,7 @@ export class TenderPdfService {
       data: {
         tender_id: args.tenderId,
         template_id: tpl,
-        vendor_id: tpl === 'quotation' ? vendorId : null,
+        contractor_id: tpl === 'quotation' ? contractorId : null,
         version,
         field_overrides: (args.fieldOverrides ?? null) as any,
         generated_by_user_id: args.actorUserId,
@@ -265,7 +265,7 @@ export class TenderPdfService {
         template_id: tpl,
         version,
         document_id: doc.id,
-        vendor_id: doc.vendor_id,
+        contractor_id: doc.contractor_id,
       },
     });
     return this.prisma.tenderDocument.findUnique({ where: { id: doc.id } });
@@ -304,22 +304,22 @@ export class TenderPdfService {
     tender_id: number;
     template_id: string;
     version: number;
-    vendor_id: number | null;
+    contractor_id: number | null;
     field_overrides: unknown;
   }): Promise<string> {
     const ctx = await this.buildContext(
       doc.tender_id,
       doc.template_id as DocumentTemplateId,
       doc.version,
-      doc.vendor_id,
+      doc.contractor_id,
       (doc.field_overrides as Record<string, unknown> | null) ?? null,
     );
     const html = renderTemplate(doc.template_id, ctx);
 
     const subdir = path.posix.join(String(doc.tender_id), doc.template_id);
     const baseName =
-      doc.vendor_id != null
-        ? `v${doc.version}-vendor${doc.vendor_id}`
+      doc.contractor_id != null
+        ? `v${doc.version}-vendor${doc.contractor_id}`
         : `v${doc.version}`;
 
     // Always persist the HTML artifact (serves as fallback if PDF fails).
@@ -349,7 +349,7 @@ export class TenderPdfService {
     tender_id: number;
     template_id: string;
     version: number;
-    vendor_id: number | null;
+    contractor_id: number | null;
     field_overrides: unknown;
     storage_path: string | null;
   }): Promise<string> {
@@ -449,7 +449,7 @@ export class TenderPdfService {
     archive.pipe(out);
 
     for (const d of docs) {
-      const key = `${d.template_id}:${d.vendor_id ?? 'null'}`;
+      const key = `${d.template_id}:${d.contractor_id ?? 'null'}`;
       if (seen.has(key)) continue;
       seen.add(key);
       const storagePath = await this.ensureArtifactExists(d as any).catch(
@@ -458,8 +458,8 @@ export class TenderPdfService {
       if (!storagePath) continue;
       const ext = path.extname(storagePath) || '.html';
       const name =
-        d.vendor_id != null
-          ? `${d.template_id}-vendor${d.vendor_id}-v${d.version}${ext}`
+        d.contractor_id != null
+          ? `${d.template_id}-vendor${d.contractor_id}-v${d.version}${ext}`
           : `${d.template_id}-v${d.version}${ext}`;
       const bytes = await this.documentStorage
         .readBuffer(storagePath)
@@ -538,8 +538,8 @@ export class TenderPdfService {
 
     const subdir = path.posix.join(String(doc.tender_id), doc.template_id);
     const baseName =
-      doc.vendor_id != null
-        ? `v${doc.version}-vendor${doc.vendor_id}`
+      doc.contractor_id != null
+        ? `v${doc.version}-vendor${doc.contractor_id}`
         : `v${doc.version}`;
 
     // Write the edited HTML
@@ -762,7 +762,7 @@ ${bodyContent}
       tender_id: doc.tender_id,
       template_id: doc.template_id,
       version: doc.version,
-      vendor_id: doc.vendor_id,
+      contractor_id: doc.contractor_id,
       field_overrides: mergedOverrides,
     });
 
@@ -805,7 +805,7 @@ ${bodyContent}
         where: { tender_id: tenderId },
         orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
         include: {
-          vendor: { select: { id: true, name: true, phone_e164: true } },
+          contractor: { select: { id: true, name: true, phone: true } },
         },
       }),
     );

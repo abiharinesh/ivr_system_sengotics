@@ -211,15 +211,15 @@ export class TenderController {
   setInvites(
     @Req() req: AuthenticatedRequest,
     @Param('id', ParseIntPipe) id: number,
-    @Body() body: { vendor_ids: number[] },
+    @Body() body: { contractor_ids: number[] },
   ) {
-    if (!Array.isArray(body?.vendor_ids))
-      throw new BadRequestException('vendor_ids array required');
+    if (!Array.isArray(body?.contractor_ids))
+      throw new BadRequestException('contractor_ids array required');
     return this.tenders.setInvites(
       this.getPanchayatId(req),
       id,
       req.user.id,
-      body.vendor_ids,
+      body.contractor_ids,
     );
   }
 
@@ -295,7 +295,7 @@ export class TenderController {
     @Param('id', ParseIntPipe) id: number,
     @Body()
     body: {
-      vendor_id?: number;
+      contractor_id?: number;
       submitter_name?: string;
       phone?: string;
       amount: number | string;

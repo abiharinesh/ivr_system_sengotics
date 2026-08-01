@@ -59,7 +59,7 @@ export class RoleDashboardService {
     const totalPoles = await this.prisma.electricPole.count({
       where: orgUnitId ? { org_unit_id: orgUnitId } : undefined,
     }).catch(() => 156);
-    const totalVendors = await this.prisma.vendor.count({
+    const totalVendors = await this.prisma.contractor.count({
       where: orgUnitId ? { org_unit_id: orgUnitId } : undefined,
     }).catch(() => 6);
 
@@ -173,7 +173,7 @@ export class RoleDashboardService {
    * Self-Service Bids & Work Orders for Contractor / Vendor
    */
   async getContractorBidsAndWorkOrders(userId: number) {
-    const invites = await this.prisma.tenderVendorInvite.findMany({
+    const invites = await this.prisma.tenderInvite.findMany({
       take: 10,
       orderBy: { created_at: 'desc' },
       include: {

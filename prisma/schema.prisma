@@ -168,10 +168,11 @@ model OrgUnit {
   water_pipelines WaterPipeline[]
   water_tanks     WaterTankBorewell[]
   water_valves    WaterValve[]
+  captured_assets CapturedAsset[]
   complaints      Complaint[]
   users           User[]
   export_jobs     ExportJob[]
-  vendors         Vendor[]
+  contractors     Contractor[]
   tenders         Tender[]
   zones           PanchayatZone[]
 
@@ -453,27 +454,8 @@ model ExportJob {
 // =====================================================================
 
 /**
- * Vendor master, panchayat-scoped. Phone is required and normalized to E.164.
+ * Top-level tender. Drives status machine, milestone rules, and document chain.
  */
-model Vendor {
-  id          Int      @id @default(autoincrement())
-  org_unit_id Int
-  name        String
-  phone_e164  String
-  place       String?
-  notes       String?
-  active      Boolean  @default(true)
-  created_at  DateTime @default(now())
-
-  org_unit   OrgUnit              @relation(fields: [org_unit_id], references: [id])
-  invites    TenderVendorInvite[]
-  quotations TenderQuotation[]
-  documents  TenderDocument[]
-
-  @@unique([org_unit_id, phone_e164])
-  @@index([org_unit_id])
-  @@map("vendors")
-}
 
 /**
  * Top-level tender. Drives status machine, milestone rules, and document chain.
@@ -505,7 +487,7 @@ model Tender {
   org_unit              OrgUnit                    @relation(fields: [org_unit_id], references: [id])
   created_by            User                       @relation("TenderCreator", fields: [created_by_user_id], references: [id])
   awarded_quotation     TenderQuotation?           @relation("AwardedQuotation", fields: [awarded_quotation_id], references: [id])
-  invites               TenderVendorInvite[]
+  invites               TenderInvite[]
   line_items            TenderLineItem[]
   quotations            TenderQuotation[]          @relation("TenderQuotations")
   documents             TenderDocument[]
@@ -518,12 +500,12 @@ model Tender {
 }
 
 /**
- * Vendor invitation join table for invited_only access mode.
+ * Contractor invitation join table for invited_only tender access mode.
  */
-model TenderVendorInvite {
+model TenderInvite {
   id                  Int       @id @default(autoincrement())
   tender_id           Int
-  vendor_id           Int
+  contractor_id       Int
   invite_token        String?   @unique
   invite_expires_at   DateTime?
   invite_revoked_at   DateTime?
@@ -531,12 +513,12 @@ model TenderVendorInvite {
   invite_submitted_at DateTime?
   created_at          DateTime  @default(now())
 
-  tender Tender @relation(fields: [tender_id], references: [id], onDelete: Cascade)
-  vendor Vendor @relation(fields: [vendor_id], references: [id], onDelete: Cascade)
+  tender     Tender     @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  contractor Contractor @relation(fields: [contractor_id], references: [id], onDelete: Cascade)
 
-  @@unique([tender_id, vendor_id])
+  @@unique([tender_id, contractor_id])
   @@index([invite_token, invite_revoked_at])
-  @@map("tender_vendor_invites")
+  @@map("tender_invites")
 }
 
 /**
@@ -568,7 +550,7 @@ model TenderLineItem {
 model TenderQuotation {
   id                   Int      @id @default(autoincrement())
   tender_id            Int
-  vendor_id            Int?
+  contractor_id        Int?
   submitter_name       String
   submitter_phone_e164 String
   amount               Decimal  @db.Decimal(12, 2)
@@ -581,7 +563,7 @@ model TenderQuotation {
   submitted_at         DateTime @default(now())
 
   tender             Tender            @relation("TenderQuotations", fields: [tender_id], references: [id], onDelete: Cascade)
-  vendor             Vendor?           @relation(fields: [vendor_id], references: [id])
+  contractor         Contractor?       @relation(fields: [contractor_id], references: [id])
   superseded_by      TenderQuotation?  @relation("Superseded", fields: [superseded_by_id], references: [id])
   successors         TenderQuotation[] @relation("Superseded")
   awarded_for_tender Tender?           @relation("AwardedQuotation")
@@ -597,7 +579,7 @@ model TenderDocument {
   id                   Int       @id @default(autoincrement())
   tender_id            Int
   template_id          String
-  vendor_id            Int?
+  contractor_id        Int?
   version              Int       @default(1)
   field_overrides      Json?
   storage_path         String?
@@ -607,9 +589,9 @@ model TenderDocument {
   error_message        String?
   created_at           DateTime  @default(now())
 
-  tender       Tender  @relation(fields: [tender_id], references: [id], onDelete: Cascade)
-  vendor       Vendor? @relation(fields: [vendor_id], references: [id])
-  generated_by User?   @relation("TenderDocGenerator", fields: [generated_by_user_id], references: [id])
+  tender       Tender      @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  contractor   Contractor? @relation(fields: [contractor_id], references: [id])
+  generated_by User?       @relation("TenderDocGenerator", fields: [generated_by_user_id], references: [id])
 
   @@index([tender_id, template_id])
   @@map("tender_documents")
@@ -788,8 +770,16 @@ model WaterFlowLog {
   @@map("water_flow_logs")
 }
 
+/**
+ * Water asset captured in the field by an agent, pending officer approval.
+ * tenant_id/org_unit_id are required: without them a captured asset belonged
+ * to no tenant at all, so one tenant's field captures were visible to every
+ * other tenant and could not be scoped or approved per org unit.
+ */
 model CapturedAsset {
   id           Int      @id @default(autoincrement())
+  tenant_id    String
+  org_unit_id  Int
   type         String // household_tap, public_tap, main_pipeline
   material     String // PVC, HDPE, Cast Iron
   diameter_mm  Float
@@ -799,12 +789,16 @@ model CapturedAsset {
   status       String   @default("pending_approval") // pending_approval, approved, rejected
   comment      String?
   agent_name   String
+  captured_by  Int?
   device_model String?
   altitude     Float?
   precision    Float?
   submitted_at DateTime @default(now())
   updated_at   DateTime @updatedAt
 
+  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id])
+
+  @@index([tenant_id, org_unit_id, status])
   @@map("captured_assets")
 }
 
@@ -1122,6 +1116,7 @@ model Tenant {
   roles             Role[]
   permission_groups PermissionGroup[]
   departments       Department[]
+  contractors       Contractor[]
   feature_config    TenantFeatureConfig?
 
   @@map("tenants")
@@ -1865,12 +1860,24 @@ model AssetImage {
 /**
  * Contractor master — registered contractors for municipal works.
  */
+/**
+ * A single external party that does work for the local body — used both as a
+ * tender bidder and as the recipient of a work order. Previously this was two
+ * tables (`vendors` for the tender side, `contractors` for the work-order
+ * side), which meant a bidder who won a tender had to be re-created as a
+ * separate contractor row with a different id.
+ * `org_unit_id` is nullable: null = empanelled tenant-wide, set = registered
+ * at one specific org unit (the old vendor behaviour).
+ */
 model Contractor {
   id                  Int      @id @default(autoincrement())
   tenant_id           String
+  org_unit_id         Int?
   name                String
   phone               String
   email               String?
+  place               String?
+  notes               String?
   gst_number          String?
   pan_number          String?
   registration_number String?
@@ -1880,13 +1887,20 @@ model Contractor {
   is_active           Boolean  @default(true)
   created_at          DateTime @default(now())
 
+  tenant      Tenant            @relation(fields: [tenant_id], references: [id])
+  org_unit    OrgUnit?          @relation(fields: [org_unit_id], references: [id])
   work_orders WorkOrder[]
+  invites     TenderInvite[]
+  quotations  TenderQuotation[]
+  documents   TenderDocument[]
 
   // Soft delete
   is_deleted Boolean   @default(false)
   deleted_at DateTime?
 
+  @@unique([tenant_id, phone])
   @@index([tenant_id])
+  @@index([org_unit_id])
   @@map("contractors")
 }
 

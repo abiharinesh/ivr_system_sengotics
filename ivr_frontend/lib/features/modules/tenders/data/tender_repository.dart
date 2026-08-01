@@ -131,7 +131,7 @@ class TenderRepository {
   Future<void> addOfficerQuotation(int tenderId, Map<String, dynamic> body) =>
       _api.post('$_base/tenders/$tenderId/quotations', data: body);
   Future<void> setInvites(int tenderId, List<int> vendorIds) =>
-      _api.post('$_base/tenders/$tenderId/invites', data: {'vendor_ids': vendorIds});
+      _api.post('$_base/tenders/$tenderId/invites', data: {'contractor_ids': vendorIds});
   Future<void> addLineItem(int tenderId, Map<String, dynamic> body) =>
       _api.post('$_base/tenders/$tenderId/line-items', data: body);
   Future<void> updateLineItem(int tenderId, int itemId, Map<String, dynamic> body) =>
@@ -156,7 +156,7 @@ class TenderRepository {
     final res = await _api.post(
       '$_base/tenders/$tenderId/documents/$templateId/generate',
       data: {
-        if (vendorId != null) 'vendor_id': vendorId,
+        if (vendorId != null) 'contractor_id': vendorId,
         if (fieldOverrides != null) 'field_overrides': fieldOverrides,
       },
     );

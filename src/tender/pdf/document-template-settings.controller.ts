@@ -88,7 +88,7 @@ export class PanchayatDocumentTemplateSettingsController {
   async preview(
     @Req() req: AuthenticatedRequest,
     @Param('templateId') templateId: string,
-    @Body() body: { tender_id?: number; vendor_id?: number } = {},
+    @Body() body: { tender_id?: number; contractor_id?: number } = {},
     @Res() res: Response,
   ) {
     validateTemplateId(templateId);

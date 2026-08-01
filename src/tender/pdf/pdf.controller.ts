@@ -99,7 +99,7 @@ export class TenderPdfController {
     @Param('templateId') templateId: string,
     @Body()
     body: {
-      vendor_id?: number;
+      contractor_id?: number;
       field_overrides?: Record<string, unknown>;
     } = {},
   ) {
@@ -108,7 +108,7 @@ export class TenderPdfController {
       tenderId: id,
       templateId,
       actorUserId: req.user.id,
-      vendorId: body.vendor_id ?? null,
+      contractorId: body.contractor_id ?? null,
       fieldOverrides: body.field_overrides ?? null,
     });
   }

@@ -124,7 +124,7 @@ class _InviteTenderScreenState extends State<InviteTenderScreen> {
           final panchayat = (data['org_unit'] ?? {}) as Map<String, dynamic>;
           final timeline = (data['timeline'] ?? {}) as Map<String, dynamic>;
           final invite = (data['invite'] ?? {}) as Map<String, dynamic>;
-          final vendor = (invite['vendor'] ?? {}) as Map<String, dynamic>;
+          final vendor = (invite['contractor'] ?? {}) as Map<String, dynamic>;
           final lineItems =
               ((data['line_items'] ?? []) as List).cast<Map<String, dynamic>>();
 

@@ -106,7 +106,7 @@ class TenderQuotation {
 
   factory TenderQuotation.fromJson(Map<String, dynamic> j) => TenderQuotation(
     id: j['id'] as int,
-    vendorId: j['vendor_id'] as int?,
+    vendorId: j['contractor_id'] as int?,
     submitterName: (j['submitter_name'] ?? '') as String,
     submitterPhoneE164: (j['submitter_phone_e164'] ?? '') as String,
     amount: (j['amount'] ?? '0').toString(),
@@ -154,7 +154,7 @@ class TenderDocumentSummary {
         id: j['id'] as int,
         tenderId: j['tender_id'] as int,
         templateId: (j['template_id'] ?? '') as String,
-        vendorId: j['vendor_id'] as int?,
+        vendorId: j['contractor_id'] as int?,
         version: (j['version'] ?? 1) as int,
         status: (j['status'] ?? 'pending') as String,
         storagePath: j['storage_path'] as String?,
@@ -459,7 +459,7 @@ class TenderDetail {
         ((j['invites'] ?? []) as List)
             .map(
               (e) => Vendor.fromJson(
-                ((e as Map<String, dynamic>)['vendor']) as Map<String, dynamic>,
+                ((e as Map<String, dynamic>)['contractor']) as Map<String, dynamic>,
               ),
             )
             .toList();
@@ -527,7 +527,7 @@ class TenderInviteLink {
   factory TenderInviteLink.fromJson(Map<String, dynamic> j) => TenderInviteLink(
     id: j['id'] as int,
     tenderId: j['tender_id'] as int,
-    vendorId: j['vendor_id'] as int,
+    vendorId: j['contractor_id'] as int,
     inviteToken: j['invite_token']?.toString(),
     inviteExpiresAt:
         j['invite_expires_at'] != null

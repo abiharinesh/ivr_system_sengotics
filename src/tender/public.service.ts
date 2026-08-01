@@ -40,14 +40,14 @@ export class TenderPublicService {
   private async loadActiveInviteByToken(inviteToken: string) {
     if (!inviteToken?.trim()) throw new NotFoundException('Invite not found');
     const now = new Date();
-    const invite = await this.prisma.tenderVendorInvite.findFirst({
+    const invite = await this.prisma.tenderInvite.findFirst({
       where: {
         invite_token: inviteToken,
         invite_revoked_at: null,
         OR: [{ invite_expires_at: null }, { invite_expires_at: { gt: now } }],
       },
       include: {
-        vendor: true,
+        contractor: true,
         tender: {
           include: { org_unit: { select: { id: true, name: true } } },
         },
@@ -148,7 +148,7 @@ export class TenderPublicService {
 
   private async createPublicQuotation(args: {
     tenderId: number;
-    vendorId: number | null;
+    contractorId: number | null;
     phone: string;
     name: string;
     amount: string;
@@ -185,7 +185,7 @@ export class TenderPublicService {
     const created = await this.prisma.tenderQuotation.create({
       data: {
         tender_id: args.tenderId,
-        vendor_id: args.vendorId,
+        contractor_id: args.contractorId,
         submitter_name: args.name,
         submitter_phone_e164: args.phone,
         amount: args.amount,
@@ -210,7 +210,7 @@ export class TenderPublicService {
       event: args.auditEvent,
       payload: {
         quotation_id: created.id,
-        vendor_id: args.vendorId,
+        contractor_id: args.contractorId,
         superseded_prior_id: prior?.id ?? null,
         amount: args.amount,
       },
@@ -253,7 +253,7 @@ export class TenderPublicService {
     const shared = await this.readSharedTenderPayload(invite.tender_id);
 
     if (!invite.invite_opened_at) {
-      await this.prisma.tenderVendorInvite.update({
+      await this.prisma.tenderInvite.update({
         where: { id: invite.id },
         data: { invite_opened_at: new Date() },
       });
@@ -267,11 +267,11 @@ export class TenderPublicService {
         opened_at: invite.invite_opened_at,
         submitted_at: invite.invite_submitted_at,
         expires_at: invite.invite_expires_at,
-        vendor: {
-          id: invite.vendor.id,
-          name: invite.vendor.name,
-          phone_e164: invite.vendor.phone_e164,
-          place: invite.vendor.place,
+        contractor: {
+          id: invite.contractor.id,
+          name: invite.contractor.name,
+          phone: invite.contractor.phone,
+          place: invite.contractor.place,
         },
       },
       tender: {
@@ -335,7 +335,7 @@ export class TenderPublicService {
 
     return this.createPublicQuotation({
       tenderId: t.id,
-      vendorId: stub.id,
+      contractorId: stub.id,
       phone,
       name,
       amount: amountStr,
@@ -372,14 +372,14 @@ export class TenderPublicService {
     const providedPhone = args.body.phone?.trim();
     if (providedPhone) {
       const normalized = normalizePhoneE164(providedPhone);
-      if (normalized !== invite.vendor.phone_e164) {
+      if (normalized !== invite.contractor.phone) {
         throw new BadRequestException(
           'This invite token is tied to a different phone number',
         );
       }
     }
 
-    const name = (args.body.name ?? '').trim() || invite.vendor.name;
+    const name = (args.body.name ?? '').trim() || invite.contractor.name;
     if (!name) throw new BadRequestException('name is required');
     const amountStr = String(args.body.amount ?? '').trim();
     if (
@@ -392,8 +392,8 @@ export class TenderPublicService {
 
     const result = await this.createPublicQuotation({
       tenderId: t.id,
-      vendorId: invite.vendor_id,
-      phone: invite.vendor.phone_e164,
+      contractorId: invite.contractor_id,
+      phone: invite.contractor.phone,
       name,
       amount: amountStr,
       remarks: args.body.remarks,
@@ -402,7 +402,7 @@ export class TenderPublicService {
       folderName: 'vendors_quotation',
       auditEvent: 'quotation:invite_post',
     });
-    await this.prisma.tenderVendorInvite.update({
+    await this.prisma.tenderInvite.update({
       where: { id: invite.id },
       data: { invite_submitted_at: new Date() },
     });
@@ -462,16 +462,16 @@ export class TenderPublicService {
     const timeline = await this.milestones.resolveForTender(t.id);
     this.ensureDeadlineOpen(t.id, timeline.dates);
     const phone = normalizePhoneE164(args.body.phone);
-    const invited = await this.prisma.tenderVendorInvite.findFirst({
-      where: { tender_id: t.id, vendor: { phone_e164: phone } },
-      include: { vendor: true },
+    const invited = await this.prisma.tenderInvite.findFirst({
+      where: { tender_id: t.id, contractor: { phone: phone } },
+      include: { contractor: true },
     });
     if (!invited) {
       throw new BadRequestException(
         'This tender is invite-only and your phone is not on the list',
       );
     }
-    const name = (args.body.name ?? '').trim() || invited.vendor.name;
+    const name = (args.body.name ?? '').trim() || invited.contractor.name;
     if (!name) throw new BadRequestException('name is required');
     const amountStr = String(args.body.amount ?? '').trim();
     if (
@@ -483,7 +483,7 @@ export class TenderPublicService {
     }
     return this.createPublicQuotation({
       tenderId: t.id,
-      vendorId: invited.vendor_id,
+      contractorId: invited.contractor_id,
       phone,
       name,
       amount: amountStr,

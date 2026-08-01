@@ -7,19 +7,35 @@ import {
   Body,
   Query,
   Param,
+  Req,
   ParseIntPipe,
   UseGuards,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { WaterSupplyService } from './water-supply.service';
 
+interface AuthedRequest {
+  user: { id: number; tenant_id: string; org_unit_id: number | null };
+}
+
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('super_admin', 'panchayat_admin', 'municipal_engineer', 'assistant_engineer', 'junior_engineer', 'plumber', 'agent')
 @Controller('api/water-supply')
 export class WaterSupplyController {
   constructor(private readonly waterSupplyService: WaterSupplyService) {}
+
+  /** Caller's org unit — captured assets are always scoped to it. */
+  private scopeOf(req: AuthedRequest): { tenantId: string; orgUnitId: number } {
+    if (req.user.org_unit_id == null) {
+      throw new ForbiddenException(
+        'Your account has no assigned org unit. Contact your administrator.',
+      );
+    }
+    return { tenantId: req.user.tenant_id, orgUnitId: req.user.org_unit_id };
+  }
 
   @Get('pipelines')
   async getPipelines(@Query('org_unit_id', ParseIntPipe) orgUnitId: number) {
@@ -83,12 +99,14 @@ export class WaterSupplyController {
   }
 
   @Get('captured-assets')
-  async getCapturedAssets() {
-    return this.waterSupplyService.findCapturedAssets();
+  async getCapturedAssets(@Req() req: AuthedRequest) {
+    const { tenantId, orgUnitId } = this.scopeOf(req);
+    return this.waterSupplyService.findCapturedAssets(tenantId, orgUnitId);
   }
 
   @Post('captured-assets')
   async createCapturedAsset(
+    @Req() req: AuthedRequest,
     @Body()
     body: {
       type: string;
@@ -103,15 +121,28 @@ export class WaterSupplyController {
       precision?: number;
     },
   ) {
-    return this.waterSupplyService.createCapturedAsset(body);
+    const { tenantId, orgUnitId } = this.scopeOf(req);
+    return this.waterSupplyService.createCapturedAsset({
+      ...body,
+      tenantId,
+      orgUnitId,
+      capturedBy: req.user.id,
+    });
   }
 
   @Post('captured-assets/:id/approve')
   async approveCapturedAsset(
+    @Req() req: AuthedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { comment: string },
   ) {
-    return this.waterSupplyService.approveCapturedAsset(id, body.comment);
+    const { tenantId, orgUnitId } = this.scopeOf(req);
+    return this.waterSupplyService.approveCapturedAsset(
+      id,
+      body.comment,
+      tenantId,
+      orgUnitId,
+    );
   }
 
   @Delete('pipelines/:id')
@@ -144,10 +175,17 @@ export class WaterSupplyController {
 
   @Post('captured-assets/:id/reject')
   async rejectCapturedAsset(
+    @Req() req: AuthedRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: { comment: string },
   ) {
-    return this.waterSupplyService.rejectCapturedAsset(id, body.comment);
+    const { tenantId, orgUnitId } = this.scopeOf(req);
+    return this.waterSupplyService.rejectCapturedAsset(
+      id,
+      body.comment,
+      tenantId,
+      orgUnitId,
+    );
   }
 }
 

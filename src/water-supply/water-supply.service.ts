@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -148,13 +152,17 @@ export class WaterSupplyService {
     };
   }
 
-  async findCapturedAssets() {
+  /** Field captures are tenant + org-unit scoped — never list across tenants. */
+  async findCapturedAssets(tenantId: string, orgUnitId: number) {
     return this.prisma.capturedAsset.findMany({
+      where: { tenant_id: tenantId, org_unit_id: orgUnitId },
       orderBy: { submitted_at: 'desc' },
     });
   }
 
   async createCapturedAsset(dto: {
+    tenantId: string;
+    orgUnitId: number;
     type: string;
     material: string;
     diameter_mm: number;
@@ -162,12 +170,15 @@ export class WaterSupplyService {
     longitude: number;
     photo_url?: string;
     agent_name: string;
+    capturedBy?: number;
     device_model?: string;
     altitude?: number;
     precision?: number;
   }) {
     return this.prisma.capturedAsset.create({
       data: {
+        tenant_id: dto.tenantId,
+        org_unit_id: dto.orgUnitId,
         type: dto.type,
         material: dto.material,
         diameter_mm: dto.diameter_mm,
@@ -175,6 +186,7 @@ export class WaterSupplyService {
         longitude: dto.longitude,
         photo_url: dto.photo_url,
         agent_name: dto.agent_name,
+        captured_by: dto.capturedBy ?? null,
         device_model: dto.device_model,
         altitude: dto.altitude,
         precision: dto.precision,
@@ -183,13 +195,32 @@ export class WaterSupplyService {
     });
   }
 
-  async approveCapturedAsset(id: number, comment: string) {
-    const asset = await this.prisma.capturedAsset.findUnique({
-      where: { id },
-    });
-    if (!asset) {
-      throw new NotFoundException(`Captured asset #${id} not found`);
+  /**
+   * Loads a captured asset and asserts it belongs to the caller's org unit,
+   * so one tenant cannot approve or reject another tenant's field capture.
+   */
+  private async getScopedCapturedAsset(
+    id: number,
+    tenantId: string,
+    orgUnitId: number,
+  ) {
+    const asset = await this.prisma.capturedAsset.findUnique({ where: { id } });
+    if (!asset) throw new NotFoundException(`Captured asset #${id} not found`);
+    if (asset.tenant_id !== tenantId || asset.org_unit_id !== orgUnitId) {
+      throw new ForbiddenException(
+        `Captured asset #${id} belongs to another org unit`,
+      );
     }
+    return asset;
+  }
+
+  async approveCapturedAsset(
+    id: number,
+    comment: string,
+    tenantId: string,
+    orgUnitId: number,
+  ) {
+    const asset = await this.getScopedCapturedAsset(id, tenantId, orgUnitId);
 
     const updated = await this.prisma.capturedAsset.update({
       where: { id },
@@ -200,9 +231,9 @@ export class WaterSupplyService {
     });
 
     if (asset.type === 'main_pipeline') {
-      const panchayat = await this.prisma.orgUnit.findFirst();
-      const orgUnitId = panchayat ? panchayat.id : 1;
-
+      // Create the pipeline under the org unit the asset was captured in.
+      // This previously did `orgUnit.findFirst() ?? 1`, which filed every
+      // approved capture under an arbitrary org unit.
       const pathGeojson = {
         type: 'LineString',
         coordinates: [
@@ -215,7 +246,7 @@ export class WaterSupplyService {
       await this.prisma.waterPipeline.create({
         data: {
           name: `${asset.material} Main Line (${asset.diameter_mm}mm)`,
-          org_unit_id: orgUnitId,
+          org_unit_id: asset.org_unit_id,
           diameter_mm: asset.diameter_mm,
           material: asset.material,
           status: 'active',
@@ -227,13 +258,13 @@ export class WaterSupplyService {
     return updated;
   }
 
-  async rejectCapturedAsset(id: number, comment: string) {
-    const asset = await this.prisma.capturedAsset.findUnique({
-      where: { id },
-    });
-    if (!asset) {
-      throw new NotFoundException(`Captured asset #${id} not found`);
-    }
+  async rejectCapturedAsset(
+    id: number,
+    comment: string,
+    tenantId: string,
+    orgUnitId: number,
+  ) {
+    await this.getScopedCapturedAsset(id, tenantId, orgUnitId);
 
     return this.prisma.capturedAsset.update({
       where: { id },

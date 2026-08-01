@@ -12,7 +12,7 @@ describe('TenderPublicService', () => {
         create: jest.fn(),
         update: jest.fn(),
       },
-      tenderVendorInvite: { findFirst: jest.fn(), update: jest.fn() },
+      tenderInvite: { findFirst: jest.fn(), update: jest.fn() },
     };
     const storage: any = { saveBuffer: jest.fn() };
     const milestones: any = { resolveForTender: jest.fn() };
@@ -30,17 +30,17 @@ describe('TenderPublicService', () => {
 
   it('marks invite as opened during invite read', async () => {
     const { service, prisma, milestones } = makeService();
-    prisma.tenderVendorInvite.findFirst.mockResolvedValue({
+    prisma.tenderInvite.findFirst.mockResolvedValue({
       id: 77,
       tender_id: 7,
       invite_token: 'inv123',
       invite_opened_at: null,
       invite_submitted_at: null,
       invite_expires_at: null,
-      vendor: {
+      contractor: {
         id: 3,
         name: 'Vendor One',
-        phone_e164: '+919000000001',
+        phone: '+919000000001',
         place: 'Town',
       },
       tender: {
@@ -61,7 +61,7 @@ describe('TenderPublicService', () => {
 
     const out = await service.readInvite('inv123');
     expect(out.access_type).toBe('invite_only');
-    expect(prisma.tenderVendorInvite.update).toHaveBeenCalledTimes(1);
+    expect(prisma.tenderInvite.update).toHaveBeenCalledTimes(1);
   });
 
   it('rejects open submissions when tender is invite-only', async () => {

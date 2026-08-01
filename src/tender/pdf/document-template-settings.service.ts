@@ -251,7 +251,7 @@ export class DocumentTemplateSettingsService {
   async buildPreviewHtml(
     orgUnitId: number,
     templateId: string,
-    options?: { tender_id?: number; vendor_id?: number },
+    options?: { tender_id?: number; contractor_id?: number },
   ): Promise<string> {
     const tpl = validateTemplateId(templateId);
     const ctx =
@@ -260,12 +260,12 @@ export class DocumentTemplateSettingsService {
             options.tender_id,
             orgUnitId,
             tpl,
-            options.vendor_id ?? null,
+            options.contractor_id ?? null,
           )
         : await this.buildSampleContext(
             orgUnitId,
             tpl,
-            options?.vendor_id ?? null,
+            options?.contractor_id ?? null,
           );
     return renderTemplate(tpl, ctx);
   }
@@ -325,7 +325,7 @@ export class DocumentTemplateSettingsService {
   private async buildSampleContext(
     orgUnitId: number,
     templateId: DocumentTemplateId,
-    vendorId: number | null,
+    contractorId: number | null,
   ): Promise<TemplateContext> {
     const panchayat = await this.prisma.orgUnit.findUnique({
       where: { id: orgUnitId },
@@ -368,14 +368,14 @@ export class DocumentTemplateSettingsService {
         {
           id: 1,
           name: 'Sample Vendor',
-          phone_e164: '+919876543210',
+          phone: '+919876543210',
           place: 'Town',
         },
       ],
       quotations: [
         {
           id: 1,
-          vendor_id: vendorId ?? 1,
+          contractor_id: contractorId ?? 1,
           submitter_name: 'Sample Vendor',
           submitter_phone_e164: '+919876543210',
           amount: '50000.00',
@@ -396,7 +396,7 @@ export class DocumentTemplateSettingsService {
       document: {
         template_id: templateId,
         version: 1,
-        vendor_id: templateId === 'quotation' ? (vendorId ?? 1) : null,
+        contractor_id: templateId === 'quotation' ? (contractorId ?? 1) : null,
         field_overrides: fieldOverrides,
       },
       generated_at: new Date(),
@@ -408,7 +408,7 @@ export class DocumentTemplateSettingsService {
     tenderId: number,
     orgUnitId: number,
     templateId: DocumentTemplateId,
-    vendorId: number | null,
+    contractorId: number | null,
   ): Promise<TemplateContext> {
     const tender = await this.prisma.tender.findUnique({
       where: { id: tenderId },
@@ -425,9 +425,9 @@ export class DocumentTemplateSettingsService {
         where: { tender_id: tenderId },
         orderBy: { seq: 'asc' },
       }),
-      this.prisma.tenderVendorInvite.findMany({
+      this.prisma.tenderInvite.findMany({
         where: { tender_id: tenderId },
-        include: { vendor: true },
+        include: { contractor: true },
       }),
       this.prisma.tenderQuotation.findMany({
         where: { tender_id: tenderId },
@@ -462,14 +462,14 @@ export class DocumentTemplateSettingsService {
         unit: li.unit,
       })),
       invited_vendors: invites.map((inv) => ({
-        id: inv.vendor.id,
-        name: inv.vendor.name,
-        phone_e164: inv.vendor.phone_e164,
-        place: inv.vendor.place,
+        id: inv.contractor.id,
+        name: inv.contractor.name,
+        phone: inv.contractor.phone,
+        place: inv.contractor.place,
       })),
       quotations: quotations.map((q) => ({
         id: q.id,
-        vendor_id: q.vendor_id,
+        contractor_id: q.contractor_id,
         submitter_name: q.submitter_name,
         submitter_phone_e164: q.submitter_phone_e164,
         amount: String(q.amount),
@@ -483,7 +483,7 @@ export class DocumentTemplateSettingsService {
       document: {
         template_id: templateId,
         version: 1,
-        vendor_id: templateId === 'quotation' ? vendorId : null,
+        contractor_id: templateId === 'quotation' ? contractorId : null,
         field_overrides: fieldOverrides,
       },
       generated_at: new Date(),
