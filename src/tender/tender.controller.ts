@@ -18,7 +18,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { TenderService } from './tender.service';
 import type { TenderCreateBody, TenderLineItemBody } from './tender.service';
-import { VendorService } from './vendor.service';
+import { ContractorDirectoryService } from './contractor-directory.service';
 import { MilestoneService } from './milestone.service';
 import { TenderAuditService } from './audit.service';
 
@@ -37,7 +37,7 @@ interface AuthenticatedRequest {
 export class TenderController {
   constructor(
     private readonly tenders: TenderService,
-    private readonly vendors: VendorService,
+    private readonly vendors: ContractorDirectoryService,
     private readonly milestones: MilestoneService,
     private readonly audit: TenderAuditService,
   ) {}

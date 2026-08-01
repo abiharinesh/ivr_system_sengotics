@@ -10,14 +10,14 @@ export class AssetBookingService {
   // ─── Asset CRUD ─────────────────────────────────────────────────────────────
 
   async listAssets(orgUnitId: number) {
-    return this.prisma.panchayatAsset.findMany({
+    return this.prisma.bookableFacility.findMany({
       where: { org_unit_id: orgUnitId },
       orderBy: { name: 'asc' },
     });
   }
 
   async getAssetById(id: number) {
-    const asset = await this.prisma.panchayatAsset.findUnique({
+    const asset = await this.prisma.bookableFacility.findUnique({
       where: { id },
       include: { bookings: { orderBy: { start_date: 'desc' } } },
     });
@@ -28,7 +28,7 @@ export class AssetBookingService {
   async createAsset(data: {
     org_unit_id: number;
     name: string;
-    asset_type: string;
+    facility_type: string;
     description?: string;
     daily_rate: number;
     hourly_rate?: number;
@@ -36,11 +36,11 @@ export class AssetBookingService {
     max_capacity?: number;
     image_url?: string;
   }) {
-    return this.prisma.panchayatAsset.create({
+    return this.prisma.bookableFacility.create({
       data: {
         org_unit_id: data.org_unit_id,
         name: data.name,
-        asset_type: data.asset_type,
+        facility_type: data.facility_type,
         description: data.description || null,
         daily_rate: data.daily_rate,
         hourly_rate: data.hourly_rate || null,
@@ -61,10 +61,10 @@ export class AssetBookingService {
     image_url: string;
     is_available: boolean;
   }>) {
-    const asset = await this.prisma.panchayatAsset.findUnique({ where: { id } });
+    const asset = await this.prisma.bookableFacility.findUnique({ where: { id } });
     if (!asset) throw new NotFoundException(`Asset #${id} not found`);
 
-    return this.prisma.panchayatAsset.update({
+    return this.prisma.bookableFacility.update({
       where: { id },
       data: {
         ...(data.name !== undefined && { name: data.name }),
@@ -89,9 +89,9 @@ export class AssetBookingService {
       throw new BadRequestException('Start date must be before end date');
     }
 
-    const conflictingBookings = await this.prisma.assetBooking.findMany({
+    const conflictingBookings = await this.prisma.facilityBooking.findMany({
       where: {
-        asset_id: assetId,
+        facility_id: assetId,
         booking_status: { in: ['pending', 'confirmed'] },
         OR: [
           { start_date: { lte: start }, end_date: { gt: start } },
@@ -105,7 +105,7 @@ export class AssetBookingService {
   }
 
   async createBooking(data: {
-    asset_id: number;
+    facility_id: number;
     booked_by_name: string;
     booked_by_phone: string;
     event_type?: string;
@@ -113,12 +113,12 @@ export class AssetBookingService {
     end_date: string;
     deposit_paid?: number;
   }) {
-    const isAvailable = await this.checkAvailability(data.asset_id, data.start_date, data.end_date);
+    const isAvailable = await this.checkAvailability(data.facility_id, data.start_date, data.end_date);
     if (!isAvailable) {
       throw new BadRequestException('Asset is already booked or unavailable during this period.');
     }
 
-    const asset = await this.getAssetById(data.asset_id);
+    const asset = await this.getAssetById(data.facility_id);
     const start = new Date(data.start_date);
     const end = new Date(data.end_date);
 
@@ -128,9 +128,9 @@ export class AssetBookingService {
     const totalAmount = Number(asset.daily_rate) * diffDays;
     const deposit = data.deposit_paid || Number(asset.deposit_amount);
 
-    return this.prisma.assetBooking.create({
+    return this.prisma.facilityBooking.create({
       data: {
-        asset_id: data.asset_id,
+        facility_id: data.facility_id,
         booked_by_name: data.booked_by_name,
         booked_by_phone: data.booked_by_phone,
         event_type: data.event_type || null,
@@ -145,10 +145,10 @@ export class AssetBookingService {
   }
 
   async confirmBooking(bookingId: number, paymentRef: string) {
-    const booking = await this.prisma.assetBooking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.facilityBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException(`Booking #${bookingId} not found`);
 
-    return this.prisma.assetBooking.update({
+    return this.prisma.facilityBooking.update({
       where: { id: bookingId },
       data: {
         booking_status: 'confirmed',
@@ -158,10 +158,10 @@ export class AssetBookingService {
   }
 
   async recordBalancePayment(bookingId: number) {
-    const booking = await this.prisma.assetBooking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.facilityBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException(`Booking #${bookingId} not found`);
 
-    return this.prisma.assetBooking.update({
+    return this.prisma.facilityBooking.update({
       where: { id: bookingId },
       data: {
         booking_status: 'completed',
@@ -171,10 +171,10 @@ export class AssetBookingService {
   }
 
   async cancelBooking(bookingId: number, cancellationFee: number) {
-    const booking = await this.prisma.assetBooking.findUnique({ where: { id: bookingId } });
+    const booking = await this.prisma.facilityBooking.findUnique({ where: { id: bookingId } });
     if (!booking) throw new NotFoundException(`Booking #${bookingId} not found`);
 
-    return this.prisma.assetBooking.update({
+    return this.prisma.facilityBooking.update({
       where: { id: bookingId },
       data: {
         booking_status: 'cancelled',
@@ -185,9 +185,9 @@ export class AssetBookingService {
   }
 
   async getBookingsByPanchayat(orgUnitId: number) {
-    return this.prisma.assetBooking.findMany({
-      where: { asset: { org_unit_id: orgUnitId } },
-      include: { asset: { select: { name: true, asset_type: true } } },
+    return this.prisma.facilityBooking.findMany({
+      where: { facility: { org_unit_id: orgUnitId } },
+      include: { facility: { select: { name: true, facility_type: true } } },
       orderBy: { start_date: 'desc' },
     });
   }

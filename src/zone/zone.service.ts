@@ -39,14 +39,14 @@ export class ZoneService {
   // ── CRUD ───────────────────────────────────────────────────────────────
 
   async listByPanchayat(orgUnitId: number) {
-    return this.prisma.panchayatZone.findMany({
+    return this.prisma.zone.findMany({
       where: { org_unit_id: orgUnitId },
       orderBy: { created_at: 'desc' },
     });
   }
 
   async listAll() {
-    return this.prisma.panchayatZone.findMany({
+    return this.prisma.zone.findMany({
       include: { org_unit: { select: { id: true, name: true } } },
       orderBy: { created_at: 'desc' },
     });
@@ -54,7 +54,7 @@ export class ZoneService {
 
   async create(orgUnitId: number, dto: CreateZoneDto) {
     this.validateGeoJson(dto.boundary_geojson);
-    return this.prisma.panchayatZone.create({
+    return this.prisma.zone.create({
       data: {
         org_unit_id: orgUnitId,
         name: dto.name,
@@ -67,7 +67,7 @@ export class ZoneService {
   }
 
   async update(orgUnitId: number, zoneId: number, dto: UpdateZoneDto) {
-    const existing = await this.prisma.panchayatZone.findFirst({
+    const existing = await this.prisma.zone.findFirst({
       where: { id: zoneId, org_unit_id: orgUnitId },
     });
     if (!existing) {
@@ -80,7 +80,7 @@ export class ZoneService {
       this.validateGeoJson(dto.boundary_geojson);
     }
 
-    return this.prisma.panchayatZone.update({
+    return this.prisma.zone.update({
       where: { id: zoneId },
       data: {
         ...(dto.name != null && { name: dto.name }),
@@ -96,7 +96,7 @@ export class ZoneService {
   }
 
   async delete(orgUnitId: number, zoneId: number) {
-    const existing = await this.prisma.panchayatZone.findFirst({
+    const existing = await this.prisma.zone.findFirst({
       where: { id: zoneId, org_unit_id: orgUnitId },
     });
     if (!existing) {
@@ -104,7 +104,7 @@ export class ZoneService {
         `Zone #${zoneId} not found in panchayat #${orgUnitId}`,
       );
     }
-    await this.prisma.panchayatZone.delete({ where: { id: zoneId } });
+    await this.prisma.zone.delete({ where: { id: zoneId } });
     return { deleted: true };
   }
 

@@ -400,7 +400,7 @@ export class ReportsService {
       whereClause.is_active = true;
     }
 
-    const list = await this.prisma.panchayatZone.findMany({
+    const list = await this.prisma.zone.findMany({
       where: whereClause,
       orderBy: { name: 'asc' },
     });

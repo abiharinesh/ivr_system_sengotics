@@ -39,7 +39,7 @@ export class AssetBookingController {
   async createAsset(@Body() body: {
     org_unit_id: number;
     name: string;
-    asset_type: string;
+    facility_type: string;
     description?: string;
     daily_rate: number;
     hourly_rate?: number;
@@ -70,10 +70,10 @@ export class AssetBookingController {
 
   // ─── Bookings ──────────────────────────────────────────────────────────────
 
-  /** GET /asset-bookings/check-availability?asset_id=1&start_date=...&end_date=... */
+  /** GET /asset-bookings/check-availability?facility_id=1&start_date=...&end_date=... */
   @Get('check-availability')
   async checkAvailability(
-    @Query('asset_id', ParseIntPipe) assetId: number,
+    @Query('facility_id', ParseIntPipe) assetId: number,
     @Query('start_date') startDate: string,
     @Query('end_date') endDate: string,
   ) {
@@ -84,7 +84,7 @@ export class AssetBookingController {
   /** POST /asset-bookings/reserve */
   @Post('reserve')
   async reserve(@Body() body: {
-    asset_id: number;
+    facility_id: number;
     booked_by_name: string;
     booked_by_phone: string;
     event_type?: string;

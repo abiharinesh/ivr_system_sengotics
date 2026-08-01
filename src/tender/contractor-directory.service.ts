@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizePhoneE164 } from '../common/phone.util';
 
-export interface VendorCreateBody {
+export interface ContractorCreateBody {
   name?: string;
   phone?: string;
   place?: string;
@@ -16,7 +16,7 @@ export interface VendorCreateBody {
 }
 
 @Injectable()
-export class VendorService {
+export class ContractorDirectoryService {
   constructor(private readonly prisma: PrismaService) {}
 
   list(orgUnitId?: number, opts: { active?: boolean } = {}) {
@@ -53,7 +53,7 @@ export class VendorService {
     return orgUnit.tenant_id;
   }
 
-  async create(orgUnitId: number, data: VendorCreateBody) {
+  async create(orgUnitId: number, data: ContractorCreateBody) {
     const name = data.name?.trim();
     if (!name) throw new BadRequestException('name is required');
     const phone = normalizePhoneE164(data.phone);
@@ -82,7 +82,7 @@ export class VendorService {
     });
   }
 
-  async update(orgUnitId: number, contractorId: number, patch: VendorCreateBody) {
+  async update(orgUnitId: number, contractorId: number, patch: ContractorCreateBody) {
     await this.get(orgUnitId, contractorId);
     const data: Record<string, unknown> = {};
     if (patch.name !== undefined) data.name = patch.name.trim() || null;

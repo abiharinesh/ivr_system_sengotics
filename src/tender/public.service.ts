@@ -9,7 +9,7 @@ import { DocumentStorageService } from '../storage/document-storage.service';
 import { normalizePhoneE164, phoneHash } from '../common/phone.util';
 import { MilestoneService } from './milestone.service';
 import { TenderAuditService } from './audit.service';
-import { VendorService } from './vendor.service';
+import { ContractorDirectoryService } from './contractor-directory.service';
 import type { UploadedImageFile } from '../common/upload.types';
 
 const OPEN_IP_WINDOW_MS = 10 * 60_000;
@@ -24,7 +24,7 @@ export class TenderPublicService {
     private readonly storage: DocumentStorageService,
     private readonly milestones: MilestoneService,
     private readonly audit: TenderAuditService,
-    private readonly vendors: VendorService,
+    private readonly vendors: ContractorDirectoryService,
   ) {}
 
   private async loadByPublicToken(token: string) {

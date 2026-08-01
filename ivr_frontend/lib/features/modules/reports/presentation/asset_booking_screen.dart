@@ -136,7 +136,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
                 _bloc.add(CreateAssetEvent(_panchayatId!, {
                   'org_unit_id': _panchayatId!,
                   'name': nameController.text.trim(),
-                  'asset_type': typeController.text,
+                  'facility_type': typeController.text,
                   'description': descController.text.trim(),
                   'daily_rate': double.tryParse(dailyRateController.text) ?? 1000.0,
                   'deposit_amount': double.tryParse(depositController.text) ?? 500.0,
@@ -203,7 +203,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
             onPressed: () {
               if (_panchayatId != null) {
                 _bloc.add(CreateBookingEvent(_panchayatId!, {
-                  'asset_id': assetId,
+                  'facility_id': assetId,
                   'booked_by_name': clientNameController.text.trim(),
                   'booked_by_phone': clientPhoneController.text.trim(),
                   'event_type': eventController.text.trim(),
@@ -363,7 +363,7 @@ class _AssetBookingScreenState extends State<AssetBookingScreen> with SingleTick
                       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       child: ListTile(
                         leading: CircleAvatar(
-                          child: Icon(asset['asset_type'] == 'hall' ? Icons.meeting_room : Icons.electric_car),
+                          child: Icon(asset['facility_type'] == 'hall' ? Icons.meeting_room : Icons.electric_car),
                         ),
                         title: Text(asset['name']),
                         subtitle: Text('Rate: ₹${asset['daily_rate']}/day • Deposit: ₹${asset['deposit_amount']}'),

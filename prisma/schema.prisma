@@ -174,14 +174,14 @@ model OrgUnit {
   export_jobs     ExportJob[]
   contractors     Contractor[]
   tenders         Tender[]
-  zones           PanchayatZone[]
+  zones           Zone[]
 
   // Revenue module relations
   ad_campaigns         AdCampaign[]
   penalty_rules        PenaltyRule[]
   properties           Property[]
   certificate_requests CertificateRequest[]
-  panchayat_assets     PanchayatAsset[]
+  bookable_facilities  BookableFacility[]
   market_days          MarketDay[]
   market_vendors       MarketVendor[]
 
@@ -231,7 +231,10 @@ model AdminJurisdiction {
 /**
  * Admin-defined zones within a panchayat. Boundary stored as GeoJSON for flexible rendering.
  */
-model PanchayatZone {
+/**
+ * An admin-drawn geographic zone within an org unit.
+ */
+model Zone {
   id               Int      @id @default(autoincrement())
   org_unit_id      Int
   name             String
@@ -244,9 +247,10 @@ model PanchayatZone {
   updated_at       DateTime @updatedAt
 
   org_unit OrgUnit @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
+  assets   Asset[]
 
   @@index([org_unit_id])
-  @@map("panchayat_zones")
+  @@map("zones")
 }
 
 model User {
@@ -979,11 +983,18 @@ model CertificateRequest {
 /**
  * OrgUnit-owned rentable asset (hall, ground, equipment).
  */
-model PanchayatAsset {
+/**
+ * A community facility the public can rent — hall, ground, equipment, vehicle.
+ * Named `PanchayatAsset` previously, which collided conceptually with `Asset`
+ * (physical infrastructure the body owns and maintains). These are different
+ * things: infrastructure is inspected and maintained, a facility is booked and
+ * charged for.
+ */
+model BookableFacility {
   id             Int      @id @default(autoincrement())
   org_unit_id    Int
   name           String
-  asset_type     String // hall, ground, equipment, vehicle
+  facility_type  String // hall, ground, equipment, vehicle
   description    String?
   daily_rate     Decimal  @db.Decimal(10, 2)
   hourly_rate    Decimal? @db.Decimal(10, 2)
@@ -993,19 +1004,19 @@ model PanchayatAsset {
   is_available   Boolean  @default(true)
   created_at     DateTime @default(now())
 
-  org_unit OrgUnit        @relation(fields: [org_unit_id], references: [id])
-  bookings AssetBooking[]
+  org_unit OrgUnit           @relation(fields: [org_unit_id], references: [id])
+  bookings FacilityBooking[]
 
   @@index([org_unit_id])
-  @@map("panchayat_assets")
+  @@map("bookable_facilities")
 }
 
 /**
- * Booking record for a panchayat asset.
+ * Booking record for a bookable community facility.
  */
-model AssetBooking {
+model FacilityBooking {
   id               Int       @id @default(autoincrement())
-  asset_id         Int
+  facility_id      Int
   booked_by_name   String
   booked_by_phone  String
   event_type       String?
@@ -1021,10 +1032,10 @@ model AssetBooking {
   cancellation_fee Decimal?  @db.Decimal(10, 2)
   created_at       DateTime  @default(now())
 
-  asset PanchayatAsset @relation(fields: [asset_id], references: [id])
+  facility BookableFacility @relation(fields: [facility_id], references: [id])
 
-  @@index([asset_id, start_date, end_date])
-  @@map("asset_bookings")
+  @@index([facility_id, start_date, end_date])
+  @@map("facility_bookings")
 }
 
 /**
@@ -1784,7 +1795,7 @@ model Asset {
   id              Int     @id @default(autoincrement())
   tenant_id       String
   org_unit_id     Int
-  asset_type_code String // References MasterValue code: "electric_pole", "water_tank"
+  asset_type_code String // "electric_pole", "water_tank", "park", "vehicle", ...
   asset_uuid      String  @unique @default(uuid()) // Immutable internal ID
   asset_code      String? // Human-readable, can change: "SL-MDU-Z3-042"
   name            String?
@@ -1817,9 +1828,11 @@ model Asset {
   deleted_at DateTime?
 
   images AssetImage[]
+  zone   Zone?        @relation(fields: [zone_id], references: [id])
 
   @@index([tenant_id, org_unit_id, asset_type_code])
   @@index([asset_uuid])
+  @@index([zone_id])
   @@map("assets")
 }
 

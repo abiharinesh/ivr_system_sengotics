@@ -4,7 +4,7 @@ import { StorageModule } from '../storage/storage.module';
 import { AuthModule } from '../auth/auth.module';
 import { TenderController } from './tender.controller';
 import { TenderService } from './tender.service';
-import { VendorService } from './vendor.service';
+import { ContractorDirectoryService } from './contractor-directory.service';
 import { MilestoneService } from './milestone.service';
 import { TenderAuditService } from './audit.service';
 import { TenderPdfService } from './pdf/pdf.service';
@@ -35,7 +35,7 @@ import { FieldVerificationPublicController } from './field-verification.public.c
   ],
   providers: [
     TenderService,
-    VendorService,
+    ContractorDirectoryService,
     MilestoneService,
     TenderAuditService,
     TenderPdfService,
@@ -47,7 +47,7 @@ import { FieldVerificationPublicController } from './field-verification.public.c
   ],
   exports: [
     TenderService,
-    VendorService,
+    ContractorDirectoryService,
     MilestoneService,
     TenderAuditService,
     DocumentTemplateSettingsService,

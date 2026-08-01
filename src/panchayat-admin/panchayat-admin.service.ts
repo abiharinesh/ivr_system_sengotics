@@ -83,7 +83,7 @@ export class PanchayatAdminService extends OrgScopedService {
 
     if (pid) {
       const [wardsCount, polesCount, pipelinesCount, resolvedCount, staffCount] = await Promise.all([
-        this.prisma.panchayatZone.count({ where: { org_unit_id: pid } }).catch(() => 0),
+        this.prisma.zone.count({ where: { org_unit_id: pid } }).catch(() => 0),
         this.prisma.electricPole.count({ where: { org_unit_id: pid } }).catch(() => 0),
         this.prisma.waterPipeline.count({ where: { org_unit_id: pid } }).catch(() => 0),
         this.prisma.complaint.count({ where: { org_unit_id: pid, status: 'resolved' } }).catch(() => 0),

@@ -25,7 +25,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 import { DocumentTemplateSettingsService } from '../tender/pdf/document-template-settings.service';
 import { validateTemplateId } from '../tender/tender-status';
 import { TenderService } from '../tender/tender.service';
-import { VendorService } from '../tender/vendor.service';
+import { ContractorDirectoryService } from '../tender/contractor-directory.service';
 import { MilestoneService } from '../tender/milestone.service';
 import { TenderAuditService } from '../tender/audit.service';
 import { TenderPdfService } from '../tender/pdf/pdf.service';
@@ -71,7 +71,7 @@ export class SuperAdminController {
     private readonly plumberOps: PlumberOpsService,
     private readonly documentTemplateSettings: DocumentTemplateSettingsService,
     private readonly tenders: TenderService,
-    private readonly vendors: VendorService,
+    private readonly vendors: ContractorDirectoryService,
     private readonly milestones: MilestoneService,
     private readonly audit: TenderAuditService,
     private readonly pdfService: TenderPdfService,

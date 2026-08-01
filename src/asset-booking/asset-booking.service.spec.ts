@@ -8,13 +8,13 @@ describe('AssetBookingService', () => {
   let prisma: any;
 
   const mockPrisma = {
-    panchayatAsset: {
+    bookableFacility: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
     },
-    assetBooking: {
+    facilityBooking: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
@@ -47,7 +47,7 @@ describe('AssetBookingService', () => {
     });
 
     it('should return true if no conflicting bookings found', async () => {
-      mockPrisma.assetBooking.findMany.mockResolvedValueOnce([]);
+      mockPrisma.facilityBooking.findMany.mockResolvedValueOnce([]);
       const available = await service.checkAvailability(1, '2026-06-01', '2026-06-03');
       expect(available).toBe(true);
     });
@@ -55,8 +55,8 @@ describe('AssetBookingService', () => {
 
   describe('confirmBooking', () => {
     it('should update booking status to confirmed', async () => {
-      mockPrisma.assetBooking.findUnique.mockResolvedValueOnce({ id: 5 });
-      mockPrisma.assetBooking.update.mockResolvedValueOnce({
+      mockPrisma.facilityBooking.findUnique.mockResolvedValueOnce({ id: 5 });
+      mockPrisma.facilityBooking.update.mockResolvedValueOnce({
         id: 5,
         booking_status: 'confirmed',
         payment_ref: 'BOOK-PAY-88',
@@ -68,7 +68,7 @@ describe('AssetBookingService', () => {
     });
 
     it('should throw NotFoundException if booking is missing', async () => {
-      mockPrisma.assetBooking.findUnique.mockResolvedValueOnce(null);
+      mockPrisma.facilityBooking.findUnique.mockResolvedValueOnce(null);
       await expect(service.confirmBooking(99, 'REF')).rejects.toThrow(NotFoundException);
     });
   });
