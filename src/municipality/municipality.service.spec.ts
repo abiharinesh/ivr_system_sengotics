@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { MunicipalityService } from './municipality.service';
+import { FEATURE_DEFAULTS, MunicipalityService } from './municipality.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ForbiddenException } from '@nestjs/common';
 
@@ -46,11 +46,36 @@ describe('MunicipalityService', () => {
       expect(res).toBe(true);
     });
 
-    it('should throw ForbiddenException if feature disabled or missing', async () => {
-      mockPrisma.branchFeatureConfig.findUnique.mockResolvedValueOnce(null);
+    it('should throw ForbiddenException if the feature is switched off', async () => {
+      mockPrisma.branchFeatureConfig.findUnique.mockResolvedValueOnce({
+        org_unit_id: 1,
+        solid_waste_mgmt: false,
+      });
 
       await expect(
         service.checkFeatureEnabled(1, 'solid_waste_mgmt'),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    // A missing row means the branch predates the module, not that it was
+    // refused — so the schema default decides. Failing closed here would take
+    // a working feature away from every branch provisioned before the module
+    // shipped.
+    it('falls back to the schema default when the branch has no config row', async () => {
+      mockPrisma.branchFeatureConfig.findUnique.mockResolvedValueOnce(null);
+
+      expect(FEATURE_DEFAULTS.solid_waste_mgmt).toBe(true);
+      await expect(
+        service.checkFeatureEnabled(1, 'solid_waste_mgmt'),
+      ).resolves.toBe(true);
+    });
+
+    it('still refuses an unbuilt module when there is no config row', async () => {
+      mockPrisma.branchFeatureConfig.findUnique.mockResolvedValueOnce(null);
+
+      expect(FEATURE_DEFAULTS.cemetery_mgmt).toBe(false);
+      await expect(
+        service.checkFeatureEnabled(1, 'cemetery_mgmt'),
       ).rejects.toThrow(ForbiddenException);
     });
   });

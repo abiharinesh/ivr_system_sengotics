@@ -229,7 +229,7 @@ export class TenderPdfService {
       );
     }
 
-    const lastVersion = await this.prisma.tenderDocument.findFirst({
+    const lastVersion = await this.prisma.tenderDocumentJob.findFirst({
       where: {
         tender_id: args.tenderId,
         template_id: tpl,
@@ -240,7 +240,7 @@ export class TenderPdfService {
     });
     const version = (lastVersion?.version ?? 0) + 1;
 
-    const doc = await this.prisma.tenderDocument.create({
+    const doc = await this.prisma.tenderDocumentJob.create({
       data: {
         tender_id: args.tenderId,
         template_id: tpl,
@@ -268,18 +268,18 @@ export class TenderPdfService {
         contractor_id: doc.contractor_id,
       },
     });
-    return this.prisma.tenderDocument.findUnique({ where: { id: doc.id } });
+    return this.prisma.tenderDocumentJob.findUnique({ where: { id: doc.id } });
   }
 
   private async process(docId: number): Promise<void> {
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: docId },
     });
     if (!doc) return;
 
     try {
       const storagePath = await this.renderAndPersistArtifacts(doc);
-      await this.prisma.tenderDocument.update({
+      await this.prisma.tenderDocumentJob.update({
         where: { id: docId },
         data: {
           status: 'ready',
@@ -289,7 +289,7 @@ export class TenderPdfService {
         },
       });
     } catch (err: any) {
-      await this.prisma.tenderDocument.update({
+      await this.prisma.tenderDocumentJob.update({
         where: { id: docId },
         data: {
           status: 'failed',
@@ -365,7 +365,7 @@ export class TenderPdfService {
         this.logger.warn(
           `PDF missing for doc ${doc.id}, serving HTML fallback`,
         );
-        await this.prisma.tenderDocument.update({
+        await this.prisma.tenderDocumentJob.update({
           where: { id: doc.id },
           data: { storage_path: htmlFallback },
         });
@@ -380,7 +380,7 @@ export class TenderPdfService {
     );
     try {
       const storagePath = await this.renderAndPersistArtifacts(doc);
-      await this.prisma.tenderDocument.update({
+      await this.prisma.tenderDocumentJob.update({
         where: { id: doc.id },
         data: {
           status: 'ready',
@@ -394,7 +394,7 @@ export class TenderPdfService {
       this.logger.error(
         `Re-generation failed for doc ${doc.id}: ${err?.message ?? err}`,
       );
-      await this.prisma.tenderDocument
+      await this.prisma.tenderDocumentJob
         .update({
           where: { id: doc.id },
           data: {
@@ -418,7 +418,7 @@ export class TenderPdfService {
     tenderId: number,
     docId: number,
   ): Promise<string> {
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: docId },
     });
     if (!doc || doc.tender_id !== tenderId)
@@ -440,7 +440,7 @@ export class TenderPdfService {
 
   /** Same as [streamLatestZip] but without panchayat ownership check. */
   async streamLatestZipUnchecked(tenderId: number, out: NodeJS.WritableStream) {
-    const docs = await this.prisma.tenderDocument.findMany({
+    const docs = await this.prisma.tenderDocumentJob.findMany({
       where: { tender_id: tenderId, status: 'ready' },
       orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
     });
@@ -493,7 +493,7 @@ export class TenderPdfService {
     docId: number,
   ): Promise<string> {
     await this.ensureTenderOwned(orgUnitId, tenderId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: docId },
     });
     if (!doc || doc.tender_id !== tenderId)
@@ -530,7 +530,7 @@ export class TenderPdfService {
     actorUserId: number;
   }) {
     await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: args.docId },
     });
     if (!doc || doc.tender_id !== args.tenderId)
@@ -559,7 +559,7 @@ export class TenderPdfService {
       storagePath = pdfStoragePath;
     }
 
-    await this.prisma.tenderDocument.update({
+    await this.prisma.tenderDocumentJob.update({
       where: { id: doc.id },
       data: {
         status: 'ready',
@@ -576,7 +576,7 @@ export class TenderPdfService {
       payload: { document_id: doc.id, template_id: doc.template_id },
     });
 
-    return this.prisma.tenderDocument.findUnique({ where: { id: doc.id } });
+    return this.prisma.tenderDocumentJob.findUnique({ where: { id: doc.id } });
   }
 
   /** Return document bytes in the requested format (pdf | html | docx). */
@@ -666,7 +666,7 @@ ${bodyContent}
 
   async getCanvasState(orgUnitId: number, tenderId: number, docId: number) {
     await this.ensureTenderOwned(orgUnitId, tenderId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: docId },
     });
     if (!doc || doc.tender_id !== tenderId)
@@ -696,7 +696,7 @@ ${bodyContent}
     actorUserId?: number;
   }) {
     await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: args.docId },
     });
     if (!doc || doc.tender_id !== args.tenderId)
@@ -708,7 +708,7 @@ ${bodyContent}
     }
     const layers = this.normalizedCanvasLayers(args.layers);
     const overrides = this.withCanvasLayers(doc.field_overrides, layers);
-    await this.prisma.tenderDocument.update({
+    await this.prisma.tenderDocumentJob.update({
       where: { id: args.docId },
       data: { field_overrides: overrides as any },
     });
@@ -739,7 +739,7 @@ ${bodyContent}
     actorUserId?: number;
   }) {
     await this.ensureTenderOwned(args.orgUnitId, args.tenderId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: args.docId },
     });
     if (!doc || doc.tender_id !== args.tenderId)
@@ -767,7 +767,7 @@ ${bodyContent}
     });
 
     const finalOverrides = this.withCanvasLayers(doc.field_overrides, []);
-    await this.prisma.tenderDocument.update({
+    await this.prisma.tenderDocumentJob.update({
       where: { id: doc.id },
       data: {
         status: 'ready',
@@ -801,7 +801,7 @@ ${bodyContent}
   }
   list(orgUnitId: number, tenderId: number) {
     return this.ensureTenderOwned(orgUnitId, tenderId).then(() =>
-      this.prisma.tenderDocument.findMany({
+      this.prisma.tenderDocumentJob.findMany({
         where: { tender_id: tenderId },
         orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
         include: {

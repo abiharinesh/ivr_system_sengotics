@@ -213,7 +213,7 @@ export class PublicReportService {
     }
 
     // Find IVR master records by caller number
-    const calls = await this.prisma.callsMaster.findMany({
+    const calls = await this.prisma.ivrCall.findMany({
       where: { caller_number: phoneE164 },
       orderBy: { created_at: 'desc' },
       take: 50,

@@ -76,7 +76,7 @@ export class TenderPdfPublicController {
       throw new UnauthorizedException('Token does not match this resource');
     }
     const storagePath = await this.service.resolveDocStoragePath(id, docId);
-    const doc = await this.prisma.tenderDocument.findUnique({
+    const doc = await this.prisma.tenderDocumentJob.findUnique({
       where: { id: docId },
     });
     const tender = await this.prisma.tender.findUnique({

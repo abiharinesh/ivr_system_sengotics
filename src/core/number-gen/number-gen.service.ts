@@ -57,7 +57,11 @@ export class NumberGenService {
           prefix: defaults.prefix,
           format: defaults.format,
           current_seq: 0,
-          reset_cycle: 'financial_year',
+          reset_cycle: defaults.resetCycle,
+          // Stamped at creation because `needsReset` compares against this
+          // date. Left null, the very first cycle rollover would never fire
+          // and the sequence would run on across years.
+          last_reset_at: new Date(),
         },
       });
     }
@@ -140,16 +144,61 @@ export class NumberGenService {
   private getDefaults(entityType: string): {
     prefix: string;
     format: string;
+    resetCycle: string;
   } {
-    const map: Record<string, { prefix: string; format: string }> = {
+    const map: Record<
+      string,
+      { prefix: string; format: string; resetCycle?: string }
+    > = {
       complaint: { prefix: 'CMP', format: '{prefix}-{fy}-{seq:6}' },
       work_order: { prefix: 'WO', format: '{prefix}-{fy}-{seq:4}' },
       tender: { prefix: 'TEN', format: '{prefix}-{fy}-{seq:4}' },
-      asset: { prefix: 'AST', format: '{prefix}-{seq:6}' },
+      asset: { prefix: 'AST', format: '{prefix}-{seq:6}', resetCycle: 'never' },
       permit: { prefix: 'PERMIT', format: '{prefix}-{fy}-{seq:4}' },
-      employee: { prefix: 'EMP', format: '{prefix}-{seq:5}' },
+      employee: { prefix: 'EMP', format: '{prefix}-{seq:5}', resetCycle: 'never' },
       inspection: { prefix: 'INS', format: '{prefix}-{fy}-{seq:5}' },
+      // Vital registration serials run against the calendar year, not the
+      // financial year — the register is closed and totalled on 31 December.
+      birth_registration: {
+        prefix: 'B',
+        format: '{prefix}/{year}/{seq:6}',
+        resetCycle: 'calendar_year',
+      },
+      death_registration: {
+        prefix: 'D',
+        format: '{prefix}/{year}/{seq:6}',
+        resetCycle: 'calendar_year',
+      },
+      vital_certificate: {
+        prefix: 'VC',
+        format: '{prefix}-{year}-{seq:6}',
+        resetCycle: 'calendar_year',
+      },
+      // Bins and routes are long-lived infrastructure — their codes must not
+      // be reused when the year turns.
+      waste_bin: { prefix: 'BIN', format: '{prefix}-{seq:6}', resetCycle: 'never' },
+      collection_route: {
+        prefix: 'RTE',
+        format: '{prefix}-{seq:4}',
+        resetCycle: 'never',
+      },
+      collection_trip: { prefix: 'TRIP', format: '{prefix}-{fy}-{seq:6}' },
+      // Licence numbers carry their financial year — the licence year runs
+      // 1 April to 31 March, and the number is quoted on the displayed licence.
+      trade_licence: { prefix: 'TL', format: '{prefix}/{fy}/{seq:6}' },
+      trade_licence_certificate: {
+        prefix: 'TLC',
+        format: '{prefix}-{fy}-{seq:6}',
+      },
     };
-    return map[entityType] ?? { prefix: entityType.toUpperCase().slice(0, 3), format: '{prefix}-{seq:6}' };
+    const entry = map[entityType] ?? {
+      prefix: entityType.toUpperCase().slice(0, 3),
+      format: '{prefix}-{seq:6}',
+    };
+    return {
+      prefix: entry.prefix,
+      format: entry.format,
+      resetCycle: entry.resetCycle ?? 'financial_year',
+    };
   }
 }

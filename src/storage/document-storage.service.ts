@@ -169,6 +169,20 @@ export class DocumentStorageService {
     return path.posix.join('/uploads', subdir.replace(/\\/g, '/'), filename);
   }
 
+  /**
+   * URL a browser can fetch this object from — the Supabase public URL when
+   * remote storage is configured, otherwise the `/uploads/...` path served by
+   * `main.ts`'s static asset handler.
+   */
+  publicUrl(storagePath: string): string {
+    const key = this.toObjectKey(storagePath);
+    if (this.remoteEnabled && this.supabase) {
+      const { data } = this.supabase.storage.from(this.bucket).getPublicUrl(key);
+      return data.publicUrl;
+    }
+    return `/uploads/${key}`;
+  }
+
   async exists(storagePath: string): Promise<boolean> {
     if (this.remoteEnabled && this.supabase) {
       const key = this.toObjectKey(storagePath);

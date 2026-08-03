@@ -1,5 +1,6 @@
 import { Module, Global } from '@nestjs/common';
-import { DocumentService, StorageAdapter, LocalStorageAdapter } from './document.service';
+import { DocumentService, StorageAdapter } from './document.service';
+import { PlatformStorageAdapter } from './platform-storage.adapter';
 import { PrismaModule } from '../../prisma/prisma.module';
 
 @Global()
@@ -8,8 +9,10 @@ import { PrismaModule } from '../../prisma/prisma.module';
   providers: [
     DocumentService,
     {
+      // Real persistence (Supabase, or local disk in dev) — `DocumentStorageService`
+      // is provided by the @Global() StorageModule.
       provide: StorageAdapter,
-      useClass: LocalStorageAdapter,
+      useClass: PlatformStorageAdapter,
     },
   ],
   exports: [DocumentService, StorageAdapter],

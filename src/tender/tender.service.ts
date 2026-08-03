@@ -263,7 +263,7 @@ export class TenderService {
           where: { tender_id: tenderId },
           include: { contractor: true },
         }),
-        this.prisma.tenderDocument.findMany({
+        this.prisma.tenderDocumentJob.findMany({
           where: { tender_id: tenderId },
           orderBy: [{ template_id: 'asc' }, { version: 'desc' }],
         }),

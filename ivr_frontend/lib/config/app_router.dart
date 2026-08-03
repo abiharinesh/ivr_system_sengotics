@@ -111,8 +111,25 @@ import 'package:ivr_frontend/features/modules/contractor/presentation/work_order
 import 'package:ivr_frontend/features/modules/reports/presentation/executive_dashboard_screen.dart';
 import 'package:ivr_frontend/features/modules/dms/presentation/dms_explorer_screen.dart';
 import 'package:ivr_frontend/features/modules/audit/presentation/audit_log_inspector_screen.dart';
-import 'package:ivr_frontend/features/modules/municipality/presentation/solid_waste_screen.dart';
+import 'package:ivr_frontend/features/modules/solid_waste/presentation/screens/solid_waste_screen.dart';
 import 'package:ivr_frontend/features/modules/municipality/presentation/public_health_screen.dart';
+import 'package:ivr_frontend/features/modules/building_permits/presentation/screens/building_permit_list_screen.dart';
+import 'package:ivr_frontend/features/modules/building_permits/presentation/screens/building_permit_detail_screen.dart';
+import 'package:ivr_frontend/features/modules/building_permits/presentation/screens/building_permit_form_screen.dart';
+import 'package:ivr_frontend/features/modules/vital_events/data/models/vital_event_models.dart';
+import 'package:ivr_frontend/features/modules/vital_events/presentation/screens/vital_events_registry_screen.dart';
+import 'package:ivr_frontend/features/modules/vital_events/presentation/screens/vital_event_detail_screen.dart';
+import 'package:ivr_frontend/features/modules/vital_events/presentation/screens/vital_event_form_screen.dart';
+import 'package:ivr_frontend/features/modules/vital_events/presentation/screens/certificate_verification_screen.dart';
+import 'package:ivr_frontend/features/modules/trade_licences/presentation/screens/trade_licence_register_screen.dart';
+import 'package:ivr_frontend/features/modules/trade_licences/presentation/screens/trade_licence_detail_screen.dart';
+import 'package:ivr_frontend/features/modules/trade_licences/presentation/screens/trade_licence_form_screen.dart';
+import 'package:ivr_frontend/features/modules/trade_licences/presentation/screens/licence_verification_screen.dart';
+import 'package:ivr_frontend/features/hubs/presentation/field_workforce_hub.dart';
+import 'package:ivr_frontend/features/hubs/presentation/ivr_operations_hub.dart';
+import 'package:ivr_frontend/features/hubs/presentation/insights_hub.dart';
+import 'package:ivr_frontend/features/hubs/presentation/system_settings_hub.dart';
+import 'package:ivr_frontend/features/hubs/presentation/water_supply_hub.dart';
 
 import 'package:ivr_frontend/core/widgets/app_scaffold.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
@@ -222,6 +239,21 @@ GoRouter createRouter(AuthBloc authBloc) {
         path: '/public/track/:token',
         builder: (context, state) => ComplaintTrackingScreen(
           trackingToken: state.pathParameters['token']!,
+        ),
+      ),
+      // Public birth/death certificate verification — the target of the QR
+      // code printed on every issued certificate.
+      GoRoute(
+        path: '/public/verify-certificate/:token',
+        builder: (context, state) => CertificateVerificationScreen(
+          token: state.pathParameters['token']!,
+        ),
+      ),
+      // Public trade licence verification — the QR displayed in the shop.
+      GoRoute(
+        path: '/public/verify-licence/:token',
+        builder: (context, state) => LicenceVerificationScreen(
+          token: state.pathParameters['token']!,
         ),
       ),
       ShellRoute(
@@ -665,6 +697,43 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) => const MunicipalityScreen(),
           ),
 
+          // ── Merged hubs ──
+          //
+          // Each of these replaces two to four sidebar entries that pointed at
+          // views of the same job. The old routes still resolve so bookmarks
+          // and deep links keep working; they simply open the hub on the right
+          // tab.
+          GoRoute(
+            path: '/workforce',
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin =
+                  authState is Authenticated && authState.user.isSuperAdmin;
+              return FieldWorkforceHub(isSuperAdmin: isSuperAdmin);
+            },
+          ),
+          GoRoute(
+            path: '/voice-ivr',
+            builder: (context, state) => const IvrOperationsHub(),
+          ),
+          GoRoute(
+            path: '/water',
+            builder: (context, state) => const WaterSupplyHub(),
+          ),
+          GoRoute(
+            path: '/insights',
+            builder: (context, state) => const InsightsHub(),
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) {
+              final authState = authBloc.state;
+              final isSuperAdmin =
+                  authState is Authenticated && authState.user.isSuperAdmin;
+              return SystemSettingsHub(isSuperAdmin: isSuperAdmin);
+            },
+          ),
+
           // Screen Plan Specification Routes
           GoRoute(
             path: '/profile',
@@ -738,6 +807,89 @@ GoRouter createRouter(AuthBloc authBloc) {
           GoRoute(
             path: '/municipality/health',
             builder: (context, state) => const PublicHealthScreen(),
+          ),
+
+          // Phase 11 — Building Permits & Plan Approval
+          GoRoute(
+            path: '/municipality/building-permits',
+            builder: (context, state) => const BuildingPermitListScreen(),
+          ),
+          // Declared before the `:id` route so "new" isn't parsed as an id.
+          GoRoute(
+            path: '/municipality/building-permits/new',
+            builder: (context, state) => const BuildingPermitFormScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/building-permits/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const BuildingPermitListScreen();
+              return BuildingPermitDetailScreen(permitId: id);
+            },
+          ),
+          GoRoute(
+            path: '/municipality/building-permits/:id/edit',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const BuildingPermitListScreen();
+              return BuildingPermitFormScreen(permitId: id);
+            },
+          ),
+
+          // Phase 11 — Birth & Death Registration
+          GoRoute(
+            path: '/municipality/vital-events',
+            builder: (context, state) => const VitalEventsRegistryScreen(),
+          ),
+          // Declared before the `:id` route so "new" isn't parsed as an id.
+          GoRoute(
+            path: '/municipality/vital-events/new',
+            builder: (context, state) => VitalEventFormScreen(
+              eventType: VitalEventType.parse(
+                state.uri.queryParameters['type'],
+              ),
+            ),
+          ),
+          GoRoute(
+            path: '/municipality/vital-events/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const VitalEventsRegistryScreen();
+              return VitalEventDetailScreen(eventId: id);
+            },
+          ),
+
+          // Phase 11 — Trade Licence & Renewal
+          GoRoute(
+            path: '/municipality/trade-licences',
+            builder: (context, state) => const TradeLicenceRegisterScreen(),
+          ),
+          // The renewal board is the register filtered to the queue, so it
+          // shares a screen rather than duplicating one.
+          GoRoute(
+            path: '/municipality/trade-licences/renewals',
+            builder: (context, state) =>
+                const TradeLicenceRegisterScreen(renewalMode: true),
+          ),
+          GoRoute(
+            path: '/municipality/trade-licences/new',
+            builder: (context, state) => const TradeLicenceFormScreen(),
+          ),
+          GoRoute(
+            path: '/municipality/trade-licences/:id',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const TradeLicenceRegisterScreen();
+              return TradeLicenceDetailScreen(licenceId: id);
+            },
+          ),
+          GoRoute(
+            path: '/municipality/trade-licences/:id/edit',
+            builder: (context, state) {
+              final id = int.tryParse(state.pathParameters['id'] ?? '');
+              if (id == null) return const TradeLicenceRegisterScreen();
+              return TradeLicenceFormScreen(licenceId: id);
+            },
           ),
         ],
       ),
@@ -858,7 +1010,48 @@ String _getTitle(String location) {
       return 'Citizen Portal';
     case '/municipality':
       return 'Municipality Modules';
+    case '/municipality/solid-waste':
+      return 'Solid Waste Management';
+    case '/municipality/health':
+      return 'Public Health & Sanitation';
+    case '/municipality/building-permits':
+      return 'Building Permits';
+    case '/municipality/building-permits/new':
+      return 'New building permit';
+    case '/municipality/vital-events':
+      return 'Birth & Death Register';
+    case '/municipality/vital-events/new':
+      return 'Report a birth or death';
+    case '/municipality/trade-licences':
+      return 'Trade Licences';
+    case '/municipality/trade-licences/renewals':
+      return 'Licence Renewals';
+    case '/municipality/trade-licences/new':
+      return 'New trade licence';
+    case '/workforce':
+      return 'Field workforce';
+    case '/voice-ivr':
+      return 'Voice & IVR';
+    case '/water':
+      return 'Water Supply';
+    case '/insights':
+      return 'Reports & analytics';
+    case '/settings':
+      return 'Settings';
     default:
+      if (location.startsWith('/municipality/trade-licences/')) {
+        return location.endsWith('/edit')
+            ? 'Edit trade licence'
+            : 'Trade licence';
+      }
+      if (location.startsWith('/municipality/building-permits/')) {
+        return location.endsWith('/edit')
+            ? 'Edit building permit'
+            : 'Building permit';
+      }
+      if (location.startsWith('/municipality/vital-events/')) {
+        return 'Register entry';
+      }
       if (location.startsWith('/tenders/') || location.startsWith('/superadmin/tenders/')) return 'Tender detail';
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
       if (location.startsWith('/electrician/jobs/') || location.startsWith('/plumber/jobs/')) return 'Complaint';

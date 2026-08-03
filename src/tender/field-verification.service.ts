@@ -228,7 +228,7 @@ export class FieldVerificationService {
     if (body.is_done !== undefined) data.is_done = !!body.is_done;
     if (body.verified_upload_id !== undefined) {
       if (body.verified_upload_id != null) {
-        const upload = await this.prisma.fieldVerificationUpload.findUnique({
+        const upload = await this.prisma.fieldVerificationPhoto.findUnique({
           where: { id: body.verified_upload_id },
           include: { session: true },
         });
@@ -270,7 +270,7 @@ export class FieldVerificationService {
       throw new BadRequestException('pole_id must be an integer');
     }
 
-    const upload = await this.prisma.fieldVerificationUpload.findUnique({
+    const upload = await this.prisma.fieldVerificationPhoto.findUnique({
       where: { id: uploadId },
       include: { session: true },
     });
@@ -308,7 +308,7 @@ export class FieldVerificationService {
         },
         data: { verified_upload_id: null, is_done: false },
       });
-      await tx.fieldVerificationUpload.update({
+      await tx.fieldVerificationPhoto.update({
         where: { id: uploadId },
         data: {
           manual_pole_id: poleId,
@@ -497,7 +497,7 @@ export class FieldVerificationService {
             },
           })
         : Promise.resolve([]),
-      this.prisma.fieldVerificationUpload.count({
+      this.prisma.fieldVerificationPhoto.count({
         where: { session_id: session.id },
       }),
     ]);
@@ -758,7 +758,7 @@ export class FieldVerificationService {
       }
     }
 
-    const upload = await this.prisma.fieldVerificationUpload.create({
+    const upload = await this.prisma.fieldVerificationPhoto.create({
       data: {
         session_id: session.id,
         image_url: imageUrl,

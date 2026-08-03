@@ -20,32 +20,12 @@ export interface FileUploadDto {
 
 /**
  * Storage adapter abstract class for file upload strategies.
+ * Bound to `PlatformStorageAdapter` in `document.module.ts`.
  */
 export abstract class StorageAdapter {
   abstract save(key: string, file: Buffer): Promise<void>;
   abstract delete(key: string): Promise<void>;
   abstract getUrl(key: string): Promise<string>;
-}
-
-/**
- * Default local storage adapter for development and on-premise setups.
- */
-@Injectable()
-export class LocalStorageAdapter extends StorageAdapter {
-  // A mock local storage that prints actions
-  private readonly logger = new Logger(LocalStorageAdapter.name);
-
-  async save(key: string, _file: Buffer): Promise<void> {
-    this.logger.log(`[LocalStorage] Saving file: ${key}`);
-  }
-
-  async delete(key: string): Promise<void> {
-    this.logger.log(`[LocalStorage] Deleting file: ${key}`);
-  }
-
-  async getUrl(key: string): Promise<string> {
-    return `/uploads/${key}`;
-  }
 }
 
 /**

@@ -39,7 +39,7 @@ export class IvrService {
 
     try {
       // Upsert calls_master
-      await this.prisma.callsMaster.upsert({
+      await this.prisma.ivrCall.upsert({
         where: { call_sid: callSid },
         create: {
           call_sid: callSid,
@@ -87,7 +87,7 @@ export class IvrService {
 
     try {
       // Upsert calls_master
-      await this.prisma.callsMaster.upsert({
+      await this.prisma.ivrCall.upsert({
         where: { call_sid: callSid },
         create: {
           call_sid: callSid,

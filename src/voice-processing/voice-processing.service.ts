@@ -63,7 +63,7 @@ export class VoiceProcessingService {
       return { ...result, attemptNumber: reg.attemptNumber, phase: 1 };
     } catch (err) {
       await this.safeUpdateStatus(reg.voiceCallId, 'failed');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase1_status: 'failed', last_error: (err as Error).message },
       });
@@ -105,7 +105,7 @@ export class VoiceProcessingService {
         `[Phase2] Background failure for ${callSid}: ${(err as Error).message}`,
       );
       await this.safeUpdateStatus(reg.voiceCallId, 'failed');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase2_status: 'failed', last_error: (err as Error).message },
       });
@@ -123,7 +123,7 @@ export class VoiceProcessingService {
   async processPendingPhase2Llm(
     limit = 10,
   ): Promise<{ scanned: number; processed: number; skipped: number }> {
-    const states = await this.prisma.callState.findMany({
+    const states = await this.prisma.ivrCallState.findMany({
       where: {
         phase2_status: { in: ['queued', 'processing'] },
         phase2_voice_call_id: { not: null },
@@ -203,7 +203,7 @@ export class VoiceProcessingService {
 
     if (!transcript?.trim()) {
       await this.safeUpdateStatus(voiceCallId, 'not_found');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase1_status: 'not_found' },
       });
@@ -218,7 +218,7 @@ export class VoiceProcessingService {
       await this.geoMatching.findPanchayatByIvrNumber(ivrNumber);
     if (!panchayat) {
       await this.safeUpdateStatus(voiceCallId, 'not_found');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase1_status: 'not_found' },
       });
@@ -252,7 +252,7 @@ export class VoiceProcessingService {
 
     if (!poleId && !pipelineId) {
       await this.safeUpdateStatus(voiceCallId, 'not_found');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase1_status: 'not_found' },
       });
@@ -320,7 +320,7 @@ export class VoiceProcessingService {
     ivrNumber: string,
   ): Promise<void> {
     await this.safeUpdateStatus(voiceCallId, 'processing');
-    await this.prisma.callState.update({
+    await this.prisma.ivrCallState.update({
       where: { call_sid: callSid },
       data: { phase2_status: 'processing' },
     });
@@ -338,7 +338,7 @@ export class VoiceProcessingService {
       },
     });
 
-    const state = await this.prisma.callState.findUnique({
+    const state = await this.prisma.ivrCallState.findUnique({
       where: { call_sid: callSid },
     });
     if (!state) return;
@@ -352,7 +352,7 @@ export class VoiceProcessingService {
         );
       }
       await this.safeUpdateStatus(voiceCallId, 'completed');
-      await this.prisma.callState.update({
+      await this.prisma.ivrCallState.update({
         where: { call_sid: callSid },
         data: { phase2_status: 'enriched' },
       });
@@ -518,7 +518,7 @@ export class VoiceProcessingService {
           select: { id: true },
         });
 
-        await tx.callState.upsert({
+        await tx.ivrCallState.upsert({
           where: { call_sid: callSid },
           create: {
             call_sid: callSid,
@@ -554,7 +554,7 @@ export class VoiceProcessingService {
   ): Promise<{ id: number } | null> {
     return this.prisma.$transaction(async (rawTx) => {
       const tx = rawTx as PrismaTx;
-      const state = await tx.callState.findUnique({
+      const state = await tx.ivrCallState.findUnique({
         where: { call_sid: callSid },
       });
       if (state?.complaint_created) {
@@ -586,7 +586,7 @@ export class VoiceProcessingService {
         select: { id: true },
       });
 
-      await tx.callState.update({
+      await tx.ivrCallState.update({
         where: { call_sid: callSid },
         data: {
           complaint_created: true,
@@ -617,7 +617,7 @@ export class VoiceProcessingService {
   ): Promise<void> {
     await this.prisma.$transaction(async (rawTx) => {
       const tx = rawTx as PrismaTx;
-      const state = await tx.callState.findUnique({
+      const state = await tx.ivrCallState.findUnique({
         where: { call_sid: callSid },
       });
       if (state?.complaint_created) {
@@ -625,7 +625,7 @@ export class VoiceProcessingService {
           where: { id: voiceCallId },
           data: { processing_status: 'completed' },
         });
-        await tx.callState.update({
+        await tx.ivrCallState.update({
           where: { call_sid: callSid },
           data: { phase2_status: 'enriched' },
         });
@@ -653,7 +653,7 @@ export class VoiceProcessingService {
         select: { id: true },
       });
 
-      await tx.callState.update({
+      await tx.ivrCallState.update({
         where: { call_sid: callSid },
         data: {
           complaint_created: true,
@@ -688,11 +688,11 @@ export class VoiceProcessingService {
         },
       });
 
-      const state = await tx.callState.findUnique({
+      const state = await tx.ivrCallState.findUnique({
         where: { call_sid: callSid },
       });
       if (state?.complaint_created) {
-        await tx.callState.update({
+        await tx.ivrCallState.update({
           where: { call_sid: callSid },
           data: { phase2_status: 'enriched' },
         });
@@ -715,7 +715,7 @@ export class VoiceProcessingService {
         select: { id: true },
       });
 
-      await tx.callState.update({
+      await tx.ivrCallState.update({
         where: { call_sid: callSid },
         data: {
           complaint_created: true,
@@ -909,7 +909,7 @@ export class VoiceProcessingService {
 
   private async getIvrNumberByCallSid(callSid: string): Promise<string> {
     try {
-      const call = await this.prisma.callsMaster.findUnique({
+      const call = await this.prisma.ivrCall.findUnique({
         where: { call_sid: callSid },
         select: { call_to: true },
       });

@@ -154,7 +154,7 @@ export class WaterSupplyService {
 
   /** Field captures are tenant + org-unit scoped — never list across tenants. */
   async findCapturedAssets(tenantId: string, orgUnitId: number) {
-    return this.prisma.capturedAsset.findMany({
+    return this.prisma.assetFieldCapture.findMany({
       where: { tenant_id: tenantId, org_unit_id: orgUnitId },
       orderBy: { submitted_at: 'desc' },
     });
@@ -175,7 +175,7 @@ export class WaterSupplyService {
     altitude?: number;
     precision?: number;
   }) {
-    return this.prisma.capturedAsset.create({
+    return this.prisma.assetFieldCapture.create({
       data: {
         tenant_id: dto.tenantId,
         org_unit_id: dto.orgUnitId,
@@ -204,7 +204,7 @@ export class WaterSupplyService {
     tenantId: string,
     orgUnitId: number,
   ) {
-    const asset = await this.prisma.capturedAsset.findUnique({ where: { id } });
+    const asset = await this.prisma.assetFieldCapture.findUnique({ where: { id } });
     if (!asset) throw new NotFoundException(`Captured asset #${id} not found`);
     if (asset.tenant_id !== tenantId || asset.org_unit_id !== orgUnitId) {
       throw new ForbiddenException(
@@ -222,7 +222,7 @@ export class WaterSupplyService {
   ) {
     const asset = await this.getScopedCapturedAsset(id, tenantId, orgUnitId);
 
-    const updated = await this.prisma.capturedAsset.update({
+    const updated = await this.prisma.assetFieldCapture.update({
       where: { id },
       data: {
         status: 'approved',
@@ -266,7 +266,7 @@ export class WaterSupplyService {
   ) {
     await this.getScopedCapturedAsset(id, tenantId, orgUnitId);
 
-    return this.prisma.capturedAsset.update({
+    return this.prisma.assetFieldCapture.update({
       where: { id },
       data: {
         status: 'rejected',

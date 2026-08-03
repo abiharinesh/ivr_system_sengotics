@@ -11,7 +11,7 @@ export class PropertyTaxService {
   // ─── Property CRUD ──────────────────────────────────────────────────────────
 
   async listProperties(orgUnitId: number) {
-    return this.prisma.property.findMany({
+    return this.prisma.taxProperty.findMany({
       where: { org_unit_id: orgUnitId },
       include: {
         tax_payments: { orderBy: { financial_year: 'desc' }, take: 3 },
@@ -21,7 +21,7 @@ export class PropertyTaxService {
   }
 
   async getPropertyById(id: number) {
-    const property = await this.prisma.property.findUnique({
+    const property = await this.prisma.taxProperty.findUnique({
       where: { id },
       include: { tax_payments: { orderBy: { financial_year: 'desc' } } },
     });
@@ -41,7 +41,7 @@ export class PropertyTaxService {
     longitude?: number;
     annual_tax: number;
   }) {
-    return this.prisma.property.create({ data });
+    return this.prisma.taxProperty.create({ data });
   }
 
   async updateProperty(id: number, data: Partial<{
@@ -53,10 +53,10 @@ export class PropertyTaxService {
     annual_tax: number;
     status: string;
   }>) {
-    const property = await this.prisma.property.findUnique({ where: { id } });
+    const property = await this.prisma.taxProperty.findUnique({ where: { id } });
     if (!property) throw new NotFoundException(`Property #${id} not found`);
 
-    return this.prisma.property.update({
+    return this.prisma.taxProperty.update({
       where: { id },
       data: {
         ...(data.owner_name !== undefined && { owner_name: data.owner_name }),
@@ -74,7 +74,7 @@ export class PropertyTaxService {
 
   /** Generate tax demands for all active properties in a panchayat for a given year. */
   async generateTaxDemands(orgUnitId: number, financialYear: string, dueDate: string) {
-    const properties = await this.prisma.property.findMany({
+    const properties = await this.prisma.taxProperty.findMany({
       where: { org_unit_id: orgUnitId, status: 'active' },
     });
 

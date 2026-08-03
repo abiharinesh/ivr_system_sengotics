@@ -166,7 +166,7 @@ export class TenderPdfController {
   ) {
     try {
       const orgUnitId = this.getPanchayatId(req);
-      const doc = await this.prisma.tenderDocument.findUnique({
+      const doc = await this.prisma.tenderDocumentJob.findUnique({
         where: { id: docId },
       });
       const tender = await this.prisma.tender.findUnique({

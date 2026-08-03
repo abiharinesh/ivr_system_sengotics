@@ -20,6 +20,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { IvrModule } from './ivr/ivr.module';
 import { VoiceProcessingModule } from './voice-processing/voice-processing.module';
 import { AuthModule } from './auth/auth.module';
+import { RbacModule } from './core/rbac/rbac.module';
 import { SuperAdminModule } from './super-admin/super-admin.module';
 import { PanchayatAdminModule } from './panchayat-admin/panchayat-admin.module';
 import { StorageModule } from './storage/storage.module';
@@ -50,6 +51,10 @@ import { SearchModule } from './search/search.module';
 import { CitizenPortalModule } from './citizen-portal/citizen-portal.module';
 import { SyncModule } from './sync/sync.module';
 import { MunicipalityModule } from './municipality/municipality.module';
+import { BuildingPermitModule } from './building-permit/building-permit.module';
+import { VitalEventsModule } from './vital-events/vital-events.module';
+import { SolidWasteModule } from './solid-waste/solid-waste.module';
+import { TradeLicenceModule } from './trade-licence/trade-licence.module';
 import { RoleDashboardModule } from './role-dashboard/role-dashboard.module';
 
 @Module({
@@ -100,9 +105,14 @@ import { RoleDashboardModule } from './role-dashboard/role-dashboard.module';
     CitizenPortalModule,
     SyncModule,
     MunicipalityModule,
+    BuildingPermitModule,
+    VitalEventsModule,
+    SolidWasteModule,
+    TradeLicenceModule,
 
     // Core Platform Modules (Phase 0)
     EventEmitterModule.forRoot(),
+    RbacModule,
     TenantModule,
     AuditModule,
     NumberGenModule,

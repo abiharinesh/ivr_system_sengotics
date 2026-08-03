@@ -9,10 +9,7 @@ class NavSpec {
   const NavSpec({required this.icon, required this.label, this.route});
 }
 
-/// A titled group of links (e.g. "WATER SUPPLY"). Rendered only if [items]
-/// is non-empty — an empty group with just a floating header was one of the
-/// concrete causes of sidebar clutter (every field-agnostic role saw four
-/// section headers with nothing underneath).
+/// A titled group of links. Rendered only if [items] is non-empty.
 class NavSection {
   final String title;
   final List<NavSpec> items;
@@ -22,242 +19,749 @@ class NavSection {
 
 /// Single source of truth for what each role's sidebar shows.
 ///
-/// Replaces the previous scheme in `app_scaffold.dart`, where the primary
-/// menu was a 15-branch if/else and the four secondary sections (Water
-/// Supply, Revenue & Assets, Operations & Portal, Reports & System) were
-/// shown to *every* role except agent/electrician/plumber — regardless of
-/// whether the section had anything to do with that role's job, and
-/// regardless of whether the same items were already duplicated in that
-/// role's primary menu (e.g. `revenue_officer` had every revenue screen
-/// listed twice: once in its own primary menu, once again in the shared
-/// "REVENUE & ASSETS" section).
+/// ## Why this is a catalogue, not per-role lists
 ///
-/// Section visibility below follows one rule: a role sees a section only if
-/// it's relevant to that role's job *and* not already covered in its own
-/// primary menu.
+/// The previous scheme kept a hand-written list per role plus four optional
+/// shared sections. Three problems followed from that shape, all of which were
+/// live in the product:
+///
+/// 1. **Duplicates.** Nothing stopped the same route appearing in a role's own
+///    list *and* in a shared section. `super_admin` and `panchayat_admin` both
+///    saw "Trade Licences" twice, from two different sections.
+/// 2. **Label drift.** The same screen was "Solid Waste" in one place and
+///    "Solid Waste Mgmt" in another; "Poles", "Pole Management" and "Pole Mgmt"
+///    were all the same screen.
+/// 3. **Volume.** `super_admin` reached 44 sidebar entries, which is not a
+///    navigation menu, it is a sitemap.
+///
+/// Now every destination is declared exactly once in [_catalogue], keyed by an
+/// id. A role is a *set of ids*. A set cannot contain a duplicate, and a label
+/// exists in exactly one place, so both classes of bug are structurally
+/// impossible rather than merely fixed.
+///
+/// ## What is deliberately not here
+///
+/// Sidebar entries are **destinations, not actions**. "Report Birth", "New
+/// Application" and similar were entries that opened a create form — those
+/// belong on the screen that owns them, next to the list they add to, and they
+/// have been removed. The `/municipality` hub page is also gone: it was a menu
+/// of links to modules that are now themselves in this menu.
 class RoleNavigationConfig {
   RoleNavigationConfig._();
 
-  static const _waterSupply = NavSection(
-    title: 'WATER SUPPLY',
-    items: [
-      NavSpec(icon: Icons.grid_on_rounded, label: 'Pipeline Grid', route: '/water/pipeline-grid'),
-      NavSpec(icon: Icons.opacity_rounded, label: 'Tanks & Borewells', route: '/water/tanks'),
-      NavSpec(icon: Icons.history_edu_rounded, label: 'Water Flow Logs', route: '/water/flow-logs'),
-      NavSpec(icon: Icons.approval_rounded, label: 'Infra Approvals', route: '/water/approvals'),
-    ],
-  );
+  // ── Groups ────────────────────────────────────────────────────────────────
+  //
+  // Ordered as a working day runs: what needs attention, then the service
+  // lines, then the back office.
 
-  static const _revenue = NavSection(
-    title: 'REVENUE & ASSETS',
-    items: [
-      NavSpec(icon: Icons.currency_rupee_rounded, label: 'Property Tax', route: '/revenue/property-tax'),
-      NavSpec(icon: Icons.storefront_rounded, label: 'Market Stall Fees', route: '/revenue/markets'),
-      NavSpec(icon: Icons.domain_rounded, label: 'Community Asset Rental', route: '/revenue/assets'),
-      NavSpec(icon: Icons.task_rounded, label: 'Certificate Reviews', route: '/revenue/certificates'),
-      NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
-      NavSpec(icon: Icons.warning_rounded, label: 'Technician Penalties', route: '/revenue/penalties'),
-    ],
-  );
+  static const String gOverview = 'OVERVIEW';
+  static const String gCitizen = 'CITIZEN SERVICES';
+  static const String gRevenue = 'REVENUE';
+  static const String gRegulatory = 'REGULATORY SERVICES';
+  static const String gWorks = 'PUBLIC WORKS';
+  static const String gProcurement = 'PROCUREMENT';
+  static const String gWorkforce = 'WORKFORCE';
+  static const String gInsights = 'INSIGHTS';
+  static const String gAdmin = 'ADMINISTRATION';
 
-  static const _operations = NavSection(
-    title: 'OPERATIONS & PORTAL',
-    items: [
-      NavSpec(icon: Icons.engineering_outlined, label: 'Contractors', route: '/contractors'),
-      NavSpec(icon: Icons.checklist_rtl_outlined, label: 'Field Inspections', route: '/inspections'),
-      NavSpec(icon: Icons.manage_search_rounded, label: 'Universal Search', route: '/search'),
-      NavSpec(icon: Icons.campaign_outlined, label: 'Citizen Portal', route: '/citizen-portal'),
-      NavSpec(icon: Icons.account_balance_outlined, label: 'Municipality Modules', route: '/municipality'),
-    ],
-  );
+  static const List<String> _groupOrder = [
+    gOverview,
+    gCitizen,
+    gRevenue,
+    gRegulatory,
+    gWorks,
+    gProcurement,
+    gWorkforce,
+    gInsights,
+    gAdmin,
+  ];
 
-  static const _reportsSystem = NavSection(
-    title: 'REPORTS & SYSTEM',
-    items: [
-      NavSpec(icon: Icons.document_scanner_rounded, label: 'Report Generation', route: '/report-generation'),
-      NavSpec(icon: Icons.insights_rounded, label: 'Analytics', route: '/analytics'),
-      NavSpec(icon: Icons.palette_rounded, label: 'Customization', route: '/settings/customization'),
-      NavSpec(icon: Icons.description_outlined, label: 'Document templates', route: '/settings/document-templates'),
-      NavSpec(icon: Icons.settings_rounded, label: 'AI Settings', route: '/ai-settings'),
-    ],
-  );
+  /// Every destination in the product, declared once.
+  ///
+  /// The key is a stable id used by the per-role sets below. Renaming a label
+  /// or moving a route touches one line here and nothing else.
+  static const Map<String, ({String group, NavSpec spec})> _catalogue = {
+    // ── Overview ──
+    'home': (
+      group: gOverview,
+      spec: NavSpec(
+        icon: Icons.dashboard_rounded,
+        label: 'Dashboard',
+        route: '/dashboard',
+      ),
+    ),
 
-  /// Extra items only `super_admin` sees — platform-wide client management,
-  /// added once the Tenant concept became real (previously these screens
-  /// existed but were unreachable from any sidebar).
-  static const _superAdminPlatform = NavSection(
-    title: 'PLATFORM',
-    items: [
-      NavSpec(icon: Icons.corporate_fare_rounded, label: 'Tenants (Clients)', route: '/admin/tenants'),
-      NavSpec(icon: Icons.badge_rounded, label: 'Employee Directory', route: '/admin/employees'),
-      NavSpec(icon: Icons.assignment_ind_rounded, label: 'Role Assignments', route: '/admin/rbac/user-assignments'),
-    ],
-  );
+    // ── Citizen services ──
+    'complaints': (
+      group: gCitizen,
+      spec: NavSpec(
+        icon: Icons.report_problem_rounded,
+        label: 'Complaints',
+        route: '/complaints',
+      ),
+    ),
+    'citizen_portal': (
+      group: gCitizen,
+      spec: NavSpec(
+        icon: Icons.campaign_outlined,
+        label: 'Citizen portal',
+        route: '/citizen-portal',
+      ),
+    ),
+    'ivr': (
+      group: gCitizen,
+      spec: NavSpec(
+        icon: Icons.call_rounded,
+        label: 'Voice & IVR',
+        route: '/voice-ivr',
+      ),
+    ),
+    'search': (
+      group: gCitizen,
+      spec: NavSpec(
+        icon: Icons.manage_search_rounded,
+        label: 'Universal search',
+        route: '/search',
+      ),
+    ),
 
-  static const Map<String, List<NavSpec>> _primaryByRole = {
+    // ── Revenue ──
+    'property_tax': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.currency_rupee_rounded,
+        label: 'Property tax',
+        route: '/revenue/property-tax',
+      ),
+    ),
+    'trade_licences': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.storefront_outlined,
+        label: 'Trade licences',
+        route: '/municipality/trade-licences',
+      ),
+    ),
+    // The renewal board is a filtered view of the register, one tap away via
+    // its own KPI cards — so it is an entry only for the two roles whose whole
+    // job it is.
+    'licence_renewals': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.autorenew_rounded,
+        label: 'Licence renewals',
+        route: '/municipality/trade-licences/renewals',
+      ),
+    ),
+    'markets': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.storefront_rounded,
+        label: 'Market stall fees',
+        route: '/revenue/markets',
+      ),
+    ),
+    'asset_rental': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.domain_rounded,
+        label: 'Asset rental',
+        route: '/revenue/assets',
+      ),
+    ),
+    'ad_campaigns': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.ad_units_rounded,
+        label: 'Ad campaigns',
+        route: '/revenue/ads',
+      ),
+    ),
+    'penalties': (
+      group: gRevenue,
+      spec: NavSpec(
+        icon: Icons.warning_rounded,
+        label: 'Technician penalties',
+        route: '/revenue/penalties',
+      ),
+    ),
+
+    // ── Regulatory services ──
+    'building_permits': (
+      group: gRegulatory,
+      spec: NavSpec(
+        icon: Icons.home_work_outlined,
+        label: 'Building permits',
+        route: '/municipality/building-permits',
+      ),
+    ),
+    'vital_events': (
+      group: gRegulatory,
+      spec: NavSpec(
+        icon: Icons.menu_book_outlined,
+        label: 'Birth & death register',
+        route: '/municipality/vital-events',
+      ),
+    ),
+    'certificates': (
+      group: gRegulatory,
+      spec: NavSpec(
+        icon: Icons.task_rounded,
+        label: 'Certificate requests',
+        route: '/revenue/certificates',
+      ),
+    ),
+
+    // ── Public works ──
+    'poles': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.alt_route_rounded,
+        label: 'Street lighting',
+        route: '/poles',
+      ),
+    ),
+    // Pipelines, tanks, flow logs and approvals are tabs of one hub, not four
+    // sidebar entries for one subsystem.
+    'water_supply': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.water_drop_rounded,
+        label: 'Water supply',
+        route: '/water',
+      ),
+    ),
+    'solid_waste': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.delete_outline_rounded,
+        label: 'Solid waste',
+        route: '/municipality/solid-waste',
+      ),
+    ),
+    'public_health': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.medical_services_rounded,
+        label: 'Public health',
+        route: '/municipality/health',
+      ),
+    ),
+    'inspections': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.checklist_rtl_rounded,
+        label: 'Field inspections',
+        route: '/inspections',
+      ),
+    ),
+    'zones': (
+      group: gWorks,
+      spec: NavSpec(
+        icon: Icons.map_rounded,
+        label: 'Zones & GIS',
+        route: '/zone-management',
+      ),
+    ),
+    // No 'assets' entry: the only asset route is `/assets/new`, a registration
+    // form. A sidebar entry must be a place you can look at, not a form you
+    // are forced to fill in to get there. It comes back when an asset register
+    // list screen exists.
+
+    // ── Procurement ──
+    'tenders': (
+      group: gProcurement,
+      spec: NavSpec(
+        icon: Icons.assignment_rounded,
+        label: 'Tenders',
+        route: '/tenders',
+      ),
+    ),
+    'vendor_portal': (
+      group: gProcurement,
+      spec: NavSpec(
+        icon: Icons.gavel_rounded,
+        label: 'Bidding portal',
+        route: '/tenders/vendor-portal',
+      ),
+    ),
+    'contractors': (
+      group: gProcurement,
+      spec: NavSpec(
+        icon: Icons.engineering_outlined,
+        label: 'Contractors',
+        route: '/contractors',
+      ),
+    ),
+    // No 'work_orders' entry for the same reason as assets: the only route is
+    // `/work-orders/new`, a creation form. It was previously labelled "My Work
+    // Orders" for contractors, who cannot create work orders at all — so that
+    // entry sent them to a form they had no business filling in. It returns
+    // when a work order list screen exists.
+
+    'documents': (
+      group: gProcurement,
+      spec: NavSpec(
+        icon: Icons.folder_rounded,
+        label: 'Documents',
+        route: '/documents',
+      ),
+    ),
+
+    // ── Workforce ──
+    'field_workforce': (
+      group: gWorkforce,
+      spec: NavSpec(
+        icon: Icons.engineering_rounded,
+        label: 'Field workforce',
+        route: '/workforce',
+      ),
+    ),
+    'employees': (
+      group: gWorkforce,
+      spec: NavSpec(
+        icon: Icons.badge_rounded,
+        label: 'Employee directory',
+        route: '/admin/employees',
+      ),
+    ),
+    'role_assignments': (
+      group: gWorkforce,
+      spec: NavSpec(
+        icon: Icons.assignment_ind_rounded,
+        label: 'Role assignments',
+        route: '/admin/rbac/user-assignments',
+      ),
+    ),
+
+    // ── Insights ──
+    'insights': (
+      group: gInsights,
+      spec: NavSpec(
+        icon: Icons.insights_rounded,
+        label: 'Reports & analytics',
+        route: '/insights',
+      ),
+    ),
+    'executive': (
+      group: gInsights,
+      spec: NavSpec(
+        icon: Icons.dashboard_customize_rounded,
+        label: 'Executive view',
+        route: '/dashboard/executive',
+      ),
+    ),
+    'audit_logs': (
+      group: gInsights,
+      spec: NavSpec(
+        icon: Icons.history_edu_rounded,
+        label: 'Audit log',
+        route: '/admin/audit-logs',
+      ),
+    ),
+
+    // ── Administration ──
+    'settings': (
+      group: gAdmin,
+      spec: NavSpec(
+        icon: Icons.settings_rounded,
+        label: 'Settings',
+        route: '/settings',
+      ),
+    ),
+    'tenants': (
+      group: gAdmin,
+      spec: NavSpec(
+        icon: Icons.corporate_fare_rounded,
+        label: 'Tenants (clients)',
+        route: '/admin/tenants',
+      ),
+    ),
+    'branches': (
+      group: gAdmin,
+      spec: NavSpec(
+        icon: Icons.account_balance_rounded,
+        label: 'Branches & branding',
+        route: '/panchayats',
+      ),
+    ),
+    'users': (
+      group: gAdmin,
+      spec: NavSpec(
+        icon: Icons.people_rounded,
+        label: 'User accounts',
+        route: '/users',
+      ),
+    ),
+    'roles': (
+      group: gAdmin,
+      spec: NavSpec(
+        icon: Icons.admin_panel_settings_rounded,
+        label: 'Roles & permissions',
+        route: '/superadmin/roles',
+      ),
+    ),
+  };
+
+  /// What each role can reach, as a set of catalogue ids.
+  ///
+  /// Read these as job descriptions. A registrar registers births and deaths
+  /// and issues certificates against them — that is the whole job, so that is
+  /// the whole menu. Padding it with screens they never open is what made the
+  /// old sidebar unusable.
+  static const Map<String, Set<String>> _accessByRole = {
+    // ── Field roles: a single-purpose shell, no groups ──
+    'agent': {'home'},
+    'electrician': {'home'},
+    'plumber': {'home'},
+
+    // ── Specialist officers ──
+    'town_planning_officer': {
+      'home',
+      'building_permits',
+      'inspections',
+      'zones',
+      'insights',
+      'audit_logs',
+    },
+    'registrar': {
+      'home',
+      'vital_events',
+      'certificates',
+      'insights',
+      'audit_logs',
+    },
+    'licensing_clerk': {
+      'home',
+      'trade_licences',
+      'licence_renewals',
+      'inspections',
+      'insights',
+    },
+    'sanitary_inspector': {
+      'home',
+      'solid_waste',
+      'public_health',
+      'complaints',
+      'inspections',
+      'zones',
+      'insights',
+    },
+    'health_officer': {
+      'home',
+      'solid_waste',
+      'public_health',
+      'vital_events',
+      'trade_licences',
+      'complaints',
+      'inspections',
+      'insights',
+    },
+    'revenue_officer': {
+      'home',
+      'property_tax',
+      'trade_licences',
+      'licence_renewals',
+      'markets',
+      'asset_rental',
+      'ad_campaigns',
+      'certificates',
+      'insights',
+      'audit_logs',
+    },
+    'revenue_inspector': {
+      'home',
+      'markets',
+      'ad_campaigns',
+      'asset_rental',
+      'insights',
+    },
+
+    // ── Engineering ──
+    'municipal_engineer': {
+      'home',
+      'complaints',
+      'poles',
+      'water_supply',
+      'inspections',
+      'tenders',
+      'contractors',
+      'insights',
+    },
+    'assistant_engineer': {
+      'home',
+      'complaints',
+      'poles',
+      'water_supply',
+      'inspections',
+      'insights',
+    },
+    'junior_engineer': {
+      'home',
+      'complaints',
+      'poles',
+      'water_supply',
+      'inspections',
+    },
+
+    // ── Command & control ──
+    'municipal_commissioner': {
+      'home',
+      'complaints',
+      'building_permits',
+      'trade_licences',
+      'vital_events',
+      'solid_waste',
+      'tenders',
+      'contractors',
+      'insights',
+      'executive',
+      'audit_logs',
+    },
+    'i3c_staff': {
+      'home',
+      'complaints',
+      'ivr',
+      'search',
+      'zones',
+      'citizen_portal',
+    },
+
+    // ── External ──
+    'contractor': {'home', 'vendor_portal', 'work_orders', 'documents'},
+  };
+
+  /// Fallback for `panchayat_admin` and any general-purpose admin role.
+  ///
+  /// A branch administrator does genuinely need breadth, but this is still a
+  /// curated set rather than everything — the platform-level entries below are
+  /// reserved for `super_admin`.
+  static const Set<String> _defaultAccess = {
+    'home',
+    'complaints',
+    'citizen_portal',
+    'ivr',
+    'search',
+    'property_tax',
+    'trade_licences',
+    'licence_renewals',
+    'markets',
+    'asset_rental',
+    'ad_campaigns',
+    'certificates',
+    'building_permits',
+    'vital_events',
+    'poles',
+    'water_supply',
+    'solid_waste',
+    'inspections',
+    'zones',
+    'tenders',
+    'contractors',
+    'field_workforce',
+    'employees',
+    'insights',
+    'audit_logs',
+    'settings',
+  };
+
+  /// `super_admin` is the **platform operator** — Sengotics, not the council.
+  ///
+  /// It previously inherited every operational screen a branch admin has and
+  /// reached 41 entries. But a platform operator does not work the market
+  /// stall fee counter or approve a birth registration; a branch's own staff
+  /// do. What it needs is tenants, branches, accounts, roles, system config,
+  /// and enough operational visibility to support a client.
+  ///
+  /// Anything branch-specific is still reachable by switching into a branch
+  /// context (`/select-context`), which is what that screen is for.
+  static const Set<String> _superAdminAccess = {
+    'home',
+    'complaints',
+    'ivr',
+    'search',
+    'poles',
+    'zones',
+    'tenders',
+    'vendor_portal',
+    'field_workforce',
+    'employees',
+    'role_assignments',
+    'insights',
+    'executive',
+    'audit_logs',
+    'settings',
+    'tenants',
+    'branches',
+    'users',
+    'roles',
+  };
+
+  /// Roles whose shell is a single screen — no grouped navigation at all.
+  static const Set<String> _fieldOnlyRoles = {'agent', 'electrician', 'plumber'};
+
+  /// Extra links for the three field roles, which do not use the catalogue
+  /// because their routes are role-prefixed rather than shared.
+  static const Map<String, List<NavSpec>> _fieldOnlyMenus = {
     'agent': [
       NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/agent'),
       NavSpec(icon: Icons.list_alt_rounded, label: 'Poles', route: '/agent/poles'),
-      NavSpec(icon: Icons.add_location_alt_rounded, label: 'New pole', route: '/agent/poles/add'),
-      NavSpec(icon: Icons.water_drop_rounded, label: 'Pipeline & Tap Capture', route: '/agent/pipeline-tap-capture'),
+      NavSpec(
+        icon: Icons.add_location_alt_rounded,
+        label: 'New pole',
+        route: '/agent/poles/add',
+      ),
+      NavSpec(
+        icon: Icons.water_drop_rounded,
+        label: 'Pipeline & tap capture',
+        route: '/agent/pipeline-tap-capture',
+      ),
     ],
     'electrician': [
       NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/electrician'),
-      NavSpec(icon: Icons.electrical_services_rounded, label: 'My jobs', route: '/electrician/jobs'),
+      NavSpec(
+        icon: Icons.electrical_services_rounded,
+        label: 'My jobs',
+        route: '/electrician/jobs',
+      ),
     ],
     'plumber': [
       NavSpec(icon: Icons.dashboard_rounded, label: 'Home', route: '/plumber'),
-      NavSpec(icon: Icons.plumbing_rounded, label: 'My jobs', route: '/plumber/jobs'),
-    ],
-    'municipal_commissioner': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/commissioner'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-      NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
-      NavSpec(icon: Icons.insights_rounded, label: 'SLA Analytics', route: '/analytics/sla'),
-      NavSpec(icon: Icons.dashboard_customize_rounded, label: 'Executive View', route: '/dashboard/executive'),
-    ],
-    'municipal_engineer': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/municipal-engineer'),
-      NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
-      NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
-      NavSpec(icon: Icons.engineering_outlined, label: 'Contractors', route: '/contractors'),
-      NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
-      NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Field Inspections', route: '/inspections'),
-    ],
-    'revenue_officer': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/revenue-officer'),
-      NavSpec(icon: Icons.currency_rupee_rounded, label: 'Property Tax', route: '/revenue/property-tax'),
-      NavSpec(icon: Icons.storefront_rounded, label: 'Market Stall Fees', route: '/revenue/markets'),
-      NavSpec(icon: Icons.domain_rounded, label: 'Asset Rental', route: '/revenue/assets'),
-      NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
-      NavSpec(icon: Icons.task_rounded, label: 'Certificates', route: '/revenue/certificates'),
-      NavSpec(icon: Icons.history_edu_rounded, label: 'Audit Logs', route: '/admin/audit-logs'),
-    ],
-    'assistant_engineer': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/assistant-engineer'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-      NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Inspections', route: '/inspections'),
-      NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
-      NavSpec(icon: Icons.alt_route_rounded, label: 'Poles', route: '/poles'),
-    ],
-    'health_officer': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/health-officer'),
-      NavSpec(icon: Icons.delete_rounded, label: 'Solid Waste Mgmt', route: '/municipality/solid-waste'),
-      NavSpec(icon: Icons.medical_services_rounded, label: 'Public Health', route: '/municipality/health'),
-      NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Inspections', route: '/inspections'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-    ],
-    'revenue_inspector': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/revenue-inspector'),
-      NavSpec(icon: Icons.storefront_rounded, label: 'Market Fees', route: '/revenue/markets'),
-      NavSpec(icon: Icons.ad_units_rounded, label: 'Ad Campaigns', route: '/revenue/ads'),
-      NavSpec(icon: Icons.domain_rounded, label: 'Asset Rentals', route: '/revenue/assets'),
-      NavSpec(icon: Icons.document_scanner_rounded, label: 'Reports', route: '/report-generation'),
-    ],
-    'junior_engineer': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/junior-engineer'),
-      NavSpec(icon: Icons.checklist_rtl_rounded, label: 'Field Inspections', route: '/inspections'),
-      NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Mgmt', route: '/poles'),
-      NavSpec(icon: Icons.grid_on_rounded, label: 'Water Supply', route: '/water/pipeline-grid'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-    ],
-    'i3c_staff': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/i3c'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Route Complaints', route: '/complaints'),
-      NavSpec(icon: Icons.map_rounded, label: 'Zone Mgmt / GIS', route: '/zone-management'),
-      NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
-      NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
-      NavSpec(icon: Icons.manage_search_rounded, label: 'Universal Search', route: '/search'),
-    ],
-    'contractor': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/contractor-dashboard'),
-      NavSpec(icon: Icons.gavel_rounded, label: 'Tender Bidding Portal', route: '/tenders/vendor-portal'),
-      NavSpec(icon: Icons.assignment_rounded, label: 'My Work Orders', route: '/work-orders/new'),
-      NavSpec(icon: Icons.folder_rounded, label: 'My Documents', route: '/documents'),
-    ],
-    'super_admin': [
-      NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
-      NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-      NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
-      NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/superadmin/electricians'),
-      NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/superadmin/plumbers'),
-      NavSpec(icon: Icons.group_rounded, label: 'Agents', route: '/fieldops/agents'),
-      NavSpec(icon: Icons.alt_route_rounded, label: 'Pole Management', route: '/poles'),
-      NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
-      NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
-      NavSpec(icon: Icons.account_balance_rounded, label: 'Panchayat & Branding', route: '/panchayats'),
-      NavSpec(icon: Icons.people_rounded, label: 'User Management', route: '/users'),
-      NavSpec(icon: Icons.admin_panel_settings_rounded, label: 'Roles & Permissions', route: '/superadmin/roles'),
-      NavSpec(icon: Icons.tune_rounded, label: 'Feature Toggles', route: '/superadmin/feature-toggles'),
-      NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/superadmin/tenders'),
-      NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/superadmin/vendors'),
-      NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),
+      NavSpec(
+        icon: Icons.plumbing_rounded,
+        label: 'My jobs',
+        route: '/plumber/jobs',
+      ),
     ],
   };
 
-  /// Default/fallback primary menu — used for `panchayat_admin` and any
-  /// other general-purpose admin role not listed above.
-  static const List<NavSpec> _defaultPrimary = [
-    NavSpec(icon: Icons.dashboard_rounded, label: 'Dashboard', route: '/dashboard'),
-    NavSpec(icon: Icons.report_problem_rounded, label: 'Complaints', route: '/complaints'),
-    NavSpec(icon: Icons.map_rounded, label: 'Zone Management', route: '/zone-management'),
-    NavSpec(icon: Icons.electrical_services_rounded, label: 'Poles', route: '/poles'),
-    NavSpec(icon: Icons.call_rounded, label: 'Voice Calls', route: '/voice-calls'),
-    NavSpec(icon: Icons.receipt_long_rounded, label: 'IVR Logs', route: '/ivr-logs'),
-    NavSpec(icon: Icons.engineering_rounded, label: 'Electricians', route: '/admin/electricians'),
-    NavSpec(icon: Icons.plumbing_rounded, label: 'Plumbers', route: '/admin/plumbers'),
-    NavSpec(icon: Icons.assignment_rounded, label: 'Tenders', route: '/tenders'),
-    NavSpec(icon: Icons.store_mall_directory_rounded, label: 'Vendors', route: '/vendors'),
-    NavSpec(icon: Icons.gavel_rounded, label: 'Vendor Bidding Portal', route: '/tenders/vendor-portal'),
-  ];
-
-  /// Roles that get NO secondary sections at all — dedicated single-purpose
-  /// field-work shells with their own compact primary menu.
-  static const Set<String> _fieldOnlyRoles = {'agent', 'electrician', 'plumber'};
-
-  /// Which of the 4 shared sections apply to each role, following the rule:
-  /// relevant to the job AND not already duplicated in that role's own
-  /// primary menu. Roles not listed default to none of these 4 (e.g.
-  /// contractor, i3c_staff, revenue roles already have their own full menu).
-  static const Map<String, Set<String>> _sectionsByRole = {
-    'super_admin': {'water', 'revenue', 'operations', 'reports'},
-    'panchayat_admin': {'water', 'revenue', 'operations', 'reports'},
-    'municipal_commissioner': {'operations', 'reports'},
-    'municipal_engineer': {'water', 'operations'},
-    'assistant_engineer': {'water', 'operations'},
-    'junior_engineer': {'water', 'operations'},
-    'health_officer': {'operations'},
+  /// Role-specific landing screens. Everything else in the catalogue is a
+  /// shared route, but "Dashboard" means a different screen per role.
+  static const Map<String, String> _homeRouteByRole = {
+    'municipal_commissioner': '/commissioner',
+    'municipal_engineer': '/municipal-engineer',
+    'assistant_engineer': '/assistant-engineer',
+    'junior_engineer': '/junior-engineer',
+    'revenue_officer': '/revenue-officer',
+    'revenue_inspector': '/revenue-inspector',
+    'health_officer': '/health-officer',
+    'i3c_staff': '/i3c',
+    'contractor': '/contractor-dashboard',
   };
 
-  static List<NavSpec> primaryFor(String role) =>
-      _primaryByRole[role] ?? _defaultPrimary;
-
-  /// `super_admin` gets the platform/tenant-management links prepended to
-  /// its main menu.
-  static List<NavSpec> platformSectionFor(String role) =>
-      role == 'super_admin' ? _superAdminPlatform.items : const [];
-
-  static List<NavSection> sectionsFor(String role) {
-    if (_fieldOnlyRoles.contains(role)) return const [];
-    final enabled = _sectionsByRole[role] ?? const <String>{};
-    final sections = <NavSection>[];
-    if (enabled.contains('water')) sections.add(_waterSupply);
-    if (enabled.contains('revenue')) sections.add(_revenue);
-    if (enabled.contains('operations')) sections.add(_operations);
-    if (enabled.contains('reports')) sections.add(_reportsSystem);
-    return sections;
+  static Set<String> _idsFor(String role) {
+    if (role == 'super_admin') return _superAdminAccess;
+    return _accessByRole[role] ?? _defaultAccess;
   }
 
-  /// Every route this role's sidebar can reach — primary + platform + all
-  /// enabled sections. Used to compute which nav item is "active".
-  static List<String> allRoutesFor(String role) {
-    final routes = <String>[
-      ...primaryFor(role).map((s) => s.route).whereType<String>(),
-      ...platformSectionFor(role).map((s) => s.route).whereType<String>(),
-    ];
-    for (final section in sectionsFor(role)) {
-      routes.addAll(section.items.map((s) => s.route).whereType<String>());
+  /// Resolve a catalogue entry for a role, applying the role's home override.
+  static NavSpec _specFor(String role, String id) {
+    final entry = _catalogue[id]!;
+    if (id == 'home') {
+      final route = _homeRouteByRole[role] ?? entry.spec.route;
+      return NavSpec(
+        icon: entry.spec.icon,
+        label: entry.spec.label,
+        route: route,
+      );
     }
-    return routes;
+    return entry.spec;
   }
+
+  /// The whole sidebar, grouped and ordered.
+  ///
+  /// ## Where the answer comes from
+  ///
+  /// [entitledScreens] is the authoritative list, resolved server-side from
+  /// the role's grants in `role_screen_access` and delivered on the JWT. When
+  /// it is supplied, this method is a *filter over the catalogue*: switching a
+  /// screen on for a role in the super admin console makes it appear here at
+  /// the holder's next login, with no code change and no redeploy.
+  ///
+  /// The per-role sets below are the **fallback**, used only when the server
+  /// has not resolved entitlements — an older token, or a database that has
+  /// not had the RBAC migration applied. Without that fallback such a user
+  /// would get an empty sidebar and be unable to work, which is a worse
+  /// failure than showing them the defaults their role has always had.
+  ///
+  /// The catalogue itself stays in code because a menu entry must correspond
+  /// to a route that actually exists; the database decides *whether* you see
+  /// it, not whether it can be built.
+  static List<NavSection> sectionsFor(
+    String role, {
+    List<String>? entitledScreens,
+    bool isSuperAdmin = false,
+  }) {
+    if (_fieldOnlyRoles.contains(role)) {
+      final items = _fieldOnlyMenus[role] ?? const <NavSpec>[];
+      return items.isEmpty
+          ? const []
+          : [NavSection(title: gOverview, items: items)];
+    }
+
+    final Set<String> ids;
+    if (isSuperAdmin) {
+      // The platform operator's menu follows the catalogue, so a newly shipped
+      // module is reachable without anyone ticking a box for it.
+      ids = _superAdminAccess;
+    } else if (entitledScreens != null && entitledScreens.isNotEmpty) {
+      ids = entitledScreens.toSet();
+    } else {
+      ids = _idsFor(role);
+    }
+
+    final byGroup = <String, List<NavSpec>>{};
+
+    // Walk the catalogue rather than the id set so ordering is the catalogue's,
+    // not the set's — a Set has no meaningful iteration order. This also means
+    // an unknown key from the server is ignored rather than crashing the menu.
+    for (final entry in _catalogue.entries) {
+      if (!ids.contains(entry.key)) continue;
+      byGroup
+          .putIfAbsent(entry.value.group, () => <NavSpec>[])
+          .add(_specFor(role, entry.key));
+    }
+
+    return [
+      for (final group in _groupOrder)
+        if ((byGroup[group] ?? const []).isNotEmpty)
+          NavSection(title: group, items: byGroup[group]!),
+    ];
+  }
+
+  /// The role's landing route.
+  static String homeRouteFor(String role) {
+    if (_fieldOnlyRoles.contains(role)) {
+      return _fieldOnlyMenus[role]?.first.route ?? '/dashboard';
+    }
+    return _homeRouteByRole[role] ?? '/dashboard';
+  }
+
+  /// Every route this sidebar can reach. Used to decide which nav item is
+  /// "active".
+  static List<String> allRoutesFor(
+    String role, {
+    List<String>? entitledScreens,
+    bool isSuperAdmin = false,
+  }) =>
+      [
+        for (final section in sectionsFor(
+          role,
+          entitledScreens: entitledScreens,
+          isSuperAdmin: isSuperAdmin,
+        ))
+          ...section.items.map((s) => s.route).whereType<String>(),
+      ];
+
+  // ── Back-compat shims ─────────────────────────────────────────────────────
+  //
+  // `app_scaffold` rendered a flat primary list above the grouped sections.
+  // With everything grouped there is no separate primary list, but these keep
+  // existing call sites compiling until they move to `sectionsFor`.
+
+  @Deprecated('Use sectionsFor(role) — the sidebar is fully grouped now')
+  static List<NavSpec> primaryFor(String role) => const [];
+
+  @Deprecated('Platform links are part of the ADMINISTRATION group now')
+  static List<NavSpec> platformSectionFor(String role) => const [];
 }

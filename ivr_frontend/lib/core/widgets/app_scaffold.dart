@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ivr_frontend/app.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/models/user_model.dart';
 import 'package:ivr_frontend/config/api_config.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_bloc.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
@@ -129,9 +130,24 @@ class _AppScaffoldState extends State<AppScaffold> {
     return best;
   }
 
-  /// Convenience: all nav routes reachable from the current role's sidebar.
-  Iterable<String?> _allNavRoutes() =>
-      RoleNavigationConfig.allRoutesFor(widget.userRole);
+  /// The signed-in user, when the auth bloc has one.
+  ///
+  /// Read via `read` rather than `watch` in the route helpers below, which run
+  /// during layout rather than build and must not register a dependency.
+  UserModel? get _user {
+    final state = context.read<AuthBloc>().state;
+    return state is Authenticated ? state.user : null;
+  }
+
+  /// Convenience: all nav routes reachable from the current sidebar.
+  Iterable<String?> _allNavRoutes() {
+    final user = _user;
+    return RoleNavigationConfig.allRoutesFor(
+      widget.userRole,
+      entitledScreens: user?.screens,
+      isSuperAdmin: user?.isSuperAdmin ?? false,
+    );
+  }
 
   Widget _buildSidebar(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
@@ -484,25 +500,24 @@ class _AppScaffoldState extends State<AppScaffold> {
         .toList();
   }
 
-  List<Widget> _getPrimaryNavItems() =>
-      _navItemsFor(RoleNavigationConfig.primaryFor(widget.userRole));
+  /// The sidebar is fully grouped now — there is no separate ungrouped
+  /// "primary" list above the sections, which is what used to let the two
+  /// drift apart and show the same destination twice.
+  List<Widget> _getPrimaryNavItems() => const [];
 
-  List<Widget> _getPlatformNavItems() =>
-      _navItemsFor(RoleNavigationConfig.platformSectionFor(widget.userRole));
-
-  /// The dynamic sections (Water Supply, Revenue & Assets, Operations &
-  /// Portal, Reports & System) — only the ones relevant to this role, per
-  /// [RoleNavigationConfig.sectionsFor]. Each section header only renders if
-  /// it actually has items, so a role never sees an empty, dead heading.
+  /// Every group this role can reach, in catalogue order. A header only
+  /// renders when it has items, so a role never sees an empty heading.
   List<Widget> _buildDynamicSections() {
     final widgets = <Widget>[];
-    final platform = _getPlatformNavItems();
-    if (platform.isNotEmpty) {
-      widgets.add(_navLabel('PLATFORM'));
-      widgets.addAll(platform);
-      widgets.add(const SizedBox(height: 12));
-    }
-    for (final section in RoleNavigationConfig.sectionsFor(widget.userRole)) {
+    final user = _user;
+    // Server-resolved entitlements decide what renders; the role-based
+    // defaults inside `sectionsFor` are the fallback when they are absent.
+    final sections = RoleNavigationConfig.sectionsFor(
+      widget.userRole,
+      entitledScreens: user?.screens,
+      isSuperAdmin: user?.isSuperAdmin ?? false,
+    );
+    for (final section in sections) {
       widgets.add(_navLabel(section.title));
       widgets.addAll(_navItemsFor(section.items));
       widgets.add(const SizedBox(height: 12));

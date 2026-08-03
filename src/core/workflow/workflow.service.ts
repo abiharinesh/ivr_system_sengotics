@@ -61,6 +61,18 @@ export class WorkflowService {
         entity = await this.prisma.tender.findUnique({ where: { id: entityId } });
       } else if (modelName === 'asset') {
         entity = await this.prisma.asset.findUnique({ where: { id: entityId } });
+      } else if (modelName === 'building_permit') {
+        entity = await this.prisma.buildingPermit.findUnique({
+          where: { id: entityId },
+        });
+      } else if (modelName === 'vital_event') {
+        entity = await this.prisma.vitalEvent.findUnique({
+          where: { id: entityId },
+        });
+      } else if (modelName === 'trade_licence') {
+        entity = await this.prisma.tradeLicence.findUnique({
+          where: { id: entityId },
+        });
       } else {
         // Fallback for dynamic models
         entity = await (this.prisma as any)[entityType].findUnique({ where: { id: entityId } });

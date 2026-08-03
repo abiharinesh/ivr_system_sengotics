@@ -31,7 +31,7 @@ enum BranchStatus {
   CLOSED
 }
 
-model CallsMaster {
+model IvrCall {
   call_sid          String    @id
   caller_number     String?
   call_to           String?
@@ -48,7 +48,7 @@ model CallsMaster {
   service_selections IvrServiceSelection[]
   poll_inputs        IvrPollInput[]
 
-  @@map("calls_master")
+  @@map("ivr_calls")
 }
 
 model IvrServiceSelection {
@@ -59,9 +59,9 @@ model IvrServiceSelection {
   received_at    DateTime @default(now())
   raw_payload    Json?
 
-  call CallsMaster @relation(fields: [call_sid], references: [call_sid])
+  call IvrCall @relation(fields: [call_sid], references: [call_sid])
 
-  @@map("ivr_service_selection")
+  @@map("ivr_service_selections")
 }
 
 model IvrPollInput {
@@ -72,9 +72,9 @@ model IvrPollInput {
   received_at   DateTime @default(now())
   raw_payload   Json?
 
-  call CallsMaster @relation(fields: [call_sid], references: [call_sid])
+  call IvrCall @relation(fields: [call_sid], references: [call_sid])
 
-  @@map("ivr_poll_input")
+  @@map("ivr_poll_inputs")
 }
 
 model VoiceCall {
@@ -115,9 +115,10 @@ model OrgUnit {
   branch_code        String?      @unique
   parent_org_unit_id Int?
 
-  // ── Escalation reference (district/state revenue administration — read-only, not a tenant) ──
+  // Escalation target for complaints/requests that leave the body. Kept as a
+  // plain reference; the AdminJurisdiction lookup table it used to point at
+  // had zero readers in backend or frontend and was dropped.
   escalation_jurisdiction_id Int?
-  escalation_jurisdiction    AdminJurisdiction? @relation(fields: [escalation_jurisdiction_id], references: [id])
 
   // ── Lifecycle ──
   effective_from    DateTime  @default(now())
@@ -168,7 +169,7 @@ model OrgUnit {
   water_pipelines WaterPipeline[]
   water_tanks     WaterTankBorewell[]
   water_valves    WaterValve[]
-  captured_assets CapturedAsset[]
+  captured_assets AssetFieldCapture[]
   complaints      Complaint[]
   users           User[]
   export_jobs     ExportJob[]
@@ -177,13 +178,20 @@ model OrgUnit {
   zones           Zone[]
 
   // Revenue module relations
-  ad_campaigns         AdCampaign[]
-  penalty_rules        PenaltyRule[]
-  properties           Property[]
-  certificate_requests CertificateRequest[]
-  bookable_facilities  BookableFacility[]
-  market_days          MarketDay[]
-  market_vendors       MarketVendor[]
+  ad_campaigns          AdCampaign[]
+  penalty_rules         PenaltyRule[]
+  tax_properties        TaxProperty[]
+  certificate_requests  CertificateRequest[]
+  bookable_facilities   BookableFacility[]
+  market_days           MarketDay[]
+  market_vendors        MarketVendor[]
+  building_permits      BuildingPermit[]
+  vital_events          VitalEvent[]
+  waste_bins            WasteBin[]
+  trade_licences        TradeLicence[]
+  collection_routes     CollectionRoute[]
+  collection_trips      CollectionTrip[]
+  sanitation_attendance SanitationAttendance[]
 
   // ── New platform relations ──
   feature_config     BranchFeatureConfig?
@@ -202,36 +210,6 @@ model OrgUnit {
 }
 
 /**
- * Lightweight, read-mostly reference hierarchy for TN district/state revenue
- * administration (Collectorate → RDO → Taluk). NOT a tenant — no login, no
- * branding, no feature toggles. Exists only so an OrgUnit's complaints/requests
- * can escalate to the correct real-world government office.
- */
-model AdminJurisdiction {
-  id            Int      @id @default(autoincrement())
-  type          String // COLLECTORATE | RDO | TALUK | FIRKA
-  name          String
-  district      String?
-  parent_id     Int?
-  contact_name  String?
-  contact_phone String?
-  contact_email String?
-  is_active     Boolean  @default(true)
-  created_at    DateTime @default(now())
-
-  parent    AdminJurisdiction?  @relation("JurisdictionHierarchy", fields: [parent_id], references: [id])
-  children  AdminJurisdiction[] @relation("JurisdictionHierarchy")
-  org_units OrgUnit[]
-
-  @@index([district, type])
-  @@index([parent_id])
-  @@map("admin_jurisdictions")
-}
-
-/**
- * Admin-defined zones within a panchayat. Boundary stored as GeoJSON for flexible rendering.
- */
-/**
  * An admin-drawn geographic zone within an org unit.
  */
 model Zone {
@@ -246,8 +224,10 @@ model Zone {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
-  org_unit OrgUnit @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
-  assets   Asset[]
+  org_unit          OrgUnit           @relation(fields: [org_unit_id], references: [id], onDelete: Cascade)
+  assets            Asset[]
+  waste_bins        WasteBin[]
+  collection_routes CollectionRoute[]
 
   @@index([org_unit_id])
   @@map("zones")
@@ -276,6 +256,12 @@ model User {
   failed_attempts   Int       @default(0)
   locked_until      DateTime?
 
+  /// Set on every seeded account. Login succeeds but the client must send the
+  /// user to a change-password screen before anything else — a provisioned
+  /// account with a known temporary password is not a usable account.
+  must_change_password Boolean   @default(false)
+  password_changed_at  DateTime?
+
   // ── Soft delete ──
   is_deleted Boolean   @default(false)
   deleted_at DateTime?
@@ -292,9 +278,8 @@ model User {
   export_jobs_as_subject ExportJob[] @relation("ExportJobElectrician")
 
   tenders_created        Tender[]                   @relation("TenderCreator")
-  tender_documents       TenderDocument[]           @relation("TenderDocGenerator")
+  tender_documents       TenderDocumentJob[]        @relation("TenderDocGenerator")
   field_sessions_created FieldVerificationSession[] @relation("FieldSessionCreator")
-  tender_audit_events    TenderAuditLog[]           @relation("TenderAuditActor")
 
   // Revenue module relations
   penalties UserPenalty[]
@@ -337,8 +322,8 @@ model ElectricPole {
   image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
 
   tender_line_items      TenderLineItem[]
-  field_uploads_matched  FieldVerificationUpload[]  @relation("FieldUploadMatched")
-  field_uploads_manual   FieldVerificationUpload[]  @relation("FieldUploadManual")
+  field_uploads_matched  FieldVerificationPhoto[]   @relation("FieldUploadMatched")
+  field_uploads_manual   FieldVerificationPhoto[]   @relation("FieldUploadManual")
   tender_checklist_items TenderFieldChecklistItem[]
 
   @@unique([org_unit_id, keypad_id])
@@ -401,7 +386,7 @@ model Complaint {
   @@map("complaints")
 }
 
-model CallState {
+model IvrCallState {
   id                   Int       @id @default(autoincrement())
   call_sid             String    @unique
   phase1_status        String    @default("pending")
@@ -416,7 +401,7 @@ model CallState {
   updated_at           DateTime  @updatedAt
 
   @@index([call_sid])
-  @@map("call_state")
+  @@map("ivr_call_states")
 }
 
 model SystemSettings {
@@ -494,10 +479,9 @@ model Tender {
   invites               TenderInvite[]
   line_items            TenderLineItem[]
   quotations            TenderQuotation[]          @relation("TenderQuotations")
-  documents             TenderDocument[]
+  documents             TenderDocumentJob[]
   verification_sessions FieldVerificationSession[]
   checklist_items       TenderFieldChecklistItem[]
-  audit_logs            TenderAuditLog[]
 
   @@index([org_unit_id, status])
   @@map("tenders")
@@ -579,7 +563,7 @@ model TenderQuotation {
 /**
  * Generated PDF artifact with version chain. status: pending|ready|failed.
  */
-model TenderDocument {
+model TenderDocumentJob {
   id                   Int       @id @default(autoincrement())
   tender_id            Int
   template_id          String
@@ -598,7 +582,7 @@ model TenderDocument {
   generated_by User?       @relation("TenderDocGenerator", fields: [generated_by_user_id], references: [id])
 
   @@index([tender_id, template_id])
-  @@map("tender_documents")
+  @@map("tender_document_jobs")
 }
 
 /**
@@ -615,9 +599,9 @@ model FieldVerificationSession {
   confirmed_at       DateTime?
   created_at         DateTime  @default(now())
 
-  tender     Tender                    @relation(fields: [tender_id], references: [id], onDelete: Cascade)
-  created_by User                      @relation("FieldSessionCreator", fields: [created_by_user_id], references: [id])
-  uploads    FieldVerificationUpload[]
+  tender     Tender                   @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  created_by User                     @relation("FieldSessionCreator", fields: [created_by_user_id], references: [id])
+  uploads    FieldVerificationPhoto[]
 
   @@index([tender_id])
   @@map("field_verification_sessions")
@@ -626,7 +610,7 @@ model FieldVerificationSession {
 /**
  * Single image upload with EXIF + nearest-pole match result.
  */
-model FieldVerificationUpload {
+model FieldVerificationPhoto {
   id                   Int       @id @default(autoincrement())
   session_id           Int
   image_url            String
@@ -658,7 +642,7 @@ model FieldVerificationUpload {
   checklist_items TenderFieldChecklistItem[]
 
   @@index([session_id])
-  @@map("field_verification_uploads")
+  @@map("field_verification_photos")
 }
 
 /**
@@ -675,31 +659,13 @@ model TenderFieldChecklistItem {
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
-  tender          Tender                   @relation(fields: [tender_id], references: [id], onDelete: Cascade)
-  pole            ElectricPole?            @relation(fields: [pole_id], references: [id])
-  line_item       TenderLineItem?          @relation(fields: [line_item_id], references: [id])
-  verified_upload FieldVerificationUpload? @relation(fields: [verified_upload_id], references: [id])
+  tender          Tender                  @relation(fields: [tender_id], references: [id], onDelete: Cascade)
+  pole            ElectricPole?           @relation(fields: [pole_id], references: [id])
+  line_item       TenderLineItem?         @relation(fields: [line_item_id], references: [id])
+  verified_upload FieldVerificationPhoto? @relation(fields: [verified_upload_id], references: [id])
 
   @@index([tender_id])
   @@map("tender_field_checklist_items")
-}
-
-/**
- * Append-only audit trail for tender state transitions and PDF generations.
- */
-model TenderAuditLog {
-  id            Int      @id @default(autoincrement())
-  tender_id     Int
-  actor_user_id Int?
-  event         String
-  payload       Json?
-  created_at    DateTime @default(now())
-
-  tender Tender @relation(fields: [tender_id], references: [id], onDelete: Cascade)
-  actor  User?  @relation("TenderAuditActor", fields: [actor_user_id], references: [id])
-
-  @@index([tender_id])
-  @@map("tender_audit_logs")
 }
 
 model WaterPipeline {
@@ -780,7 +746,7 @@ model WaterFlowLog {
  * to no tenant at all, so one tenant's field captures were visible to every
  * other tenant and could not be scoped or approved per org unit.
  */
-model CapturedAsset {
+model AssetFieldCapture {
   id           Int      @id @default(autoincrement())
   tenant_id    String
   org_unit_id  Int
@@ -803,7 +769,7 @@ model CapturedAsset {
   org_unit OrgUnit @relation(fields: [org_unit_id], references: [id])
 
   @@index([tenant_id, org_unit_id, status])
-  @@map("captured_assets")
+  @@map("asset_field_captures")
 }
 
 // =====================================================================
@@ -904,7 +870,7 @@ model UserPenalty {
 /**
  * Registered property for house/property tax collection.
  */
-model Property {
+model TaxProperty {
   id            Int      @id @default(autoincrement())
   org_unit_id   Int
   owner_name    String
@@ -925,7 +891,7 @@ model Property {
 
   @@unique([org_unit_id, door_number])
   @@index([org_unit_id])
-  @@map("properties")
+  @@map("tax_properties")
 }
 
 /**
@@ -946,7 +912,7 @@ model TaxPayment {
   due_date        DateTime
   created_at      DateTime  @default(now())
 
-  property Property @relation(fields: [property_id], references: [id])
+  property TaxProperty @relation(fields: [property_id], references: [id])
 
   @@index([property_id, financial_year])
   @@map("tax_payments")
@@ -980,9 +946,6 @@ model CertificateRequest {
   @@map("certificate_requests")
 }
 
-/**
- * OrgUnit-owned rentable asset (hall, ground, equipment).
- */
 /**
  * A community facility the public can rent — hall, ground, equipment, vehicle.
  * Named `PanchayatAsset` previously, which collided conceptually with `Asset`
@@ -1194,14 +1157,20 @@ model BranchFeatureConfig {
   ivr_system        Boolean @default(false)
   zone_management   Boolean @default(true)
 
-  // New municipality modules
-  solid_waste_mgmt   Boolean @default(false)
+  // Municipality modules.
+  //
+  // Those with a built implementation default to `true`: a branch that has
+  // been provisioned before the module existed must not silently lose the
+  // feature when the gate starts being enforced. A super admin turns off what
+  // a client has not licensed, rather than turning on everything they have.
+  // The rest stay `false` until there is something behind them to enable.
+  solid_waste_mgmt   Boolean @default(true)
+  building_permit    Boolean @default(true)
+  birth_death_reg    Boolean @default(true)
   drainage_mgmt      Boolean @default(false)
   road_mgmt          Boolean @default(false)
   parks_mgmt         Boolean @default(false)
   public_health      Boolean @default(false)
-  building_permit    Boolean @default(false)
-  birth_death_reg    Boolean @default(false)
   vehicle_fleet_mgmt Boolean @default(false)
   cemetery_mgmt      Boolean @default(false)
   encroachment_mgmt  Boolean @default(false)
@@ -1267,12 +1236,13 @@ model Employee {
   is_deleted Boolean   @default(false)
   deleted_at DateTime?
 
-  user         User        @relation(fields: [user_id], references: [id])
-  tenant       Tenant      @relation(fields: [tenant_id], references: [id])
-  org_unit     OrgUnit     @relation(fields: [org_unit_id], references: [id])
-  department   Department? @relation(fields: [department_id], references: [id])
-  reporting_to Employee?   @relation("ReportsTo", fields: [reporting_to_id], references: [id])
-  reports      Employee[]  @relation("ReportsTo")
+  user                  User                   @relation(fields: [user_id], references: [id])
+  tenant                Tenant                 @relation(fields: [tenant_id], references: [id])
+  org_unit              OrgUnit                @relation(fields: [org_unit_id], references: [id])
+  department            Department?            @relation(fields: [department_id], references: [id])
+  reporting_to          Employee?              @relation("ReportsTo", fields: [reporting_to_id], references: [id])
+  reports               Employee[]             @relation("ReportsTo")
+  sanitation_attendance SanitationAttendance[]
 
   @@unique([tenant_id, employee_code])
   @@index([tenant_id, org_unit_id])
@@ -1289,7 +1259,105 @@ model Permission {
   action      String // "read", "write", "approve", "delete", "export"
   description String?
 
+  role_grants RolePermission[]
+
+  @@index([module])
   @@map("permissions")
+}
+
+/// A permission granted directly to a role.
+///
+/// Replaces reading permissions out of `PermissionGroup.permissions`, a JSON
+/// array. That shape had three problems for an admin console: a group is
+/// shared, so editing one role's access silently changed every other role on
+/// the same group; a JSON blob cannot be joined, indexed or audited per row;
+/// and there was no way to record *who* granted an individual permission.
+///
+/// `PermissionGroup` survives as a **preset** — "apply Engineering Access to
+/// this role" expands into rows here — but the rows are the truth.
+model RolePermission {
+  id            Int      @id @default(autoincrement())
+  role_id       Int
+  permission_id Int
+  granted_by    Int?
+  created_at    DateTime @default(now())
+
+  role       Role       @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permission_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, permission_id])
+  @@index([role_id])
+  @@map("role_permissions")
+}
+
+/// The catalogue of navigable screens in the product.
+///
+/// Seeded from the front-end navigation catalogue so the super admin console
+/// has a real, tickable list instead of the list being hardcoded in Dart where
+/// nobody can change it. A screen existing here does not mean anyone can see
+/// it — [RoleScreenAccess] decides that.
+///
+/// `permission_code` ties the menu entry to the API permission that backs it,
+/// so a role can never be shown a destination whose endpoints would reject it.
+model AppScreen {
+  id        Int    @id @default(autoincrement())
+  /// Stable key shared with the Dart nav catalogue, e.g. "trade_licences".
+  key       String @unique
+  route     String
+  group_key String // "REVENUE", "PUBLIC WORKS", ...
+
+  label_en String
+  label_ta String?
+  /// Material icon name, resolved to an IconData on the client.
+  icon     String
+
+  /// Module this screen belongs to — lines up with `BranchFeatureConfig`
+  /// columns so branch provisioning and role access agree.
+  module String
+
+  /// API permission a user needs for this screen to be of any use.
+  permission_code String?
+
+  sort_order Int     @default(0)
+  is_active  Boolean @default(true)
+
+  /// Screens only ever meaningful to the platform operator.
+  is_platform_only Boolean @default(false)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  role_access RoleScreenAccess[]
+
+  @@index([group_key, sort_order])
+  @@map("app_screens")
+}
+
+/// Which roles can see which screens — the table the super admin console
+/// writes when a sidebar item is switched on or off for a role.
+///
+/// Absence of a row means no access: a screen is invisible until granted,
+/// rather than visible until forbidden.
+model RoleScreenAccess {
+  id        Int @id @default(autoincrement())
+  role_id   Int
+  screen_id Int
+
+  /// Kept as an explicit column rather than relying on row existence alone, so
+  /// an access grant can be switched off and back on without losing who
+  /// granted it or when.
+  can_view Boolean @default(true)
+
+  granted_by Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  role   Role      @relation(fields: [role_id], references: [id], onDelete: Cascade)
+  screen AppScreen @relation(fields: [screen_id], references: [id], onDelete: Cascade)
+
+  @@unique([role_id, screen_id])
+  @@index([role_id, can_view])
+  @@map("role_screen_access")
 }
 
 /**
@@ -1326,13 +1394,22 @@ model Role {
   is_active             Boolean  @default(true)
   created_at            DateTime @default(now())
 
+  /// Which body types this role is offered for, e.g. ["MUNICIPALITY",
+  /// "MUNICIPAL_CORPORATION"]. Empty means every type. A village panchayat has
+  /// no Municipal Commissioner, and the console should not offer one.
+  applicable_branch_types BranchType[] @default([])
+
   tenant        Tenant     @relation(fields: [tenant_id], references: [id])
   org_unit      OrgUnit?   @relation(fields: [org_unit_id], references: [id])
   inherits_from Role?      @relation("RoleInheritance", fields: [inherits_from_role_id], references: [id])
   inherited_by  Role[]     @relation("RoleInheritance")
   user_roles    UserRole[]
 
+  permissions   RolePermission[]
+  screen_access RoleScreenAccess[]
+
   @@unique([tenant_id, org_unit_id, name])
+  @@index([tenant_id, is_active])
   @@map("roles")
 }
 
@@ -1871,9 +1948,6 @@ model AssetImage {
 // ─────────────────────────────────────────────────────────────────────
 
 /**
- * Contractor master — registered contractors for municipal works.
- */
-/**
  * A single external party that does work for the local body — used both as a
  * tender bidder and as the recipient of a work order. Previously this was two
  * tables (`vendors` for the tender side, `contractors` for the work-order
@@ -1900,12 +1974,12 @@ model Contractor {
   is_active           Boolean  @default(true)
   created_at          DateTime @default(now())
 
-  tenant      Tenant            @relation(fields: [tenant_id], references: [id])
-  org_unit    OrgUnit?          @relation(fields: [org_unit_id], references: [id])
+  tenant      Tenant              @relation(fields: [tenant_id], references: [id])
+  org_unit    OrgUnit?            @relation(fields: [org_unit_id], references: [id])
   work_orders WorkOrder[]
   invites     TenderInvite[]
   quotations  TenderQuotation[]
-  documents   TenderDocument[]
+  documents   TenderDocumentJob[]
 
   // Soft delete
   is_deleted Boolean   @default(false)
@@ -2177,4 +2251,913 @@ model FormSubmission {
 
   @@index([tenant_id, org_unit_id, template_id])
   @@map("form_submissions")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  1A. BUILDING PERMITS & PLAN APPROVAL
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Where a permit application sits in its statutory lifecycle.
+ * `SUBMITTED → SCRUTINY` is the clerical completeness check; `NOC_PENDING`
+ * means the file is out with the clearing departments (fire, traffic, EB…);
+ * `INSPECTION` is the physical site visit. Approval only becomes possible
+ * once every mandatory NOC is granted and the fee is paid — see
+ * `BuildingPermitService.approve`.
+ */
+enum BuildingPermitStatus {
+  DRAFT
+  SUBMITTED
+  SCRUTINY
+  NOC_PENDING
+  INSPECTION
+  APPROVED
+  REJECTED
+  RETURNED
+  CANCELLED
+  EXPIRED
+}
+
+/**
+ * Clearance state of a single department's no-objection certificate.
+ */
+enum NocStatus {
+  PENDING
+  GRANTED
+  REJECTED
+  NOT_APPLICABLE
+}
+
+/**
+ * A citizen's application to construct, extend or alter a building.
+ * The record is deliberately thin on process state: approvals live in
+ * `WorkflowInstance`, deadlines in `SlaTracker`, blueprints and NOC letters in
+ * `Document` (entity_type `building_permit`), and every mutation in
+ * `AuditLog`. Only fields the town-planning office actually queries or prints
+ * are stored as columns here.
+ */
+model BuildingPermit {
+  id            Int    @id @default(autoincrement())
+  tenant_id     String
+  org_unit_id   Int
+  permit_number String @unique // PERMIT-2026-0001, from NumberGenService
+
+  // ── Applicant ──
+  applicant_name    String
+  applicant_phone   String?
+  applicant_email   String?
+  applicant_address String?
+  applicant_aadhaar String? // Masked at rest by the service layer
+  is_owner          Boolean @default(true)
+  power_of_attorney String? // Name of the authorised representative, if not the owner
+
+  // ── Site ──
+  survey_number  String
+  subdivision_no String?
+  ward_number    String?
+  street_name    String?
+  door_number    String?
+  plot_area_sqm  Decimal @db.Decimal(12, 2)
+  latitude       Float?
+  longitude      Float?
+
+  // ── Proposal ──
+  construction_type String // "residential", "commercial", "industrial", "institutional", "mixed"
+  work_nature       String   @default("new") // "new", "extension", "alteration", "reconstruction"
+  built_up_area_sqm Decimal  @db.Decimal(12, 2)
+  floors_proposed   Int      @default(1)
+  height_m          Decimal? @db.Decimal(6, 2)
+  setback_front_m   Decimal? @db.Decimal(6, 2)
+  setback_rear_m    Decimal? @db.Decimal(6, 2)
+  setback_left_m    Decimal? @db.Decimal(6, 2)
+  setback_right_m   Decimal? @db.Decimal(6, 2)
+  estimated_cost    Decimal? @db.Decimal(14, 2)
+
+  // ── Licensed surveyor / architect who prepared the plan ──
+  architect_name    String?
+  architect_licence String?
+
+  // ── Fees ──
+  scrutiny_fee    Decimal   @default(0) @db.Decimal(12, 2)
+  permit_fee      Decimal   @default(0) @db.Decimal(12, 2)
+  development_fee Decimal   @default(0) @db.Decimal(12, 2)
+  total_fee       Decimal   @default(0) @db.Decimal(12, 2)
+  payment_status  String    @default("unpaid") // unpaid, partial, paid
+  paid_amount     Decimal   @default(0) @db.Decimal(12, 2)
+  payment_ref     String?
+  paid_at         DateTime?
+
+  // ── Lifecycle ──
+  status           BuildingPermitStatus @default(DRAFT)
+  rejection_reason String?
+  approved_by      Int?
+  approved_at      DateTime?
+  /// Statutory validity — TN building permits lapse if work has not begun.
+  valid_until      DateTime?
+  submitted_at     DateTime?
+  created_by       Int?
+  created_at       DateTime             @default(now())
+  updated_at       DateTime             @updatedAt
+
+  org_unit    OrgUnit                    @relation(fields: [org_unit_id], references: [id])
+  nocs        BuildingPermitNoc[]
+  inspections BuildingPermitInspection[]
+
+  @@index([tenant_id, org_unit_id, status])
+  @@index([tenant_id, org_unit_id, survey_number])
+  @@index([applicant_phone])
+  @@map("building_permits")
+}
+
+/**
+ * One department's clearance on a permit. Rows are created from the
+ * department list configured for the org unit, so which clearances a permit
+ * needs is data, not code.
+ */
+model BuildingPermitNoc {
+  id           Int       @id @default(autoincrement())
+  permit_id    Int
+  department   String // "fire", "traffic", "electricity", "highways", "pollution", "airport"
+  is_mandatory Boolean   @default(true)
+  status       NocStatus @default(PENDING)
+  reference_no String?
+  remarks      String?
+  cleared_by   Int?
+  cleared_at   DateTime?
+  requested_at DateTime  @default(now())
+
+  permit BuildingPermit @relation(fields: [permit_id], references: [id], onDelete: Cascade)
+
+  @@unique([permit_id, department])
+  @@index([status])
+  @@map("building_permit_nocs")
+}
+
+/**
+ * A scheduled or completed site visit against a permit. Mirrors the shape of
+ * `FieldInspection` (GPS lock, photos, remarks) but is permit-scoped, because
+ * `FieldInspection` hangs off an `asset_id` and a permit has no asset until
+ * the building exists.
+ */
+model BuildingPermitInspection {
+  id                Int       @id @default(autoincrement())
+  permit_id         Int
+  inspection_type   String // "site_verification", "plinth_level", "completion"
+  scheduled_for     DateTime
+  inspector_user_id Int?
+  status            String    @default("scheduled") // scheduled, completed, cancelled
+  location_lat      Float?
+  location_lng      Float?
+  gps_accuracy_m    Float?
+  findings          String?
+  is_compliant      Boolean?
+  photos            Json?
+  inspected_at      DateTime?
+  created_at        DateTime  @default(now())
+
+  permit BuildingPermit @relation(fields: [permit_id], references: [id], onDelete: Cascade)
+
+  @@index([permit_id, status])
+  @@index([inspector_user_id, scheduled_for])
+  @@map("building_permit_inspections")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  1B. BIRTH & DEATH REGISTRATION (Registration of Births and Deaths Act, 1969)
+// ─────────────────────────────────────────────────────────────────────
+
+enum VitalEventType {
+  BIRTH
+  DEATH
+}
+
+/**
+ * Lifecycle of a register entry.
+ * `REPORTED` is what arrives from a hospital feed or an informant at the
+ * counter. `REGISTERED` is the legal act — a serial number is allotted in the
+ * register and only then can a certificate issue. `CORRECTED` marks an entry
+ * amended under s.15 after registration; the original values stay in the audit
+ * log, never overwritten silently.
+ */
+enum VitalEventStatus {
+  REPORTED
+  VERIFIED
+  REGISTERED
+  REJECTED
+  CORRECTED
+}
+
+/**
+ * Where the report came from — drives which particulars are mandatory.
+ */
+enum ReportingSource {
+  HOSPITAL
+  INSTITUTION
+  DOMICILIARY
+  SELF_REPORTED
+}
+
+/**
+ * One entry in the statutory birth or death register.
+ * Distinct from `CertificateRequest`, which is a citizen *asking for a copy* of
+ * a certificate. This is the register itself: the event, its particulars, and
+ * the registrar's act of recording it. A `CertificateRequest` for a birth or
+ * death should resolve against a registered `VitalEvent` rather than carry
+ * loose `application_data`.
+ * Particulars live in `BirthDetail` / `DeathDetail` rather than as nullable
+ * columns here — the two forms share almost nothing beyond the event itself,
+ * and a single table would be two-thirds nulls whichever way it was filled.
+ */
+model VitalEvent {
+  id                  Int              @id @default(autoincrement())
+  tenant_id           String
+  org_unit_id         Int
+  event_type          VitalEventType
+  /// Allotted at registration, not at report — null until then.
+  registration_number String?          @unique
+  status              VitalEventStatus @default(REPORTED)
+
+  // ── The event ──
+  event_date    DateTime @db.Date
+  event_time    String? // "14:35" — recorded when known, often isn't
+  place_type    String // "hospital", "home", "institution", "vehicle", "public_place"
+  place_name    String?
+  place_address String?
+  latitude      Float?
+  longitude     Float?
+
+  // ── Reporting ──
+  reporting_source ReportingSource @default(SELF_REPORTED)
+  hospital_name    String?
+  hospital_reg_no  String?
+  reported_at      DateTime        @default(now())
+
+  // ── Informant (s.8/s.9 — the person legally bound to report) ──
+  informant_name     String
+  informant_relation String // "father", "mother", "husband", "wife", "son", "hospital_official", "other"
+  informant_phone    String?
+  informant_address  String?
+  informant_aadhaar  String? // Masked to last 4 by the service layer
+
+  // ── Late registration (s.13) ──
+  /// Reports later than 21 days after the event need written permission;
+  /// beyond a year, a magistrate's order. Computed at intake, never trusted
+  /// from the client.
+  is_late_registration Boolean @default(false)
+  delay_days           Int     @default(0)
+  delay_approval_ref   String?
+
+  // ── Registrar's act ──
+  registered_at    DateTime?
+  registered_by    Int?
+  rejection_reason String?
+  correction_note  String?
+
+  created_by Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  org_unit     OrgUnit            @relation(fields: [org_unit_id], references: [id])
+  birth        BirthDetail?
+  death        DeathDetail?
+  certificates VitalCertificate[]
+
+  @@index([tenant_id, org_unit_id, event_type, status])
+  @@index([tenant_id, event_date])
+  @@index([informant_phone])
+  @@map("vital_events")
+}
+
+/**
+ * Birth particulars — Form 1 of the Act.
+ */
+model BirthDetail {
+  id             Int      @id @default(autoincrement())
+  vital_event_id Int      @unique
+  /// Frequently blank at registration; parents have a year to supply it.
+  child_name     String?
+  sex            String // "male", "female", "transgender"
+  weight_kg      Decimal? @db.Decimal(4, 2)
+  delivery_type  String? // "normal", "caesarean", "forceps", "other"
+
+  father_name       String?
+  father_aadhaar    String?
+  father_education  String?
+  father_occupation String?
+
+  mother_name            String
+  mother_aadhaar         String?
+  mother_education       String?
+  mother_occupation      String?
+  mother_age_at_marriage Int?
+  mother_age_at_birth    Int?
+  birth_order            Int?
+
+  address_at_birth  String?
+  permanent_address String?
+
+  is_multiple_birth    Boolean @default(false)
+  multiple_birth_order Int?
+
+  event VitalEvent @relation(fields: [vital_event_id], references: [id], onDelete: Cascade)
+
+  @@index([child_name])
+  @@index([mother_name])
+  @@map("birth_details")
+}
+
+/**
+ * Death particulars — Form 2 of the Act.
+ */
+model DeathDetail {
+  id             Int    @id @default(autoincrement())
+  vital_event_id Int    @unique
+  deceased_name  String
+  sex            String // "male", "female", "transgender"
+
+  /// Age is recorded in whichever unit is meaningful — an infant death is
+  /// counted in days, not a rounded-down zero years.
+  age_years  Int?
+  age_months Int?
+  age_days   Int?
+
+  date_of_birth DateTime? @db.Date
+  father_name   String?
+  mother_name   String?
+  spouse_name   String?
+  occupation    String?
+  address       String?
+
+  cause_of_death      String?
+  cause_category      String? // "natural", "accident", "suicide", "homicide", "pending_investigation"
+  medically_certified Boolean @default(false)
+  certifying_doctor   String?
+  doctor_reg_no       String?
+
+  disposal_method String? // "burial", "cremation", "donation"
+  disposal_place  String?
+  disposal_date   DateTime? @db.Date
+
+  event VitalEvent @relation(fields: [vital_event_id], references: [id], onDelete: Cascade)
+
+  @@index([deceased_name])
+  @@map("death_details")
+}
+
+/**
+ * An issued certificate. Every copy is its own row — the register has to be
+ * able to say who was given a certificate, when, and for what purpose, and a
+ * reissue must not overwrite the record of the first one.
+ */
+model VitalCertificate {
+  id                 Int    @id @default(autoincrement())
+  vital_event_id     Int
+  certificate_number String @unique
+  /// Random token embedded in the printed QR code. Public verification looks
+  /// up on this, never on the sequential certificate number, so a valid
+  /// certificate can't be found by counting.
+  verification_token String @unique
+  copy_number        Int    @default(1)
+
+  issued_to          String
+  issued_to_relation String?
+  purpose            String?
+
+  fee_amount  Decimal @default(0) @db.Decimal(10, 2)
+  payment_ref String?
+
+  /// Hash over the certificate's material particulars at issue time. A
+  /// verifier can be shown that what's printed matches what was sealed.
+  seal_hash   String?
+  /// The generated PDF in the shared DMS, when one has been rendered.
+  document_id Int?
+
+  issued_by        Int?
+  issued_at        DateTime  @default(now())
+  is_cancelled     Boolean   @default(false)
+  cancelled_reason String?
+  cancelled_at     DateTime?
+
+  event VitalEvent @relation(fields: [vital_event_id], references: [id], onDelete: Cascade)
+
+  @@index([vital_event_id, copy_number])
+  @@map("vital_certificates")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  1C. SOLID WASTE MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Fill level of a public bin, as observed.
+ * Five bands rather than a raw percentage because that is what a sanitary
+ * worker can actually judge from a passing vehicle, and what the map legend
+ * shows: EMPTY/LOW render green, MEDIUM yellow, HIGH/OVERFLOWING red.
+ */
+enum BinFillLevel {
+  EMPTY
+  LOW
+  MEDIUM
+  HIGH
+  OVERFLOWING
+}
+
+enum BinStatus {
+  ACTIVE
+  DAMAGED
+  REMOVED
+  RELOCATED
+}
+
+enum TripStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LEAVE
+  HALF_DAY
+}
+
+/**
+ * A public bin or dumpster the body is responsible for emptying.
+ * Deliberately its own table rather than an `Asset` with
+ * `asset_type_code = "waste_bin"`: a bin's defining behaviour is a fill level
+ * that changes several times a day and drives an SLA, which is nothing like
+ * the install-and-inspect lifecycle `Asset` models. The zone link is shared
+ * with `Asset` so both appear on the same GIS layer.
+ */
+model WasteBin {
+  id          Int    @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+  bin_code    String @unique // BIN-000042, from NumberGenService
+
+  bin_type        String // "community", "litter", "segregated_wet", "segregated_dry", "compactor"
+  capacity_litres Int
+  /// Denormalised from the latest reading so the map can paint without a
+  /// per-pin subquery. `WasteBinReading` remains the source of truth.
+  fill_level      BinFillLevel @default(EMPTY)
+  fill_pct        Int          @default(0)
+  status          BinStatus    @default(ACTIVE)
+
+  // Location
+  latitude    Float
+  longitude   Float
+  zone_id     Int?
+  ward_number String?
+  landmark    String?
+
+  installed_at    DateTime?
+  last_emptied_at DateTime?
+  last_read_at    DateTime?
+
+  created_by Int?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  org_unit OrgUnit               @relation(fields: [org_unit_id], references: [id])
+  zone     Zone?                 @relation(fields: [zone_id], references: [id])
+  readings WasteBinReading[]
+  stops    CollectionRouteStop[]
+
+  @@index([tenant_id, org_unit_id, status])
+  @@index([tenant_id, org_unit_id, fill_level])
+  @@index([zone_id])
+  @@map("waste_bins")
+}
+
+/**
+ * One observation of a bin's fill level. Append-only — the history is what
+ * tells a supervisor whether a bin is under-sized or its route is too
+ * infrequent, so readings are never updated in place.
+ */
+model WasteBinReading {
+  id          Int          @id @default(autoincrement())
+  bin_id      Int
+  fill_level  BinFillLevel
+  fill_pct    Int
+  /// True when this reading recorded the bin being emptied, not just observed.
+  emptied     Boolean      @default(false)
+  photo_url   String?
+  remarks     String?
+  latitude    Float?
+  longitude   Float?
+  recorded_by Int?
+  recorded_at DateTime     @default(now())
+
+  bin WasteBin @relation(fields: [bin_id], references: [id], onDelete: Cascade)
+
+  @@index([bin_id, recorded_at])
+  @@map("waste_bin_readings")
+}
+
+/**
+ * A named door-to-door collection round — the plan, not a particular day's run.
+ */
+model CollectionRoute {
+  id          Int    @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+  name        String
+  route_code  String @unique
+
+  zone_id      Int?
+  ward_number  String?
+  /// 1=Mon … 7=Sun. A route that runs alternate days simply lists those days.
+  service_days Int[]   @default([1, 2, 3, 4, 5, 6])
+  shift        String  @default("morning") // morning, afternoon, night
+
+  /// Default crew and vehicle; a trip may override either.
+  default_vehicle_asset_id Int?
+  household_count          Int?
+  distance_km              Decimal? @db.Decimal(6, 2)
+
+  is_active  Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  org_unit OrgUnit               @relation(fields: [org_unit_id], references: [id])
+  zone     Zone?                 @relation(fields: [zone_id], references: [id])
+  stops    CollectionRouteStop[]
+  trips    CollectionTrip[]
+
+  @@index([tenant_id, org_unit_id, is_active])
+  @@map("collection_routes")
+}
+
+/**
+ * An ordered stop on a route. A stop is either a public bin or a plain
+ * door-to-door point that has no bin of its own.
+ */
+model CollectionRouteStop {
+  id              Int    @id @default(autoincrement())
+  route_id        Int
+  seq             Int
+  bin_id          Int?
+  label           String // "Anna Nagar 3rd Street — north end"
+  latitude        Float?
+  longitude       Float?
+  household_count Int?
+
+  route  CollectionRoute      @relation(fields: [route_id], references: [id], onDelete: Cascade)
+  bin    WasteBin?            @relation(fields: [bin_id], references: [id])
+  visits CollectionTripStop[]
+
+  @@unique([route_id, seq])
+  @@index([bin_id])
+  @@map("collection_route_stops")
+}
+
+/**
+ * One day's run of a route — the vehicle log entry.
+ */
+model CollectionTrip {
+  id          Int    @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+  route_id    Int
+  trip_number String @unique // TRIP-2026-000042
+
+  trip_date DateTime   @db.Date
+  /// A route that runs twice a day produces two trips on the same date, so
+  /// the shift is part of what makes a trip unique.
+  shift     String     @default("morning")
+  status    TripStatus @default(PLANNED)
+
+  vehicle_asset_id Int?
+  vehicle_number   String? // Denormalised for the log, vehicles get replaced
+  driver_user_id   Int?
+  crew_size        Int?
+
+  started_at DateTime?
+  ended_at   DateTime?
+
+  /// Filled from the weighbridge at the transfer station.
+  waste_collected_kg Decimal? @db.Decimal(10, 2)
+  segregated_wet_kg  Decimal? @db.Decimal(10, 2)
+  segregated_dry_kg  Decimal? @db.Decimal(10, 2)
+  odometer_start_km  Int?
+  odometer_end_km    Int?
+
+  /// Cached progress so the board renders without counting stops per row.
+  stops_total     Int @default(0)
+  stops_completed Int @default(0)
+
+  abandon_reason String?
+  remarks        String?
+  created_by     Int?
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  org_unit OrgUnit              @relation(fields: [org_unit_id], references: [id])
+  route    CollectionRoute      @relation(fields: [route_id], references: [id])
+  stops    CollectionTripStop[]
+
+  @@unique([route_id, trip_date, shift])
+  @@index([tenant_id, org_unit_id, trip_date])
+  @@index([status, trip_date])
+  @@map("collection_trips")
+}
+
+/**
+ * Completion of a single stop on a trip, with the GPS fix that proves the
+ * vehicle was actually there.
+ */
+model CollectionTripStop {
+  id            Int @id @default(autoincrement())
+  trip_id       Int
+  route_stop_id Int
+  seq           Int
+
+  completed      Boolean   @default(false)
+  skipped        Boolean   @default(false)
+  skip_reason    String?
+  latitude       Float?
+  longitude      Float?
+  gps_accuracy_m Float?
+  photo_url      String?
+  completed_at   DateTime?
+
+  trip       CollectionTrip      @relation(fields: [trip_id], references: [id], onDelete: Cascade)
+  route_stop CollectionRouteStop @relation(fields: [route_stop_id], references: [id])
+
+  @@unique([trip_id, route_stop_id])
+  @@index([trip_id, seq])
+  @@map("collection_trip_stops")
+}
+
+/**
+ * Daily attendance for sanitation staff.
+ * Separate from any general HR attendance because sanitation runs shifts that
+ * start before the office calendar does, and the count that matters to a
+ * sanitary inspector is "how many workers do I have on this route this
+ * morning", not a monthly total.
+ */
+model SanitationAttendance {
+  id          Int    @id @default(autoincrement())
+  tenant_id   String
+  org_unit_id Int
+
+  employee_id  Int?
+  /// Many sanitation workers are engaged on contract and have no Employee row.
+  worker_name  String
+  worker_phone String?
+  is_contract  Boolean @default(false)
+
+  attendance_date DateTime         @db.Date
+  shift           String           @default("morning")
+  status          AttendanceStatus @default(PRESENT)
+  route_id        Int?
+
+  check_in_at  DateTime?
+  check_out_at DateTime?
+  check_in_lat Float?
+  check_in_lng Float?
+
+  remarks     String?
+  recorded_by Int?
+  created_at  DateTime @default(now())
+
+  org_unit OrgUnit   @relation(fields: [org_unit_id], references: [id])
+  employee Employee? @relation(fields: [employee_id], references: [id])
+
+  @@unique([org_unit_id, worker_name, attendance_date, shift])
+  @@index([tenant_id, org_unit_id, attendance_date])
+  @@index([employee_id, attendance_date])
+  @@map("sanitation_attendance")
+}
+
+// ─────────────────────────────────────────────────────────────────────
+//  1D. TRADE LICENCE & RENEWAL
+// ─────────────────────────────────────────────────────────────────────
+
+/**
+ * Where a licence sits in its lifecycle.
+ * `APPROVED` is the live state and the one a renewal returns it to.
+ * `EXPIRED` is reached by the passage of time, not by an officer's act — the
+ * nightly sweep sets it. `SUSPENDED` is an enforcement action a licence can
+ * come back from; `CANCELLED` is terminal.
+ */
+enum TradeLicenceStatus {
+  DRAFT
+  SUBMITTED
+  INSPECTION
+  APPROVED
+  REJECTED
+  EXPIRED
+  SUSPENDED
+  CANCELLED
+}
+
+/**
+ * Legal form of the applicant — determines who may sign.
+ */
+enum OwnershipType {
+  PROPRIETOR
+  PARTNERSHIP
+  PRIVATE_LIMITED
+  PUBLIC_LIMITED
+  SOCIETY
+  TRUST
+  COOPERATIVE
+}
+
+/**
+ * A licence to carry on a trade within the body's limits.
+ * The licence year runs with the financial year (1 April – 31 March) whatever
+ * the grant date, so `valid_until` is derived from the year end rather than a
+ * rolling twelve months. `licence_year` is stored denormalised ("2026-27")
+ * because every renewal report groups on it.
+ */
+model TradeLicence {
+  id             Int                @id @default(autoincrement())
+  tenant_id      String
+  org_unit_id    Int
+  licence_number String             @unique // TL/2026-27/000042
+  status         TradeLicenceStatus @default(DRAFT)
+
+  // ── The trade ──
+  trade_name         String
+  trade_category     String // "eatery", "provision_store", "workshop", ...
+  trade_sub_category String?
+  description        String?
+  /// Motive power in horsepower. A workshop above a threshold is a different
+  /// fee band and, for some categories, a different approving authority.
+  motive_power_hp    Decimal? @db.Decimal(8, 2)
+  worker_count       Int?
+  operating_hours    String? // "06:00-22:00"
+
+  // ── Applicant ──
+  owner_name     String
+  ownership_type OwnershipType @default(PROPRIETOR)
+  signatory_name String? // When the applicant is not the proprietor
+  owner_phone    String?
+  owner_email    String?
+  owner_address  String?
+  owner_aadhaar  String? // Masked to last 4 by the service layer
+
+  // ── Premises ──
+  door_number        String?
+  street_name        String?
+  ward_number        String?
+  survey_number      String?
+  area_sqft          Decimal @db.Decimal(10, 2)
+  is_rented          Boolean @default(false)
+  landlord_name      String?
+  rent_agreement_ref String?
+  latitude           Float?
+  longitude          Float?
+
+  // ── Statutory references held by the trade, not issued here ──
+  fssai_number             String?
+  fssai_expiry             DateTime? @db.Date
+  gst_number               String?
+  fire_noc_ref             String?
+  fire_noc_expiry          DateTime? @db.Date
+  pollution_consent_ref    String?
+  pollution_consent_expiry DateTime? @db.Date
+
+  // ── Current licence year ──
+  /// Financial year this licence is currently valid for, e.g. "2026-27".
+  licence_year String?
+  valid_from   DateTime? @db.Date
+  valid_until  DateTime? @db.Date
+
+  // ── Fees for the current year ──
+  base_fee       Decimal   @default(0) @db.Decimal(12, 2)
+  area_fee       Decimal   @default(0) @db.Decimal(12, 2)
+  power_fee      Decimal   @default(0) @db.Decimal(12, 2)
+  penalty_fee    Decimal   @default(0) @db.Decimal(12, 2)
+  total_fee      Decimal   @default(0) @db.Decimal(12, 2)
+  paid_amount    Decimal   @default(0) @db.Decimal(12, 2)
+  payment_status String    @default("unpaid") // unpaid, partial, paid
+  payment_ref    String?
+  paid_at        DateTime?
+
+  // ── Decisions ──
+  approved_by       Int?
+  approved_at       DateTime?
+  rejection_reason  String?
+  suspension_reason String?
+  suspended_at      DateTime?
+  cancelled_reason  String?
+  cancelled_at      DateTime?
+
+  submitted_at DateTime?
+  created_by   Int?
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  org_unit     OrgUnit                   @relation(fields: [org_unit_id], references: [id])
+  renewals     TradeLicenceRenewal[]
+  inspections  TradeLicenceInspection[]
+  certificates TradeLicenceCertificate[]
+
+  @@index([tenant_id, org_unit_id, status])
+  @@index([tenant_id, org_unit_id, valid_until])
+  @@index([tenant_id, trade_category])
+  @@index([owner_phone])
+  @@map("trade_licences")
+}
+
+/**
+ * One licence year in the chain.
+ * A row is written for the first grant as well as every renewal, so the
+ * register can show a continuous history rather than only the current year —
+ * "was this shop licensed in 2024-25?" has to be answerable.
+ */
+model TradeLicenceRenewal {
+  id           Int    @id @default(autoincrement())
+  licence_id   Int
+  licence_year String // "2026-27"
+
+  valid_from  DateTime @db.Date
+  valid_until DateTime @db.Date
+
+  /// Days past the 31 March deadline this renewal was applied for. Zero on an
+  /// on-time renewal and on the original grant.
+  days_late    Int    @default(0)
+  penalty_band String @default("ontime") // ontime, late_30, late_90, lapsed
+
+  base_fee    Decimal @default(0) @db.Decimal(12, 2)
+  area_fee    Decimal @default(0) @db.Decimal(12, 2)
+  power_fee   Decimal @default(0) @db.Decimal(12, 2)
+  penalty_fee Decimal @default(0) @db.Decimal(12, 2)
+  total_fee   Decimal @default(0) @db.Decimal(12, 2)
+  paid_amount Decimal @default(0) @db.Decimal(12, 2)
+  payment_ref String?
+
+  /// True for the row created when the licence was first granted.
+  is_initial_grant Boolean @default(false)
+
+  renewed_by Int?
+  renewed_at DateTime @default(now())
+
+  licence TradeLicence @relation(fields: [licence_id], references: [id], onDelete: Cascade)
+
+  @@unique([licence_id, licence_year])
+  @@index([licence_year])
+  @@map("trade_licence_renewals")
+}
+
+/**
+ * A premises inspection against a licence — before first grant, and annually
+ * for categories that require it.
+ */
+model TradeLicenceInspection {
+  id                Int      @id @default(autoincrement())
+  licence_id        Int
+  inspection_type   String // "pre_licence", "annual", "complaint_driven", "re_inspection"
+  scheduled_for     DateTime
+  inspector_user_id Int?
+  status            String   @default("scheduled") // scheduled, completed, cancelled
+
+  is_compliant Boolean?
+  findings     String?
+  violations   String[]  @default([])
+  latitude     Float?
+  longitude    Float?
+  photos       Json?
+  inspected_at DateTime?
+  created_at   DateTime  @default(now())
+
+  licence TradeLicence @relation(fields: [licence_id], references: [id], onDelete: Cascade)
+
+  @@index([licence_id, status])
+  @@index([inspector_user_id, scheduled_for])
+  @@map("trade_licence_inspections")
+}
+
+/**
+ * The printed licence for a given year. Reissues get their own row so the
+ * register records every document that went out, and each carries its own
+ * public verification token.
+ */
+model TradeLicenceCertificate {
+  id                 Int    @id @default(autoincrement())
+  licence_id         Int
+  licence_year       String
+  certificate_number String @unique
+  /// Random token behind the QR printed on the licence displayed in the shop.
+  verification_token String @unique
+  copy_number        Int    @default(1)
+
+  seal_hash   String?
+  document_id Int?
+
+  issued_by        Int?
+  issued_at        DateTime  @default(now())
+  is_cancelled     Boolean   @default(false)
+  cancelled_reason String?
+  cancelled_at     DateTime?
+
+  licence TradeLicence @relation(fields: [licence_id], references: [id], onDelete: Cascade)
+
+  @@index([licence_id, licence_year])
+  @@map("trade_licence_certificates")
 }

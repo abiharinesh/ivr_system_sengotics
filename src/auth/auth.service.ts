@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { RbacService } from '../core/rbac/rbac.service';
 
 @Injectable()
 export class AuthService {
@@ -13,6 +14,7 @@ export class AuthService {
     private prisma: PrismaService,
     private jwtService: JwtService,
     private whatsAppService: WhatsAppService,
+    private rbac: RbacService,
   ) {}
 
   async login(email: string, password: string) {
@@ -83,6 +85,9 @@ export class AuthService {
       role: user.role,
       org_unit_id: user.primary_org_unit_id,
       user_type: user.user_type,
+      // A provisioned account with a known temporary password is not a usable
+      // account; the client routes to a change-password screen on this flag.
+      must_change_password: user.must_change_password ?? false,
       org_unit,
     };
   }
@@ -217,6 +222,9 @@ export class AuthService {
       role: user.role,
       org_unit_id: user.primary_org_unit_id,
       user_type: user.user_type,
+      // A provisioned account with a known temporary password is not a usable
+      // account; the client routes to a change-password screen on this flag.
+      must_change_password: user.must_change_password ?? false,
       org_unit,
     };
   }
@@ -283,7 +291,7 @@ export class AuthService {
     }
 
     // Get RBAC roles and permissions
-    const { rbacRoles, permissions } = await this.resolveUserRbac(user.id);
+    const { rbacRoles, permissions, screens } = await this.resolveUserRbac(user.id);
 
     // Access scope comes from the user's primary UserRole assignment
     let accessScope = 'own_org_unit';
@@ -312,78 +320,60 @@ export class AuthService {
       // RBAC fields
       rbac_roles: rbacRoles,
       permissions: permissions,
+      // Screen keys the sidebar may render. Carried on the token so navigation
+      // needs no extra round trip; a change in the admin console takes effect
+      // on the user's next login or context switch.
+      screens: screens,
     };
   }
 
   /**
-   * Resolves all RBAC roles and flattened permissions for a user.
-   * Returns empty arrays if RBAC tables don't exist yet.
+   * Resolves RBAC roles, permissions and visible screens for a user.
+   *
+   * Delegates to {@link RbacService}, which is the single place that walks the
+   * role graph. It previously read permissions out of the
+   * `PermissionGroup.permissions` JSON blob; grants now live in
+   * `role_permissions` rows and screen visibility in `role_screen_access`, so
+   * the admin console can edit one role without touching every other role that
+   * happened to share a group.
+   *
+   * Still non-throwing: a database that has not had the RBAC migration applied
+   * yet must not make login fail.
    */
   private async resolveUserRbac(userId: number): Promise<{
     rbacRoles: Array<{ id: number; name: string; org_unit_id: number | null; is_super_admin: boolean }>;
     permissions: string[];
+    screens: string[];
   }> {
     try {
-      // 1. Get active user role assignments
-      const userRoles = await this.prisma.userRole.findMany({
-        where: {
-          user_id: userId,
-          valid_from: { lte: new Date() },
-          OR: [
-            { valid_until: null },
-            { valid_until: { gte: new Date() } },
-          ],
-        },
+      const ent = await this.rbac.entitlementsFor(userId);
+
+      // Org unit per role still comes from the assignment rows.
+      const assignments = await this.prisma.userRole.findMany({
+        where: { user_id: userId },
+        select: { role_id: true, org_unit_id: true },
       });
 
-      if (userRoles.length === 0) {
-        return { rbacRoles: [], permissions: [] };
-      }
+      const rbacRoles = ent.roles.map((r) => ({
+        id: r.id,
+        name: r.name,
+        org_unit_id:
+          assignments.find((a) => a.role_id === r.id)?.org_unit_id ?? null,
+        is_super_admin: r.is_super_admin,
+      }));
 
-      // 2. Get role details
-      const roleIds = userRoles.map((ur) => ur.role_id);
-      const roles = await this.prisma.role.findMany({
-        where: { id: { in: roleIds }, is_active: true },
-        select: { id: true, name: true, permission_group_id: true, is_super_admin: true },
-      });
+      // A super admin's menu follows the screen registry rather than a grant
+      // list, so a newly shipped module appears without anyone ticking a box.
+      const screens = ent.isSuperAdmin
+        ? await this.rbac.platformScreens()
+        : ent.screens;
 
-      const rbacRoles = roles.map((r) => {
-        const userRole = userRoles.find((ur) => ur.role_id === r.id);
-        return {
-          id: r.id,
-          name: r.name,
-          org_unit_id: userRole?.org_unit_id ?? null,
-          is_super_admin: r.is_super_admin,
-        };
-      });
-
-      // 3. Get permission groups and flatten permissions
-      const groupIds = roles
-        .map((r) => r.permission_group_id)
-        .filter((id): id is number => id !== null);
-
-      if (groupIds.length === 0) {
-        return { rbacRoles, permissions: [] };
-      }
-
-      const groups = await this.prisma.permissionGroup.findMany({
-        where: { id: { in: groupIds } },
-        select: { permissions: true },
-      });
-
-      const permissionSet = new Set<string>();
-      for (const group of groups) {
-        const perms = group.permissions as string[];
-        if (Array.isArray(perms)) {
-          perms.forEach((p) => permissionSet.add(p));
-        }
-      }
-
-      return { rbacRoles, permissions: Array.from(permissionSet) };
+      return { rbacRoles, permissions: ent.permissions, screens };
     } catch (error) {
-      // RBAC tables may not exist yet (pre-migration) — return empty
-      this.logger.debug(`RBAC resolution skipped (tables may not exist): ${(error as Error).message}`);
-      return { rbacRoles: [], permissions: [] };
+      this.logger.debug(
+        `RBAC resolution skipped (tables may not exist): ${(error as Error).message}`,
+      );
+      return { rbacRoles: [], permissions: [], screens: [] };
     }
   }
 }

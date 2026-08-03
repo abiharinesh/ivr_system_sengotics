@@ -13,6 +13,27 @@ export type MunicipalityFeature =
   | 'cemetery_mgmt'
   | 'encroachment_mgmt';
 
+/**
+ * Mirrors the `BranchFeatureConfig` column defaults, for branches provisioned
+ * before a module existed and so having no row for it.
+ *
+ * Keep in step with the schema: a module with a working implementation
+ * defaults to `true` so enforcing the gate never takes a live feature away,
+ * and everything still unbuilt stays `false`.
+ */
+export const FEATURE_DEFAULTS: Record<MunicipalityFeature, boolean> = {
+  solid_waste_mgmt: true,
+  building_permit: true,
+  birth_death_reg: true,
+  drainage_mgmt: false,
+  road_mgmt: false,
+  parks_mgmt: false,
+  public_health: false,
+  vehicle_fleet_mgmt: false,
+  cemetery_mgmt: false,
+  encroachment_mgmt: false,
+};
+
 @Injectable()
 export class MunicipalityService {
   constructor(private prisma: PrismaService) {}
@@ -25,7 +46,11 @@ export class MunicipalityService {
       where: { org_unit_id: orgUnitId },
     });
 
-    if (!config || !config[feature]) {
+    // No row means the branch predates this module, not that it was refused —
+    // fall back to the schema default rather than denying. See FEATURE_DEFAULTS.
+    const enabled = config ? Boolean(config[feature]) : FEATURE_DEFAULTS[feature];
+
+    if (!enabled) {
       throw new ForbiddenException(
         `Feature "${feature}" is currently disabled for branch ID ${orgUnitId}. Contact Super Admin for provisioning.`,
       );

@@ -1088,10 +1088,10 @@ export class SuperAdminService {
     const [stats, phase1Pending, phase1Failed, phase2Pending, phase2Failed] =
       await Promise.all([
         this.getStats(),
-        this.prisma.callState.count({ where: { phase1_status: 'pending' } }),
-        this.prisma.callState.count({ where: { phase1_status: 'failed' } }),
-        this.prisma.callState.count({ where: { phase2_status: 'pending' } }),
-        this.prisma.callState.count({ where: { phase2_status: 'failed' } }),
+        this.prisma.ivrCallState.count({ where: { phase1_status: 'pending' } }),
+        this.prisma.ivrCallState.count({ where: { phase1_status: 'failed' } }),
+        this.prisma.ivrCallState.count({ where: { phase2_status: 'pending' } }),
+        this.prisma.ivrCallState.count({ where: { phase2_status: 'failed' } }),
       ]);
 
     return {

@@ -862,7 +862,7 @@ export class SuperAdminController {
   ) {
     try {
       const pid = await this.getTenderPanchayatId(id);
-      const doc = await this.prisma.tenderDocument.findUnique({
+      const doc = await this.prisma.tenderDocumentJob.findUnique({
         where: { id: docId },
       });
       const tender = await this.prisma.tender.findUnique({

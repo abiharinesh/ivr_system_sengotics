@@ -76,6 +76,10 @@ class UserModel extends Equatable {
   final String accessScope;
   final List<String> permissions;
 
+  /// Screen keys this user may see in the sidebar, resolved server-side from
+  /// their role grants. Empty means "server did not say" — see [canSeeScreen].
+  final List<String> screens;
+
   const UserModel({
     required this.id,
     required this.email,
@@ -105,6 +109,7 @@ class UserModel extends Equatable {
     this.roleAssignments = const [],
     this.accessScope = 'own_org_unit',
     this.permissions = const [],
+    this.screens = const [],
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -123,6 +128,7 @@ class UserModel extends Equatable {
           const [],
       accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
       permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
+      screens: (json['screens'] as List<dynamic>?)?.cast<String>() ?? const [],
       orgUnitName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
       softwareNameTa: panchayat?['software_name_ta'] as String?,
@@ -178,6 +184,27 @@ class UserModel extends Equatable {
       roleAssignments.isEmpty ? null : roleAssignments.first;
 
   bool hasPermission(String code) => permissions.contains(code);
+
+  /// Whether a sidebar destination should be rendered for this user.
+  ///
+  /// A super admin sees everything. Otherwise the answer is the server's
+  /// `screens` list — which is what makes the super admin console's toggles
+  /// take effect, instead of the sidebar being decided by a hardcoded map of
+  /// role-name strings that no administrator can reach.
+  ///
+  /// An **empty** list is treated as "the server did not tell us", not "this
+  /// user may see nothing": a token issued before this field existed, or a
+  /// database without the RBAC migration applied, must not lock a legitimate
+  /// user out of their own menu. Once the server sends any screens at all, the
+  /// list is authoritative.
+  bool canSeeScreen(String key) {
+    if (isSuperAdmin) return true;
+    if (screens.isEmpty) return true;
+    return screens.contains(key);
+  }
+
+  /// True when the server has actually resolved entitlements for this session.
+  bool get hasResolvedScreens => isSuperAdmin || screens.isNotEmpty;
 
   bool get isSuperAdmin =>
       role == 'super_admin' || roleAssignments.any((r) => r.isSuperAdmin);
@@ -321,6 +348,7 @@ class AuthResponse {
         'rbac_roles': payload['rbac_roles'],
         'access_scope': payload['access_scope'],
         'permissions': payload['permissions'],
+        'screens': payload['screens'],
       }),
     );
   }
