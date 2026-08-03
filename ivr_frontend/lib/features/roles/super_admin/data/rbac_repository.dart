@@ -1,5 +1,6 @@
 import 'package:ivr_frontend/core/api/api_client.dart';
 
+import 'models/rbac_analytics.dart';
 import 'models/rbac_models.dart';
 
 /// Thin wrapper over `/api/rbac`, the API behind the role management console.
@@ -20,6 +21,13 @@ class RbacRepository {
   Future<RbacSummary> getSummary({bool forceRefresh = false}) async {
     final data = await _api.get('$_base/summary', forceRefresh: forceRefresh);
     return RbacSummary.fromJson(Map<String, dynamic>.from(data as Map));
+  }
+
+  /// The coverage matrix, reach figures, hierarchy, geography and findings
+  /// behind the console's insight views.
+  Future<RbacAnalytics> getAnalytics({bool forceRefresh = false}) async {
+    final data = await _api.get('$_base/analytics', forceRefresh: forceRefresh);
+    return RbacAnalytics.fromJson(Map<String, dynamic>.from(data as Map));
   }
 
   Future<ScreenCatalogue> listScreens({bool forceRefresh = false}) async {

@@ -17,6 +17,7 @@ import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RbacAdminService } from './rbac-admin.service';
+import { RbacAnalyticsService } from './rbac-analytics.service';
 import { RbacService } from './rbac.service';
 
 interface AuthReq {
@@ -43,6 +44,7 @@ export class RbacController {
   constructor(
     private readonly admin: RbacAdminService,
     private readonly rbac: RbacService,
+    private readonly analytics: RbacAnalyticsService,
   ) {}
 
   // ── Catalogue ─────────────────────────────────────────────────────────────
@@ -51,6 +53,19 @@ export class RbacController {
   @Get('summary')
   summary(@Req() req: AuthReq) {
     return this.admin.summary(req.user.tenant_id);
+  }
+
+  /**
+   * GET /api/rbac/analytics
+   *
+   * Everything the console's insight views draw: the role × screen-group
+   * coverage matrix, per-screen reach, permission distribution, the hierarchy,
+   * geographic deployment across branches, near-duplicate roles, findings that
+   * need action, and the 30-day change history.
+   */
+  @Get('analytics')
+  analyticsOverview(@Req() req: AuthReq) {
+    return this.analytics.overview(req.user.tenant_id);
   }
 
   /** GET /api/rbac/screens — the tickable screen catalogue, grouped. */

@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/panchayat_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/user_bloc.dart';
-import 'package:ivr_frontend/features/roles/super_admin/data/models/rbac_models.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/models/rbac_analytics.dart';
 import 'package:ivr_frontend/features/roles/super_admin/data/rbac_repository.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/user_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/branch_modules_pane.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_geography_pane.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_matrix_pane.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_overview_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/role_access_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/role_members_pane.dart';
 
@@ -22,7 +26,11 @@ import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rol
 /// 3. the person holds that role at that branch (People)
 /// 4. their account is active                 (Accounts)
 ///
-/// Ordered that way on purpose — it is the order you check them in.
+/// The three views in front of those — Overview, Matrix, Geography — exist
+/// because the editing panes can only ever answer questions about one role at
+/// a time. "Which screens can nobody open", "which branch is understaffed" and
+/// "which two roles have drifted apart" are questions about the whole grant
+/// set, and they were previously unanswerable without reading the database.
 class RoleManagementConsole extends StatefulWidget {
   const RoleManagementConsole({super.key, this.initialUserId});
 
@@ -34,85 +42,200 @@ class RoleManagementConsole extends StatefulWidget {
   State<RoleManagementConsole> createState() => _RoleManagementConsoleState();
 }
 
-class _RoleManagementConsoleState extends State<RoleManagementConsole> {
+class _RoleManagementConsoleState extends State<RoleManagementConsole>
+    with SingleTickerProviderStateMixin {
   final _repo = RbacRepository();
-  RbacSummary _summary = RbacSummary.empty;
-  bool _summaryLoaded = false;
+
+  late final TabController _tabs;
+  RbacAnalytics _analytics = RbacAnalytics.empty;
+  bool _loading = true;
+  String? _error;
+
+  /// Tab indices, named so the cross-links between views don't drift.
+  static const int _tabOverview = 0;
+  static const int _tabMatrix = 1;
+  static const int _tabGeography = 2;
+  static const int _tabAccess = 3;
+  static const int _tabPeople = 4;
 
   @override
   void initState() {
     super.initState();
-    _loadSummary();
-  }
-
-  Future<void> _loadSummary() async {
-    try {
-      final s = await _repo.getSummary(forceRefresh: true);
-      if (!mounted) return;
-      setState(() {
-        _summary = s;
-        _summaryLoaded = true;
-      });
-    } catch (_) {
-      // The counters are context, not the point of the screen. The panes below
-      // surface their own failures.
-      if (!mounted) return;
-      setState(() => _summaryLoaded = true);
-    }
+    _tabs = TabController(
+      length: 7,
+      vsync: this,
+      // A deep link to one person's assignments should land on People, not on
+      // the analytics they didn't ask for.
+      initialIndex: widget.initialUserId == null ? _tabOverview : _tabPeople,
+    );
+    _load();
   }
 
   @override
+  void dispose() {
+    _tabs.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final a = await _repo.getAnalytics(forceRefresh: true);
+      if (!mounted) return;
+      setState(() {
+        _analytics = a;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _loading = false;
+      });
+    }
+  }
+
+  /// Jump to the role editor with a role selected. Called from the pills and
+  /// matrix rows in the analytics views.
+  void _openRole(int roleId) {
+    setState(() => _pendingRoleId = roleId);
+    _tabs.animateTo(_tabAccess);
+  }
+
+  int? _pendingRoleId;
+
+  @override
   Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 4,
-      initialIndex: widget.initialUserId == null ? 0 : 1,
-      child: Scaffold(
-        backgroundColor: AppTheme.bgDark,
-        appBar: AppBar(
-          backgroundColor: AppTheme.bgCard,
-          title: const Text('Role management'),
-          actions: [
-            IconButton(
-              tooltip: 'Reload',
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: _loadSummary,
-            ),
-            const SizedBox(width: 8),
-          ],
-          bottom: const TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            tabs: [
-              Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
-              Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
-              Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
-              Tab(icon: Icon(Icons.tune_rounded), text: 'Branch modules'),
-            ],
-          ),
-        ),
-        body: Column(
-          children: [
-            _buildSummaryStrip(),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  RoleAccessPane(onChanged: _loadSummary),
-                  RoleMembersPane(
-                    onChanged: _loadSummary,
-                    initialUserId: widget.initialUserId,
-                  ),
-                  _buildAccountsTab(),
-                  const BranchModulesPane(),
-                ],
+    return Scaffold(
+      backgroundColor: AppTheme.bgDark,
+      appBar: AppBar(
+        backgroundColor: AppTheme.bgCard,
+        title: const Text('Role management'),
+        actions: [
+          if (_analytics.generatedAt != null)
+            Padding(
+              padding: const EdgeInsets.only(right: 4),
+              child: Center(
+                child: Text(
+                  'as of ${DateFormat('h:mm a').format(_analytics.generatedAt!.toLocal())}',
+                  style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                ),
               ),
             ),
+          IconButton(
+            tooltip: 'Reload',
+            icon: _loading
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh_rounded),
+            onPressed: _loading ? null : _load,
+          ),
+          const SizedBox(width: 8),
+        ],
+        bottom: TabBar(
+          controller: _tabs,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
+          tabs: const [
+            Tab(icon: Icon(Icons.insights_rounded), text: 'Overview'),
+            Tab(icon: Icon(Icons.grid_on_rounded), text: 'Access matrix'),
+            Tab(icon: Icon(Icons.public_rounded), text: 'Geography'),
+            Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
+            Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
+            Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
+            Tab(icon: Icon(Icons.tune_rounded), text: 'Branch modules'),
           ],
         ),
+      ),
+      body: Column(
+        children: [
+          _summaryStrip(),
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              children: [
+                _analyticsHost(
+                  RbacOverviewPane(
+                    analytics: _analytics,
+                    onOpenRole: _openRole,
+                    onOpenMatrix: () => _tabs.animateTo(_tabMatrix),
+                    onOpenGeography: () => _tabs.animateTo(_tabGeography),
+                  ),
+                ),
+                _analyticsHost(
+                  RbacMatrixPane(analytics: _analytics, onOpenRole: _openRole),
+                ),
+                _analyticsHost(RbacGeographyPane(analytics: _analytics)),
+                RoleAccessPane(
+                  onChanged: _load,
+                  initialRoleId: _pendingRoleId,
+                ),
+                RoleMembersPane(
+                  onChanged: _load,
+                  initialUserId: widget.initialUserId,
+                ),
+                _accountsTab(),
+                const BranchModulesPane(),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildAccountsTab() {
+  /// Wraps an analytics view with the loading and failure states it shares.
+  /// The editing panes below load independently, so a failure here must not
+  /// take out the whole console.
+  Widget _analyticsHost(Widget child) {
+    if (_loading && _analytics.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_error != null && _analytics.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline_rounded,
+                  size: 40, color: AppTheme.error),
+              const SizedBox(height: 12),
+              Text(
+                'Could not load access analytics',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _error!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: _load,
+                icon: const Icon(Icons.refresh_rounded, size: 18),
+                label: const Text('Try again'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    return RefreshIndicator(onRefresh: _load, child: child);
+  }
+
+  Widget _accountsTab() {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => UserMgmtBloc()..add(LoadUsers())),
@@ -122,8 +245,11 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole> {
     );
   }
 
-  Widget _buildSummaryStrip() {
-    if (!_summaryLoaded) return const SizedBox(height: 1);
+  Widget _summaryStrip() {
+    if (_analytics.isEmpty) return const SizedBox(height: 1);
+    final t = _analytics.totals;
+    final unreachable =
+        _analytics.screenReach.where((s) => s.isUnreachable).length;
 
     return Container(
       width: double.infinity,
@@ -136,25 +262,34 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole> {
         scrollDirection: Axis.horizontal,
         child: Row(
           children: [
-            _counter('Roles', _summary.roles, Icons.badge_rounded),
-            _counter('Screens', _summary.screens, Icons.view_sidebar_rounded),
-            _counter('Assignments', _summary.assignments, Icons.link_rounded),
-            // Both of these are states a person is stuck in rather than
-            // statistics, so they are called out rather than merely counted.
+            _counter('Roles', t.roles, Icons.badge_rounded),
+            _counter('Screens', t.screens, Icons.view_sidebar_rounded),
+            _counter('Assignments', t.assignments, Icons.link_rounded),
+            _counter('Branches', t.branches, Icons.account_balance_rounded),
+            // These are states somebody is stuck in rather than statistics, so
+            // they are called out rather than merely counted.
             _counter(
               'No role',
-              _summary.usersWithoutRole,
+              t.usersWithoutRole,
               Icons.person_off_rounded,
-              alert: _summary.usersWithoutRole > 0,
+              alert: t.usersWithoutRole > 0,
               tooltip: 'Users with no role at all — they sign in to an empty '
                   'menu and cannot work.',
             ),
             _counter(
               'Password not set',
-              _summary.usersPendingPasswordChange,
+              t.usersPendingPasswordChange,
               Icons.key_off_rounded,
-              alert: _summary.usersPendingPasswordChange > 0,
+              alert: t.usersPendingPasswordChange > 0,
               tooltip: 'Users who have not yet changed their issued password.',
+            ),
+            _counter(
+              'Unreachable screens',
+              unreachable,
+              Icons.block_rounded,
+              alert: unreachable > 0,
+              tooltip: 'Screens that no role has been granted — nobody in the '
+                  'organisation can open them.',
             ),
           ],
         ),
@@ -174,9 +309,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole> {
       margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: alert
-            ? AppTheme.warning.withValues(alpha: 0.1)
-            : AppTheme.bgDark,
+        color: alert ? AppTheme.warning.withValues(alpha: 0.1) : AppTheme.bgDark,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: alert ? AppTheme.warning.withValues(alpha: 0.35) : AppTheme.stroke,

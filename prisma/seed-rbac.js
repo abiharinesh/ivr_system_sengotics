@@ -32,7 +32,18 @@ const { Pool } = require('pg');
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-const SYSTEM_TENANT = '__system__';
+/**
+ * Roles are seeded into the operating tenant, not into `__system__`.
+ *
+ * `__system__` is the cross-tenant template shelf, and `RbacAdminService`
+ * deliberately refuses to edit anything on it — one council editing a shared
+ * template would silently change every other council's roles. Seeding the
+ * whole designation roster there made every role read-only, which defeats the
+ * console: the super admin could not switch a single sidebar entry on or off
+ * without cloning first. They stay `is_system: true`, so they cannot be
+ * deleted, but they belong to the tenant that uses them.
+ */
+const ROLE_TENANT = 'default';
 
 // ── Groups, matching RoleNavigationConfig ───────────────────────────────────
 const G = {
@@ -417,33 +428,38 @@ async function main() {
   const credentials = [];
 
   for (const r of ROLES) {
-    const role = await prisma.role.upsert({
-      where: { tenant_id_org_unit_id_name: { tenant_id: SYSTEM_TENANT, org_unit_id: null, name: r.name } },
-      update: {
-        display_name: r.display_name,
-        display_name_ta: r.display_name_ta,
-        department: r.department ?? null,
-        hierarchy_level: r.hierarchy_level,
-        is_super_admin: !!r.is_super_admin,
-        can_approve: !!r.can_approve,
-        is_system: true,
-        is_active: true,
-        applicable_branch_types: r.types === ALL ? [] : r.types,
-      },
-      create: {
-        tenant_id: SYSTEM_TENANT,
-        org_unit_id: null,
-        name: r.name,
-        display_name: r.display_name,
-        display_name_ta: r.display_name_ta,
-        department: r.department ?? null,
-        hierarchy_level: r.hierarchy_level,
-        is_super_admin: !!r.is_super_admin,
-        can_approve: !!r.can_approve,
-        is_system: true,
-        applicable_branch_types: r.types === ALL ? [] : r.types,
-      },
+    const fields = {
+      display_name: r.display_name,
+      display_name_ta: r.display_name_ta,
+      department: r.department ?? null,
+      hierarchy_level: r.hierarchy_level,
+      is_super_admin: !!r.is_super_admin,
+      can_approve: !!r.can_approve,
+      is_system: true,
+      is_active: true,
+      applicable_branch_types: r.types === ALL ? [] : r.types,
+    };
+
+    // `upsert` is unusable here: the compound unique is
+    // (tenant_id, org_unit_id, name) and `org_unit_id` is NULL for a
+    // tenant-wide template. Prisma's generated compound-key `where` type
+    // rejects null, because SQL NULL never equals NULL and the underlying
+    // unique index would not match anyway. findFirst + create/update is the
+    // shape that actually works for a nullable member of a compound key.
+    const existingRole = await prisma.role.findFirst({
+      where: { tenant_id: ROLE_TENANT, org_unit_id: null, name: r.name },
     });
+
+    const role = existingRole
+      ? await prisma.role.update({ where: { id: existingRole.id }, data: fields })
+      : await prisma.role.create({
+          data: {
+            tenant_id: ROLE_TENANT,
+            org_unit_id: null,
+            name: r.name,
+            ...fields,
+          },
+        });
 
     // Permission grants: read+write on listed modules, plus approving verbs.
     const codes = new Set();

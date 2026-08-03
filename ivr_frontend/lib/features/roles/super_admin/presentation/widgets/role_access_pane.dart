@@ -18,10 +18,15 @@ enum _GrantKind { screens, permissions }
 /// a [GrantSelection] that knows what changed, so an operator can look at the
 /// consequences before committing them.
 class RoleAccessPane extends StatefulWidget {
-  const RoleAccessPane({super.key, this.onChanged});
+  const RoleAccessPane({super.key, this.onChanged, this.initialRoleId});
 
   /// Fired after any successful write, so the shell can refresh its counters.
   final VoidCallback? onChanged;
+
+  /// Open with this role selected. Set when the analytics views hand off — a
+  /// matrix cell or a hierarchy pill is a question about one role, and the
+  /// answer is this pane.
+  final int? initialRoleId;
 
   @override
   State<RoleAccessPane> createState() => _RoleAccessPaneState();
@@ -56,6 +61,20 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
     _load();
   }
 
+  @override
+  void didUpdateWidget(RoleAccessPane old) {
+    super.didUpdateWidget(old);
+    // The console keeps this pane mounted, so a later hand-off from the
+    // analytics views arrives as a prop change rather than a fresh build.
+    final requested = widget.initialRoleId;
+    if (requested != null &&
+        requested != old.initialRoleId &&
+        requested != _selected?.id) {
+      final match = _roles.where((r) => r.id == requested);
+      if (match.isNotEmpty) _selectRole(match.first);
+    }
+  }
+
   static String _msg(Object e) => e is ApiException ? e.message : e.toString();
 
   Future<void> _load() async {
@@ -76,6 +95,17 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
         _permissions = results[2] as List<PermissionModule>;
         _loading = false;
       });
+
+      // A role handed over from the analytics views wins over whatever was
+      // selected before, since the operator just asked to look at it.
+      final requested = widget.initialRoleId;
+      if (requested != null) {
+        final match = _roles.where((r) => r.id == requested);
+        if (match.isNotEmpty) {
+          await _selectRole(match.first);
+          return;
+        }
+      }
 
       final keep = _selected;
       if (keep != null) {
