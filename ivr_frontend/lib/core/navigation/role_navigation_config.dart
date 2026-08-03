@@ -325,14 +325,6 @@ class RoleNavigationConfig {
         route: '/admin/employees',
       ),
     ),
-    'role_assignments': (
-      group: gWorkforce,
-      spec: NavSpec(
-        icon: Icons.assignment_ind_rounded,
-        label: 'Role assignments',
-        route: '/admin/rbac/user-assignments',
-      ),
-    ),
 
     // ── Insights ──
     'insights': (
@@ -393,6 +385,8 @@ class RoleNavigationConfig {
         route: '/users',
       ),
     ),
+    // One destination for the whole access question: role grants, who holds
+    // them, the accounts behind them, and which modules a branch has on.
     'roles': (
       group: gAdmin,
       spec: NavSpec(
@@ -586,7 +580,6 @@ class RoleNavigationConfig {
     'vendor_portal',
     'field_workforce',
     'employees',
-    'role_assignments',
     'insights',
     'executive',
     'audit_logs',

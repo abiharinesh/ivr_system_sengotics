@@ -6,7 +6,7 @@ import 'package:ivr_frontend/features/customization/presentation/screens/admin_c
 import 'package:ivr_frontend/features/modules/document_templates/presentation/document_templates_settings_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/settings_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/ai_settings_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/branch_feature_toggle_screen.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/branch_modules_pane.dart';
 
 /// System settings.
 ///
@@ -55,7 +55,7 @@ class SystemSettingsHub extends StatelessWidget {
           HubTab(
             icon: Icons.tune_rounded,
             label: 'Module access',
-            builder: (_) => const BranchFeatureToggleScreen(),
+            builder: (_) => const BranchModulesPane(),
           ),
       ],
     );

@@ -96,7 +96,6 @@ const SCREENS = [
   // Workforce
   { key: 'field_workforce',  route: '/workforce',                  group_key: G.WORKFORCE, label_en: 'Field workforce',   label_ta: 'கள பணியாளர்கள்',  icon: 'engineering_rounded',      module: 'core', permission_code: 'employees.read' },
   { key: 'employees',        route: '/admin/employees',            group_key: G.WORKFORCE, label_en: 'Employee directory',label_ta: 'பணியாளர் பட்டியல்', icon: 'badge_rounded',            module: 'core', permission_code: 'employees.read' },
-  { key: 'role_assignments', route: '/admin/rbac/user-assignments',group_key: G.WORKFORCE, label_en: 'Role assignments',  label_ta: 'பணி ஒதுக்கீடு',    icon: 'assignment_ind_rounded',   module: 'core', permission_code: 'rbac.manage' },
 
   // Insights
   { key: 'insights',   route: '/insights',            group_key: G.INSIGHTS, label_en: 'Reports & analytics', label_ta: 'அறிக்கைகள்',   icon: 'insights_rounded',             module: 'core', permission_code: 'reports.read' },
@@ -134,7 +133,7 @@ const S = {
   procurement: ['tenders', 'contractors', 'vendor_portal'],
   workforce: ['field_workforce', 'employees'],
   insights: ['insights', 'audit_logs'],
-  admin: ['settings', 'users', 'roles', 'role_assignments'],
+  admin: ['settings', 'users', 'roles'],
 };
 const flat = (...sets) => [...new Set(sets.flat())];
 

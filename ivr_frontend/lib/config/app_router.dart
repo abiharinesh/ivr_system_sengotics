@@ -43,8 +43,7 @@ import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/sup
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/agent_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/electrician_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/plumber_management.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/role_permission_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/branch_feature_toggle_screen.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/role_management_console.dart';
 
 import 'package:ivr_frontend/features/roles/panchayat_admin/bloc/pa_dashboard_bloc.dart';
 import 'package:ivr_frontend/features/roles/panchayat_admin/bloc/pole_bloc.dart';
@@ -103,7 +102,6 @@ import 'package:ivr_frontend/features/auth/presentation/employee_service_book_sc
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/tenant_management_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/employee_directory_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/designation_transfer_timeline_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/user_role_assignment_screen.dart';
 import 'package:ivr_frontend/features/modules/assets/presentation/asset_registration_screen.dart';
 import 'package:ivr_frontend/features/modules/complaints/presentation/sla_analytics_screen.dart';
 import 'package:ivr_frontend/features/modules/dynamic_forms/presentation/dynamic_form_runtime_renderer.dart';
@@ -406,12 +404,15 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final userIdStr = state.uri.queryParameters['user_id'];
               final userId = userIdStr != null ? int.tryParse(userIdStr) : null;
-              return RolePermissionScreen(preselectedUserId: userId);
+              return RoleManagementConsole(initialUserId: userId);
             },
           ),
+          // Both of these were separate screens the console now contains as
+          // tabs. Kept as redirects so bookmarks and the old sidebar entries
+          // land somewhere useful rather than on a blank route.
           GoRoute(
             path: '/superadmin/feature-toggles',
-            builder: (context, state) => const BranchFeatureToggleScreen(),
+            redirect: (_, __) => '/superadmin/roles',
           ),
           GoRoute(
             path: '/superadmin/branding',
@@ -770,7 +771,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/admin/rbac/user-assignments',
-            builder: (context, state) => const UserRoleAssignmentScreen(),
+            redirect: (_, __) => '/superadmin/roles',
           ),
           GoRoute(
             path: '/assets/new',

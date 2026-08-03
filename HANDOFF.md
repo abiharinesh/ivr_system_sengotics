@@ -156,7 +156,7 @@ legitimate user out entirely. Once the server sends anything, it's authoritative
 
 ### Seed — `prisma/seed-rbac.js` (**not run**)
 
-36 screens, ~160 permissions, **25 roles across all six TN body types**:
+35 screens, ~160 permissions, **25 roles across all six TN body types**:
 - Corporation/Municipality: commissioner, deputy commissioner, municipal/assistant/junior engineer, health officer, sanitary inspector, revenue officer/inspector, town planning officer, registrar, licensing clerk, accounts officer
 - Town Panchayat: executive officer
 - Village Panchayat: president, secretary, bill collector
@@ -167,6 +167,39 @@ legitimate user out entirely. Once the server sends anything, it's authoritative
 `prisma/.seeded-credentials.txt` — **gitignored, verified with `git check-ignore`**.
 Re-running never resets an existing user's password.
 
+### Role management console — **built, statically verified only**
+
+One screen, `/superadmin/roles`, replacing four:
+`ivr_frontend/lib/features/roles/super_admin/presentation/screens/role_management_console.dart`
+with three panes under `presentation/widgets/`.
+
+Four tabs, ordered the way you debug "why can't this person see X":
+**Branch modules** (branch has it on) → **Roles & access** (role is granted it)
+→ **People** (person holds that role there) → **Accounts** (account is active).
+
+- Data layer: `data/models/rbac_models.dart`, `data/rbac_repository.dart`
+  (all 14 `/api/rbac/*` endpoints), `data/rbac_grants.dart` (pure).
+- `GrantSelection` holds saved-vs-selected so the save bar reports a real diff
+  and Discard means something. 27 unit tests in `test/rbac_grants_test.dart`.
+- Client mirrors two server rules so they fail as a disabled control with a
+  reason instead of a rejected save: platform-only screens aren't offered to
+  non-super-admin roles, and a role restricted by body type isn't offered at a
+  branch of another type.
+- `__system__` roles are read-only with a Clone-to-edit path, matching the API.
+- **Kept** `user_management.dart` — `AgentManagement` reuses it and it is still
+  routed at `/users`; it is embedded as the Accounts tab rather than copied.
+- **Deleted** `role_permission_screen.dart` (wrote to `/api/superadmin/roles`,
+  which the guards never read), `user_role_assignment_screen.dart` (pure mock —
+  hardcoded rows, dead buttons), `branch_feature_toggle_screen.dart` (became
+  `BranchModulesPane`, mounted in both the console and the settings hub).
+- Old routes redirect rather than 404. `/superadmin/roles?user_id=` still works
+  and opens People → By person, so the per-user shortcut did not regress.
+- Sidebar: `role_assignments` merged away, leaving `roles`. Removed from
+  `seed-rbac.js` too, so the catalogue and the seed still agree (36 → 35).
+
+Not exercised against a running server — see section 2. `flutter analyze`
+clean, 142 tests pass, `tsc` clean.
+
 ---
 
 ## 4. PENDING WORK
@@ -176,11 +209,6 @@ Re-running never resets an existing user's password.
 2. **Verify auth end-to-end for real** — never done. Only static analysis + unit tests.
 
 ### Requested, not started
-3. **Role management console** — ONE super-admin screen merging four existing ones:
-   `role_permission_screen.dart`, `user_role_assignment_screen.dart`,
-   `user_management.dart`, `branch_feature_toggle_screen.dart`.
-   Backend API is **done and ready** (`/api/rbac/*`). User asked for
-   "industry level, fully controllable, beautiful".
 4. **Login screen redesign** — user says it's "not properly designed and not
    properly worked". Must handle: multi-role, multi-branch, the
    `must_change_password` gate, Tamil/English.
@@ -230,7 +258,7 @@ Re-running never resets an existing user's password.
 ## 6. Suggested first message for the new chat
 
 > Read HANDOFF.md at the repo root — it's the full context from a previous
-> session. Then continue with the role management console (item 3 under PENDING
-> WORK). The backend API at `/api/rbac/*` is done; I need the single super-admin
-> screen that merges the four existing role screens. Note nothing has been run
-> against the database yet — see section 2.
+> session. The role management console is done. Next is item 4, the login
+> screen redesign. Note nothing has been run against the database yet — see
+> section 2; no login has ever been exercised for real, so that redesign
+> should probably wait until it has.
