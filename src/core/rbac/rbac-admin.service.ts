@@ -458,6 +458,9 @@ export class RbacAdminService {
         user_id: userId,
         role_id: roleId,
         org_unit_id: orgUnitId,
+        // The branch owns the tenant — it was already checked to be in this
+        // one above. A database trigger refuses the row if they disagree.
+        tenant_id: orgUnit.tenant_id,
         is_primary: isPrimary,
         granted_by: actorId,
       },

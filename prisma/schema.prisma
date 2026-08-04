@@ -1439,9 +1439,23 @@ model Role {
  * Employee.access_scope for authorization purposes. Supports temporary permissions.
  */
 model UserRole {
-  id            Int       @id @default(autoincrement())
-  user_id       Int
-  role_id       Int
+  id      Int @id @default(autoincrement())
+  user_id Int
+  role_id Int
+
+  /**
+   * The tenant this assignment belongs to.
+   *
+   * Denormalised on purpose. Tenant used to be reachable only transitively
+   * through the role and the branch, which meant every authorization query had
+   * to join two tables to establish the boundary — and nothing in the schema
+   * stopped a role from one tenant being assigned at another tenant's branch.
+   * A trigger keeps this column in agreement with the user and the branch, so
+   * the isolation is enforced by the database rather than by every caller
+   * remembering to check.
+   */
+  tenant_id String @default("default")
+
   org_unit_id   Int // Which org unit this role applies to
   department_id Int? // Optional department scoping within the org unit
   access_scope  String    @default("own_org_unit") // own_org_unit, child_org_units, all_org_units
@@ -1458,6 +1472,7 @@ model UserRole {
   department Department? @relation(fields: [department_id], references: [id])
 
   @@unique([user_id, role_id, org_unit_id, department_id])
+  @@index([tenant_id, user_id])
   @@map("user_roles")
 }
 

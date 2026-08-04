@@ -1300,6 +1300,14 @@ export class SuperAdminService {
     // Validate branch exists
     await this.ensurePanchayatExists(data.org_unit_id);
 
+    // The branch owns the tenant. Assignments carry it so authorization can
+    // scope on one column instead of joining out to the role and the branch;
+    // a database trigger refuses the row if the two disagree.
+    const branch = await this.prisma.orgUnit.findUnique({
+      where: { id: data.org_unit_id },
+      select: { tenant_id: true },
+    });
+
     // Check for duplicate
     const existing = await this.prisma.userRole.findFirst({
       where: {
@@ -1320,6 +1328,7 @@ export class SuperAdminService {
         user_id: data.user_id,
         role_id: data.role_id,
         org_unit_id: data.org_unit_id,
+        tenant_id: branch?.tenant_id ?? 'default',
         is_temporary: data.is_temporary ?? false,
         valid_until: data.valid_until ? new Date(data.valid_until) : null,
         granted_by: data.granted_by ?? null,

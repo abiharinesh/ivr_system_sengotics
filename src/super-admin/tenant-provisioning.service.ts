@@ -113,6 +113,7 @@ export class TenantProvisioningService {
           user_id: adminUser.id,
           role_id: adminRole.id,
           org_unit_id: rootOrgUnit.id,
+          tenant_id: tenant.id,
           is_primary: true,
           access_scope: 'own_org_unit',
         },
