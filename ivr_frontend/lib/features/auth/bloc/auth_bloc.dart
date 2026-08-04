@@ -20,6 +20,39 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthCheckRequested>(_onAuthCheck);
     on<UpdateAuthUser>(_onUpdateUser);
     on<SwitchContextRequested>(_onSwitchContext);
+    on<PasswordChangeRequested>(_onPasswordChange);
+  }
+
+  Future<void> _onPasswordChange(
+    PasswordChangeRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! Authenticated) return;
+
+    emit(AuthLoading());
+    try {
+      final token = await _authRepository.changePassword(
+        currentPassword: event.currentPassword,
+        newPassword: event.newPassword,
+      );
+      // The reissued token was minted after the flag cleared; keeping the old
+      // one would have the client asserting a state the server has left.
+      await SecureStorageService.saveToken(token);
+
+      final user = currentState.user.copyWith(mustChangePassword: false);
+      await SecureStorageService.saveUserJson(jsonEncode(user.toJson()));
+      emit(PasswordChanged(user: user, token: token));
+      emit(Authenticated(user: user, token: token));
+    } on ApiException catch (e) {
+      emit(AuthError(e.message));
+      // Return to the authenticated state so the screen stays usable and the
+      // user can correct the password rather than being thrown out.
+      emit(currentState);
+    } catch (_) {
+      emit(const AuthError('Could not change your password. Please try again.'));
+      emit(currentState);
+    }
   }
 
   Future<void> _onSwitchContext(

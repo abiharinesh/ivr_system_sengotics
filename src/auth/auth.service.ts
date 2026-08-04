@@ -1,9 +1,18 @@
-import { Injectable, UnauthorizedException, ForbiddenException, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { WhatsAppService } from '../whatsapp/whatsapp.service';
+import { AuditService } from '../core/audit/audit.service';
 import { RbacService } from '../core/rbac/rbac.service';
+import { checkPassword } from './password-policy';
 
 @Injectable()
 export class AuthService {
@@ -15,6 +24,7 @@ export class AuthService {
     private jwtService: JwtService,
     private whatsAppService: WhatsAppService,
     private rbac: RbacService,
+    private audit: AuditService,
   ) {}
 
   async login(email: string, password: string) {
@@ -89,6 +99,73 @@ export class AuthService {
       // account; the client routes to a change-password screen on this flag.
       must_change_password: user.must_change_password ?? false,
       org_unit,
+    };
+  }
+
+  /**
+   * Set a new password for the signed-in user.
+   *
+   * The flag this clears is the whole point: accounts are provisioned with a
+   * random temporary password and `must_change_password = true`, and until
+   * now there was no endpoint to satisfy it — 90 seeded accounts could sign in
+   * but were never able to stop using the password they were handed.
+   *
+   * The current password is required even when the flag is set. A session left
+   * open on a shared office machine must not be enough to take the account
+   * over.
+   */
+  async changePassword(
+    userId: number,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Account not found');
+
+    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!valid) {
+      throw new UnauthorizedException('Your current password is not correct');
+    }
+
+    const check = checkPassword(newPassword, {
+      email: user.email ?? undefined,
+      currentPassword,
+    });
+    if (!check.ok) {
+      throw new BadRequestException(check.problems.join('. '));
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        password_hash: await bcrypt.hash(newPassword, 10),
+        must_change_password: false,
+        failed_attempts: 0,
+      },
+    });
+
+    await this.audit.log({
+      tenantId: user.tenant_id,
+      orgUnitId: user.primary_org_unit_id ?? undefined,
+      userId,
+      module: 'auth',
+      entityType: 'user',
+      entityId: String(userId),
+      action: 'password_changed',
+      // Never record the password itself, in either column.
+      afterValue: { must_change_password: false },
+      changedFields: ['password_hash', 'must_change_password'],
+    });
+
+    this.logger.log(`Password changed for user #${userId}`);
+
+    // A fresh token so the client stops carrying one minted while the account
+    // was still flagged.
+    const payload = await this.buildJwtPayload(user);
+    return {
+      success: true,
+      access_token: this.jwtService.sign(payload),
+      must_change_password: false,
     };
   }
 

@@ -7,6 +7,7 @@ import 'package:ivr_frontend/features/modules/zone_management/bloc/zone_bloc.dar
 import 'package:ivr_frontend/features/modules/zone_management/presentation/zone_management_screen.dart';
 import 'package:ivr_frontend/features/customization/presentation/screens/admin_customization_screen.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
+import 'package:ivr_frontend/features/auth/presentation/change_password_screen.dart';
 import 'package:ivr_frontend/features/auth/presentation/login_screen.dart';
 import 'package:ivr_frontend/features/roles/citizen/presentation/screens/citizen_register_screen.dart';
 import 'package:ivr_frontend/features/roles/citizen/presentation/screens/citizen_dashboard_screen.dart';
@@ -170,9 +171,23 @@ GoRouter createRouter(AuthBloc authBloc) {
       }
 
       final authed = authState;
+      final u = authed.user;
+
+      // An account still on the password it was issued goes nowhere else.
+      // Checked before every other rule, including the per-role landing
+      // redirects below, so a field worker cannot slip past it into their own
+      // shell. The screen itself offers signing out as the only alternative.
+      const changePasswordRoute = '/change-password';
+      if (u.mustChangePassword) {
+        return loc == changePasswordRoute ? null : changePasswordRoute;
+      }
+      if (loc == changePasswordRoute) {
+        // Reached voluntarily from the profile menu — nothing to enforce.
+        return null;
+      }
+
       if (isLoginRoute) return _homeForRole(authed);
 
-      final u = authed.user;
       if (u.isAgent || u.isElectrician || u.isPlumber) {
         if (u.isAgent && !loc.startsWith('/agent')) return '/agent';
         if (u.isElectrician && !loc.startsWith('/electrician')) return '/electrician';
@@ -194,6 +209,18 @@ GoRouter createRouter(AuthBloc authBloc) {
     },
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      // Outside the app shell on purpose: a user held here has no sidebar to
+      // navigate with, and showing one they cannot use invites them to try.
+      GoRoute(
+        path: '/change-password',
+        builder: (context, state) {
+          final authState = authBloc.state;
+          return ChangePasswordScreen(
+            forced: authState is Authenticated &&
+                authState.user.mustChangePassword,
+          );
+        },
+      ),
       GoRoute(
         path: '/register-citizen',
         builder: (context, state) => const CitizenRegisterScreen(),

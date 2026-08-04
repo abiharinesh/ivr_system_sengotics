@@ -54,6 +54,10 @@ export class PanchayatAdminService extends OrgScopedService {
         user_type: true,
         created_at: true,
         last_login_at: true,
+        // The client restores its session from this endpoint, so omitting the
+        // flag would silently clear it and let a provisioned account past the
+        // change-password gate on its second visit.
+        must_change_password: true,
         primary_org_unit_id: true,
         primary_org_unit: true,
         employee: {

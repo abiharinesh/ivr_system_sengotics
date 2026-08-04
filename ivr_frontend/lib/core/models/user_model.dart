@@ -80,6 +80,11 @@ class UserModel extends Equatable {
   /// their role grants. Empty means "server did not say" — see [canSeeScreen].
   final List<String> screens;
 
+  /// The account is still on the password it was issued. Every provisioned
+  /// account starts this way, and the router holds the user on the
+  /// change-password screen until it clears.
+  final bool mustChangePassword;
+
   const UserModel({
     required this.id,
     required this.email,
@@ -110,7 +115,48 @@ class UserModel extends Equatable {
     this.accessScope = 'own_org_unit',
     this.permissions = const [],
     this.screens = const [],
+    this.mustChangePassword = false,
   });
+
+  /// Narrow copy for the few fields that change within a session.
+  ///
+  /// Only what actually mutates after sign-in is exposed: everything else on
+  /// this model comes from the token or the branch record and changing it
+  /// locally would put the client out of step with the server.
+  UserModel copyWith({bool? mustChangePassword, List<String>? screens}) {
+    return UserModel(
+      id: id,
+      email: email,
+      role: role,
+      phone: phone,
+      orgUnitId: orgUnitId,
+      orgUnitName: orgUnitName,
+      branchType: branchType,
+      softwareNameTa: softwareNameTa,
+      softwareNameEn: softwareNameEn,
+      softwareTaglineTa: softwareTaglineTa,
+      softwareTaglineEn: softwareTaglineEn,
+      logoUrl: logoUrl,
+      secondaryLogoUrl: secondaryLogoUrl,
+      primaryColor: primaryColor,
+      district: district,
+      address: address,
+      contactPhone: contactPhone,
+      contactEmail: contactEmail,
+      ivrNumber: ivrNumber,
+      employeeCode: employeeCode,
+      cadre: cadre,
+      designation: designation,
+      serviceBookNumber: serviceBookNumber,
+      photoUrl: photoUrl,
+      createdAt: createdAt,
+      roleAssignments: roleAssignments,
+      accessScope: accessScope,
+      permissions: permissions,
+      screens: screens ?? this.screens,
+      mustChangePassword: mustChangePassword ?? this.mustChangePassword,
+    );
+  }
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     final panchayat = json['org_unit'] as Map<String, dynamic>?;
@@ -129,6 +175,7 @@ class UserModel extends Equatable {
       accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
       permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
       screens: (json['screens'] as List<dynamic>?)?.cast<String>() ?? const [],
+      mustChangePassword: json['must_change_password'] == true,
       orgUnitName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
       softwareNameTa: panchayat?['software_name_ta'] as String?,
@@ -259,6 +306,7 @@ class UserModel extends Equatable {
       'phone_e164': phone,
       'org_unit_id': orgUnitId,
       'created_at': createdAt?.toIso8601String(),
+      'must_change_password': mustChangePassword,
       'employee': {
         'employee_code': employeeCode,
         'cadre': cadre,
@@ -315,6 +363,8 @@ class UserModel extends Equatable {
         roleAssignments,
         accessScope,
         permissions,
+        screens,
+        mustChangePassword,
       ];
 }
 
@@ -349,6 +399,9 @@ class AuthResponse {
         'access_scope': payload['access_scope'],
         'permissions': payload['permissions'],
         'screens': payload['screens'],
+        // Not on the JWT — the flag is account state, and a token minted
+        // before the change would otherwise keep asserting it.
+        'must_change_password': json['must_change_password'],
       }),
     );
   }

@@ -22,6 +22,19 @@ class Authenticated extends AuthState {
   List<Object?> get props => [user, token];
 }
 
+/// Emitted once immediately before the [Authenticated] state that follows a
+/// successful password change, so the screen can acknowledge it. A transient
+/// signal, not a state anything rests in.
+class PasswordChanged extends AuthState {
+  final UserModel user;
+  final String token;
+
+  const PasswordChanged({required this.user, required this.token});
+
+  @override
+  List<Object?> get props => [user, token];
+}
+
 class Unauthenticated extends AuthState {}
 
 class AuthError extends AuthState {

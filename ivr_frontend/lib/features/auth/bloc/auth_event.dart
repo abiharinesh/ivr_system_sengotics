@@ -18,6 +18,24 @@ class LoginRequested extends AuthEvent {
   List<Object?> get props => [email, password];
 }
 
+/// Set a new password for the signed-in user.
+///
+/// On success the reissued token replaces the stored one and the
+/// `must_change_password` flag clears, which is what releases the router's
+/// hold on the change-password screen.
+class PasswordChangeRequested extends AuthEvent {
+  final String currentPassword;
+  final String newPassword;
+
+  const PasswordChangeRequested({
+    required this.currentPassword,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object?> get props => [currentPassword, newPassword];
+}
+
 class LogoutRequested extends AuthEvent {}
 
 class AuthCheckRequested extends AuthEvent {}

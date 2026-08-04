@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:ivr_frontend/config/app_theme.dart';
 import 'package:go_router/go_router.dart';
+import 'package:ivr_frontend/config/app_theme.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_bloc.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
+import 'package:ivr_frontend/features/auth/presentation/widgets/auth_shell.dart';
 
+/// Sign in.
+///
+/// Staff sign in with the address their branch issued; citizens go to the
+/// public portal instead, which is a different journey and is offered as one
+/// rather than being mixed into the same form.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -16,288 +22,233 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnim;
-  late Animation<Offset> _slideAnim;
+  final _email = TextEditingController();
+  final _password = TextEditingController();
+  final _passwordFocus = FocusNode();
+
+  bool _obscure = true;
+
+  late final AnimationController _anim;
+  late final Animation<double> _fade;
+  late final Animation<Offset> _slide;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
+    _anim = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 520),
     );
-    _fadeAnim = CurvedAnimation(parent: _animController, curve: Curves.easeOut);
-    _slideAnim = Tween<Offset>(
-      begin: const Offset(0, 0.1),
+    _fade = CurvedAnimation(parent: _anim, curve: Curves.easeOut);
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.04),
       end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
-    );
-    _animController.forward();
+    ).animate(CurvedAnimation(parent: _anim, curve: Curves.easeOutCubic));
+    _anim.forward();
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    _animController.dispose();
+    _email.dispose();
+    _password.dispose();
+    _passwordFocus.dispose();
+    _anim.dispose();
     super.dispose();
+  }
+
+  void _submit() {
+    if (!_formKey.currentState!.validate()) return;
+    context.read<AuthBloc>().add(
+          LoginRequested(
+            email: _email.text.trim(),
+            password: _password.text,
+          ),
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 800;
-
-    return Scaffold(
-      backgroundColor: AppTheme.bgDark,
-      body: BlocListener<AuthBloc, AuthState>(
-        listener: (context, state) {
-          if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Row(
-                  children: [
-                    const Icon(Icons.error_outline, color: Colors.white),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(state.message)),
-                  ],
-                ),
-                backgroundColor: AppTheme.error,
-              ),
-            );
-          }
-        },
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: FadeTransition(
-              opacity: _fadeAnim,
-              child: SlideTransition(
-                position: _slideAnim,
-                child: Container(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppTheme.stroke),
-                    color: Colors.white,
-                    boxShadow: AppTheme.softShadow,
-                  ),
-                  child: isWide ? _buildWideLayout() : _buildMobileLayout(),
-                ),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: AppTheme.error,
+              behavior: SnackBarBehavior.floating,
+              content: Row(
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: Colors.white, size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(child: Text(state.message)),
+                ],
               ),
             ),
-          ),
+          );
+        }
+      },
+      child: AuthShell(
+        asideTitle: 'Sign in to your branch',
+        asideBody:
+            'One console for grievances, revenue, regulatory services, public '
+            'works and procurement — scoped to the office you work in.',
+        child: FadeTransition(
+          opacity: _fade,
+          child: SlideTransition(position: _slide, child: _form()),
         ),
       ),
     );
   }
 
-  Widget _buildWideLayout() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(36),
-            decoration: const BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24),
-                bottomLeft: Radius.circular(24),
+  Widget _form() {
+    return AutofillGroup(
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Welcome back',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.textPrimary,
               ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Ooraatchi',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 30,
-                    fontWeight: FontWeight.w800,
+            const SizedBox(height: 6),
+            Text(
+              'Use the address your branch issued you.',
+              style: TextStyle(fontSize: 13.5, color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 26),
+            TextFormField(
+              controller: _email,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              autofillHints: const [AutofillHints.username],
+              autofocus: true,
+              onFieldSubmitted: (_) => _passwordFocus.requestFocus(),
+              decoration: InputDecoration(
+                labelText: 'Email address',
+                hintText: 'registrar.annur@example.gov.in',
+                prefixIcon: Icon(Icons.alternate_email_rounded,
+                    color: AppTheme.textMuted, size: 20),
+              ),
+              validator: (v) {
+                final value = v?.trim() ?? '';
+                if (value.isEmpty) return 'Enter your email address';
+                // Deliberately loose: government addresses take shapes a
+                // strict pattern tends to reject.
+                if (!value.contains('@') || !value.contains('.')) {
+                  return 'That does not look like an email address';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _password,
+              focusNode: _passwordFocus,
+              obscureText: _obscure,
+              textInputAction: TextInputAction.done,
+              autofillHints: const [AutofillHints.password],
+              onFieldSubmitted: (_) => _submit(),
+              decoration: InputDecoration(
+                labelText: 'Password',
+                prefixIcon: Icon(Icons.lock_outline_rounded,
+                    color: AppTheme.textMuted, size: 20),
+                suffixIcon: IconButton(
+                  tooltip: _obscure ? 'Show password' : 'Hide password',
+                  icon: Icon(
+                    _obscure
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    color: AppTheme.textMuted,
+                    size: 20,
                   ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Integrated GIS-Map & E-Tendering System',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                ),
-                const SizedBox(height: 26),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(16),
-                  child: Image.asset(
-                    'assets/redesign/illustrations/hero_banner.jpg',
-                    height: 220,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(32),
-            child: _buildForm(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMobileLayout() {
-    return Padding(padding: const EdgeInsets.all(24), child: _buildForm());
-  }
-
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              gradient: AppTheme.primaryGradient,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.phone_in_talk_rounded,
-              color: Colors.white,
-              size: 26,
-            ),
-          ),
-          const SizedBox(height: 18),
-                Text(
-            'Welcome Back',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-              color: AppTheme.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-                Text(
-            'Sign in to Ooraatchi Portal',
-            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-          ),
-          const SizedBox(height: 28),
-          TextFormField(
-            controller: _emailController,
-            keyboardType: TextInputType.emailAddress,
-            decoration:       InputDecoration(
-              labelText: 'Email Address',
-              prefixIcon: Icon(Icons.email_outlined, color: AppTheme.textMuted),
-            ),
-            validator: (v) {
-              if (v == null || v.isEmpty) {
-                return 'Email is required';
-              }
-              if (!v.contains('@')) {
-                return 'Enter a valid email';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordController,
-            obscureText: _obscurePassword,
-            decoration: InputDecoration(
-              labelText: 'Password',
-              prefixIcon:       Icon(
-                Icons.lock_outline,
-                color: AppTheme.textMuted,
               ),
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword
-                      ? Icons.visibility_off_outlined
-                      : Icons.visibility_outlined,
-                  color: AppTheme.textMuted,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-              ),
+              validator: (v) =>
+                  (v == null || v.isEmpty) ? 'Enter your password' : null,
             ),
-            validator: (v) {
-              if (v == null || v.isEmpty) {
-                return 'Password is required';
-              }
-              return null;
-            },
-          ),
-          const SizedBox(height: 24),
-          BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              final isLoading = state is AuthLoading;
-              return SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : _handleLogin,
-                  style: ElevatedButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            const SizedBox(height: 22),
+            BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final busy = state is AuthLoading;
+                return SizedBox(
+                  height: 50,
+                  child: FilledButton(
+                    onPressed: busy ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                  ),
-                  child:
-                      isLoading
-                          ? const SizedBox(
-                            width: 22,
-                            height: 22,
+                    child: busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
                               color: Colors.white,
                             ),
                           )
-                          : const Text(
-                            'Sign In',
+                        : const Text(
+                            'Sign in',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(child: Divider(color: AppTheme.stroke)),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    'not staff?',
+                    style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+                  ),
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: TextButton(
+                Expanded(child: Divider(color: AppTheme.stroke)),
+              ],
+            ),
+            const SizedBox(height: 14),
+            OutlinedButton.icon(
               onPressed: () => context.go('/register-citizen'),
-              child: Text(
-                'Are you a local citizen? Register / Raise a Complaint',
-                style: TextStyle(
-                  color: AppTheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 13,
+              icon: const Icon(Icons.campaign_outlined, size: 18),
+              label: const Text('Report a problem as a resident'),
+              style: OutlinedButton.styleFrom(
+                minimumSize: const Size.fromHeight(46),
+                side: BorderSide(color: AppTheme.stroke),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 16),
+            // Nobody self-serves a reset here: accounts are provisioned by the
+            // branch, so the honest instruction is who to ask.
+            Text(
+              'Forgotten your password? Your branch administrator can issue a '
+              'new one from the role management console.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 11.5,
+                height: 1.45,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
-  }
-
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      context.read<AuthBloc>().add(
-        LoginRequested(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        ),
-      );
-    }
   }
 }
