@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:ivr_frontend/core/widgets/module_hub_scaffold.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/ivr_logs_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/voice_calls_screen.dart';
+import 'package:ivr_frontend/features/modules/ivr_operations/presentation/ivr_logs_screen.dart';
+import 'package:ivr_frontend/features/modules/ivr_operations/presentation/voice_calls_screen.dart';
 
 /// Voice & IVR operations.
 ///
