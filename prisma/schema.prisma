@@ -394,6 +394,10 @@ model Complaint {
   tender_line_items TenderLineItem[]
   penalties         UserPenalty[]
 
+  /// Ward-density and "open complaints" reads always filter on both columns.
+  /// The index was created in the migration that added the location fields;
+  /// declaring it here too is what stops `migrate diff` proposing to drop it.
+  @@index([org_unit_id, status])
   @@map("complaints")
 }
 
