@@ -342,7 +342,12 @@ const ROLES = [
   {
     name: 'panchayat_admin', display_name: 'Branch Administrator', display_name_ta: 'கிளை நிர்வாகி',
     hierarchy_level: 2, can_approve: true, department: 'Administration', types: ALL,
-    screens: flat(S.base, S.citizen, S.ivr, S.revenue, S.regulatory, S.works, S.procurement, S.workforce, S.insights, ['settings']),
+    // Gets `users` and `roles`, not just `settings`. A client that cannot
+    // create its own staff accounts or define its own designations is not
+    // administering anything — every new posting would have to come back to
+    // the platform operator. `branches` and `tenants` stay platform-only:
+    // those decide which bodies exist and what they have licensed.
+    screens: flat(S.base, S.citizen, S.ivr, S.revenue, S.regulatory, S.works, S.procurement, S.workforce, S.insights, S.admin),
     perm_modules: MODULES.filter((m) => !['tenants', 'branches'].includes(m)),
     approve_modules: ['complaints', 'property_tax', 'trade_licences', 'building_permits', 'vital_events'],
     seed_user: true,

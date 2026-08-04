@@ -101,6 +101,44 @@ export class RbacController {
     return this.admin.getRole(req.user.tenant_id, id);
   }
 
+  /**
+   * POST /api/rbac/roles — define a new designation inside your own tenant.
+   *
+   * The role is created with no grants; screens and permissions are set
+   * afterwards through the endpoints below. A council needs this because the
+   * shipped roster only covers the six Tamil Nadu body types, and every client
+   * has a job title it does not contain.
+   */
+  @Post('roles')
+  createRole(
+    @Req() req: AuthReq,
+    @Body()
+    body: {
+      name: string;
+      display_name: string;
+      display_name_ta?: string;
+      department?: string;
+      hierarchy_level?: number;
+      can_approve?: boolean;
+      applicable_branch_types?: string[];
+    },
+  ) {
+    const types = body?.applicable_branch_types ?? [];
+    const unknown = types.filter(
+      (t) => !Object.values(BranchType).includes(t as BranchType),
+    );
+    if (unknown.length) {
+      throw new BadRequestException(
+        `Unknown branch type(s): ${unknown.join(', ')}`,
+      );
+    }
+
+    return this.admin.createRole(req.user.tenant_id, req.user.id, {
+      ...body,
+      applicable_branch_types: types as BranchType[],
+    });
+  }
+
   /** POST /api/rbac/roles/:id/clone — copy a system template into the tenant. */
   @Post('roles/:id/clone')
   cloneRole(

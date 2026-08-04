@@ -11,6 +11,9 @@ import { AuditService } from '../audit/audit.service';
 
 const MODULE = 'rbac';
 
+/** The shelf cross-tenant role templates live on. Never a tenant's own. */
+const SYSTEM_TENANT = '__system__';
+
 /**
  * Everything the super admin role console reads and writes.
  *
@@ -145,6 +148,101 @@ export class RbacAdminService {
       throw new ForbiddenException('That role belongs to another tenant');
     }
     return role;
+  }
+
+  /**
+   * Create a role from scratch, inside the caller's own tenant.
+   *
+   * Until this existed the only way to get a role was `cloneRole` — a council
+   * could copy one of the shipped designations but never define one of its
+   * own. That made every client dependent on the platform operator for a job
+   * title the shipped roster happens not to have, which is most of them once
+   * you leave the six body types this was seeded for.
+   *
+   * The role starts with no grants at all. A new designation that could see
+   * everything by default would be a way to escalate by creating rather than
+   * by being granted.
+   */
+  async createRole(
+    tenantId: string,
+    userId: number,
+    input: {
+      name: string;
+      display_name: string;
+      display_name_ta?: string;
+      department?: string;
+      hierarchy_level?: number;
+      can_approve?: boolean;
+      applicable_branch_types?: BranchType[];
+    },
+  ) {
+    const name = input.name?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    if (!name) throw new BadRequestException('A role needs a name');
+    if (name.length > 60) {
+      throw new BadRequestException('That role name is too long');
+    }
+
+    const display = input.display_name?.trim();
+    if (!display) throw new BadRequestException('A role needs a display name');
+
+    // Names are matched against `@Roles()` decorators, so one that collides
+    // with a shipped role would silently inherit that role's API access.
+    const clash = await this.prisma.role.findFirst({
+      where: {
+        tenant_id: { in: [tenantId, SYSTEM_TENANT] },
+        org_unit_id: null,
+        name,
+      },
+    });
+    if (clash) {
+      throw new BadRequestException(
+        clash.tenant_id === SYSTEM_TENANT
+          ? `"${name}" is a shipped role name. Clone it instead, or choose another name.`
+          : `Your tenant already has a role named "${name}"`,
+      );
+    }
+
+    const level = input.hierarchy_level ?? 5;
+    if (level < 1 || level > 10) {
+      throw new BadRequestException('Hierarchy level must be between 1 and 10');
+    }
+
+    const role = await this.prisma.role.create({
+      data: {
+        tenant_id: tenantId,
+        org_unit_id: null,
+        name,
+        display_name: display,
+        display_name_ta: input.display_name_ta?.trim() || null,
+        department: input.department?.trim() || null,
+        // Level 0 is the platform operator's rung and is not offered.
+        hierarchy_level: level,
+        is_super_admin: false,
+        can_approve: input.can_approve ?? false,
+        // Not a system role: a tenant's own role must stay deletable by the
+        // tenant that made it.
+        is_system: false,
+        is_active: true,
+        applicable_branch_types: input.applicable_branch_types ?? [],
+      },
+    });
+
+    await this.audit.log({
+      tenantId,
+      userId,
+      module: MODULE,
+      entityType: 'role',
+      entityId: role.id.toString(),
+      action: 'role_created',
+      afterValue: {
+        name,
+        display_name: display,
+        hierarchy_level: level,
+      },
+    });
+
+    this.logger.log(`Role "${name}" created in tenant ${tenantId}`);
+    return this.getRole(tenantId, role.id);
   }
 
   /**
@@ -444,27 +542,39 @@ export class RbacAdminService {
       });
     }
 
-    const assignment = await this.prisma.userRole.upsert({
+    // `upsert` is unusable here. The compound unique is
+    // (user_id, role_id, org_unit_id, department_id) and `department_id` is
+    // null for an assignment that is not scoped to a department — which is
+    // most of them. Prisma refuses null inside a compound-key `where`, because
+    // SQL NULL never equals NULL and the underlying index would not match
+    // anyway. So this endpoint threw on every call: nobody could be assigned
+    // to a role from the console at all.
+    const existing = await this.prisma.userRole.findFirst({
       where: {
-        user_id_role_id_org_unit_id_department_id: {
-          user_id: userId,
-          role_id: roleId,
-          org_unit_id: orgUnitId,
-          department_id: null as unknown as number,
-        },
-      },
-      update: { is_primary: isPrimary, granted_by: actorId },
-      create: {
         user_id: userId,
         role_id: roleId,
         org_unit_id: orgUnitId,
-        // The branch owns the tenant — it was already checked to be in this
-        // one above. A database trigger refuses the row if they disagree.
-        tenant_id: orgUnit.tenant_id,
-        is_primary: isPrimary,
-        granted_by: actorId,
+        department_id: null,
       },
     });
+
+    const assignment = existing
+      ? await this.prisma.userRole.update({
+          where: { id: existing.id },
+          data: { is_primary: isPrimary, granted_by: actorId },
+        })
+      : await this.prisma.userRole.create({
+          data: {
+            user_id: userId,
+            role_id: roleId,
+            org_unit_id: orgUnitId,
+            // The branch owns the tenant — already checked to be in this one
+            // above. A database trigger refuses the row if they disagree.
+            tenant_id: orgUnit.tenant_id,
+            is_primary: isPrimary,
+            granted_by: actorId,
+          },
+        });
 
     await this.audit.log({
       tenantId,

@@ -20,7 +20,12 @@ describe('RbacAdminService.assignRole — tenant on the assignment', () => {
     user: { findFirst: jest.fn() },
     role: { findFirst: jest.fn() },
     orgUnit: { findFirst: jest.fn() },
-    userRole: { upsert: jest.fn(), updateMany: jest.fn() },
+    userRole: {
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      updateMany: jest.fn(),
+    },
   };
   const audit = { log: jest.fn() };
 
@@ -48,14 +53,16 @@ describe('RbacAdminService.assignRole — tenant on the assignment', () => {
       tenant_id: 'tn_govt',
       branch_type: 'MUNICIPALITY',
     });
-    prisma.userRole.upsert.mockResolvedValue({ id: 1 });
+    prisma.userRole.findFirst.mockResolvedValue(null);
+    prisma.userRole.create.mockResolvedValue({ id: 1 });
+    prisma.userRole.update.mockResolvedValue({ id: 1 });
     prisma.userRole.updateMany.mockResolvedValue({ count: 0 });
   });
 
   it("stamps the branch's tenant onto the assignment", async () => {
     await service.assignRole('tn_govt', 42, 1, 7, 10);
 
-    const created = prisma.userRole.upsert.mock.calls[0][0].create;
+    const created = prisma.userRole.create.mock.calls[0][0].data;
     expect(created.tenant_id).toBe('tn_govt');
   });
 
@@ -71,7 +78,7 @@ describe('RbacAdminService.assignRole — tenant on the assignment', () => {
 
     await service.assignRole('tn_govt', 42, 1, 7, 10);
 
-    expect(prisma.userRole.upsert.mock.calls[0][0].create.tenant_id).toBe('tn_govt');
+    expect(prisma.userRole.create.mock.calls[0][0].data.tenant_id).toBe('tn_govt');
   });
 
   it('refuses a branch outside the caller tenant before writing anything', async () => {
@@ -80,19 +87,47 @@ describe('RbacAdminService.assignRole — tenant on the assignment', () => {
     await expect(service.assignRole('tn_govt', 42, 1, 7, 99)).rejects.toBeInstanceOf(
       ForbiddenException,
     );
-    expect(prisma.userRole.upsert).not.toHaveBeenCalled();
+    expect(prisma.userRole.create).not.toHaveBeenCalled();
   });
 
   it('still records who granted it and at which branch', async () => {
     await service.assignRole('tn_govt', 42, 1, 7, 10, true);
 
-    const created = prisma.userRole.upsert.mock.calls[0][0].create;
+    const created = prisma.userRole.create.mock.calls[0][0].data;
     expect(created).toMatchObject({
       user_id: 42,
       role_id: 7,
       org_unit_id: 10,
       granted_by: 1,
       is_primary: true,
+    });
+  });
+
+  it('never puts a null inside a compound-key lookup', async () => {
+    // The original used `upsert` with `department_id: null` inside the
+    // compound unique. Prisma refuses null there — SQL NULL never equals NULL
+    // and the index would not match anyway — so this threw on every call and
+    // nobody could be assigned to a role from the console at all.
+    await service.assignRole('tn_govt', 42, 1, 7, 10);
+
+    const where = prisma.userRole.findFirst.mock.calls[0][0].where;
+    expect(where).toEqual({
+      user_id: 42,
+      role_id: 7,
+      org_unit_id: 10,
+      department_id: null,
+    });
+  });
+
+  it('updates rather than duplicating when the assignment already exists', async () => {
+    prisma.userRole.findFirst.mockResolvedValue({ id: 55 });
+
+    await service.assignRole('tn_govt', 42, 1, 7, 10, true);
+
+    expect(prisma.userRole.create).not.toHaveBeenCalled();
+    expect(prisma.userRole.update).toHaveBeenCalledWith({
+      where: { id: 55 },
+      data: { is_primary: true, granted_by: 1 },
     });
   });
 
