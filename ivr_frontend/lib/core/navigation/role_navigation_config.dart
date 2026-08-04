@@ -335,14 +335,6 @@ class RoleNavigationConfig {
         route: '/insights',
       ),
     ),
-    'executive': (
-      group: gInsights,
-      spec: NavSpec(
-        icon: Icons.dashboard_customize_rounded,
-        label: 'Executive view',
-        route: '/dashboard/executive',
-      ),
-    ),
     'audit_logs': (
       group: gInsights,
       spec: NavSpec(
@@ -509,7 +501,6 @@ class RoleNavigationConfig {
       'tenders',
       'contractors',
       'insights',
-      'executive',
       'audit_logs',
     },
     'i3c_staff': {
@@ -581,7 +572,6 @@ class RoleNavigationConfig {
     'field_workforce',
     'employees',
     'insights',
-    'executive',
     'audit_logs',
     'settings',
     'tenants',

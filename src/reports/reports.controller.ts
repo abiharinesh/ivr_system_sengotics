@@ -24,6 +24,9 @@ interface AuthenticatedRequest {
     id: number;
     email: string;
     role: string;
+    // Every read here is tenant-scoped. Leaving it off the type is how the
+    // handlers below ended up passing a literal `'default'` instead.
+    tenant_id: string;
     org_unit_id: number | null;
   };
 }
@@ -148,43 +151,18 @@ export class ReportsController {
     }
   }
 
-  // ── Dashboard Widgets Endpoints ─────────────────────────────────────────
-
-  @Post('widgets')
-  createWidget(@Req() req: AuthenticatedRequest, @Body() dto: CreateWidgetDto) {
-    return this.service.createWidget(req.user.role === 'super_admin' ? 'default' : 'default', dto);
-  }
-
-  @Get('widgets')
-  listWidgets(@Req() req: AuthenticatedRequest) {
-    return this.service.getWidgets('default');
-  }
-
-  // ── Role Dashboard Endpoints ─────────────────────────────────────────────
-
-  @Put('roles/:roleName/dashboard')
-  updateRoleDashboard(
-    @Req() req: AuthenticatedRequest,
-    @Param('roleName') roleName: string,
-    @Body() body: { widgetIds: number[]; layout?: any },
-  ) {
-    if (!body.widgetIds) {
-      throw new BadRequestException('widgetIds is required');
-    }
-    return this.service.updateRoleDashboard('default', roleName, body.widgetIds, body.layout);
-  }
-
-  @Get('roles/:roleName/dashboard')
-  getRoleDashboard(@Req() req: AuthenticatedRequest, @Param('roleName') roleName: string) {
-    return this.service.getRoleDashboard('default', roleName);
-  }
+  // Widget and role-dashboard endpoints used to live here. They duplicated
+  // `/api/dashboard`, which is what the console actually calls, and every one
+  // of them passed a literal `'default'` as the tenant — so a second client's
+  // administrator would have been reading and writing the first client's
+  // dashboards. Removed rather than fixed twice.
 
   // ── Saved Reports Endpoints ──────────────────────────────────────────────
 
   @Post('saved')
   createSavedReport(@Req() req: AuthenticatedRequest, @Body() dto: CreateSavedReportDto) {
     const orgUnitId = req.user.org_unit_id ?? 1;
-    return this.service.createSavedReport('default', orgUnitId, {
+    return this.service.createSavedReport(req.user.tenant_id, orgUnitId, {
       ...dto,
       created_by: req.user.id,
     });
@@ -193,11 +171,11 @@ export class ReportsController {
   @Get('saved')
   listSavedReports(@Req() req: AuthenticatedRequest) {
     const orgUnitId = req.user.org_unit_id ?? 1;
-    return this.service.getSavedReports('default', orgUnitId);
+    return this.service.getSavedReports(req.user.tenant_id, orgUnitId);
   }
 
   @Post('saved/:id/generate')
   generateSavedReport(@Req() req: AuthenticatedRequest, @Param('id', ParseIntPipe) id: number) {
-    return this.service.triggerReportGeneration('default', id);
+    return this.service.triggerReportGeneration(req.user.tenant_id, id);
   }
 }

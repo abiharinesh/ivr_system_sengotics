@@ -95,11 +95,7 @@ import 'package:ivr_frontend/features/auth/presentation/employee_service_book_sc
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/tenant_management_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/employee_directory_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/designation_transfer_timeline_screen.dart';
-import 'package:ivr_frontend/features/modules/assets/presentation/asset_registration_screen.dart';
 import 'package:ivr_frontend/features/modules/complaints/presentation/sla_analytics_screen.dart';
-import 'package:ivr_frontend/features/modules/dynamic_forms/presentation/dynamic_form_runtime_renderer.dart';
-import 'package:ivr_frontend/features/modules/contractor/presentation/work_order_creation_screen.dart';
-import 'package:ivr_frontend/features/modules/reports/presentation/executive_dashboard_screen.dart';
 import 'package:ivr_frontend/features/modules/dms/presentation/dms_explorer_screen.dart';
 import 'package:ivr_frontend/features/modules/audit/presentation/audit_log_inspector_screen.dart';
 import 'package:ivr_frontend/features/modules/solid_waste/presentation/screens/solid_waste_screen.dart';
@@ -761,24 +757,8 @@ GoRouter createRouter(AuthBloc authBloc) {
             redirect: (_, __) => '/superadmin/roles',
           ),
           GoRoute(
-            path: '/assets/new',
-            builder: (context, state) => const AssetRegistrationScreen(),
-          ),
-          GoRoute(
             path: '/analytics/sla',
             builder: (context, state) => const SlaAnalyticsScreen(),
-          ),
-          GoRoute(
-            path: '/forms/render',
-            builder: (context, state) => const DynamicFormRuntimeRenderer(),
-          ),
-          GoRoute(
-            path: '/work-orders/new',
-            builder: (context, state) => const WorkOrderCreationScreen(),
-          ),
-          GoRoute(
-            path: '/dashboard/executive',
-            builder: (context, state) => const ExecutiveDashboardScreen(),
           ),
           GoRoute(
             path: '/documents',

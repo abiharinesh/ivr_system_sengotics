@@ -110,7 +110,6 @@ const SCREENS = [
 
   // Insights
   { key: 'insights',   route: '/insights',            group_key: G.INSIGHTS, label_en: 'Reports & analytics', label_ta: 'அறிக்கைகள்',   icon: 'insights_rounded',             module: 'core', permission_code: 'reports.read' },
-  { key: 'executive',  route: '/dashboard/executive', group_key: G.INSIGHTS, label_en: 'Executive view',      label_ta: 'நிர்வாக பார்வை', icon: 'dashboard_customize_rounded', module: 'core', permission_code: 'reports.read' },
   { key: 'audit_logs', route: '/admin/audit-logs',    group_key: G.INSIGHTS, label_en: 'Audit log',           label_ta: 'தணிக்கை பதிவு',  icon: 'history_edu_rounded',         module: 'core', permission_code: 'audit.read' },
 
   // Administration — platform-only screens are marked so a branch role is
@@ -174,7 +173,7 @@ const ROLES = [
     name: 'municipal_commissioner', display_name: 'Municipal Commissioner', display_name_ta: 'நகராட்சி ஆணையர்',
     hierarchy_level: 1, can_approve: true, department: 'Administration',
     types: ['MUNICIPAL_CORPORATION', 'MUNICIPALITY'],
-    screens: flat(S.base, S.citizen, S.regulatory, ['trade_licences', 'solid_waste'], S.procurement, S.insights, ['executive']),
+    screens: flat(S.base, S.citizen, S.regulatory, ['trade_licences', 'solid_waste'], S.procurement, S.insights),
     perm_modules: ['complaints', 'building_permits', 'vital_events', 'trade_licences', 'solid_waste', 'tenders', 'contractors', 'reports', 'audit'],
     approve_modules: ['building_permits', 'vital_events', 'trade_licences', 'tenders'],
     seed_user: true,
@@ -332,7 +331,7 @@ const ROLES = [
     name: 'district_panchayat_officer', display_name: 'District Panchayat Officer', display_name_ta: 'மாவட்ட ஊராட்சி அலுவலர்',
     hierarchy_level: 1, can_approve: true, department: 'Administration',
     types: ['DISTRICT_PANCHAYAT'],
-    screens: flat(S.base, ['complaints'], S.procurement, S.insights, ['executive']),
+    screens: flat(S.base, ['complaints'], S.procurement, S.insights),
     perm_modules: ['complaints', 'tenders', 'contractors', 'reports', 'audit'],
     approve_modules: ['tenders'],
     seed_user: true,
