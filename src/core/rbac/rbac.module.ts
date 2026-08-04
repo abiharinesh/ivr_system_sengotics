@@ -3,6 +3,7 @@ import { PrismaModule } from '../../prisma/prisma.module';
 import { RbacController } from './rbac.controller';
 import { RbacAdminService } from './rbac-admin.service';
 import { RbacAnalyticsService } from './rbac-analytics.service';
+import { FeatureAccessService } from './feature-access.service';
 import { RbacService } from './rbac.service';
 
 /**
@@ -17,7 +18,7 @@ import { RbacService } from './rbac.service';
 @Module({
   imports: [PrismaModule],
   controllers: [RbacController],
-  providers: [RbacService, RbacAdminService, RbacAnalyticsService],
-  exports: [RbacService, RbacAdminService, RbacAnalyticsService],
+  providers: [RbacService, RbacAdminService, RbacAnalyticsService, FeatureAccessService],
+  exports: [RbacService, RbacAdminService, RbacAnalyticsService, FeatureAccessService],
 })
 export class RbacModule {}

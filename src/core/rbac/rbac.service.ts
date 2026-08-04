@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { FeatureAccessService } from './feature-access.service';
 
 export interface Entitlements {
   /** Permission codes, e.g. `trade_licences.read`. */
@@ -26,7 +27,10 @@ export interface Entitlements {
 export class RbacService {
   private readonly logger = new Logger(RbacService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly features: FeatureAccessService,
+  ) {}
 
   /**
    * Every role id reachable from the given roles, following
@@ -61,13 +65,27 @@ export class RbacService {
    * re-issuing super admin tokens.
    */
   async entitlementsFor(userId: number): Promise<Entitlements> {
-    const assignments = await this.prisma.userRole
+    type Assignment = {
+      org_unit_id: number | null;
+      is_primary: boolean;
+      role: {
+        id: number;
+        name: string;
+        display_name: string;
+        is_super_admin: boolean;
+        is_active: boolean;
+      } | null;
+    };
+
+    const assignments: Assignment[] = await this.prisma.userRole
       .findMany({
         where: {
           user_id: userId,
           OR: [{ valid_until: null }, { valid_until: { gte: new Date() } }],
         },
         select: {
+          org_unit_id: true,
+          is_primary: true,
           role: {
             select: {
               id: true,
@@ -83,7 +101,7 @@ export class RbacService {
 
     const roles = assignments
       .map((a) => a.role)
-      .filter((r) => r && r.is_active)
+      .filter((r): r is NonNullable<typeof r> => r != null && r.is_active)
       .map((r) => ({
         id: r.id,
         name: r.name,
@@ -102,24 +120,44 @@ export class RbacService {
 
     const roleIds = await this.expandInheritance(roles.map((r) => r.id));
 
-    const [grants, access] = await Promise.all([
+    // The branch the user actually works at decides which modules are
+    // provisioned. Their primary assignment is their working context; without
+    // one, any assignment will do.
+    const orgUnitId =
+      assignments.find((a) => a.is_primary)?.org_unit_id ??
+      assignments[0]?.org_unit_id ??
+      null;
+
+    const [grants, access, enabledModules, knownFeatures] = await Promise.all([
       this.prisma.rolePermission.findMany({
         where: { role_id: { in: roleIds } },
         select: { permission: { select: { code: true } } },
       }),
       this.prisma.roleScreenAccess.findMany({
         where: { role_id: { in: roleIds }, can_view: true },
-        select: { screen: { select: { key: true, is_active: true } } },
+        select: {
+          screen: { select: { key: true, module: true, is_active: true } },
+        },
       }),
+      this.features.enabledModulesFor(orgUnitId),
+      this.features.knownFeatures(),
     ]);
+
+    // Granted ∩ provisioned. A role may be granted a screen the branch has not
+    // licensed — that is not a mistake in the grant, it is the same role
+    // definition being reused across branches that differ.
+    const granted = access
+      .filter((a) => a.screen.is_active)
+      .map((a) => a.screen);
+    const visible = this.features.filterScreens(
+      granted,
+      enabledModules,
+      knownFeatures,
+    );
 
     return {
       permissions: [...new Set(grants.map((g) => g.permission.code))].sort(),
-      screens: [
-        ...new Set(
-          access.filter((a) => a.screen.is_active).map((a) => a.screen.key),
-        ),
-      ].sort(),
+      screens: [...new Set(visible.map((s) => s.key))].sort(),
       roles,
       isSuperAdmin: false,
     };

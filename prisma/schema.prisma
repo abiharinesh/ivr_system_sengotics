@@ -1137,6 +1137,8 @@ model TenantFeatureConfig {
   vehicle_fleet_mgmt Boolean @default(true)
   cemetery_mgmt      Boolean @default(true)
   encroachment_mgmt  Boolean @default(true)
+  property_tax       Boolean @default(true)
+  trade_licence      Boolean @default(true)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
@@ -1185,6 +1187,13 @@ model BranchFeatureConfig {
   vehicle_fleet_mgmt Boolean @default(false)
   cemetery_mgmt      Boolean @default(false)
   encroachment_mgmt  Boolean @default(false)
+
+  // Revenue modules. Both were shipped without a toggle, so their screens
+  // could not be switched off for a branch that does not levy them — a
+  // village panchayat has no trade licensing of its own, and the menu entry
+  // led to an empty register. `AppScreen.module` already carries these names.
+  property_tax  Boolean @default(true)
+  trade_licence Boolean @default(true)
 
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt

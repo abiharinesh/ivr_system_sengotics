@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RbacService } from './rbac.service';
+import { FeatureAccessService } from './feature-access.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
 const role = (over: Record<string, any> = {}) => ({
@@ -20,11 +21,30 @@ describe('RbacService', () => {
     rolePermission: { findMany: jest.fn() },
     roleScreenAccess: { findMany: jest.fn() },
     appScreen: { findMany: jest.fn() },
+    orgUnit: { findUnique: jest.fn() },
+    branchFeatureConfig: { findUnique: jest.fn(), findFirst: jest.fn() },
+    tenantFeatureConfig: { findUnique: jest.fn() },
   };
+
+  /** A provisioning row shaped like the real table. */
+  const config = (over: Record<string, boolean> = {}) => ({
+    id: 1,
+    org_unit_id: 10,
+    complaint_mgmt: true,
+    water_supply_mgmt: true,
+    solid_waste_mgmt: true,
+    trade_licence: true,
+    property_tax: true,
+    ...over,
+  });
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [RbacService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        RbacService,
+        FeatureAccessService,
+        { provide: PrismaService, useValue: prisma },
+      ],
     }).compile();
 
     service = module.get(RbacService);
@@ -34,6 +54,12 @@ describe('RbacService', () => {
     prisma.rolePermission.findMany.mockResolvedValue([]);
     prisma.roleScreenAccess.findMany.mockResolvedValue([]);
     prisma.appScreen.findMany.mockResolvedValue([]);
+    // No provisioning rows by default, so a deployment that does not use
+    // feature gating behaves exactly as it did before gating existed.
+    prisma.orgUnit.findUnique.mockResolvedValue({ tenant_id: 'default' });
+    prisma.branchFeatureConfig.findUnique.mockResolvedValue(null);
+    prisma.branchFeatureConfig.findFirst.mockResolvedValue(null);
+    prisma.tenantFeatureConfig.findUnique.mockResolvedValue(null);
   });
 
   describe('entitlementsFor', () => {
@@ -44,8 +70,8 @@ describe('RbacService', () => {
         { permission: { code: 'complaints.read' } },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'water_supply', is_active: true } },
-        { screen: { key: 'complaints', is_active: true } },
+        { screen: { key: 'water_supply', module: 'water_supply', is_active: true } },
+        { screen: { key: 'complaints', module: 'complaints', is_active: true } },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -58,8 +84,8 @@ describe('RbacService', () => {
     it('hides a screen whose registry entry has been deactivated', async () => {
       prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'water_supply', is_active: true } },
-        { screen: { key: 'retired_module', is_active: false } },
+        { screen: { key: 'water_supply', module: 'water_supply', is_active: true } },
+        { screen: { key: 'retired_module', module: 'retired_module', is_active: false } },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -165,8 +191,8 @@ describe('RbacService', () => {
         { permission: { code: 'property_tax.read' } },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'trade_licences', is_active: true } },
-        { screen: { key: 'trade_licences', is_active: true } },
+        { screen: { key: 'trade_licences', module: 'trade_licences', is_active: true } },
+        { screen: { key: 'trade_licences', module: 'trade_licences', is_active: true } },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -181,6 +207,125 @@ describe('RbacService', () => {
       // Login must not fail on a database that has not had the migration.
       const ent = await service.entitlementsFor(7);
       expect(ent.screens).toEqual([]);
+    });
+  });
+
+  describe('provisioning gate', () => {
+    /** A role granted three screens across three different modules. */
+    const grantedThree = () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        { org_unit_id: 10, is_primary: true, role: role() },
+      ]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([
+        { screen: { key: 'complaints', module: 'complaint_mgmt', is_active: true } },
+        { screen: { key: 'solid_waste', module: 'solid_waste_mgmt', is_active: true } },
+        { screen: { key: 'home', module: 'core', is_active: true } },
+      ]);
+      prisma.branchFeatureConfig.findFirst.mockResolvedValue(config());
+    };
+
+    it('hides a granted screen whose module the branch has switched off', async () => {
+      grantedThree();
+      prisma.branchFeatureConfig.findUnique.mockResolvedValue(
+        config({ solid_waste_mgmt: false }),
+      );
+
+      const ent = await service.entitlementsFor(7);
+
+      // The grant is not wrong — the same role is reused at branches that do
+      // run solid waste. The branch decides.
+      expect(ent.screens).toEqual(['complaints', 'home']);
+    });
+
+    it("hides a screen the tenant's plan does not include, whatever the branch says", async () => {
+      grantedThree();
+      prisma.branchFeatureConfig.findUnique.mockResolvedValue(config());
+      prisma.tenantFeatureConfig.findUnique.mockResolvedValue(
+        config({ solid_waste_mgmt: false }),
+      );
+
+      const ent = await service.entitlementsFor(7);
+
+      // The plan is a ceiling: a branch cannot switch on what was not licensed.
+      expect(ent.screens).not.toContain('solid_waste');
+    });
+
+    it('never hides core screens, so a branch cannot lock itself out', async () => {
+      grantedThree();
+      prisma.branchFeatureConfig.findUnique.mockResolvedValue(
+        config({ complaint_mgmt: false, solid_waste_mgmt: false }),
+      );
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.screens).toEqual(['home']);
+    });
+
+    it('leaves a module the config tables cannot express alone', async () => {
+      // A screen shipped ahead of its feature column must stay visible, or
+      // every new module is invisible until somebody adds a column.
+      prisma.userRole.findMany.mockResolvedValue([
+        { org_unit_id: 10, is_primary: true, role: role() },
+      ]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([
+        { screen: { key: 'brand_new', module: 'not_a_column', is_active: true } },
+      ]);
+      prisma.branchFeatureConfig.findFirst.mockResolvedValue(config());
+      prisma.branchFeatureConfig.findUnique.mockResolvedValue(config());
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.screens).toEqual(['brand_new']);
+    });
+
+    it('does not filter when no provisioning rows exist at all', async () => {
+      grantedThree();
+      prisma.branchFeatureConfig.findUnique.mockResolvedValue(null);
+      prisma.tenantFeatureConfig.findUnique.mockResolvedValue(null);
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.screens).toEqual(['complaints', 'home', 'solid_waste']);
+    });
+
+    it('does not empty the menu when the config lookup fails', async () => {
+      grantedThree();
+      prisma.branchFeatureConfig.findUnique.mockRejectedValue(new Error('down'));
+      prisma.tenantFeatureConfig.findUnique.mockRejectedValue(new Error('down'));
+
+      const ent = await service.entitlementsFor(7);
+
+      // Briefly showing a module they cannot open beats blanking the product.
+      // The API guards still refuse the underlying calls.
+      expect(ent.screens).toEqual(['complaints', 'home', 'solid_waste']);
+    });
+
+    it('reads provisioning from the primary assignment, not just any', async () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        { org_unit_id: 99, is_primary: false, role: role({ id: 2 }) },
+        { org_unit_id: 10, is_primary: true, role: role({ id: 1 }) },
+      ]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([]);
+      prisma.branchFeatureConfig.findFirst.mockResolvedValue(config());
+
+      await service.entitlementsFor(7);
+
+      expect(prisma.orgUnit.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 10 } }),
+      );
+    });
+
+    it('is skipped entirely for a super admin', async () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        { org_unit_id: 10, is_primary: true, role: role({ is_super_admin: true }) },
+      ]);
+
+      const ent = await service.entitlementsFor(1);
+
+      // The platform operator turns modules on; gating them out of the screen
+      // that does it would be a trap.
+      expect(ent.isSuperAdmin).toBe(true);
+      expect(prisma.branchFeatureConfig.findUnique).not.toHaveBeenCalled();
     });
   });
 

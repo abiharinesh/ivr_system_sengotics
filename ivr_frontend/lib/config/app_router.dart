@@ -14,15 +14,6 @@ import 'package:ivr_frontend/features/roles/citizen/presentation/screens/citizen
 import 'package:ivr_frontend/features/roles/citizen/presentation/screens/public_pole_report_screen.dart';
 import 'package:ivr_frontend/features/roles/citizen/presentation/screens/complaint_tracking_screen.dart';
 
-import 'package:ivr_frontend/features/roles/commissioner/presentation/screens/commissioner_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/municipal_engineer/presentation/screens/municipal_engineer_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/revenue_officer/presentation/screens/revenue_officer_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/assistant_engineer/presentation/screens/assistant_engineer_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/health_officer/presentation/screens/health_officer_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/revenue_inspector/presentation/screens/revenue_inspector_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/junior_engineer/presentation/screens/junior_engineer_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/i3c_staff/presentation/screens/i3c_dashboard_screen.dart';
-import 'package:ivr_frontend/features/roles/contractor_portal/presentation/screens/contractor_dashboard_screen.dart';
 
 import 'package:ivr_frontend/features/roles/super_admin/bloc/dashboard_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/panchayat_bloc.dart';
@@ -137,15 +128,6 @@ import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
 String _homeForRole(Authenticated auth) {
   final u = auth.user;
   if (u.isSuperAdmin || u.isPanchayatAdmin) return '/dashboard';
-  if (u.isMunicipalCommissioner) return '/commissioner';
-  if (u.isMunicipalEngineer) return '/municipal-engineer';
-  if (u.isRevenueOfficer) return '/revenue-officer';
-  if (u.isAssistantEngineer) return '/assistant-engineer';
-  if (u.isHealthOfficer) return '/health-officer';
-  if (u.isRevenueInspector) return '/revenue-inspector';
-  if (u.isJuniorEngineer) return '/junior-engineer';
-  if (u.isI3cStaff) return '/i3c';
-  if (u.isContractor) return '/contractor-dashboard';
   if (u.isAgent) return '/agent';
   if (u.isElectrician) return '/electrician';
   if (u.isPlumber) return '/plumber';
@@ -355,43 +337,6 @@ GoRouter createRouter(AuthBloc authBloc) {
               final id = int.parse(state.pathParameters['id']!);
               return PlumberComplaintDetailScreen(complaintId: id);
             },
-          ),
-          // Role-specific Dashboards
-          GoRoute(
-            path: '/commissioner',
-            builder: (context, state) => const CommissionerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/municipal-engineer',
-            builder: (context, state) => const MunicipalEngineerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/revenue-officer',
-            builder: (context, state) => const RevenueOfficerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/assistant-engineer',
-            builder: (context, state) => const AssistantEngineerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/health-officer',
-            builder: (context, state) => const HealthOfficerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/revenue-inspector',
-            builder: (context, state) => const RevenueInspectorDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/junior-engineer',
-            builder: (context, state) => const JuniorEngineerDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/i3c',
-            builder: (context, state) => const I3cDashboardScreen(),
-          ),
-          GoRoute(
-            path: '/contractor-dashboard',
-            builder: (context, state) => const ContractorDashboardScreen(),
           ),
           // Dashboard.
           //
@@ -958,24 +903,6 @@ String _getTitle(String location) {
       return 'Plumber — Jobs';
     case '/dashboard':
       return 'Dashboard';
-    case '/commissioner':
-      return 'Municipal Commissioner Dashboard';
-    case '/municipal-engineer':
-      return 'Municipal Engineer Dashboard';
-    case '/revenue-officer':
-      return 'Revenue Officer Dashboard';
-    case '/assistant-engineer':
-      return 'Assistant Engineer Dashboard';
-    case '/health-officer':
-      return 'Health Officer Dashboard';
-    case '/revenue-inspector':
-      return 'Revenue Inspector Dashboard';
-    case '/junior-engineer':
-      return 'Junior Engineer Dashboard';
-    case '/i3c':
-      return 'I3C Command Center';
-    case '/contractor-dashboard':
-      return 'Contractor Portal';
     case '/panchayats':
       return 'Panchayat Management';
     case '/users':
