@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:ivr_frontend/core/widgets/module_hub_scaffold.dart';
+import 'package:ivr_frontend/features/modules/insights/presentation/service_analytics_screen.dart';
 import 'package:ivr_frontend/features/modules/reports/presentation/report_generation_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/analytics_screen.dart';
-import 'package:ivr_frontend/features/modules/complaints/presentation/sla_analytics_screen.dart';
 
 /// Reporting and analytics.
 ///
@@ -25,12 +24,12 @@ class InsightsHub extends StatelessWidget {
         HubTab(
           icon: Icons.insights_rounded,
           label: 'Analytics',
-          builder: (_) => const AnalyticsScreen(),
+          builder: (_) => const ServiceAnalyticsScreen(),
         ),
         HubTab(
           icon: Icons.timer_rounded,
           label: 'SLA performance',
-          builder: (_) => const SlaAnalyticsScreen(),
+          builder: (_) => const ServiceAnalyticsScreen(slaFocus: true),
         ),
         HubTab(
           icon: Icons.document_scanner_rounded,

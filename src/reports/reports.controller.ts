@@ -14,7 +14,8 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import * as express from 'express';
-import { ReportsService, CreateWidgetDto, CreateSavedReportDto } from './reports.service';
+import { ReportsService, CreateSavedReportDto } from './reports.service';
+import { ServiceAnalyticsService } from './service-analytics.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -35,7 +36,10 @@ interface AuthenticatedRequest {
 @Roles('panchayat_admin', 'super_admin', 'municipal_commissioner', 'revenue_officer', 'revenue_inspector', 'municipal_engineer')
 @Controller('api/admin/reports')
 export class ReportsController {
-  constructor(private readonly service: ReportsService) {}
+  constructor(
+    private readonly service: ReportsService,
+    private readonly analytics: ServiceAnalyticsService,
+  ) {}
 
   private getPanchayatId(req: AuthenticatedRequest): number {
     if (req.user.role === 'super_admin') {
@@ -156,6 +160,21 @@ export class ReportsController {
   // of them passed a literal `'default'` as the tenant — so a second client's
   // administrator would have been reading and writing the first client's
   // dashboards. Removed rather than fixed twice.
+
+  /**
+   * GET /api/reports/service-analytics?days=30
+   *
+   * Complaint volume, resolution time, SLA compliance and satisfaction for
+   * the caller's branch. The Insights hub used to hardcode all four.
+   */
+  @Get('service-analytics')
+  serviceAnalytics(
+    @Req() req: AuthenticatedRequest,
+    @Query('days') days?: string,
+  ) {
+    const window = Math.min(Math.max(Number(days) || 30, 7), 180);
+    return this.analytics.overview(req.user.org_unit_id, window);
+  }
 
   // ── Saved Reports Endpoints ──────────────────────────────────────────────
 

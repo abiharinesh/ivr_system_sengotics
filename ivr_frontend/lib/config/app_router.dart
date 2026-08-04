@@ -30,7 +30,7 @@ import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/ai_
 import 'package:ivr_frontend/features/modules/document_templates/presentation/document_templates_settings_screen.dart';
 import 'package:ivr_frontend/features/modules/ivr_operations/presentation/voice_calls_screen.dart';
 import 'package:ivr_frontend/features/modules/ivr_operations/presentation/ivr_logs_screen.dart';
-import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/analytics_screen.dart';
+import 'package:ivr_frontend/features/modules/insights/presentation/service_analytics_screen.dart';
 import 'package:ivr_frontend/features/modules/reports/presentation/report_generation_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/super_admin_pole_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/agent_management.dart';
@@ -95,7 +95,6 @@ import 'package:ivr_frontend/features/auth/presentation/employee_service_book_sc
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/tenant_management_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/employee_directory_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/designation_transfer_timeline_screen.dart';
-import 'package:ivr_frontend/features/modules/complaints/presentation/sla_analytics_screen.dart';
 import 'package:ivr_frontend/features/modules/dms/presentation/dms_explorer_screen.dart';
 import 'package:ivr_frontend/features/modules/audit/presentation/audit_log_inspector_screen.dart';
 import 'package:ivr_frontend/features/modules/solid_waste/presentation/screens/solid_waste_screen.dart';
@@ -515,7 +514,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/analytics',
-            builder: (context, state) => const AnalyticsScreen(),
+            builder: (context, state) => const ServiceAnalyticsScreen(),
           ),
           GoRoute(
             path: '/report-generation',
@@ -758,7 +757,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/analytics/sla',
-            builder: (context, state) => const SlaAnalyticsScreen(),
+            builder: (context, state) => const ServiceAnalyticsScreen(slaFocus: true),
           ),
           GoRoute(
             path: '/documents',
