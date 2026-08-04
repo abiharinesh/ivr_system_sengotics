@@ -14,6 +14,12 @@ import { AuditService } from '../core/audit/audit.service';
 import { RbacService } from '../core/rbac/rbac.service';
 import { checkPassword } from './password-policy';
 
+/** The shelf cross-tenant role templates live on. Never a user's own tenant. */
+const SENTINEL_TENANT = '__system__';
+
+/** Where an account with no branch of its own gets scoped. */
+const DEFAULT_TENANT = 'default';
+
 @Injectable()
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
@@ -348,6 +354,28 @@ export class AuthService {
    * Builds a JWT payload that includes both the legacy `role` field AND
    * the proper RBAC roles/permissions from UserRole → Role → PermissionGroup.
    */
+  /**
+   * Which tenant a sentinel-placed account should actually be scoped to.
+   *
+   * The branch they are posted to owns the answer — a user assigned to a
+   * Coimbatore branch belongs to whatever tenant that branch belongs to.
+   * Falls back to the operating tenant when they have no posting.
+   */
+  private async resolveSentinelTenant(user: {
+    primary_org_unit_id: number | null;
+  }): Promise<string> {
+    if (user.primary_org_unit_id) {
+      const org = await this.prisma.orgUnit
+        .findUnique({
+          where: { id: user.primary_org_unit_id },
+          select: { tenant_id: true },
+        })
+        .catch(() => null);
+      if (org?.tenant_id && org.tenant_id !== SENTINEL_TENANT) return org.tenant_id;
+    }
+    return DEFAULT_TENANT;
+  }
+
   private async buildJwtPayload(user: {
     id: number;
     email: string | null;
@@ -356,6 +384,23 @@ export class AuthService {
     tenant_id: string;
     user_type: string;
   }) {
+    // `__system__` is the shelf that cross-tenant role templates live on. It
+    // owns no org units and no records, and every service scopes its reads by
+    // the caller's tenant — so an account issued there signs in successfully
+    // and then finds an empty product: no roles, no colleagues, no dashboard.
+    //
+    // Resolved here rather than refused, because the person holding the
+    // account has done nothing wrong and locking them out is worse than
+    // putting them where they belong. Their branch decides the tenant; a
+    // branchless account falls back to the operating tenant.
+    if (user.tenant_id === SENTINEL_TENANT) {
+      const resolved = await this.resolveSentinelTenant(user);
+      this.logger.warn(
+        `User #${user.id} sits in the ${SENTINEL_TENANT} tenant; scoping to "${resolved}" instead`,
+      );
+      user = { ...user, tenant_id: resolved };
+    }
+
     // Get employee record if exists (posting identity only — access_scope now lives on UserRole)
     let employee: { id: number } | null = null;
     try {
