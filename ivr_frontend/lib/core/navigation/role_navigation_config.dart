@@ -628,38 +628,27 @@ class RoleNavigationConfig {
     ],
   };
 
-  /// Role-specific landing screens. Everything else in the catalogue is a
-  /// shared route, but "Dashboard" means a different screen per role.
-  static const Map<String, String> _homeRouteByRole = {
-    'municipal_commissioner': '/commissioner',
-    'municipal_engineer': '/municipal-engineer',
-    'assistant_engineer': '/assistant-engineer',
-    'junior_engineer': '/junior-engineer',
-    'revenue_officer': '/revenue-officer',
-    'revenue_inspector': '/revenue-inspector',
-    'health_officer': '/health-officer',
-    'i3c_staff': '/i3c',
-    'contractor': '/contractor-dashboard',
-  };
-
+  /// Every office role lands on `/dashboard`.
+  ///
+  /// Nine roles used to point at a hardcoded screen of their own —
+  /// `/commissioner`, `/municipal-engineer`, `/revenue-officer` and so on.
+  /// That predates the dashboard being composed from `role_dashboards`, and
+  /// leaving the overrides in place meant those nine never saw the dashboard
+  /// the super admin had arranged for them: the console could be edited all
+  /// day with no effect on the people it was edited for.
+  ///
+  /// The old screens are still routed at their own paths, so a bookmark still
+  /// works; nothing in the sidebar sends anyone to them.
+  ///
+  /// Field roles are the exception and are handled by [_fieldOnlyMenus]: they
+  /// get a single-purpose shell rather than a dashboard, and the router keeps
+  /// them inside it.
   static Set<String> _idsFor(String role) {
     if (role == 'super_admin') return _superAdminAccess;
     return _accessByRole[role] ?? _defaultAccess;
   }
 
-  /// Resolve a catalogue entry for a role, applying the role's home override.
-  static NavSpec _specFor(String role, String id) {
-    final entry = _catalogue[id]!;
-    if (id == 'home') {
-      final route = _homeRouteByRole[role] ?? entry.spec.route;
-      return NavSpec(
-        icon: entry.spec.icon,
-        label: entry.spec.label,
-        route: route,
-      );
-    }
-    return entry.spec;
-  }
+  static NavSpec _specFor(String role, String id) => _catalogue[id]!.spec;
 
   /// The whole sidebar, grouped and ordered.
   ///
@@ -723,11 +712,14 @@ class RoleNavigationConfig {
   }
 
   /// The role's landing route.
+  ///
+  /// Field roles land in their own shell; everyone else lands on the
+  /// dashboard, which is composed per role from `role_dashboards`.
   static String homeRouteFor(String role) {
     if (_fieldOnlyRoles.contains(role)) {
       return _fieldOnlyMenus[role]?.first.route ?? '/dashboard';
     }
-    return _homeRouteByRole[role] ?? '/dashboard';
+    return '/dashboard';
   }
 
   /// Every route this sidebar can reach. Used to decide which nav item is

@@ -21,8 +21,10 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "node prisma/seed.js",
-    "seed:demo": "npx ts-node scripts/seed-demo-data.ts",
-    "seed:coimbatore": "node prisma/seed-coimbatore-real.js"
+    "seed:demo": "node prisma/seed-demo.js",
+    "seed:coimbatore": "node prisma/seed-coimbatore-real.js",
+    "web:dev": "cd ivr_frontend && flutter run -d web-server --web-port 8080 --web-hostname 127.0.0.1",
+    "web:serve": "npx --yes http-server ivr_frontend/build/web -p 8080 -a 127.0.0.1 --proxy http://127.0.0.1:8080? -s"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
