@@ -18,6 +18,7 @@ const { seedProcurement } = require('./demo/07-procurement');
 const { seedPlatform } = require('./demo/08-platform');
 const { seedOperations } = require('./demo/09-operations');
 const { seedStaffing } = require('./demo/10-staffing');
+const { seedToday } = require('./demo/11-today');
 
 async function main() {
   console.log('\n════ Demo dataset ════');
@@ -31,6 +32,7 @@ async function main() {
   await seedPlatform(ctx);
   await seedOperations(ctx);
   await seedStaffing(ctx);
+  await seedToday(ctx);
   console.log('\nDone.\n');
 }
 

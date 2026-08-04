@@ -8,6 +8,7 @@ import 'package:ivr_frontend/features/roles/super_admin/data/models/rbac_analyti
 import 'package:ivr_frontend/features/roles/super_admin/data/rbac_repository.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/user_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/branch_modules_pane.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/dashboard_layout_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_geography_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_matrix_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_overview_pane.dart';
@@ -62,7 +63,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
   void initState() {
     super.initState();
     _tabs = TabController(
-      length: 7,
+      length: 8,
       vsync: this,
       // A deep link to one person's assignments should land on People, not on
       // the analytics they didn't ask for.
@@ -149,6 +150,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
             Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
             Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
             Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
+            Tab(icon: Icon(Icons.dashboard_customize_rounded), text: 'Dashboards'),
             Tab(icon: Icon(Icons.tune_rounded), text: 'Branch modules'),
           ],
         ),
@@ -181,6 +183,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
                   initialUserId: widget.initialUserId,
                 ),
                 _accountsTab(),
+                DashboardLayoutPane(onChanged: _load),
                 const BranchModulesPane(),
               ],
             ),

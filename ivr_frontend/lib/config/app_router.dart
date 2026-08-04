@@ -29,6 +29,7 @@ import 'package:ivr_frontend/features/roles/super_admin/bloc/user_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/complaint_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/settings_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/tenant_bloc.dart';
+import 'package:ivr_frontend/features/dashboard/presentation/screens/role_dashboard_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/super_admin_dashboard.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/panchayat_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/user_management.dart';
@@ -365,22 +366,36 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/contractor-dashboard',
             builder: (context, state) => const ContractorDashboardScreen(),
           ),
-          // Dashboard
+          // Dashboard.
+          //
+          // Composed server-side from the caller's `role_dashboards` row, so
+          // each designation lands on panels chosen for it. This route used to
+          // serve exactly two screens — one for the super admin and one for
+          // everyone else — which meant a Commissioner and a Sanitary
+          // Inspector opened the same dashboard. Both of those screens are
+          // still reachable below.
           GoRoute(
             path: '/dashboard',
             builder: (context, state) {
               final authState = authBloc.state;
-              if (authState is Authenticated && authState.user.isSuperAdmin) {
-                return BlocProvider(
-                  create: (_) => SADashBloc()..add(LoadSADashboard()),
-                  child: const SuperAdminDashboard(),
-                );
-              }
-              return BlocProvider(
-                create: (_) => PADashBloc()..add(LoadPADashboard()),
-                child: const PADashboard(),
+              return RoleDashboardScreen(
+                user: authState is Authenticated ? authState.user : null,
               );
             },
+          ),
+          GoRoute(
+            path: '/dashboard/platform',
+            builder: (context, state) => BlocProvider(
+              create: (_) => SADashBloc()..add(LoadSADashboard()),
+              child: const SuperAdminDashboard(),
+            ),
+          ),
+          GoRoute(
+            path: '/dashboard/branch',
+            builder: (context, state) => BlocProvider(
+              create: (_) => PADashBloc()..add(LoadPADashboard()),
+              child: const PADashboard(),
+            ),
           ),
           GoRoute(
             path: '/zone-management',

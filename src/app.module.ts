@@ -56,6 +56,7 @@ import { VitalEventsModule } from './vital-events/vital-events.module';
 import { SolidWasteModule } from './solid-waste/solid-waste.module';
 import { TradeLicenceModule } from './trade-licence/trade-licence.module';
 import { RoleDashboardModule } from './role-dashboard/role-dashboard.module';
+import { DashboardModule } from './dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -89,6 +90,7 @@ import { RoleDashboardModule } from './role-dashboard/role-dashboard.module';
     CitizenModule,
     PublicReportModule,
     RoleDashboardModule,
+    DashboardModule,
     
     // Revenue Generation Modules
     AdCampaignModule,

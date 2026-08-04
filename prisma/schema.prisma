@@ -372,6 +372,17 @@ model Complaint {
   resolution_location_valid    Boolean?
   resolution_submitted_key     String?   @unique
 
+  /**
+   * Where the complaint is, independent of any asset.
+   * Previously a complaint could only be placed on a map if it happened to
+   * reference a pole, pipeline or tank — so potholes, garbage and stray-animal
+   * reports, which are most of the volume, were unmappable. The ward-density
+   * view and any geographic routing need the location of the *complaint*.
+   */
+  latitude    Float?
+  longitude   Float?
+  ward_number String?
+
   voice_call           VoiceCall?         @relation(fields: [voice_call_id], references: [id])
   pole                 ElectricPole?      @relation(fields: [pole_id], references: [id])
   pipeline             WaterPipeline?     @relation(fields: [pipeline_id], references: [id])
