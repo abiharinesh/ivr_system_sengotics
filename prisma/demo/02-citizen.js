@@ -181,6 +181,14 @@ async function seedCitizen(ctx) {
   }
 
   // ── Voice calls with transcripts ──────────────────────────────────────────
+  //
+  // A voice call is the recording of an IVR call, so it reuses that call's
+  // sid. Minting a fresh one left the operations screen unable to join back to
+  // the caller's number, which then rendered as a blank column.
+  const ivrSids = (
+    await prisma.ivrCall.findMany({ select: { call_sid: true }, take: 200 })
+  ).map((c) => c.call_sid);
+
   const voiceIds = [];
   if ((await prisma.voiceCall.count()) === 0) {
     for (let i = 0; i < 140; i++) {
@@ -188,7 +196,9 @@ async function seedCitizen(ctx) {
       const text = pick(COMPLAINT_TEXT[cat.key]).replace('{landmark}', pick(LANDMARKS));
       const v = await prisma.voiceCall.create({
         data: {
-          call_sid: `CA${String(Date.now()).slice(-8)}V${String(i).padStart(4, '0')}`,
+          call_sid:
+            ivrSids[i] ??
+            `CA${String(Date.now()).slice(-8)}V${String(i).padStart(4, '0')}`,
           audio_url: `/uploads/voice/demo-${i}.mp3`,
           transcript: text,
           transcript_english: text,
