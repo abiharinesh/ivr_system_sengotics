@@ -35,8 +35,9 @@ class InsightSection extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
-        borderRadius: BorderRadius.circular(AppTheme.radiusLg),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: AppTheme.stroke),
+        boxShadow: AppTheme.softShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -143,12 +144,13 @@ class InsightMetric extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
         decoration: BoxDecoration(
           color: AppTheme.bgCard,
-          borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: emphasis == MetricEmphasis.neutral
                 ? AppTheme.stroke
                 : accent.withValues(alpha: 0.35),
           ),
+          boxShadow: AppTheme.softShadow,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,8 +159,16 @@ class InsightMetric extends StatelessWidget {
             Row(
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 14, color: accent),
-                  const SizedBox(width: 6),
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: Icon(icon, size: 13, color: accent),
+                  ),
+                  const SizedBox(width: 8),
                 ],
                 Expanded(
                   child: Text(
@@ -183,8 +193,9 @@ class InsightMetric extends StatelessWidget {
                 Text(
                   value,
                   style: TextStyle(
-                    fontSize: 25,
+                    fontSize: 29,
                     height: 1,
+                    letterSpacing: -0.6,
                     fontWeight: FontWeight.w800,
                     color: emphasis == MetricEmphasis.neutral
                         ? AppTheme.textPrimary
@@ -401,14 +412,26 @@ class RankedBar extends StatelessWidget {
               borderRadius: BorderRadius.circular(4),
               child: Stack(
                 children: [
-                  Container(height: 7, color: AppTheme.bgSurface),
-                  FractionallySizedBox(
-                    widthFactor: ratio == 0 ? 0.004 : ratio,
-                    child: Container(
-                      height: 7,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [c.withValues(alpha: 0.65), c],
+                  Container(height: 9, color: AppTheme.bgSurface),
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(milliseconds: 520),
+                    curve: Curves.easeOutCubic,
+                    tween: Tween(begin: 0, end: ratio == 0 ? 0.004 : ratio),
+                    builder: (context, t, _) => FractionallySizedBox(
+                      widthFactor: t,
+                      child: Container(
+                        height: 9,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [c.withValues(alpha: 0.6), c],
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: c.withValues(alpha: 0.28),
+                              blurRadius: 6,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                       ),
                     ),

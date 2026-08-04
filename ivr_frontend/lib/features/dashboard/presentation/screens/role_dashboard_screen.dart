@@ -149,12 +149,17 @@ class _RoleDashboardScreenState extends State<RoleDashboardScreen> {
   }
 
   /// Charts, maps and tables need vertical room; a counter does not.
+  ///
+  /// A bar chart carries axis labels and a trend line carries its own headline
+  /// figure above the plot, so the two want different heights even though both
+  /// arrive as `bar_chart`.
   double _heightFor(DashboardWidgetData w) => switch (w.widgetType) {
-        'map' => 300,
-        'table' => 280,
-        'bar_chart' => w.series.length > 12 ? 210 : 260,
-        'pie_chart' => 220,
-        _ => 150,
+        'map' => 310,
+        'table' => 300,
+        'bar_chart' => w.series.length > 12 ? 236 : 258,
+        'pie_chart' => 232,
+        'kpi' => 172,
+        _ => 158,
       };
 
   // ── Chrome ─────────────────────────────────────────────────────────────────
