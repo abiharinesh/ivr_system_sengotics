@@ -131,12 +131,19 @@ class IvrTag extends StatelessWidget {
             Icon(icon, size: 12, color: color),
             const SizedBox(width: 5),
           ],
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
+          // Flexible, not a bare Text: a tag sits inside a Wrap that a
+          // Flexible parent can squeeze below the label's natural width, and
+          // an unshrinkable Text then overflows its own pill.
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
             ),
           ),
         ],
@@ -238,6 +245,58 @@ class IvrErrorState extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A search field with filter controls beside it.
+///
+/// Below [breakpoint] the filters drop to their own line instead of competing
+/// with the search box for width. A Row here overflowed by 215px at phone
+/// width — three chips and a button do not fit next to a text field on a
+/// 320px screen, and no amount of Expanded fixes that.
+class IvrControlBar extends StatelessWidget {
+  const IvrControlBar({
+    super.key,
+    required this.search,
+    required this.filters,
+    this.breakpoint = 620,
+  });
+
+  final Widget search;
+  final List<Widget> filters;
+  final double breakpoint;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          if (c.maxWidth >= breakpoint) {
+            return Row(
+              children: [
+                Expanded(child: search),
+                const SizedBox(width: 10),
+                ...filters,
+              ],
+            );
+          }
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              search,
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: filters,
+              ),
+            ],
+          );
+        },
       ),
     );
   }

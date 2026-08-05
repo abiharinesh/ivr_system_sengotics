@@ -13,7 +13,15 @@ import 'package:ivr_frontend/features/modules/insights/data/service_analytics_re
 /// real data. [slaFocus] picks which half is emphasised; the underlying figures
 /// are one query either way, so the two can never disagree.
 class ServiceAnalyticsScreen extends StatefulWidget {
-  const ServiceAnalyticsScreen({super.key, this.slaFocus = false});
+  const ServiceAnalyticsScreen({
+    super.key,
+    this.slaFocus = false,
+    this.repository,
+  });
+
+  /// Injected by tests. The screen builds its own against the live API when
+  /// this is null, so nothing at the call sites has to know it exists.
+  final ServiceAnalyticsRepository? repository;
 
   /// True for the "SLA performance" tab, false for "Analytics".
   final bool slaFocus;
@@ -23,7 +31,7 @@ class ServiceAnalyticsScreen extends StatefulWidget {
 }
 
 class _ServiceAnalyticsScreenState extends State<ServiceAnalyticsScreen> {
-  final _repo = ServiceAnalyticsRepository();
+  late final _repo = widget.repository ?? ServiceAnalyticsRepository();
 
   ServiceAnalytics _data = ServiceAnalytics.empty;
   bool _loading = true;
@@ -88,7 +96,14 @@ class _ServiceAnalyticsScreenState extends State<ServiceAnalyticsScreen> {
   }
 
   Widget _windowPicker() {
-    return Row(
+    // A Wrap, not a Row: the heading, a three-segment picker and a button
+    // overflowed by 246px at phone width. Below that the picker takes its own
+    // line rather than running off the edge.
+    return Wrap(
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      spacing: 12,
+      runSpacing: 10,
       children: [
         Text(
           widget.slaFocus ? 'SLA performance' : 'Service analytics',
@@ -98,8 +113,10 @@ class _ServiceAnalyticsScreenState extends State<ServiceAnalyticsScreen> {
             color: AppTheme.textPrimary,
           ),
         ),
-        const Spacer(),
-        SegmentedButton<int>(
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SegmentedButton<int>(
           segments: const [
             ButtonSegment(value: 7, label: Text('7d', style: TextStyle(fontSize: 11.5))),
             ButtonSegment(value: 30, label: Text('30d', style: TextStyle(fontSize: 11.5))),
@@ -111,18 +128,20 @@ class _ServiceAnalyticsScreenState extends State<ServiceAnalyticsScreen> {
             setState(() => _days = s.first);
             _load();
           },
-          style: ButtonStyle(
-            visualDensity: VisualDensity.compact,
-            padding: WidgetStateProperty.all(
-              const EdgeInsets.symmetric(horizontal: 10),
+              style: ButtonStyle(
+                visualDensity: VisualDensity.compact,
+                padding: WidgetStateProperty.all(
+                  const EdgeInsets.symmetric(horizontal: 10),
+                ),
+              ),
             ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        IconButton(
-          tooltip: 'Reload',
-          onPressed: _loading ? null : _load,
-          icon: const Icon(Icons.refresh_rounded),
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'Reload',
+              onPressed: _loading ? null : _load,
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
         ),
       ],
     );

@@ -11,14 +11,18 @@ import 'package:ivr_frontend/features/modules/ivr_operations/presentation/widget
 /// resident describes a problem in Tamil, the system extracts it, and the row
 /// shows whether that turned into a ticket.
 class VoiceCallsScreen extends StatefulWidget {
-  const VoiceCallsScreen({super.key});
+  const VoiceCallsScreen({super.key, this.repository});
+
+  /// Injected by tests. The screen builds its own against the live API when
+  /// this is null, so nothing at the call sites has to know it exists.
+  final IvrOperationsRepository? repository;
 
   @override
   State<VoiceCallsScreen> createState() => _VoiceCallsScreenState();
 }
 
 class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
-  final _repo = IvrOperationsRepository();
+  late final _repo = widget.repository ?? IvrOperationsRepository();
   final _search = TextEditingController();
 
   List<VoiceCallRecord> _calls = const [];
@@ -124,35 +128,30 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
 
   Widget _controls() {
     const statuses = ['completed', 'manual_review', 'failed'];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _search,
-              onSubmitted: (_) => _load(),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Search transcripts or call id…',
-                prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                filled: true,
-                fillColor: AppTheme.bgCard,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  borderSide: BorderSide(color: AppTheme.stroke),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  borderSide: BorderSide(color: AppTheme.stroke),
-                ),
-              ),
+    return IvrControlBar(
+        search: TextField(
+          controller: _search,
+          onSubmitted: (_) => _load(),
+          decoration: InputDecoration(
+            isDense: true,
+            hintText: 'Search transcripts or call id…',
+            prefixIcon: const Icon(Icons.search_rounded, size: 18),
+            filled: true,
+            fillColor: AppTheme.bgCard,
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: AppTheme.stroke),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+              borderSide: BorderSide(color: AppTheme.stroke),
             ),
           ),
-          const SizedBox(width: 10),
-          for (final s in statuses) ...[
+        ),
+        filters: [
+          for (final s in statuses)
             FilterChip(
               label: Text(prettyIvr(s), style: const TextStyle(fontSize: 11.5)),
               selected: _status == s,
@@ -169,15 +168,12 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
               ),
               side: BorderSide(color: AppTheme.stroke),
             ),
-            const SizedBox(width: 6),
-          ],
           IconButton(
             tooltip: 'Reload',
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
         ],
-      ),
     );
   }
 
@@ -270,26 +266,38 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                         ],
                       ),
                     ),
-                    if (c.raisedTicket)
-                      IvrTag(
-                        label: 'Ticket #${c.complaintId}',
-                        color: AppTheme.accent,
-                        icon: Icons.assignment_turned_in_rounded,
-                      )
-                    else
-                      IvrTag(
-                        label: 'No ticket',
-                        color: AppTheme.textMuted,
-                        icon: Icons.remove_circle_outline_rounded,
+                    // Wraps rather than sitting in the Row: two tags plus the
+                    // caller line overflowed by 106px at phone width, and a
+                    // tag that runs off the card edge is worse than one on a
+                    // second line.
+                    Flexible(
+                      child: Wrap(
+                        alignment: WrapAlignment.end,
+                        spacing: 8,
+                        runSpacing: 6,
+                        children: [
+                          if (c.raisedTicket)
+                            IvrTag(
+                              label: 'Ticket #${c.complaintId}',
+                              color: AppTheme.accent,
+                              icon: Icons.assignment_turned_in_rounded,
+                            )
+                          else
+                            IvrTag(
+                              label: 'No ticket',
+                              color: AppTheme.textMuted,
+                              icon: Icons.remove_circle_outline_rounded,
+                            ),
+                          IvrTag(
+                            label: prettyIvr(c.status),
+                            color: c.status == 'completed'
+                                ? AppTheme.accent
+                                : c.status == 'failed'
+                                    ? AppTheme.error
+                                    : AppTheme.warning,
+                          ),
+                        ],
                       ),
-                    const SizedBox(width: 8),
-                    IvrTag(
-                      label: prettyIvr(c.status),
-                      color: c.status == 'completed'
-                          ? AppTheme.accent
-                          : c.status == 'failed'
-                              ? AppTheme.error
-                              : AppTheme.warning,
                     ),
                     const SizedBox(width: 6),
                     Icon(

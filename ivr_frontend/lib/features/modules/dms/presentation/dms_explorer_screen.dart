@@ -10,14 +10,18 @@ import 'package:ivr_frontend/features/modules/dms/data/document_repository.dart'
 /// folders with no HTTP surface to reach them. It now browses the register:
 /// a folder tree on the left, its contents on the right.
 class DmsExplorerScreen extends StatefulWidget {
-  const DmsExplorerScreen({super.key});
+  const DmsExplorerScreen({super.key, this.repository});
+
+  /// Injected by tests. The screen builds its own against the live API when
+  /// this is null, so nothing at the call sites has to know it exists.
+  final DocumentRepository? repository;
 
   @override
   State<DmsExplorerScreen> createState() => _DmsExplorerScreenState();
 }
 
 class _DmsExplorerScreenState extends State<DmsExplorerScreen> {
-  final _repo = DocumentRepository();
+  late final _repo = widget.repository ?? DocumentRepository();
   final _search = TextEditingController();
 
   List<DocumentFolderNode> _folders = const [];

@@ -11,14 +11,18 @@ import 'package:ivr_frontend/features/modules/ivr_operations/presentation/widget
 /// without producing a ticket is a flow problem, and it is the row an operator
 /// needs to find.
 class IvrLogsScreen extends StatefulWidget {
-  const IvrLogsScreen({super.key});
+  const IvrLogsScreen({super.key, this.repository});
+
+  /// Injected by tests. The screen builds its own against the live API when
+  /// this is null, so nothing at the call sites has to know it exists.
+  final IvrOperationsRepository? repository;
 
   @override
   State<IvrLogsScreen> createState() => _IvrLogsScreenState();
 }
 
 class _IvrLogsScreenState extends State<IvrLogsScreen> {
-  final _repo = IvrOperationsRepository();
+  late final _repo = widget.repository ?? IvrOperationsRepository();
   final _search = TextEditingController();
 
   List<IvrCallRecord> _rows = const [];
@@ -124,34 +128,29 @@ class _IvrLogsScreenState extends State<IvrLogsScreen> {
   }
 
   Widget _controls() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-      child: Row(
-        children: [
-          Expanded(
-            child: TextField(
-              controller: _search,
-              onSubmitted: (_) => _load(),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: 'Search by call id or caller number…',
-                prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                filled: true,
-                fillColor: AppTheme.bgCard,
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  borderSide: BorderSide(color: AppTheme.stroke),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-                  borderSide: BorderSide(color: AppTheme.stroke),
-                ),
-              ),
-            ),
+    return IvrControlBar(
+      search: TextField(
+        controller: _search,
+        onSubmitted: (_) => _load(),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Search by call id or caller number…',
+          prefixIcon: const Icon(Icons.search_rounded, size: 18),
+          filled: true,
+          fillColor: AppTheme.bgCard,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: BorderSide(color: AppTheme.stroke),
           ),
-          const SizedBox(width: 10),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: BorderSide(color: AppTheme.stroke),
+          ),
+        ),
+      ),
+      filters: [
           FilterChip(
             label: const Text('Needs a look', style: TextStyle(fontSize: 11.5)),
             selected: _problemsOnly,
@@ -170,19 +169,16 @@ class _IvrLogsScreenState extends State<IvrLogsScreen> {
             ),
             side: BorderSide(color: AppTheme.stroke),
           ),
-          const SizedBox(width: 8),
           Text(
             '${_visible.length} of ${_rows.length}',
             style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
           ),
-          const SizedBox(width: 6),
           IconButton(
             tooltip: 'Reload',
             onPressed: _loading ? null : _load,
             icon: const Icon(Icons.refresh_rounded),
           ),
-        ],
-      ),
+      ],
     );
   }
 
