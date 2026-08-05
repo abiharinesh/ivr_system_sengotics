@@ -4,6 +4,7 @@ import { RbacController } from './rbac.controller';
 import { RbacAdminService } from './rbac-admin.service';
 import { RbacAnalyticsService } from './rbac-analytics.service';
 import { FeatureAccessService } from './feature-access.service';
+import { RoleTemplateService } from './role-template.service';
 import { RbacService } from './rbac.service';
 
 /**
@@ -18,7 +19,19 @@ import { RbacService } from './rbac.service';
 @Module({
   imports: [PrismaModule],
   controllers: [RbacController],
-  providers: [RbacService, RbacAdminService, RbacAnalyticsService, FeatureAccessService],
-  exports: [RbacService, RbacAdminService, RbacAnalyticsService, FeatureAccessService],
+  providers: [
+    RbacService,
+    RbacAdminService,
+    RbacAnalyticsService,
+    FeatureAccessService,
+    RoleTemplateService,
+  ],
+  exports: [
+    RbacService,
+    RbacAdminService,
+    RbacAnalyticsService,
+    FeatureAccessService,
+    RoleTemplateService,
+  ],
 })
 export class RbacModule {}

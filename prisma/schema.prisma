@@ -1423,17 +1423,42 @@ model Role {
   /// no Municipal Commissioner, and the console should not offer one.
   applicable_branch_types BranchType[] @default([])
 
+  /// The `__system__` template this role was provisioned from.
+  ///
+  /// Every tenant gets its own copy of a role rather than sharing one, so an
+  /// authorization decision never depends on a row another council can edit.
+  /// This records where the copy came from, which is what makes it possible to
+  /// improve the shipped roster once and push it to everyone.
+  ///
+  /// Null on templates themselves and on roles a tenant invented.
+  template_id Int?
+
+  /// Set the first time this tenant changes the role's grants.
+  ///
+  /// Null means the copy still matches its template, so a template update may
+  /// be applied to it safely. Once a council has made the role their own, a
+  /// sync must leave it alone — silently reverting a deliberate local decision
+  /// is worse than leaving that council behind.
+  customised_at DateTime?
+
   tenant        Tenant     @relation(fields: [tenant_id], references: [id])
   org_unit      OrgUnit?   @relation(fields: [org_unit_id], references: [id])
   inherits_from Role?      @relation("RoleInheritance", fields: [inherits_from_role_id], references: [id])
   inherited_by  Role[]     @relation("RoleInheritance")
   user_roles    UserRole[]
 
+  /// Restricted, not cascading: deleting a template that councils are using
+  /// must fail loudly rather than quietly cut them loose from their origin.
+  template  Role?  @relation("RoleTemplate", fields: [template_id], references: [id], onDelete: Restrict)
+  instances Role[] @relation("RoleTemplate")
+
   permissions   RolePermission[]
   screen_access RoleScreenAccess[]
 
   @@unique([tenant_id, org_unit_id, name])
   @@index([tenant_id, is_active])
+  /// The sync walks every copy of one template across all tenants.
+  @@index([template_id])
   @@map("roles")
 }
 

@@ -33,17 +33,33 @@ const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
 /**
- * Roles are seeded into the operating tenant, not into `__system__`.
+ * The catalogue is published twice: once as templates, once as the operating
+ * tenant's own copies.
  *
  * `__system__` is the cross-tenant template shelf, and `RbacAdminService`
  * deliberately refuses to edit anything on it — one council editing a shared
- * template would silently change every other council's roles. Seeding the
- * whole designation roster there made every role read-only, which defeats the
- * console: the super admin could not switch a single sidebar entry on or off
- * without cloning first. They stay `is_system: true`, so they cannot be
- * deleted, but they belong to the tenant that uses them.
+ * template would silently change every other council's roles. So a tenant
+ * cannot simply *use* the templates: seeding the roster there and nothing else
+ * made every role read-only, and the super admin could not switch a single
+ * sidebar entry on or off without cloning first.
+ *
+ * Nor can each tenant own an unrelated role that merely shares a name, which
+ * is what this did next: improving the shipped roster then meant repeating the
+ * edit in every client by hand, and nothing recorded which roles a council had
+ * deliberately changed.
+ *
+ * So: templates on the shelf, copies in the tenant, `Role.template_id` linking
+ * the two. The copy is what gets assigned and edited; the template is what a
+ * new client is provisioned from and what an improvement is pushed from.
  */
 const ROLE_TENANT = 'default';
+
+/**
+ * The shelf the catalogue is published to. Holds templates only: no users, no
+ * assignments, no branches. Every tenant — including `default` — works from
+ * its own copies, linked back by `Role.template_id`.
+ */
+const SYSTEM_TENANT = '__system__';
 
 // ── Groups, matching RoleNavigationConfig ───────────────────────────────────
 const G = {
@@ -395,6 +411,25 @@ const emailFor = (roleName) => `${roleName}@ooraatchi.local`;
 async function main() {
   console.log('\n── Seeding RBAC ─────────────────────────────────────────\n');
 
+  // 0. The tenants roles hang off. `__system__` is a real row because
+  //    `Role.tenant_id` is a foreign key; it is a shelf, not a client, and is
+  //    marked inactive so nothing offers it as one.
+  await prisma.tenant.upsert({
+    where: { id: SYSTEM_TENANT },
+    update: {},
+    create: {
+      id: SYSTEM_TENANT,
+      slug: 'system-role-templates',
+      name: 'System Role Templates',
+      is_active: false,
+    },
+  });
+  await prisma.tenant.upsert({
+    where: { id: ROLE_TENANT },
+    update: {},
+    create: { id: ROLE_TENANT, slug: ROLE_TENANT, name: 'Default Demo Tenant' },
+  });
+
   // 1. Permissions
   const permRows = [];
   for (const m of MODULES) {
@@ -428,8 +463,84 @@ async function main() {
   );
 
   // 3. Roles, grants, screen access
+  //
+  // Two phases, and the order matters.
+  //
+  // The catalogue below is published first as *templates* on the `__system__`
+  // shelf. Templates hold no users and are never assigned; they exist so that
+  // improving the shipped roster is one edit rather than one edit per client.
+  //
+  // The operating tenant then gets its own copies, linked back by
+  // `template_id`. Copies, not shared rows: an authorization decision must
+  // never depend on a row another council can edit, and a council must be able
+  // to change its own roles without changing anyone else's.
   let userCount = 0;
   const credentials = [];
+
+  /** Screen and permission grants the catalogue entry asks for. */
+  function grantsFor(r) {
+    const codes = new Set();
+    for (const m of r.perm_modules ?? []) {
+      codes.add(`${m}.read`);
+      codes.add(`${m}.write`);
+    }
+    for (const m of r.approve_modules ?? []) {
+      codes.add(`${m}.approve`);
+    }
+    if (r.is_super_admin) {
+      for (const m of MODULES) for (const a of ACTIONS) codes.add(`${m}.${a}`);
+    }
+    const keys = r.screens === 'ALL' ? SCREENS.map((s) => s.key) : r.screens;
+    return { codes, keys };
+  }
+
+  /** Make `roleId`'s grants exactly match the catalogue entry. */
+  async function applyGrants(roleId, r) {
+    const { codes, keys } = grantsFor(r);
+
+    for (const code of codes) {
+      const pid = permByCode.get(code);
+      if (!pid) continue;
+      await prisma.rolePermission.upsert({
+        where: { role_id_permission_id: { role_id: roleId, permission_id: pid } },
+        update: {},
+        create: { role_id: roleId, permission_id: pid },
+      });
+    }
+
+    for (const key of keys) {
+      const sid = screenByKey.get(key);
+      if (!sid) continue;
+      await prisma.roleScreenAccess.upsert({
+        where: { role_id_screen_id: { role_id: roleId, screen_id: sid } },
+        update: { can_view: true },
+        create: { role_id: roleId, screen_id: sid, can_view: true },
+      });
+    }
+  }
+
+  /**
+   * Find-then-write, because `upsert` is unusable here: the compound unique is
+   * (tenant_id, org_unit_id, name) and `org_unit_id` is NULL for a
+   * tenant-wide role. Prisma's generated compound-key `where` type rejects
+   * null, because SQL NULL never equals NULL and the underlying unique index
+   * would not match anyway.
+   */
+  async function upsertRole(tenantId, name, fields, extra = {}) {
+    const existing = await prisma.role.findFirst({
+      where: { tenant_id: tenantId, org_unit_id: null, name },
+    });
+    return existing
+      ? prisma.role.update({
+          where: { id: existing.id },
+          data: { ...fields, ...extra },
+        })
+      : prisma.role.create({
+          data: { tenant_id: tenantId, org_unit_id: null, name, ...fields, ...extra },
+        });
+  }
+
+  let customisedSkipped = 0;
 
   for (const r of ROLES) {
     const fields = {
@@ -444,60 +555,26 @@ async function main() {
       applicable_branch_types: r.types === ALL ? [] : r.types,
     };
 
-    // `upsert` is unusable here: the compound unique is
-    // (tenant_id, org_unit_id, name) and `org_unit_id` is NULL for a
-    // tenant-wide template. Prisma's generated compound-key `where` type
-    // rejects null, because SQL NULL never equals NULL and the underlying
-    // unique index would not match anyway. findFirst + create/update is the
-    // shape that actually works for a nullable member of a compound key.
-    const existingRole = await prisma.role.findFirst({
-      where: { tenant_id: ROLE_TENANT, org_unit_id: null, name: r.name },
+    // Phase one: the template.
+    const template = await upsertRole(SYSTEM_TENANT, r.name, fields);
+    await applyGrants(template.id, r);
+
+    // Phase two: the operating tenant's copy, linked to the template it came
+    // from. An existing role is adopted by name rather than duplicated — this
+    // is what backfills provenance onto the roles seeded before templates
+    // existed.
+    const role = await upsertRole(ROLE_TENANT, r.name, fields, {
+      template_id: template.id,
     });
 
-    const role = existingRole
-      ? await prisma.role.update({ where: { id: existingRole.id }, data: fields })
-      : await prisma.role.create({
-          data: {
-            tenant_id: ROLE_TENANT,
-            org_unit_id: null,
-            name: r.name,
-            ...fields,
-          },
-        });
-
-    // Permission grants: read+write on listed modules, plus approving verbs.
-    const codes = new Set();
-    for (const m of r.perm_modules ?? []) {
-      codes.add(`${m}.read`);
-      codes.add(`${m}.write`);
-    }
-    for (const m of r.approve_modules ?? []) {
-      codes.add(`${m}.approve`);
-    }
-    if (r.is_super_admin) {
-      for (const m of MODULES) for (const a of ACTIONS) codes.add(`${m}.${a}`);
-    }
-
-    for (const code of codes) {
-      const pid = permByCode.get(code);
-      if (!pid) continue;
-      await prisma.rolePermission.upsert({
-        where: { role_id_permission_id: { role_id: role.id, permission_id: pid } },
-        update: {},
-        create: { role_id: role.id, permission_id: pid },
-      });
-    }
-
-    // Screen access.
-    const keys = r.screens === 'ALL' ? SCREENS.map((s) => s.key) : r.screens;
-    for (const key of keys) {
-      const sid = screenByKey.get(key);
-      if (!sid) continue;
-      await prisma.roleScreenAccess.upsert({
-        where: { role_id_screen_id: { role_id: role.id, screen_id: sid } },
-        update: { can_view: true },
-        create: { role_id: role.id, screen_id: sid, can_view: true },
-      });
+    // A council that has deliberately changed a role keeps its version. Only
+    // untouched copies are refreshed from the catalogue, which is the same
+    // rule the runtime sync follows — re-running the seed must not silently
+    // revert somebody's decision.
+    if (role.customised_at === null) {
+      await applyGrants(role.id, r);
+    } else {
+      customisedSkipped++;
     }
 
     // 4. One login per role.
@@ -534,7 +611,13 @@ async function main() {
     }
   }
 
-  console.log(`\n  roles            ${ROLES.length}`);
+  console.log(`\n  templates        ${ROLES.length} on ${SYSTEM_TENANT}`);
+  console.log(`  roles            ${ROLES.length} in ${ROLE_TENANT}`);
+  if (customisedSkipped) {
+    console.log(
+      `  left alone       ${customisedSkipped} customised by the tenant`,
+    );
+  }
   console.log(`  new accounts     ${userCount}`);
 
   // 5. Credentials file — gitignored, rewritten each run.

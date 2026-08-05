@@ -18,6 +18,7 @@ import { RolesGuard } from '../../auth/guards/roles.guard';
 import { Roles } from '../../auth/decorators/roles.decorator';
 import { RbacAdminService } from './rbac-admin.service';
 import { RbacAnalyticsService } from './rbac-analytics.service';
+import { RoleTemplateService } from './role-template.service';
 import { RbacService } from './rbac.service';
 
 interface AuthReq {
@@ -45,7 +46,56 @@ export class RbacController {
     private readonly admin: RbacAdminService,
     private readonly rbac: RbacService,
     private readonly analytics: RbacAnalyticsService,
+    private readonly templates: RoleTemplateService,
   ) {}
+
+  // ── Templates ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /api/rbac/templates?branch_type=MUNICIPALITY
+   *
+   * The shipped catalogue, and how many tenants each entry is in use by.
+   */
+  @Get('templates')
+  listTemplates(@Query('branch_type') branchType?: string) {
+    return this.templates.listTemplates(branchType as BranchType | undefined);
+  }
+
+  /**
+   * GET /api/rbac/templates/pending
+   *
+   * What a sync would change, without changing it. The console shows this
+   * before asking anyone to confirm, because "update my roles" is not a button
+   * whose effect should be a surprise.
+   */
+  @Get('templates/pending')
+  pendingSync(@Req() req: AuthReq) {
+    return this.templates.preview(req.user.tenant_id);
+  }
+
+  /**
+   * POST /api/rbac/templates/sync
+   *
+   * Bring this tenant's untouched roles back in line with the catalogue.
+   * Roles the tenant has edited are reported and left alone.
+   */
+  @Post('templates/sync')
+  sync(@Req() req: AuthReq, @Body() body: { role_ids?: number[]; dry_run?: boolean }) {
+    return this.templates.syncTenant(req.user.tenant_id, req.user.id, {
+      dryRun: body?.dry_run ?? false,
+      roleIds: body?.role_ids,
+    });
+  }
+
+  /**
+   * GET /api/rbac/roles/:id/template-diff
+   *
+   * How one role differs from the template it was provisioned from.
+   */
+  @Get('roles/:id/template-diff')
+  templateDiff(@Req() req: AuthReq, @Param('id', ParseIntPipe) id: number) {
+    return this.templates.diff(req.user.tenant_id, id);
+  }
 
   // ── Catalogue ─────────────────────────────────────────────────────────────
 

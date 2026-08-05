@@ -151,6 +151,32 @@ export class RbacAdminService {
   }
 
   /**
+   * Record that this tenant has made the role their own.
+   *
+   * A role provisioned from a template starts identical to it, and
+   * {@link RoleTemplateService.syncTenant} may bring later improvements across.
+   * The moment a council changes the grants themselves, that stops being
+   * welcome: a sync would revert a deliberate decision, and unlike being left
+   * on an old default, that is invisible until somebody loses access they were
+   * given on purpose.
+   *
+   * Stamped once and never cleared. A role that has been customised and then
+   * edited back to match its template is still a role somebody is managing by
+   * hand, and quietly re-enrolling it in automatic updates would be a surprise.
+   */
+  private async markCustomised(role: { id: number; template_id: number | null; customised_at: Date | null }) {
+    if (role.template_id == null || role.customised_at !== null) return;
+
+    await this.prisma.role.update({
+      where: { id: role.id },
+      data: { customised_at: new Date() },
+    });
+    this.logger.log(
+      `Role #${role.id} now differs from its template; future syncs will skip it`,
+    );
+  }
+
+  /**
    * Create a role from scratch, inside the caller's own tenant.
    *
    * Until this existed the only way to get a role was `cloneRole` — a council
@@ -367,6 +393,8 @@ export class RbacAdminService {
       });
     }
 
+    await this.markCustomised(role);
+
     const beforeKeys = before.map((b) => b.screen.key).sort();
     await this.audit.log({
       tenantId,
@@ -421,6 +449,8 @@ export class RbacAdminService {
         })),
       }),
     ]);
+
+    await this.markCustomised(role);
 
     await this.audit.log({
       tenantId,
