@@ -294,10 +294,8 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/agent/poles/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return AgentPoleDetailScreen(poleId: id);
-            },
+            builder: (context, state) =>
+                _byId(state, (id) => AgentPoleDetailScreen(poleId: id)),
           ),
           GoRoute(
             path: '/electrician',
@@ -311,10 +309,10 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/electrician/jobs/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return ElectricianComplaintDetailScreen(complaintId: id);
-            },
+            builder: (context, state) => _byId(
+              state,
+              (id) => ElectricianComplaintDetailScreen(complaintId: id),
+            ),
           ),
           GoRoute(
             path: '/plumber',
@@ -328,10 +326,10 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/plumber/jobs/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return PlumberComplaintDetailScreen(complaintId: id);
-            },
+            builder: (context, state) => _byId(
+              state,
+              (id) => PlumberComplaintDetailScreen(complaintId: id),
+            ),
           ),
           // Dashboard.
           //
@@ -449,10 +447,8 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/complaints/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return PAComplaintDetailScreen(complaintId: id);
-            },
+            builder: (context, state) =>
+                _byId(state, (id) => PAComplaintDetailScreen(complaintId: id)),
           ),
           GoRoute(
             path: '/superadmin/electricians',
@@ -554,10 +550,8 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/poles/:id/qr-customizer',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return QrCustomizerScreen(poleId: id);
-            },
+            builder: (context, state) =>
+                _byId(state, (id) => QrCustomizerScreen(poleId: id)),
           ),
 
           // Tender workflow (officer)
@@ -569,12 +563,20 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/tenders/new',
             builder: (context, state) => const TenderCreateScreen(),
           ),
+          // Declared before `/tenders/:id`: go_router matches in declaration
+          // order, so with the literal below the pattern the bidding portal
+          // was routed as a tender whose id is the word "vendor-portal", and
+          // `int.parse` threw a FormatException on every attempt to open it.
+          GoRoute(
+            path: '/tenders/vendor-portal',
+            builder: (context, state) => const VendorBiddingPortalScreen(),
+          ),
           GoRoute(
             path: '/tenders/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return TenderDetailScreen(tenderId: id);
-            },
+            builder: (context, state) => _byId(
+              state,
+              (id) => TenderDetailScreen(tenderId: id),
+            ),
           ),
           GoRoute(
             path: '/vendors',
@@ -592,18 +594,14 @@ GoRouter createRouter(AuthBloc authBloc) {
           ),
           GoRoute(
             path: '/superadmin/tenders/:id',
-            builder: (context, state) {
-              final id = int.parse(state.pathParameters['id']!);
-              return TenderDetailScreen(tenderId: id, isSuperAdmin: true);
-            },
+            builder: (context, state) => _byId(
+              state,
+              (id) => TenderDetailScreen(tenderId: id, isSuperAdmin: true),
+            ),
           ),
           GoRoute(
             path: '/superadmin/vendors',
             builder: (context, state) => const VendorDirectoryScreen(isSuperAdmin: true),
-          ),
-          GoRoute(
-            path: '/tenders/vendor-portal',
-            builder: (context, state) => const VendorBiddingPortalScreen(),
           ),
           GoRoute(
             path: '/water/pipeline-grid',
@@ -1005,6 +1003,60 @@ String _getTitle(String location) {
       if (location.startsWith('/agent/poles/')) return 'Pole detail';
       if (location.startsWith('/electrician/jobs/') || location.startsWith('/plumber/jobs/')) return 'Complaint';
       return 'Ooraatchi';
+  }
+}
+
+/// Builds a detail screen from a numeric `:id` path parameter.
+///
+/// `int.parse` throws on anything that is not a number, and a throw inside a
+/// route builder takes the whole app down rather than the one route — which is
+/// how a mistyped or stale link became a blank screen. A malformed id is a bad
+/// request, not a crash, so it gets a page that says so.
+Widget _byId(GoRouterState state, Widget Function(int id) build) {
+  final raw = state.pathParameters['id'];
+  final id = raw == null ? null : int.tryParse(raw);
+  if (id == null) return _BadRoute(value: raw ?? '', location: state.uri.path);
+  return build(id);
+}
+
+class _BadRoute extends StatelessWidget {
+  const _BadRoute({required this.value, required this.location});
+
+  final String value;
+  final String location;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.link_off_rounded, size: 44, color: Colors.grey),
+              const SizedBox(height: 14),
+              const Text(
+                'That link does not point at a record',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '"$value" is not a record number.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 13, color: Colors.grey),
+              ),
+              const SizedBox(height: 18),
+              FilledButton.icon(
+                onPressed: () => context.go('/dashboard'),
+                icon: const Icon(Icons.home_rounded, size: 18),
+                label: const Text('Back to dashboard'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

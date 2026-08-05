@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { defineConfig } from 'prisma/config';
+import { migrationUrl } from './src/prisma/connection-url';
 
 /**
  * Prisma CLI configuration.
@@ -18,7 +19,10 @@ import { defineConfig } from 'prisma/config';
  *
  * Setting `DIRECT_URL` to the non-pooled connection string removes the
  * dependence on which port the URL happens to name. It is optional: without
- * it the pooled URL is used, exactly as before.
+ * it the pooled URL is used, with its port corrected to session mode by
+ * `migrationUrl` — so a single `DATABASE_URL` is enough to make both the
+ * application and its migrations connect the way each of them needs to,
+ * whichever port was pasted in.
  */
 export default defineConfig({
   schema: 'prisma/schema.prisma',
@@ -29,6 +33,7 @@ export default defineConfig({
     seed: 'node prisma/seed-demo.js',
   },
   datasource: {
-    url: process.env['DIRECT_URL'] || process.env['DATABASE_URL'],
+    url:
+      process.env['DIRECT_URL'] || migrationUrl(process.env['DATABASE_URL']),
   },
 });
