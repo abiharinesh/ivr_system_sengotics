@@ -25,12 +25,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const bcrypt = require('bcrypt');
-const { PrismaClient } = require('@prisma/client');
-const { PrismaPg } = require('@prisma/adapter-pg');
-const { Pool } = require('pg');
+const { makeClient } = require('./db');
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
+const { prisma, close } = makeClient();
 
 /**
  * The catalogue is published twice: once as templates, once as the operating
@@ -383,20 +380,29 @@ const ROLES = [
     perm_modules: ['tenders', 'documents'],
     seed_user: true,
   },
+  // The three field roles below carried `screens: ['home']` while holding
+  // read and write permission on the modules they work in — permission to act
+  // on complaints with no screen on which to see one. The demo dataset patched
+  // the screens in afterwards, so the seeded tenant worked and the catalogue
+  // every future client is provisioned from did not. Each now lists exactly
+  // the screens its permissions correspond to.
   {
     name: 'electrician', display_name: 'Electrician', display_name_ta: 'மின் பணியாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: ['home'], perm_modules: ['complaints', 'street_lights'], seed_user: true,
+    screens: flat(S.base, ['complaints', 'poles']),
+    perm_modules: ['complaints', 'street_lights'], seed_user: true,
   },
   {
     name: 'plumber', display_name: 'Plumber', display_name_ta: 'குழாய் பணியாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: ['home'], perm_modules: ['complaints', 'water_supply'], seed_user: true,
+    screens: flat(S.base, ['complaints', 'water_supply']),
+    perm_modules: ['complaints', 'water_supply'], seed_user: true,
   },
   {
     name: 'agent', display_name: 'Survey Agent', display_name_ta: 'கள ஆய்வாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: ['home'], perm_modules: ['street_lights', 'water_supply'], seed_user: true,
+    screens: flat(S.base, ['poles', 'water_supply']),
+    perm_modules: ['street_lights', 'water_supply'], seed_user: true,
   },
 ];
 
@@ -647,7 +653,4 @@ main()
     console.error('\nSeed failed:', e.message, '\n');
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-    await pool.end();
-  });
+  .finally(close);

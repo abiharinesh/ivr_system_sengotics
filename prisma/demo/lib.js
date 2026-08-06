@@ -16,8 +16,14 @@ const { Pool } = require('pg');
 // Supabase's pooler drops a connection that is held too long, and a seed that
 // inserts row-by-row holds one for minutes. Generous timeouts plus batched
 // writes below keep the whole run inside one healthy connection.
+//
+// The connection string comes from `../db` so this lands on transaction mode
+// rather than session mode, where a pool of five is a third of the entire
+// ceiling and a seed run alongside anything else exhausts it.
+const { connectionString } = require('../db');
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: connectionString(),
   max: 5,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 20000,
