@@ -2,13 +2,67 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { FeatureAccessService } from './feature-access.service';
 
+/**
+ * Everything the client needs to draw one sidebar entry.
+ *
+ * The Dart side kept its own copy of this — key, route, label, icon and group
+ * for all 34 screens — which meant shipping a module took an edit in two
+ * places and the two could disagree with nothing to catch it. `AppScreen` has
+ * carried these columns since it was written; this is what finally sends them.
+ */
+export interface NavScreen {
+  key: string;
+  route: string;
+  group_key: string;
+  label_en: string;
+  label_ta: string | null;
+  /** Material icon name, resolved to an `IconData` on the client. */
+  icon: string;
+  sort_order: number;
+  module: string;
+}
+
 export interface Entitlements {
   /** Permission codes, e.g. `trade_licences.read`. */
   permissions: string[];
   /** Screen keys the sidebar may render, e.g. `trade_licences`. */
   screens: string[];
+  /**
+   * The same screens with everything needed to render them, in catalogue
+   * order. `screens` stays because the JWT and the guards want keys alone and
+   * a token should not grow every time a module ships.
+   */
+  nav: NavScreen[];
   roles: { id: number; name: string; display_name: string; is_super_admin: boolean }[];
   isSuperAdmin: boolean;
+}
+
+/** The columns that make up a {@link NavScreen}, for Prisma `select`. */
+const NAV_FIELDS = {
+  key: true,
+  route: true,
+  group_key: true,
+  label_en: true,
+  label_ta: true,
+  icon: true,
+  sort_order: true,
+  module: true,
+  is_active: true,
+} as const;
+
+/**
+ * Catalogue order.
+ *
+ * `sort_order` is assigned from the screen's position in the seed's single
+ * list, and groups are contiguous in that list — so ordering by it alone puts
+ * both the groups and the items inside them where the catalogue intends. The
+ * client groups by `group_key` in first-appearance order.
+ *
+ * Sorting by `group_key` instead would be alphabetical, which puts
+ * ADMINISTRATION above OVERVIEW.
+ */
+function inCatalogueOrder(a: NavScreen, b: NavScreen): number {
+  return a.sort_order - b.sort_order || a.key.localeCompare(b.key);
 }
 
 /**
@@ -111,11 +165,11 @@ export class RbacService {
 
     const isSuperAdmin = roles.some((r) => r.is_super_admin);
     if (isSuperAdmin) {
-      return { permissions: [], screens: [], roles, isSuperAdmin: true };
+      return { permissions: [], screens: [], nav: [], roles, isSuperAdmin: true };
     }
 
     if (roles.length === 0) {
-      return { permissions: [], screens: [], roles: [], isSuperAdmin: false };
+      return { permissions: [], screens: [], nav: [], roles: [], isSuperAdmin: false };
     }
 
     const roleIds = await this.expandInheritance(roles.map((r) => r.id));
@@ -135,9 +189,7 @@ export class RbacService {
       }),
       this.prisma.roleScreenAccess.findMany({
         where: { role_id: { in: roleIds }, can_view: true },
-        select: {
-          screen: { select: { key: true, module: true, is_active: true } },
-        },
+        select: { screen: { select: NAV_FIELDS } },
       }),
       this.features.enabledModulesFor(orgUnitId),
       this.features.knownFeatures(),
@@ -155,9 +207,19 @@ export class RbacService {
       knownFeatures,
     );
 
+    // Two roles can grant the same screen; the sidebar must show it once.
+    const byKey = new Map<string, NavScreen>();
+    for (const s of visible) {
+      const { is_active, ...nav } = s;
+      void is_active;
+      byKey.set(nav.key, nav);
+    }
+    const nav = [...byKey.values()].sort(inCatalogueOrder);
+
     return {
       permissions: [...new Set(grants.map((g) => g.permission.code))].sort(),
-      screens: [...new Set(visible.map((s) => s.key))].sort(),
+      screens: nav.map((s) => s.key).sort(),
+      nav,
       roles,
       isSuperAdmin: false,
     };
@@ -171,9 +233,23 @@ export class RbacService {
    * without anyone remembering to tick a box.
    */
   async platformScreens(): Promise<string[]> {
-    const screens = await this.prisma.appScreen
-      .findMany({ where: { is_active: true }, select: { key: true } })
-      .catch(() => []);
-    return screens.map((s) => s.key);
+    return (await this.platformNav()).map((s) => s.key);
+  }
+
+  /**
+   * The same catalogue a super admin sees, with everything needed to render
+   * it. Separate from {@link platformScreens} because the JWT wants keys and
+   * only the sidebar wants the rest.
+   */
+  async platformNav(): Promise<NavScreen[]> {
+    // Non-throwing for the same reason the rest of this service is: a database
+    // that has not had the RBAC migration applied must not make login fail.
+    const screens: NavScreen[] = await this.prisma.appScreen
+      .findMany({
+        where: { is_active: true },
+        select: { ...NAV_FIELDS, is_active: false },
+      })
+      .catch(() => [] as NavScreen[]);
+    return [...screens].sort(inCatalogueOrder);
   }
 }

@@ -295,31 +295,26 @@ export class RbacController {
    * without forcing a re-login.
    */
   @Get('me/entitlements')
-  @Roles(
-    'super_admin',
-    'panchayat_admin',
-    'municipal_commissioner',
-    'municipal_engineer',
-    'assistant_engineer',
-    'junior_engineer',
-    'revenue_officer',
-    'revenue_inspector',
-    'health_officer',
-    'sanitary_inspector',
-    'town_planning_officer',
-    'registrar',
-    'licensing_clerk',
-    'i3c_staff',
-    'contractor',
-    'agent',
-    'electrician',
-    'plumber',
-  )
+  // Deliberately an empty `@Roles`, which overrides the class-level list:
+  // `RolesGuard` treats an empty requirement as "any authenticated user", and
+  // `JwtAuthGuard` still runs.
+  //
+  // This route answers "what may I, the caller, see and do" about the caller
+  // alone. It was gated on a hardcoded list of the eighteen shipped role
+  // names, which meant a role a tenant invented through `createRole` — the
+  // whole point of tenant self-service — got a 403 asking about itself, and
+  // its holder could never refresh their access without signing in again.
+  //
+  // A list of role names is the wrong gate for this in any case: it has to be
+  // edited every time a role ships, and forgetting is silent.
+  @Roles()
   async myEntitlements(@Req() req: AuthReq) {
     const ent = await this.rbac.entitlementsFor(req.user.id);
-    const screens = ent.isSuperAdmin
-      ? await this.rbac.platformScreens()
-      : ent.screens;
-    return { ...ent, screens };
+    if (!ent.isSuperAdmin) return ent;
+
+    // A platform operator's menu follows the catalogue rather than grants, so
+    // a newly shipped module is reachable without anyone ticking a box.
+    const nav = await this.rbac.platformNav();
+    return { ...ent, nav, screens: nav.map((s) => s.key) };
   }
 }

@@ -69,6 +69,8 @@ const G = {
   WORKFORCE: 'WORKFORCE',
   INSIGHTS: 'INSIGHTS',
   ADMIN: 'ADMINISTRATION',
+  /// The field worker's own shell — one group, shown on its own.
+  FIELD: 'FIELD WORK',
 };
 
 /**
@@ -132,6 +134,26 @@ const SCREENS = [
   { key: 'branches', route: '/panchayats',         group_key: G.ADMIN, label_en: 'Branches & branding',label_ta: 'கிளைகள்',         icon: 'account_balance_rounded',       module: 'core', permission_code: 'branches.manage', is_platform_only: true },
   { key: 'users',    route: '/users',              group_key: G.ADMIN, label_en: 'User accounts',      label_ta: 'பயனர் கணக்குகள்',  icon: 'people_rounded',                module: 'core', permission_code: 'users.manage' },
   { key: 'roles',    route: '/superadmin/roles',   group_key: G.ADMIN, label_en: 'Roles & permissions',label_ta: 'பணி & அனுமதிகள்',  icon: 'admin_panel_settings_rounded',  module: 'core', permission_code: 'rbac.manage' },
+
+  // ── Field worker shells ──────────────────────────────────────────────────
+  //
+  // A survey agent, electrician and plumber work from a phone, on their own
+  // routes, in a stripped-down shell rather than the office dashboard. Those
+  // menus used to be a hardcoded map in Dart that ignored the database
+  // entirely: their screen grants existed and did nothing, so ticking a box
+  // for them in the role console had no effect anyone could see.
+  //
+  // Registering the routes here is what makes those three roles configurable
+  // like every other one. The menus render exactly as before — the grants
+  // below reproduce them — but now a council can change them.
+  { key: 'agent_home',        route: '/agent',                      group_key: G.FIELD, label_en: 'Home',                  label_ta: 'முகப்பு',           icon: 'dashboard_rounded',          module: 'core',            permission_code: null },
+  { key: 'agent_poles',       route: '/agent/poles',                group_key: G.FIELD, label_en: 'Poles',                 label_ta: 'கம்பங்கள்',         icon: 'list_alt_rounded',           module: 'street_light_mgmt', permission_code: 'street_lights.read' },
+  { key: 'agent_pole_add',    route: '/agent/poles/add',            group_key: G.FIELD, label_en: 'New pole',              label_ta: 'புதிய கம்பம்',      icon: 'add_location_alt_rounded',   module: 'street_light_mgmt', permission_code: 'street_lights.write' },
+  { key: 'agent_pipeline',    route: '/agent/pipeline-tap-capture', group_key: G.FIELD, label_en: 'Pipeline & tap capture', label_ta: 'குழாய் பதிவு',      icon: 'water_drop_rounded',         module: 'water_supply_mgmt', permission_code: 'water_supply.write' },
+  { key: 'electrician_home',  route: '/electrician',                group_key: G.FIELD, label_en: 'Home',                  label_ta: 'முகப்பு',           icon: 'dashboard_rounded',          module: 'core',            permission_code: null },
+  { key: 'electrician_jobs',  route: '/electrician/jobs',           group_key: G.FIELD, label_en: 'My jobs',               label_ta: 'என் பணிகள்',        icon: 'electrical_services_rounded', module: 'street_light_mgmt', permission_code: 'complaints.read' },
+  { key: 'plumber_home',      route: '/plumber',                    group_key: G.FIELD, label_en: 'Home',                  label_ta: 'முகப்பு',           icon: 'dashboard_rounded',          module: 'core',            permission_code: null },
+  { key: 'plumber_jobs',      route: '/plumber/jobs',               group_key: G.FIELD, label_en: 'My jobs',               label_ta: 'என் பணிகள்',        icon: 'plumbing_rounded',           module: 'water_supply_mgmt', permission_code: 'complaints.read' },
 ];
 
 // ── Permissions the screens above reference, plus the write/approve verbs ───
@@ -389,19 +411,21 @@ const ROLES = [
   {
     name: 'electrician', display_name: 'Electrician', display_name_ta: 'மின் பணியாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: flat(S.base, ['complaints', 'poles']),
+    screens: ['electrician_home', 'electrician_jobs'],
     perm_modules: ['complaints', 'street_lights'], seed_user: true,
   },
   {
     name: 'plumber', display_name: 'Plumber', display_name_ta: 'குழாய் பணியாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: flat(S.base, ['complaints', 'water_supply']),
+    screens: ['plumber_home', 'plumber_jobs'],
     perm_modules: ['complaints', 'water_supply'], seed_user: true,
   },
   {
+    // No `complaints`: a survey agent records poles and pipelines and holds no
+    // complaints permission, so the screen would render and then refuse them.
     name: 'agent', display_name: 'Survey Agent', display_name_ta: 'கள ஆய்வாளர்',
     hierarchy_level: 7, department: 'Field', types: ALL,
-    screens: flat(S.base, ['poles', 'water_supply']),
+    screens: ['agent_home', 'agent_poles', 'agent_pole_add', 'agent_pipeline'],
     perm_modules: ['street_lights', 'water_supply'], seed_user: true,
   },
 ];
@@ -500,29 +524,53 @@ async function main() {
     return { codes, keys };
   }
 
-  /** Make `roleId`'s grants exactly match the catalogue entry. */
+  /**
+   * Make `roleId`'s grants exactly match the catalogue entry.
+   *
+   * Exactly, not "at least": this used to add and never take away, so a screen
+   * removed from a role's list here stayed granted forever, on templates and
+   * tenant copies alike. The catalogue could grow but never shrink, and since
+   * the templates kept the leftovers too, a sync could not see the difference
+   * and so could not repair it either.
+   *
+   * Revoking flips `can_view` rather than deleting the row, matching how the
+   * console revokes, so the record of who granted a screen and when survives.
+   */
   async function applyGrants(roleId, r) {
     const { codes, keys } = grantsFor(r);
 
-    for (const code of codes) {
-      const pid = permByCode.get(code);
-      if (!pid) continue;
+    const wantedPerms = new Set(
+      [...codes].map((c) => permByCode.get(c)).filter(Boolean),
+    );
+    for (const pid of wantedPerms) {
       await prisma.rolePermission.upsert({
         where: { role_id_permission_id: { role_id: roleId, permission_id: pid } },
         update: {},
         create: { role_id: roleId, permission_id: pid },
       });
     }
+    await prisma.rolePermission.deleteMany({
+      where: { role_id: roleId, permission_id: { notIn: [...wantedPerms] } },
+    });
 
-    for (const key of keys) {
-      const sid = screenByKey.get(key);
-      if (!sid) continue;
+    const wantedScreens = new Set(
+      keys.map((k) => screenByKey.get(k)).filter(Boolean),
+    );
+    for (const sid of wantedScreens) {
       await prisma.roleScreenAccess.upsert({
         where: { role_id_screen_id: { role_id: roleId, screen_id: sid } },
         update: { can_view: true },
         create: { role_id: roleId, screen_id: sid, can_view: true },
       });
     }
+    await prisma.roleScreenAccess.updateMany({
+      where: {
+        role_id: roleId,
+        can_view: true,
+        screen_id: { notIn: [...wantedScreens] },
+      },
+      data: { can_view: false },
+    });
   }
 
   /**

@@ -140,14 +140,8 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   /// Convenience: all nav routes reachable from the current sidebar.
-  Iterable<String?> _allNavRoutes() {
-    final user = _user;
-    return RoleNavigationConfig.allRoutesFor(
-      widget.userRole,
-      entitledScreens: user?.screens,
-      isSuperAdmin: user?.isSuperAdmin ?? false,
-    );
-  }
+  Iterable<String?> _allNavRoutes() =>
+      RoleNavigationConfig.routesFrom(_user?.nav ?? const []);
 
   Widget _buildSidebar(BuildContext context) {
     final authState = context.watch<AuthBloc>().state;
@@ -509,14 +503,11 @@ class _AppScaffoldState extends State<AppScaffold> {
   /// renders when it has items, so a role never sees an empty heading.
   List<Widget> _buildDynamicSections() {
     final widgets = <Widget>[];
-    final user = _user;
-    // Server-resolved entitlements decide what renders; the role-based
-    // defaults inside `sectionsFor` are the fallback when they are absent.
-    final sections = RoleNavigationConfig.sectionsFor(
-      widget.userRole,
-      entitledScreens: user?.screens,
-      isSuperAdmin: user?.isSuperAdmin ?? false,
-    );
+    // The server decides, entirely. There are no role-based defaults left to
+    // fall back to — a menu assembled from a hardcoded map is a second opinion
+    // about a question `role_screen_access` already answers, and for the three
+    // field roles that second opinion used to win.
+    final sections = RoleNavigationConfig.sectionsFrom(_user?.nav ?? const []);
     for (final section in sections) {
       widgets.add(_navLabel(section.title));
       widgets.addAll(_navItemsFor(section.items));

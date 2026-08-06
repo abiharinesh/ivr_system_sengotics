@@ -115,6 +115,13 @@ class ApiConfig {
   static String saExportDownload(int jobId) =>
       '/api/superadmin/exports/$jobId/download';
 
+  /// What the signed-in user may see and do, resolved server-side.
+  ///
+  /// Open to any authenticated caller, including a role the tenant invented —
+  /// asking about yourself cannot be gated on a list of role names that has to
+  /// be edited every time a role ships.
+  static const String myEntitlements = '/api/rbac/me/entitlements';
+
   // Panchayat Admin
   static const String paMe = '/api/admin/me';
   static const String paBranding = '/api/admin/branding';

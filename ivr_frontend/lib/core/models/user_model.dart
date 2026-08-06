@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'package:equatable/equatable.dart';
 
+import 'package:ivr_frontend/core/navigation/role_navigation_config.dart'
+    show NavScreen;
+
 int _jsonInt(dynamic v, [int fallback = 0]) {
   if (v == null) return fallback;
   if (v is int) return v;
@@ -80,6 +83,14 @@ class UserModel extends Equatable {
   /// their role grants. Empty means "server did not say" — see [canSeeScreen].
   final List<String> screens;
 
+  /// The same screens with the route, label, icon and group needed to draw
+  /// them, in catalogue order.
+  ///
+  /// Carried separately from [screens] because the JWT holds only the keys —
+  /// a token should not grow every time a module ships — while the sidebar
+  /// needs the rest, which arrives from `GET /api/rbac/me/entitlements`.
+  final List<NavScreen> nav;
+
   /// The account is still on the password it was issued. Every provisioned
   /// account starts this way, and the router holds the user on the
   /// change-password screen until it clears.
@@ -115,6 +126,7 @@ class UserModel extends Equatable {
     this.accessScope = 'own_org_unit',
     this.permissions = const [],
     this.screens = const [],
+    this.nav = const [],
     this.mustChangePassword = false,
   });
 
@@ -123,7 +135,11 @@ class UserModel extends Equatable {
   /// Only what actually mutates after sign-in is exposed: everything else on
   /// this model comes from the token or the branch record and changing it
   /// locally would put the client out of step with the server.
-  UserModel copyWith({bool? mustChangePassword, List<String>? screens}) {
+  UserModel copyWith({
+    bool? mustChangePassword,
+    List<String>? screens,
+    List<NavScreen>? nav,
+  }) {
     return UserModel(
       id: id,
       email: email,
@@ -154,6 +170,7 @@ class UserModel extends Equatable {
       accessScope: accessScope,
       permissions: permissions,
       screens: screens ?? this.screens,
+      nav: nav ?? this.nav,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
     );
   }
@@ -175,6 +192,12 @@ class UserModel extends Equatable {
       accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
       permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
       screens: (json['screens'] as List<dynamic>?)?.cast<String>() ?? const [],
+      // Absent on the JWT, which carries keys alone; filled in from
+      // `/api/rbac/me/entitlements`.
+      nav: (json['nav'] as List<dynamic>?)
+              ?.map((e) => NavScreen.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList() ??
+          const [],
       mustChangePassword: json['must_change_password'] == true,
       orgUnitName: panchayat?['name'] as String?,
       branchType: panchayat?['branch_type'] as String?,
@@ -307,6 +330,12 @@ class UserModel extends Equatable {
       'org_unit_id': orgUnitId,
       'created_at': createdAt?.toIso8601String(),
       'must_change_password': mustChangePassword,
+      // Persisted so a reload paints the sidebar from cache on the first
+      // frame, rather than showing an empty rail until the entitlements
+      // request comes back. Round-trips through `fromJson`.
+      'permissions': permissions,
+      'screens': screens,
+      'nav': nav.map((s) => s.toJson()).toList(),
       'employee': {
         'employee_code': employeeCode,
         'cadre': cadre,

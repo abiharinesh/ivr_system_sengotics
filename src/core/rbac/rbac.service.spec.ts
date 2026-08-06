@@ -26,6 +26,31 @@ describe('RbacService', () => {
     tenantFeatureConfig: { findUnique: jest.fn() },
   };
 
+  /**
+   * A screen row shaped like the real table.
+   *
+   * The sidebar now renders from these columns rather than from a copy of the
+   * catalogue kept in Dart, so a fixture carrying only `key` no longer stands
+   * in for a screen — `route`, `group_key`, `label_en`, `icon` and
+   * `sort_order` are what the client draws.
+   */
+  const screen = (
+    key: string,
+    module: string,
+    over: Partial<{ is_active: boolean; group_key: string; sort_order: number }> = {},
+  ) => ({
+    key,
+    module,
+    route: `/${key.replace(/_/g, '-')}`,
+    group_key: 'OVERVIEW',
+    label_en: key,
+    label_ta: null,
+    icon: 'circle_rounded',
+    sort_order: 0,
+    is_active: true,
+    ...over,
+  });
+
   /** A provisioning row shaped like the real table. */
   const config = (over: Record<string, boolean> = {}) => ({
     id: 1,
@@ -70,8 +95,8 @@ describe('RbacService', () => {
         { permission: { code: 'complaints.read' } },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'water_supply', module: 'water_supply', is_active: true } },
-        { screen: { key: 'complaints', module: 'complaints', is_active: true } },
+        { screen: screen('water_supply', 'water_supply') },
+        { screen: screen('complaints', 'complaints') },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -84,8 +109,8 @@ describe('RbacService', () => {
     it('hides a screen whose registry entry has been deactivated', async () => {
       prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'water_supply', module: 'water_supply', is_active: true } },
-        { screen: { key: 'retired_module', module: 'retired_module', is_active: false } },
+        { screen: screen('water_supply', 'water_supply') },
+        { screen: screen('retired_module', 'retired_module', { is_active: false }) },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -191,8 +216,8 @@ describe('RbacService', () => {
         { permission: { code: 'property_tax.read' } },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'trade_licences', module: 'trade_licences', is_active: true } },
-        { screen: { key: 'trade_licences', module: 'trade_licences', is_active: true } },
+        { screen: screen('trade_licences', 'trade_licences') },
+        { screen: screen('trade_licences', 'trade_licences') },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -217,9 +242,9 @@ describe('RbacService', () => {
         { org_unit_id: 10, is_primary: true, role: role() },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'complaints', module: 'complaint_mgmt', is_active: true } },
-        { screen: { key: 'solid_waste', module: 'solid_waste_mgmt', is_active: true } },
-        { screen: { key: 'home', module: 'core', is_active: true } },
+        { screen: screen('complaints', 'complaint_mgmt') },
+        { screen: screen('solid_waste', 'solid_waste_mgmt') },
+        { screen: screen('home', 'core') },
       ]);
       prisma.branchFeatureConfig.findFirst.mockResolvedValue(config());
     };
@@ -268,7 +293,7 @@ describe('RbacService', () => {
         { org_unit_id: 10, is_primary: true, role: role() },
       ]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: { key: 'brand_new', module: 'not_a_column', is_active: true } },
+        { screen: screen('brand_new', 'not_a_column') },
       ]);
       prisma.branchFeatureConfig.findFirst.mockResolvedValue(config());
       prisma.branchFeatureConfig.findUnique.mockResolvedValue(config());
@@ -332,8 +357,8 @@ describe('RbacService', () => {
   describe('platformScreens', () => {
     it('returns every active screen so a new module needs no ticking', async () => {
       prisma.appScreen.findMany.mockResolvedValue([
-        { key: 'complaints' },
-        { key: 'trade_licences' },
+        screen('complaints', 'complaint_mgmt'),
+        screen('trade_licences', 'trade_licence'),
       ]);
 
       expect(await service.platformScreens()).toEqual([
@@ -350,6 +375,105 @@ describe('RbacService', () => {
     it('returns empty rather than throwing when the registry is missing', async () => {
       prisma.appScreen.findMany.mockRejectedValue(new Error('no table'));
       expect(await service.platformScreens()).toEqual([]);
+    });
+  });
+
+  describe('nav', () => {
+    it('carries everything the sidebar needs to draw an entry', async () => {
+      prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([
+        {
+          screen: screen('trade_licences', 'trade_licence', {
+            group_key: 'REVENUE',
+            sort_order: 2,
+          }),
+        },
+      ]);
+
+      const ent = await service.entitlementsFor(7);
+
+      // The Dart catalogue held these five fields for all 34 screens. Sending
+      // them is what lets that copy be deleted.
+      expect(ent.nav).toEqual([
+        expect.objectContaining({
+          key: 'trade_licences',
+          route: '/trade-licences',
+          group_key: 'REVENUE',
+          label_en: 'trade_licences',
+          icon: 'circle_rounded',
+          sort_order: 2,
+        }),
+      ]);
+    });
+
+    it('returns the catalogue order, which carries the group order with it', async () => {
+      // `sort_order` is the screen's position in the seed's single list and
+      // groups are contiguous in it, so ordering by it alone puts both the
+      // groups and their contents right. Sorting by group name would be
+      // alphabetical, which puts ADMINISTRATION above OVERVIEW.
+      prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([
+        { screen: screen('settings', 'core', { group_key: 'ADMINISTRATION', sort_order: 30 }) },
+        { screen: screen('home', 'core', { group_key: 'OVERVIEW', sort_order: 0 }) },
+        { screen: screen('property_tax', 'property_tax', { group_key: 'REVENUE', sort_order: 8 }) },
+      ]);
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.nav.map((s) => s.key)).toEqual(['home', 'property_tax', 'settings']);
+      expect(ent.nav.map((s) => s.group_key)).toEqual([
+        'OVERVIEW',
+        'REVENUE',
+        'ADMINISTRATION',
+      ]);
+    });
+
+    it('lists a screen once when two roles both grant it', async () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        { role: role({ id: 1 }) },
+        { role: role({ id: 2, name: 'assistant_engineer' }) },
+      ]);
+      prisma.roleScreenAccess.findMany.mockResolvedValue([
+        { screen: screen('complaints', 'complaint_mgmt') },
+        { screen: screen('complaints', 'complaint_mgmt') },
+      ]);
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.nav).toHaveLength(1);
+      expect(ent.screens).toEqual(['complaints']);
+    });
+
+    it('is empty for a super admin, whose menu comes from the catalogue', async () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        { role: role({ is_super_admin: true, name: 'super_admin' }) },
+      ]);
+
+      const ent = await service.entitlementsFor(1);
+
+      // The controller swaps in `platformNav()` for these callers rather than
+      // expanding grants they bypass anyway.
+      expect(ent.nav).toEqual([]);
+      expect(ent.isSuperAdmin).toBe(true);
+    });
+  });
+
+  describe('platformNav', () => {
+    it('returns the catalogue in group then sort order', async () => {
+      prisma.appScreen.findMany.mockResolvedValue([
+        screen('tenders', 'tender_mgmt', { group_key: 'PROCUREMENT', sort_order: 1 }),
+        screen('home', 'core', { group_key: 'OVERVIEW', sort_order: 0 }),
+      ]);
+
+      const nav = await service.platformNav();
+
+      expect(nav.map((s) => s.key)).toEqual(['home', 'tenders']);
+      expect(nav[0].route).toBe('/home');
+    });
+
+    it('returns empty rather than throwing when the registry is missing', async () => {
+      prisma.appScreen.findMany.mockRejectedValue(new Error('no table'));
+      expect(await service.platformNav()).toEqual([]);
     });
   });
 });
