@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
-import 'package:ivr_frontend/core/customization/admin_customization_provider.dart';
-import 'package:ivr_frontend/core/widgets/map_theme_picker.dart';
 import 'package:ivr_frontend/app.dart';
 
-/// Full admin customization settings screen with sections for
-/// appearance, typography, map settings, dashboard widgets, and sidebar.
+/// User appearance preferences: theme mode and UI language.
+///
+/// This used to hold colour palettes, typography, map themes, dashboard widget
+/// toggles and sidebar settings. All of those are admin branding concerns that
+/// live in the Settings hub's Branding tab; this screen is the per-user slice
+/// that affects their own session and nothing else.
 class AdminCustomizationScreen extends StatefulWidget {
   const AdminCustomizationScreen({super.key});
 
@@ -15,25 +17,12 @@ class AdminCustomizationScreen extends StatefulWidget {
 }
 
 class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
-  late AdminCustomizationProvider _provider;
-  bool _isInitialized = false;
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _provider = context.adminCustomizationProvider;
-    _isInitialized = true;
-  }
-
-
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    final provider = context.adminCustomizationProvider;
 
     return ListenableBuilder(
-      listenable: _provider,
+      listenable: provider,
       builder: (context, _) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
         child: ConstrainedBox(
@@ -41,9 +30,9 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Page Header
-                    Text(
-                'Customization',
+              // Page header
+              Text(
+                'Appearance',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -51,8 +40,8 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-                    Text(
-                'Personalize your dashboard experience — colors, fonts, widgets, and map appearance.',
+              Text(
+                'Theme and language preferences for your session.',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppTheme.textSecondary,
@@ -60,243 +49,49 @@ class _AdminCustomizationScreenState extends State<AdminCustomizationScreen> {
               ),
               const SizedBox(height: 28),
 
-              // ── Appearance ──
+              // ── Theme Mode ──
               _SectionCard(
-                title: 'Appearance',
-                subtitle: 'Theme mode and brand colors',
+                title: 'Theme',
+                subtitle: 'Light, dark or follow your system setting',
                 icon: Icons.palette_rounded,
                 children: [
-                  // Theme Mode
-                  const _SectionLabel('Theme Mode'),
-                  const SizedBox(height: 8),
                   _ThemeModeSelector(
-                    current: _provider.settings.themeMode,
-                    onChanged: _provider.updateThemeMode,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Primary Color
-                  const _SectionLabel('Primary Color'),
-                  const SizedBox(height: 8),
-                  _ColorPalette(
-                    selected: _provider.settings.primaryColor,
-                    onChanged: _provider.updatePrimaryColor,
-                    colors: const [
-                      Color(0xFF2563EB), Color(0xFF4F46E5), Color(0xFF7C3AED),
-                      Color(0xFF9333EA), Color(0xFFDB2777), Color(0xFFE11D48),
-                      Color(0xFFEA580C), Color(0xFFCA8A04), Color(0xFF16A34A),
-                      Color(0xFF0D9488), Color(0xFF0284C7), Color(0xFF475569),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Preview
-                  _ColorPreviewBar(
-                    primary: _provider.settings.primaryColor,
-                    accent: _provider.settings.accentColor,
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Accent Color
-                  const _SectionLabel('Accent Color'),
-                  const SizedBox(height: 8),
-                  _ColorPalette(
-                    selected: _provider.settings.accentColor,
-                    onChanged: _provider.updateAccentColor,
-                    colors: const [
-                      Color(0xFF10B981), Color(0xFF14B8A6), Color(0xFF06B6D4),
-                      Color(0xFF0EA5E9), Color(0xFF6366F1), Color(0xFFA855F7),
-                      Color(0xFFF59E0B), Color(0xFFF97316), Color(0xFFEF4444),
-                      Color(0xFFEC4899), Color(0xFF84CC16), Color(0xFF64748B),
-                    ],
+                    current: provider.settings.themeMode,
+                    onChanged: provider.updateThemeMode,
                   ),
                 ],
               ),
               const SizedBox(height: 20),
 
-              // ── Typography ──
+              // ── Language ──
               _SectionCard(
-                title: 'Typography',
-                subtitle: 'Font family and size scaling',
-                icon: Icons.text_fields_rounded,
+                title: 'Language',
+                subtitle: 'Choose the display language for the interface',
+                icon: Icons.translate_rounded,
                 children: [
-                  const _SectionLabel('Font Family'),
-                  const SizedBox(height: 8),
-                  _FontFamilySelector(
-                    current: _provider.settings.fontFamily,
-                    onChanged: _provider.updateFontFamily,
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const _SectionLabel('Font Scale'),
-                      const Spacer(),
-                      Text(
-                        '${(_provider.settings.fontScaleFactor * 100).round()}%',
-                        style:       TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  Slider(
-                    value: _provider.settings.fontScaleFactor,
-                    min: 0.8,
-                    max: 1.4,
-                    divisions: 12,
-                    label:
-                        '${(_provider.settings.fontScaleFactor * 100).round()}%',
-                    onChanged: _provider.updateFontScale,
-                  ),
-                  // Font preview
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppTheme.bgSurface,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Preview: The quick brown fox jumps over the lazy dog.',
-                          style: TextStyle(
-                            fontSize:
-                                14 * _provider.settings.fontScaleFactor,
-                            fontWeight: FontWeight.w400,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Bold: Dashboard Analytics Overview',
-                          style: TextStyle(
-                            fontSize:
-                                16 * _provider.settings.fontScaleFactor,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // ── Map Settings ──
-              _SectionCard(
-                title: 'Map Settings',
-                subtitle: 'Choose your preferred map theme',
-                icon: Icons.map_rounded,
-                children: [
-                  const _SectionLabel('Map Theme'),
-                  const SizedBox(height: 10),
-                  MapThemePicker(
-                    selectedThemeId: context.mapThemeProvider.currentTheme.id,
-                    onThemeSelected: (theme) {
-                      context.readMapThemeProvider.selectTheme(theme.id);
-                      _provider.updateMapTheme(theme.id);
-                    },
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // ── Dashboard Widgets ──
-              _SectionCard(
-                title: 'Dashboard Widgets',
-                subtitle: 'Toggle and reorder widgets on your dashboard',
-                icon: Icons.dashboard_customize_rounded,
-                children: [
-                  const _SectionLabel('Widget Visibility & Order'),
-                  const SizedBox(height: 8),
-                  ..._provider.sortedWidgets.asMap().entries.map((entry) {
-                    final i = entry.key;
-                    final widget = entry.value;
-                    return _WidgetToggleRow(
-                      config: widget,
-                      index: i,
-                      total: _provider.sortedWidgets.length,
-                      onToggle: () =>
-                          _provider.toggleWidgetVisibility(widget.widgetId),
-                      onMoveUp: i > 0
-                          ? () => _provider.reorderWidgets(i, i - 1)
-                          : null,
-                      onMoveDown: i < _provider.sortedWidgets.length - 1
-                          ? () => _provider.reorderWidgets(i, i + 2)
-                          : null,
-                    );
-                  }),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        _provider.settings.widgetConfigs =
-                            AdminCustomizationSettings.defaultWidgetConfigs();
-                        _provider.saveSettings();
-                      },
-                      icon: const Icon(Icons.restore_rounded, size: 16),
-                      label: const Text('Reset Widget Layout'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-
-              // ── Sidebar ──
-              _SectionCard(
-                title: 'Sidebar',
-                subtitle: 'Navigation sidebar preferences',
-                icon: Icons.view_sidebar_rounded,
-                children: [
-                  SwitchListTile(
-                    title: const Text('Compact Mode'),
-                    subtitle: const Text(
-                      'Collapse sidebar to icons only',
-                      style: TextStyle(fontSize: 12),
-                    ),
-                    value: _provider.settings.sidebarCompact,
-                    onChanged: (_) => _provider.toggleSidebarCompact(),
+                  _LanguageSelector(
+                    current: provider.settings.language,
+                    onChanged: provider.updateLanguage,
                   ),
                 ],
               ),
               const SizedBox(height: 28),
 
               // ── Bottom actions ──
-              Wrap(
-                alignment: WrapAlignment.end,
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: () {
-                      _provider.resetToDefaults();
-                      context.readMapThemeProvider.resetToDefault();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('All settings reset to defaults'),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.restore_rounded, size: 16),
-                    label: const Text('Reset All to Defaults'),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _provider.saveSettings();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                          content: const Text('Settings saved successfully'),
-                          backgroundColor: AppTheme.accent,
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.save_rounded, size: 16),
-                    label: const Text('Save Changes'),
-                  ),
-                ],
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    provider.resetToDefaults();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Settings reset to defaults'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.restore_rounded, size: 16),
+                  label: const Text('Reset to Defaults'),
+                ),
               ),
               const SizedBox(height: 24),
             ],
@@ -352,7 +147,7 @@ class _SectionCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style:       TextStyle(
+                      style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         color: AppTheme.textPrimary,
@@ -360,7 +155,7 @@ class _SectionCard extends StatelessWidget {
                     ),
                     Text(
                       subtitle,
-                      style:       TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
                       ),
@@ -375,23 +170,6 @@ class _SectionCard extends StatelessWidget {
           const SizedBox(height: 16),
           ...children,
         ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String label;
-  const _SectionLabel(this.label);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style:       TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: AppTheme.textSecondary,
       ),
     );
   }
@@ -412,28 +190,87 @@ class _ThemeModeSelector extends StatelessWidget {
       spacing: 8,
       runSpacing: 8,
       children: [
-        _ModeChip('Light', 'light', Icons.light_mode_rounded, current, onChanged),
-        _ModeChip('Dark', 'dark', Icons.dark_mode_rounded, current, onChanged),
-        _ModeChip('System', 'system', Icons.settings_brightness_rounded, current, onChanged),
+        _OptionChip(
+          label: 'Light',
+          value: 'light',
+          icon: Icons.light_mode_rounded,
+          current: current,
+          onTap: onChanged,
+        ),
+        _OptionChip(
+          label: 'Dark',
+          value: 'dark',
+          icon: Icons.dark_mode_rounded,
+          current: current,
+          onTap: onChanged,
+        ),
+        _OptionChip(
+          label: 'System',
+          value: 'system',
+          icon: Icons.settings_brightness_rounded,
+          current: current,
+          onTap: onChanged,
+        ),
       ],
     );
   }
 }
 
-class _ModeChip extends StatelessWidget {
+class _LanguageSelector extends StatelessWidget {
+  final String current;
+  final ValueChanged<String> onChanged;
+
+  const _LanguageSelector({
+    required this.current,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _OptionChip(
+          label: 'English',
+          value: 'en',
+          icon: Icons.language_rounded,
+          current: current,
+          onTap: onChanged,
+        ),
+        _OptionChip(
+          label: 'தமிழ்',
+          value: 'ta',
+          icon: Icons.language_rounded,
+          current: current,
+          onTap: onChanged,
+        ),
+      ],
+    );
+  }
+}
+
+/// A selectable chip used by both theme mode and language pickers.
+class _OptionChip extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
   final String current;
-  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onTap;
 
-  const _ModeChip(this.label, this.value, this.icon, this.current, this.onChanged);
+  const _OptionChip({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.current,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isSelected = current == value;
     return GestureDetector(
-      onTap: () => onChanged(value),
+      onTap: () => onTap(value),
       child: AnimatedContainer(
         duration: AppTheme.durationFast,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -448,6 +285,7 @@ class _ModeChip extends StatelessWidget {
           ),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -465,265 +303,6 @@ class _ModeChip extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _ColorPalette extends StatelessWidget {
-  final Color selected;
-  final ValueChanged<Color> onChanged;
-  final List<Color> colors;
-
-  const _ColorPalette({
-    required this.selected,
-    required this.onChanged,
-    required this.colors,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: colors.map((color) {
-        final isSelected = color.toARGB32() == selected.toARGB32();
-        return GestureDetector(
-          onTap: () => onChanged(color),
-          child: AnimatedContainer(
-            duration: AppTheme.durationFast,
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: isSelected ? AppTheme.textPrimary : Colors.transparent,
-                width: 2.5,
-              ),
-              boxShadow: isSelected
-                  ? [
-                      BoxShadow(
-                        color: color.withValues(alpha: 0.4),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ]
-                  : null,
-            ),
-            child: isSelected
-                ? const Icon(Icons.check, size: 16, color: Colors.white)
-                : null,
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _ColorPreviewBar extends StatelessWidget {
-  final Color primary;
-  final Color accent;
-
-  const _ColorPreviewBar({required this.primary, required this.accent});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Wrap(
-        spacing: 10,
-        runSpacing: 10,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          // Button preview
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Button',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          // Badge preview
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: accent.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              'Active',
-              style: TextStyle(
-                color: accent,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          // Text preview
-          Text(
-            'Primary Text',
-            style: TextStyle(
-              fontSize: 13,
-              color: primary,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FontFamilySelector extends StatelessWidget {
-  final String current;
-  final ValueChanged<String> onChanged;
-
-  const _FontFamilySelector({
-    required this.current,
-    required this.onChanged,
-  });
-
-  static const fonts = [
-    'Inter',
-    'Roboto',
-    'Outfit',
-    'Poppins',
-    'Lato',
-    'Nunito',
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: fonts.map((font) {
-        final isSelected = current == font;
-        return GestureDetector(
-          onTap: () => onChanged(font),
-          child: AnimatedContainer(
-            duration: AppTheme.durationFast,
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: isSelected
-                  ? AppTheme.primary.withValues(alpha: 0.08)
-                  : AppTheme.bgSurface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: isSelected ? AppTheme.primary : AppTheme.stroke,
-                width: isSelected ? 1.5 : 1,
-              ),
-            ),
-            child: Text(
-              font,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppTheme.primary : AppTheme.textSecondary,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _WidgetToggleRow extends StatelessWidget {
-  final DashboardWidgetConfig config;
-  final int index;
-  final int total;
-  final VoidCallback onToggle;
-  final VoidCallback? onMoveUp;
-  final VoidCallback? onMoveDown;
-
-  const _WidgetToggleRow({
-    required this.config,
-    required this.index,
-    required this.total,
-    required this.onToggle,
-    this.onMoveUp,
-    this.onMoveDown,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: config.isVisible ? AppTheme.bgCard : AppTheme.bgSurface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppTheme.stroke),
-      ),
-      child: Row(
-        children: [
-          // Reorder controls
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                onTap: onMoveUp,
-                child: Icon(
-                  Icons.arrow_drop_up_rounded,
-                  size: 20,
-                  color: onMoveUp != null
-                      ? AppTheme.textSecondary
-                      : AppTheme.stroke,
-                ),
-              ),
-              GestureDetector(
-                onTap: onMoveDown,
-                child: Icon(
-                  Icons.arrow_drop_down_rounded,
-                  size: 20,
-                  color: onMoveDown != null
-                      ? AppTheme.textSecondary
-                      : AppTheme.stroke,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            config.icon,
-            size: 18,
-            color: config.isVisible
-                ? AppTheme.primary
-                : AppTheme.textMuted,
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              config.displayName,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-                color: config.isVisible
-                    ? AppTheme.textPrimary
-                    : AppTheme.textMuted,
-              ),
-            ),
-          ),
-          Switch(
-            value: config.isVisible,
-            onChanged: (_) => onToggle(),
-            activeThumbColor: AppTheme.primary,
-          ),
-        ],
       ),
     );
   }

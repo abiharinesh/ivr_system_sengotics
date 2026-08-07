@@ -38,6 +38,7 @@ class DashboardWidgetConfig {
 /// All admin customization settings, persisted in Hive.
 class AdminCustomizationSettings {
   String themeMode;         // 'light', 'dark', 'system'
+  String language;          // 'en', 'ta'
   int primaryColorValue;    // ARGB int
   int accentColorValue;
   String fontFamily;
@@ -49,6 +50,7 @@ class AdminCustomizationSettings {
 
   AdminCustomizationSettings({
     this.themeMode = 'light',
+    this.language = 'en',
     this.primaryColorValue = 0xFF2563EB,
     this.accentColorValue = 0xFF10B981,
     this.fontFamily = 'Inter',
@@ -117,6 +119,7 @@ class AdminCustomizationProvider extends ChangeNotifier {
     if (_box == null) return;
     _settings = AdminCustomizationSettings(
       themeMode: _box!.get('themeMode', defaultValue: 'light') as String,
+      language: _box!.get('language', defaultValue: 'en') as String,
       primaryColorValue:
           _box!.get('primaryColor', defaultValue: 0xFF2563EB) as int,
       accentColorValue:
@@ -153,6 +156,7 @@ class AdminCustomizationProvider extends ChangeNotifier {
   Future<void> saveSettings() async {
     if (_box == null) return;
     await _box!.put('themeMode', _settings.themeMode);
+    await _box!.put('language', _settings.language);
     await _box!.put('primaryColor', _settings.primaryColorValue);
     await _box!.put('accentColor', _settings.accentColorValue);
     await _box!.put('fontFamily', _settings.fontFamily);
@@ -174,6 +178,11 @@ class AdminCustomizationProvider extends ChangeNotifier {
   /// Update a specific setting and save.
   void updateThemeMode(String mode) {
     _settings.themeMode = mode;
+    saveSettings();
+  }
+
+  void updateLanguage(String lang) {
+    _settings.language = lang;
     saveSettings();
   }
 

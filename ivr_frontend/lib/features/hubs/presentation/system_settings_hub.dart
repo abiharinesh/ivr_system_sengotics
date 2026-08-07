@@ -27,12 +27,12 @@ class SystemSettingsHub extends StatelessWidget {
   Widget build(BuildContext context) {
     return ModuleHubScaffold(
       title: 'Settings',
-      subtitle: 'Branding, document templates, integrations and module access',
+      subtitle: 'Appearance, document templates, integrations and module access',
       initialIndex: initialIndex,
       tabs: [
         HubTab(
           icon: Icons.palette_rounded,
-          label: 'Branding',
+          label: 'Appearance',
           builder: (_) => const AdminCustomizationScreen(),
         ),
         HubTab(
