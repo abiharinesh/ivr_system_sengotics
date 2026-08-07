@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -6,6 +14,7 @@ import { TenantService } from '../core/tenant/tenant.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import type { ProvisionTenantInput } from './tenant-provisioning.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { PermissionCacheService } from '../core/rbac/permission-cache.service';
 
 /**
  * Real CRUD for the `Tenant` model — the top-level client boundary. Distinct
@@ -21,6 +30,7 @@ export class TenantController {
     private readonly tenants: TenantService,
     private readonly provisioning: TenantProvisioningService,
     private readonly prisma: PrismaService,
+    private readonly cache: PermissionCacheService,
   ) {}
 
   @Get()
@@ -56,19 +66,127 @@ export class TenantController {
    */
   @Get(':id/feature-ceiling')
   async getFeatureCeiling(@Param('id') id: string) {
-    let config = await this.prisma.tenantFeatureConfig.findUnique({ where: { tenant_id: id } });
+    let config = await this.prisma.tenantFeatureConfig.findUnique({
+      where: { tenant_id: id },
+    });
     if (!config) {
-      config = await this.prisma.tenantFeatureConfig.create({ data: { tenant_id: id } });
+      config = await this.prisma.tenantFeatureConfig.create({
+        data: { tenant_id: id },
+      });
     }
     return config;
   }
 
   @Patch(':id/feature-ceiling')
-  async updateFeatureCeiling(@Param('id') id: string, @Body() body: Record<string, boolean>) {
-    const existing = await this.prisma.tenantFeatureConfig.findUnique({ where: { tenant_id: id } });
+  async updateFeatureCeiling(
+    @Param('id') id: string,
+    @Body() body: Record<string, boolean>,
+  ) {
+    const existing = await this.prisma.tenantFeatureConfig.findUnique({
+      where: { tenant_id: id },
+    });
     if (!existing) {
-      return this.prisma.tenantFeatureConfig.create({ data: { tenant_id: id, ...body } });
+      const created = await this.prisma.tenantFeatureConfig.create({
+        data: { tenant_id: id, ...body },
+      });
+      this.cache.invalidateTenant(id);
+      return created;
     }
-    return this.prisma.tenantFeatureConfig.update({ where: { tenant_id: id }, data: body });
+    const updated = await this.prisma.tenantFeatureConfig.update({
+      where: { tenant_id: id },
+      data: body,
+    });
+    this.cache.invalidateTenant(id);
+    return updated;
+  }
+
+  @Get(':id/role-templates')
+  async getTenantRoleTemplates(@Param('id') id: string) {
+    const allTemplates = await this.prisma.role.findMany({
+      where: { tenant_id: '__system__', org_unit_id: null },
+      select: {
+        id: true,
+        name: true,
+        display_name: true,
+        applicable_branch_types: true,
+      },
+    });
+
+    const tenantGrants = await this.prisma.tenantRoleTemplate.findMany({
+      where: { tenant_id: id },
+    });
+
+    const grantMap = new Map(
+      tenantGrants.map((g) => [g.role_template_id, g.enabled]),
+    );
+
+    return allTemplates.map((t) => ({
+      role_template_id: t.id,
+      name: t.name,
+      display_name: t.display_name,
+      applicable_branch_types: t.applicable_branch_types,
+      enabled: grantMap.get(t.id) ?? true,
+    }));
+  }
+
+  @Patch(':id/role-templates')
+  async updateTenantRoleTemplates(
+    @Param('id') id: string,
+    @Body() body: { role_template_id: number; enabled: boolean },
+  ) {
+    const updated = await this.prisma.tenantRoleTemplate.upsert({
+      where: {
+        tenant_id_role_template_id: {
+          tenant_id: id,
+          role_template_id: body.role_template_id,
+        },
+      },
+      update: { enabled: body.enabled },
+      create: {
+        tenant_id: id,
+        role_template_id: body.role_template_id,
+        enabled: body.enabled,
+      },
+    });
+    this.cache.invalidateTenant(id);
+    return updated;
+  }
+
+  @Get(':id/settings')
+  async getTenantSettings(@Param('id') id: string) {
+    let settings = await this.prisma.tenantSettings.findUnique({
+      where: { tenant_id: id },
+    });
+    if (!settings) {
+      settings = await this.prisma.tenantSettings.create({
+        data: { tenant_id: id },
+      });
+    }
+    return settings;
+  }
+
+  @Patch(':id/settings')
+  async updateTenantSettings(
+    @Param('id') id: string,
+    @Body() body: Record<string, any>,
+  ) {
+    return this.prisma.tenantSettings.upsert({
+      where: { tenant_id: id },
+      update: body,
+      create: { tenant_id: id, ...body },
+    });
+  }
+
+  @Get(':id/audit-logs')
+  async getTenantAuditLogs(@Param('id') id: string) {
+    return this.prisma.auditLog.findMany({
+      where: { tenant_id: id },
+      include: {
+        user: { select: { id: true, email: true, role: true } },
+        org_unit: { select: { id: true, name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take: 100,
+    });
   }
 }

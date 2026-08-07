@@ -201,6 +201,7 @@ model OrgUnit {
   employees          Employee[]
   lifecycle_events   BranchLifecycleEvent[]
   userRoles          UserRole[]
+  audit_logs         AuditLog[]
 
   @@index([tenant_id])
   @@index([tenant_id, branch_type])
@@ -290,6 +291,7 @@ model User {
   /// Set when this login belongs to a contractor rather than a staff member.
   contractor      Contractor?     @relation("ContractorLogin")
   user_roles      UserRole[]
+  audit_logs      AuditLog[]      @relation("AuditActor")
 
   @@unique([tenant_id, email])
   @@unique([tenant_id, phone_e164])
@@ -1101,14 +1103,17 @@ model Tenant {
   created_at       DateTime    @default(now())
   updated_at       DateTime    @updatedAt
 
-  org_units         OrgUnit[]
-  users             User[]
-  employees         Employee[]
-  roles             Role[]
-  permission_groups PermissionGroup[]
-  departments       Department[]
-  contractors       Contractor[]
-  feature_config    TenantFeatureConfig?
+  org_units             OrgUnit[]
+  users                 User[]
+  employees             Employee[]
+  roles                 Role[]
+  permission_groups     PermissionGroup[]
+  departments           Department[]
+  contractors           Contractor[]
+  feature_config        TenantFeatureConfig?
+  tenant_role_templates TenantRoleTemplate[]
+  audit_logs            AuditLog[]
+  tenant_settings       TenantSettings?
 
   @@map("tenants")
 }
@@ -1150,6 +1155,45 @@ model TenantFeatureConfig {
   updated_at DateTime @updatedAt
 
   @@map("tenant_feature_configs")
+}
+
+/**
+ * Super Admin control for enabling/disabling role templates per tenant.
+ */
+model TenantRoleTemplate {
+  id               Int      @id @default(autoincrement())
+  tenant_id        String
+  role_template_id Int
+  enabled          Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [role_template_id], references: [id], onDelete: Cascade)
+
+  @@unique([tenant_id, role_template_id])
+  @@index([tenant_id])
+  @@map("tenant_role_templates")
+}
+
+/**
+ * Configurable tenant settings (SMS, Email, WhatsApp, AI, Storage, Branding/Theme).
+ */
+model TenantSettings {
+  id              Int      @id @default(autoincrement())
+  tenant_id       String   @unique
+  sms_config      Json?
+  email_config    Json?
+  whatsapp_config Json?
+  ai_config       Json?
+  storage_config  Json?
+  theme_config    Json?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("tenant_settings")
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -1454,8 +1498,9 @@ model Role {
   template  Role?  @relation("RoleTemplate", fields: [template_id], references: [id], onDelete: Restrict)
   instances Role[] @relation("RoleTemplate")
 
-  permissions   RolePermission[]
-  screen_access RoleScreenAccess[]
+  permissions           RolePermission[]
+  screen_access         RoleScreenAccess[]
+  tenant_role_templates TenantRoleTemplate[]
 
   @@unique([tenant_id, org_unit_id, name])
   @@index([tenant_id, is_active])
@@ -1672,6 +1717,9 @@ model AuditLog {
   user_agent     String?
   session_id     String?
   created_at     DateTime @default(now())
+  tenant   Tenant   @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+  org_unit OrgUnit? @relation(fields: [org_unit_id], references: [id], onDelete: SetNull)
+  user     User?    @relation("AuditActor", fields: [user_id], references: [id], onDelete: SetNull)
 
   @@index([tenant_id, entity_type, entity_id])
   @@index([tenant_id, user_id, created_at])

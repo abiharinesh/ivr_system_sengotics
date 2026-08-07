@@ -116,6 +116,22 @@ export class TenantProvisioningService {
         tx,
       );
 
+      // Enable system role templates for this tenant by default
+      const systemRoleTemplates = await tx.role.findMany({
+        where: { tenant_id: '__system__', org_unit_id: null },
+        select: { id: true },
+      });
+      if (systemRoleTemplates.length > 0) {
+        await tx.tenantRoleTemplate.createMany({
+          data: systemRoleTemplates.map((srt) => ({
+            tenant_id: tenant.id,
+            role_template_id: srt.id,
+            enabled: true,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
       // Look the admin role up *in the new tenant*, not on the template shelf.
       // Assigning the template row directly is what left the first admin
       // holding a role owned by `__system__`, which every service then had to

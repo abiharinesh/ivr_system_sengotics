@@ -2,26 +2,28 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 
 export interface AuditEntry {
-  tenantId: string;
+  tenantId?: string;
   orgUnitId?: number;
+  actorUserId?: number;
+  /** Backward-compatible alias used by existing module services. */
   userId?: number;
-  module: string;
-  entityType: string;
-  entityId: string;
+  module?: string;
+  entityType?: string;
+  entityId?: string;
   action: string;
-  beforeValue?: Record<string, unknown>;
-  afterValue?: Record<string, unknown>;
+  oldValue?: Record<string, unknown> | null;
+  newValue?: Record<string, unknown> | null;
+  /** Backward-compatible names used by the workflow modules. */
+  beforeValue?: Record<string, unknown> | null;
+  afterValue?: Record<string, unknown> | null;
   changedFields?: string[];
-  deviceInfo?: string;
   ipAddress?: string;
-  userAgent?: string;
-  sessionId?: string;
+  deviceInfo?: string;
 }
 
 /**
  * Immutable audit trail service.
- * Captures before/after values on every data mutation.
- * Can be used directly or triggered via the EventBus.
+ * Captures old/new values on administrative and operational actions.
  */
 @Injectable()
 export class AuditService {
@@ -32,27 +34,38 @@ export class AuditService {
   /** Log a single audit entry. */
   async log(entry: AuditEntry): Promise<void> {
     try {
+      const beforeValue = entry.beforeValue ?? entry.oldValue;
+      const afterValue = entry.afterValue ?? entry.newValue;
       await this.prisma.auditLog.create({
         data: {
-          tenant_id: entry.tenantId,
+          // AuditLog is tenant-owned in the schema. Platform actions are
+          // recorded under the operating tenant rather than becoming orphaned.
+          tenant_id: entry.tenantId ?? 'default',
           org_unit_id: entry.orgUnitId ?? null,
-          user_id: entry.userId ?? null,
-          module: entry.module,
-          entity_type: entry.entityType,
-          entity_id: entry.entityId,
+          user_id: entry.userId ?? entry.actorUserId ?? null,
+          module: entry.module ?? 'core',
+          entity_type:
+            entry.entityType ?? entry.action.split('.')[0] ?? 'system',
+          entity_id: entry.entityId ?? '',
           action: entry.action,
-          before_value: (entry.beforeValue as any) ?? undefined,
-          after_value: (entry.afterValue as any) ?? undefined,
-          changed_fields: entry.changedFields ?? [],
-          device_info: entry.deviceInfo ?? null,
+          before_value: (beforeValue as any) ?? undefined,
+          after_value: (afterValue as any) ?? undefined,
+          changed_fields:
+            entry.changedFields ??
+            (beforeValue && afterValue
+              ? AuditService.diffFields(beforeValue, afterValue)
+              : []),
           ip_address: entry.ipAddress ?? null,
-          user_agent: entry.userAgent ?? null,
-          session_id: entry.sessionId ?? null,
+          device_info: entry.deviceInfo ?? null,
         },
       });
     } catch (err) {
       // Audit logging should NEVER break the main operation
-      this.logger.error(`Failed to write audit log: ${err.message}`, err.stack);
+      const error = err as Error;
+      this.logger.error(
+        `Failed to write audit log: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
@@ -71,18 +84,35 @@ export class AuditService {
     return changed;
   }
 
-  /** Query audit trail for an entity. */
+  /** Query audit trail for a tenant or action. */
+  async getAuditLogs(tenantId?: string, take = 100) {
+    return this.prisma.auditLog.findMany({
+      where: tenantId ? { tenant_id: tenantId } : {},
+      include: {
+        user: { select: { id: true, email: true, role: true } },
+        org_unit: { select: { id: true, name: true } },
+      },
+      orderBy: { created_at: 'desc' },
+      take,
+    });
+  }
+
+  /** Return an entity's immutable audit history, newest first. */
   async getEntityHistory(
     tenantId: string,
     entityType: string,
     entityId: string,
-    take = 50,
+    take = 100,
   ) {
     return this.prisma.auditLog.findMany({
       where: {
         tenant_id: tenantId,
         entity_type: entityType,
         entity_id: entityId,
+      },
+      include: {
+        user: { select: { id: true, email: true, role: true } },
+        org_unit: { select: { id: true, name: true } },
       },
       orderBy: { created_at: 'desc' },
       take,
