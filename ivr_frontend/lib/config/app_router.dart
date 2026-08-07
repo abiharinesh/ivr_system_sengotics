@@ -67,7 +67,7 @@ import 'package:ivr_frontend/features/modules/tenders/presentation/screens/vendo
 import 'package:ivr_frontend/features/modules/tenders/presentation/screens/public_tender_screen.dart';
 import 'package:ivr_frontend/features/modules/tenders/presentation/screens/invite_tender_screen.dart';
 import 'package:ivr_frontend/features/modules/tenders/presentation/screens/public_field_upload_screen.dart';
-import 'package:ivr_frontend/features/modules/tenders/presentation/screens/vendor_bidding_portal_screen.dart';
+import 'package:ivr_frontend/features/modules/tenders/presentation/screens/contractor_tenders_screen.dart';
 
 import 'package:ivr_frontend/features/modules/water_supply/presentation/screens/pipeline_grid_screen.dart';
 import 'package:ivr_frontend/features/modules/water_supply/presentation/screens/tanks_borewells_screen.dart';
@@ -569,7 +569,7 @@ GoRouter createRouter(AuthBloc authBloc) {
           // `int.parse` threw a FormatException on every attempt to open it.
           GoRoute(
             path: '/tenders/vendor-portal',
-            builder: (context, state) => const VendorBiddingPortalScreen(),
+            builder: (context, state) => const ContractorTendersScreen(),
           ),
           GoRoute(
             path: '/tenders/:id',

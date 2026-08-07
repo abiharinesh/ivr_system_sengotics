@@ -429,6 +429,87 @@ async function seedToday(ctx) {
   } else {
     step("today's complaints (already logged)");
   }
+
+  await openInvitesForContractor();
+}
+
+/**
+ * Leave the signed-in contractor something to actually do.
+ *
+ * Every invitation the procurement seed lays down has already been answered,
+ * because it seeds the quotations alongside them. So the contractor portal
+ * opens on a list where nothing is outstanding — a true picture of the data and
+ * a poor picture of the product, since the state the screen exists to surface,
+ * "these need your quote", is the one never shown.
+ *
+ * Adds open invitations on tenders that are genuinely still collecting
+ * quotations, with deadlines in the next fortnight. Idempotent: does nothing
+ * once the contractor has any invitation still awaiting a response.
+ */
+async function openInvitesForContractor() {
+  const firm = await prisma.contractor.findFirst({
+    where: { user_id: { not: null } },
+    select: { id: true, name: true, org_unit_id: true },
+  });
+  if (!firm) {
+    step('open invitations (no contractor login linked)');
+    return;
+  }
+
+  const outstanding = await prisma.tenderInvite.count({
+    where: {
+      contractor_id: firm.id,
+      invite_submitted_at: null,
+      invite_revoked_at: null,
+      OR: [{ invite_expires_at: null }, { invite_expires_at: { gt: new Date() } }],
+    },
+  });
+  if (outstanding > 0) {
+    step('open invitations (contractor already has some)');
+    return;
+  }
+
+  const invited = await prisma.tenderInvite.findMany({
+    where: { contractor_id: firm.id },
+    select: { tender_id: true },
+  });
+  const stillOpen = {
+    status: { in: ['published', 'quotations_open', 'draft'] },
+    id: { notIn: invited.map((i) => i.tender_id) },
+  };
+
+  // Their own branch first, but a council may invite a firm from anywhere —
+  // and after the procurement seed the local open tenders are usually the ones
+  // they have already been invited to.
+  let candidates = firm.org_unit_id
+    ? await prisma.tender.findMany({
+        where: { ...stillOpen, org_unit_id: firm.org_unit_id },
+        select: { id: true },
+        take: 3,
+      })
+    : [];
+  if (candidates.length === 0) {
+    candidates = await prisma.tender.findMany({
+      where: stillOpen,
+      select: { id: true },
+      take: 3,
+    });
+  }
+  if (candidates.length === 0) {
+    step('open invitations (no tender still collecting quotations)');
+    return;
+  }
+
+  await bulk(
+    prisma.tenderInvite,
+    candidates.map((t) => ({
+      tender_id: t.id,
+      contractor_id: firm.id,
+      invite_token: null,
+      invite_expires_at: daysAhead(int(3, 14)),
+    })),
+  );
+  step(`open invitations for ${firm.name}`, candidates.length);
 }
 
 module.exports = { seedToday };

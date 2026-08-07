@@ -287,6 +287,8 @@ model User {
   // ── New platform relations ──
   employee        Employee?
   citizen_profile CitizenProfile?
+  /// Set when this login belongs to a contractor rather than a staff member.
+  contractor      Contractor?     @relation("ContractorLogin")
   user_roles      UserRole[]
 
   @@unique([tenant_id, email])
@@ -2024,6 +2026,17 @@ model Contractor {
   id                  Int      @id @default(autoincrement())
   tenant_id           String
   org_unit_id         Int?
+
+  /// The login this business uses, if it has one.
+  ///
+  /// Without this a contractor could sign in and the platform had no way to
+  /// tell which of the registered businesses they were — so the portal they
+  /// landed on could only ever be a mockup. Follows `Employee.user_id`.
+  ///
+  /// Nullable because most contractors are records an officer keyed in and
+  /// never log in at all; unique because one login is one business.
+  user_id             Int?     @unique
+
   name                String
   phone               String
   email               String?
@@ -2040,6 +2053,7 @@ model Contractor {
 
   tenant      Tenant              @relation(fields: [tenant_id], references: [id])
   org_unit    OrgUnit?            @relation(fields: [org_unit_id], references: [id])
+  user        User?               @relation("ContractorLogin", fields: [user_id], references: [id])
   work_orders WorkOrder[]
   invites     TenderInvite[]
   quotations  TenderQuotation[]

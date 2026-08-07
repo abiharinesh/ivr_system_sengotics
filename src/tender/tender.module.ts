@@ -20,6 +20,8 @@ import { FieldVerificationController } from './field-verification.controller';
 import { FieldVerificationService } from './field-verification.service';
 import { FieldOverlayOcrService } from './field-overlay-ocr.service';
 import { FieldVerificationPublicController } from './field-verification.public.controller';
+import { ContractorPortalController } from './contractor-portal.controller';
+import { ContractorPortalService } from './contractor-portal.service';
 
 @Module({
   imports: [PrismaModule, StorageModule, AuthModule],
@@ -32,6 +34,7 @@ import { FieldVerificationPublicController } from './field-verification.public.c
     FieldVerificationController,
     FieldVerificationPublicController,
     PanchayatDocumentTemplateSettingsController,
+    ContractorPortalController,
   ],
   providers: [
     TenderService,
@@ -44,6 +47,7 @@ import { FieldVerificationPublicController } from './field-verification.public.c
     TenderPublicService,
     FieldVerificationService,
     FieldOverlayOcrService,
+    ContractorPortalService,
   ],
   exports: [
     TenderService,

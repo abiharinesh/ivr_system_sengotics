@@ -213,6 +213,56 @@ async function seedProcurement(ctx) {
   } else {
     step('work orders (already present)');
   }
+
+  await linkContractorLogin();
+}
+
+/**
+ * Give the seeded contractor account a business to be.
+ *
+ * `contractors` and `users` were unrelated tables, so the one seeded
+ * contractor login belonged to none of the 48 registered firms. Signing in as
+ * them, the platform had no way to answer "which of these tenders are mine",
+ * which is why the portal could only ever have been a mockup.
+ *
+ * Links the login to whichever firm has the most invitations, so the demo
+ * account lands on a portal with something in it rather than an empty one.
+ * Idempotent: does nothing once any contractor has a login.
+ */
+async function linkContractorLogin() {
+  const already = await prisma.contractor.count({ where: { user_id: { not: null } } });
+  if (already > 0) {
+    step('contractor login (already linked)');
+    return;
+  }
+
+  const login = await prisma.user.findFirst({
+    where: { user_type: 'contractor' },
+    select: { id: true, email: true },
+  });
+  if (!login) {
+    step('contractor login (no contractor account seeded)');
+    return;
+  }
+
+  const busiest = await prisma.tenderInvite.groupBy({
+    by: ['contractor_id'],
+    _count: { _all: true },
+    orderBy: { _count: { contractor_id: 'desc' } },
+    take: 1,
+  });
+  const contractorId = busiest[0]?.contractor_id
+    ?? (await prisma.contractor.findFirst({ select: { id: true } }))?.id;
+  if (!contractorId) {
+    step('contractor login (no contractor records)');
+    return;
+  }
+
+  const firm = await prisma.contractor.update({
+    where: { id: contractorId },
+    data: { user_id: login.id, email: login.email },
+  });
+  step(`contractor login → ${firm.name}`, busiest[0]?._count?._all ?? 0);
 }
 
 module.exports = { seedProcurement };
