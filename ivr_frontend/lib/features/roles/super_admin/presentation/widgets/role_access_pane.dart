@@ -5,8 +5,11 @@ import 'package:ivr_frontend/core/widgets/app_empty_state.dart';
 import 'package:ivr_frontend/core/widgets/app_error_state.dart';
 import 'package:ivr_frontend/core/widgets/app_loading_state.dart';
 import 'package:ivr_frontend/features/roles/super_admin/data/models/rbac_models.dart';
+import 'package:ivr_frontend/features/roles/super_admin/data/models/role_template_models.dart';
 import 'package:ivr_frontend/features/roles/super_admin/data/rbac_grants.dart';
 import 'package:ivr_frontend/features/roles/super_admin/data/rbac_repository.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/create_role_dialog.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/sidebar_preview.dart';
 
 /// Which grant list the detail pane is showing.
 enum _GrantKind { screens, permissions }
@@ -18,7 +21,15 @@ enum _GrantKind { screens, permissions }
 /// a [GrantSelection] that knows what changed, so an operator can look at the
 /// consequences before committing them.
 class RoleAccessPane extends StatefulWidget {
-  const RoleAccessPane({super.key, this.onChanged, this.initialRoleId});
+  const RoleAccessPane({
+    super.key,
+    this.onChanged,
+    this.initialRoleId,
+    this.repository,
+  });
+
+  /// Injected by tests; the pane builds its own against the live API otherwise.
+  final RbacRepository? repository;
 
   /// Fired after any successful write, so the shell can refresh its counters.
   final VoidCallback? onChanged;
@@ -33,7 +44,7 @@ class RoleAccessPane extends StatefulWidget {
 }
 
 class _RoleAccessPaneState extends State<RoleAccessPane> {
-  final _repo = RbacRepository();
+  late final _repo = widget.repository ?? RbacRepository();
 
   bool _loading = true;
   String? _error;
@@ -277,6 +288,48 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
     }
   }
 
+  /// Define a designation the shipped roster does not have.
+  ///
+  /// The server owns the rules and returns them as messages; the dialog stays
+  /// open showing whichever one it hit, so a name collision costs a correction
+  /// rather than the whole form.
+  Future<void> _createRole() async {
+    final made = await showDialog<NewRoleDraft>(
+      context: context,
+      builder: (ctx) => CreateRoleDialog(
+        onSubmit: (draft) async {
+          try {
+            final created = await _repo.createRole(
+              name: draft.name,
+              displayName: draft.displayName,
+              displayNameTa: draft.displayNameTa,
+              department: draft.department,
+              hierarchyLevel: draft.hierarchyLevel,
+              canApprove: draft.canApprove,
+            );
+            _lastCreatedId = created.role.id;
+            return null;
+          } catch (e) {
+            return _msg(e);
+          }
+        },
+      ),
+    );
+    if (made == null || !mounted) return;
+
+    _toast('Created "${made.displayName}". Now give it some access.');
+    widget.onChanged?.call();
+    await _load();
+    if (!mounted) return;
+
+    // Land on the new role with nothing ticked — the next thing anybody wants
+    // to do is grant it something.
+    final fresh = _roles.where((r) => r.id == _lastCreatedId);
+    if (fresh.isNotEmpty) await _selectRole(fresh.first);
+  }
+
+  int? _lastCreatedId;
+
   Future<void> _setActiveState(bool isActive) async {
     final role = _selected;
     if (role == null) return;
@@ -379,6 +432,17 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
     final roles = _visibleRoles;
     return Column(
       children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: _saving ? null : _createRole,
+              icon: const Icon(Icons.add_rounded, size: 18),
+              label: const Text('New role'),
+            ),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
           child: TextField(
@@ -494,9 +558,144 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
       children: [
         _buildDetailHeader(role),
         if (!role.isEditable) _buildSystemRoleBanner(role),
-        Expanded(child: _buildGrantList(role)),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, c) {
+              final grants = _buildGrantList(role);
+              // The preview earns its width only when there is width to
+              // spare; below this the checklist is the thing being used.
+              if (c.maxWidth < 900 || _kind != _GrantKind.screens) {
+                return grants;
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: grants),
+                  Container(width: 1, color: AppTheme.stroke),
+                  SizedBox(
+                    width: 264,
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(14),
+                      child: SidebarPreview(
+                        // The live selection, not the saved one: the point is
+                        // to see the consequence before committing it.
+                        screenKeys: _screenGrants.selected,
+                        catalogue: _screens,
+                        roleName: role.displayName,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
         if (_active.isDirty && role.isEditable) _buildSaveBar(),
       ],
+    );
+  }
+
+  /// Marks a role this council has changed, and offers the comparison.
+  ///
+  /// Worth saying out loud in the console: a customised role is deliberately
+  /// skipped by a catalogue update, so somebody wondering why an improvement
+  /// did not reach this one has the answer next to the role's name rather than
+  /// having to infer it.
+  Widget _provenanceBadge(RoleSummary role) {
+    return InkWell(
+      onTap: () => _showTemplateDiff(role),
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppTheme.warning.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.warning.withValues(alpha: 0.3)),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.edit_note_rounded, size: 13, color: AppTheme.warning),
+            SizedBox(width: 4),
+            Text(
+              'Customised',
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.warning,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showTemplateDiff(RoleSummary role) async {
+    late final Future<TemplateDiff> pending;
+    pending = _repo.templateDiff(role.id);
+
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('${role.displayName} vs the shipped version'),
+        content: SizedBox(
+          width: 420,
+          child: FutureBuilder<TemplateDiff>(
+            future: pending,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) {
+                return const SizedBox(
+                  height: 80,
+                  child: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (snap.hasError) {
+                return Text(_msg(snap.error!),
+                    style: const TextStyle(color: AppTheme.error));
+              }
+              final d = snap.data!;
+              if (d.templateName == null) {
+                return const Text(
+                  'This role was created here, so there is no shipped version '
+                  'to compare it with. Catalogue updates never touch it.',
+                );
+              }
+              if (d.matchesTemplate) {
+                return const Text(
+                  'Its access matches the shipped version exactly.',
+                );
+              }
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (d.screensRemoved.isNotEmpty) ...[
+                    const Text('You added:',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(d.screensRemoved.join(', ')),
+                    const SizedBox(height: 12),
+                  ],
+                  if (d.screensAdded.isNotEmpty) ...[
+                    const Text('The shipped version also has:',
+                        style: TextStyle(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 4),
+                    Text(d.screensAdded.join(', ')),
+                  ],
+                ],
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -524,11 +723,24 @@ class _RoleAccessPaneState extends State<RoleAccessPane> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      role.displayNameTa?.isNotEmpty == true
-                          ? '${role.name} · ${role.displayNameTa}'
-                          : role.name,
-                      style: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            role.displayNameTa?.isNotEmpty == true
+                                ? '${role.name} · ${role.displayNameTa}'
+                                : role.name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                fontSize: 12, color: AppTheme.textMuted),
+                          ),
+                        ),
+                        if (role.isCustomised) ...[
+                          const SizedBox(width: 8),
+                          _provenanceBadge(role),
+                        ],
+                      ],
                     ),
                   ],
                 ),

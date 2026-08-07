@@ -194,6 +194,15 @@ class RoleSummary {
   final int permissionCount;
   final int screenCount;
 
+  /// The shipped template this role was provisioned from, if any. Null on a
+  /// role the tenant invented, which is never touched by a template sync.
+  final int? templateId;
+
+  /// When this tenant first changed the role's grants. Null means it still
+  /// matches its template, so an improvement to the catalogue can be applied
+  /// to it; once set, a sync leaves it alone.
+  final DateTime? customisedAt;
+
   const RoleSummary({
     required this.id,
     required this.tenantId,
@@ -210,7 +219,16 @@ class RoleSummary {
     required this.userCount,
     required this.permissionCount,
     required this.screenCount,
+    this.templateId,
+    this.customisedAt,
   });
+
+  /// Provisioned from the catalogue and still matching it, so a template
+  /// update would reach it.
+  bool get followsTemplate => templateId != null && customisedAt == null;
+
+  /// This council has made the role their own; a sync reports and skips it.
+  bool get isCustomised => customisedAt != null;
 
   /// The sentinel tenant holding the shared role templates. A role owned by it
   /// is readable by every tenant and editable by none — see [isEditable].
@@ -236,6 +254,10 @@ class RoleSummary {
         userCount: _asInt(json['user_count']),
         permissionCount: _asInt(json['permission_count']),
         screenCount: _asInt(json['screen_count']),
+        templateId: json['template_id'] == null ? null : _asInt(json['template_id']),
+        customisedAt: json['customised_at'] == null
+            ? null
+            : DateTime.tryParse(json['customised_at'].toString()),
       );
 }
 

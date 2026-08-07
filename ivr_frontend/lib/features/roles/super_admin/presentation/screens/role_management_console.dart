@@ -14,6 +14,7 @@ import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rba
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/rbac_overview_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/role_access_pane.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/role_members_pane.dart';
+import 'package:ivr_frontend/features/roles/super_admin/presentation/widgets/role_templates_pane.dart';
 
 /// The one screen for administering who can do what.
 ///
@@ -57,13 +58,13 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
   static const int _tabMatrix = 1;
   static const int _tabGeography = 2;
   static const int _tabAccess = 3;
-  static const int _tabPeople = 4;
+  static const int _tabPeople = 5;
 
   @override
   void initState() {
     super.initState();
     _tabs = TabController(
-      length: 8,
+      length: 9,
       vsync: this,
       // A deep link to one person's assignments should land on People, not on
       // the analytics they didn't ask for.
@@ -148,6 +149,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
             Tab(icon: Icon(Icons.grid_on_rounded), text: 'Access matrix'),
             Tab(icon: Icon(Icons.public_rounded), text: 'Geography'),
             Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
+            Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Catalogue'),
             Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
             Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
             Tab(icon: Icon(Icons.dashboard_customize_rounded), text: 'Dashboards'),
@@ -178,6 +180,7 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
                   onChanged: _load,
                   initialRoleId: _pendingRoleId,
                 ),
+                RoleTemplatesPane(onChanged: _load),
                 RoleMembersPane(
                   onChanged: _load,
                   initialUserId: widget.initialUserId,
