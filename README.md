@@ -106,6 +106,9 @@ Set these environment variables in your Vercel project before deploy (see `.env.
 - `CANVAS_LOCKED_TEMPLATES` (optional CSV; empty = all six templates editable via canvas)
 
 Deployment notes:
+- Vercel runs the versioned production seed during build. Once a database is
+  verified, later deployments skip it; set `SEED_DEMO_DATA=true` only for a
+  fresh demonstration database that should receive the large sample dataset.
 - Keep Gotenberg as a separate service and point `GOTENBERG_URL` to it.
 - `SUPABASE_SERVICE_ROLE_KEY` must be set on Vercel (server-side only), never in frontend env.
 - Leave `CANVAS_LOCKED_TEMPLATES` empty to allow canvas edit for all templates.
