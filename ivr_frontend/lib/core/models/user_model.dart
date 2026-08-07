@@ -78,6 +78,7 @@ class UserModel extends Equatable {
   final List<UserRoleAssignment> roleAssignments;
   final String accessScope;
   final List<String> permissions;
+  final bool isPlatformAdmin;
 
   /// Screen keys this user may see in the sidebar, resolved server-side from
   /// their role grants. Empty means "server did not say" — see [canSeeScreen].
@@ -125,6 +126,7 @@ class UserModel extends Equatable {
     this.roleAssignments = const [],
     this.accessScope = 'own_org_unit',
     this.permissions = const [],
+    this.isPlatformAdmin = false,
     this.screens = const [],
     this.nav = const [],
     this.mustChangePassword = false,
@@ -137,6 +139,8 @@ class UserModel extends Equatable {
   /// locally would put the client out of step with the server.
   UserModel copyWith({
     bool? mustChangePassword,
+    List<String>? permissions,
+    bool? isPlatformAdmin,
     List<String>? screens,
     List<NavScreen>? nav,
   }) {
@@ -168,7 +172,8 @@ class UserModel extends Equatable {
       createdAt: createdAt,
       roleAssignments: roleAssignments,
       accessScope: accessScope,
-      permissions: permissions,
+      permissions: permissions ?? this.permissions,
+      isPlatformAdmin: isPlatformAdmin ?? this.isPlatformAdmin,
       screens: screens ?? this.screens,
       nav: nav ?? this.nav,
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
@@ -191,6 +196,7 @@ class UserModel extends Equatable {
           const [],
       accessScope: (json['access_scope'] as String?) ?? 'own_org_unit',
       permissions: (json['permissions'] as List<dynamic>?)?.cast<String>() ?? const [],
+      isPlatformAdmin: json['is_platform_admin'] == true,
       screens: (json['screens'] as List<dynamic>?)?.cast<String>() ?? const [],
       // Absent on the JWT, which carries keys alone; filled in from
       // `/api/rbac/me/entitlements`.
@@ -268,16 +274,17 @@ class UserModel extends Equatable {
   /// user out of their own menu. Once the server sends any screens at all, the
   /// list is authoritative.
   bool canSeeScreen(String key) {
-    if (isSuperAdmin) return true;
     if (screens.isEmpty) return true;
     return screens.contains(key);
   }
 
   /// True when the server has actually resolved entitlements for this session.
-  bool get hasResolvedScreens => isSuperAdmin || screens.isNotEmpty;
+  bool get hasResolvedScreens => screens.isNotEmpty;
 
-  bool get isSuperAdmin =>
-      role == 'super_admin' || roleAssignments.any((r) => r.isSuperAdmin);
+  /// Platform scope is resolved by `/api/sidebar`, not inferred from a role
+  /// name or a JWT claim.
+  @Deprecated('Use isPlatformAdmin')
+  bool get isSuperAdmin => isPlatformAdmin;
   bool get isPanchayatAdmin => role == 'panchayat_admin';
   bool get isAgent => role == 'agent';
   bool get isElectrician => role == 'electrician';
@@ -297,7 +304,7 @@ class UserModel extends Equatable {
   bool get isFieldStaff => isAgent || isElectrician || isPlumber || isJuniorEngineer;
 
   /// Executive-level roles that get the admin shell with full sidebar.
-  bool get isExecutive => isSuperAdmin || isPanchayatAdmin || isMunicipalCommissioner || isMunicipalEngineer;
+  bool get isExecutive => isPlatformAdmin || isPanchayatAdmin || isMunicipalCommissioner || isMunicipalEngineer;
 
   /// Human-readable display name for the role.
   String get displayRoleName {
@@ -334,6 +341,7 @@ class UserModel extends Equatable {
       // frame, rather than showing an empty rail until the entitlements
       // request comes back. Round-trips through `fromJson`.
       'permissions': permissions,
+      'is_platform_admin': isPlatformAdmin,
       'screens': screens,
       'nav': nav.map((s) => s.toJson()).toList(),
       'employee': {
@@ -392,6 +400,7 @@ class UserModel extends Equatable {
         roleAssignments,
         accessScope,
         permissions,
+        isPlatformAdmin,
         screens,
         mustChangePassword,
       ];

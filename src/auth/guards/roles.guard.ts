@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { ROLES_KEY } from '../decorators/roles.decorator';
+import { RbacService } from '../../core/rbac/rbac.service';
 
 /**
  * RolesGuard — a pure, synchronous check against the roles already decoded
@@ -14,9 +15,12 @@ import { ROLES_KEY } from '../decorators/roles.decorator';
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly rbac: RbacService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredRoles = this.reflector.getAllAndOverride<string[]>(
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
@@ -26,10 +30,9 @@ export class RolesGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     if (!user) return false;
 
-    if (user.is_super_admin) return true;
-    if (requiredRoles.includes(user.role)) return true;
-
-    const rbacRoleNames: string[] = (user.rbac_roles || []).map((r: any) => r.name);
-    return requiredRoles.some((required) => rbacRoleNames.includes(required));
+    const entitlements = await this.rbac.entitlementsFor(user.id);
+    if (entitlements.isSuperAdmin) return true;
+    const roleNames = entitlements.roles.map((role) => role.name);
+    return requiredRoles.some((required) => roleNames.includes(required));
   }
 }

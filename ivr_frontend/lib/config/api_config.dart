@@ -120,7 +120,7 @@ class ApiConfig {
   /// Open to any authenticated caller, including a role the tenant invented —
   /// asking about yourself cannot be gated on a list of role names that has to
   /// be edited every time a role ships.
-  static const String myEntitlements = '/api/rbac/me/entitlements';
+  static const String sidebar = '/api/sidebar';
 
   // Panchayat Admin
   static const String paMe = '/api/admin/me';

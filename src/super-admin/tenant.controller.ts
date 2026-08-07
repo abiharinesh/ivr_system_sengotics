@@ -8,8 +8,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { RolesGuard } from '../auth/guards/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
+import { Authorize } from '../auth/decorators/authorize.decorator';
+import { AuthorizationGuard } from '../auth/guards/authorization.guard';
 import { TenantService } from '../core/tenant/tenant.service';
 import { TenantProvisioningService } from './tenant-provisioning.service';
 import type { ProvisionTenantInput } from './tenant-provisioning.service';
@@ -22,8 +22,8 @@ import { PermissionCacheService } from '../core/rbac/permission-cache.service';
  * which manage the org-unit hierarchy *within* a tenant. Before this
  * controller, `TenantService` was dead code with no route exposing it.
  */
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles('super_admin')
+@UseGuards(JwtAuthGuard, AuthorizationGuard)
+@Authorize({ platformOnly: true })
 @Controller('api/superadmin/tenants')
 export class TenantController {
   constructor(

@@ -24,6 +24,7 @@ describe('RbacService', () => {
     orgUnit: { findUnique: jest.fn() },
     branchFeatureConfig: { findUnique: jest.fn(), findFirst: jest.fn() },
     tenantFeatureConfig: { findUnique: jest.fn() },
+    tenantRoleTemplate: { findMany: jest.fn() },
   };
 
   /**
@@ -37,7 +38,11 @@ describe('RbacService', () => {
   const screen = (
     key: string,
     module: string,
-    over: Partial<{ is_active: boolean; group_key: string; sort_order: number }> = {},
+    over: Partial<{
+      is_active: boolean;
+      group_key: string;
+      sort_order: number;
+    }> = {},
   ) => ({
     key,
     module,
@@ -85,6 +90,7 @@ describe('RbacService', () => {
     prisma.branchFeatureConfig.findUnique.mockResolvedValue(null);
     prisma.branchFeatureConfig.findFirst.mockResolvedValue(null);
     prisma.tenantFeatureConfig.findUnique.mockResolvedValue(null);
+    prisma.tenantRoleTemplate.findMany.mockResolvedValue([]);
   });
 
   describe('entitlementsFor', () => {
@@ -106,11 +112,35 @@ describe('RbacService', () => {
       expect(ent.screens).toEqual(['complaints', 'water_supply']);
     });
 
+    it('removes a tenant role from both permissions and navigation when its template is disabled', async () => {
+      prisma.userRole.findMany.mockResolvedValue([
+        {
+          tenant_id: 'tenant-a',
+          org_unit_id: 10,
+          is_primary: true,
+          role: role({ tenant_id: 'tenant-a', template_id: 44 }),
+        },
+      ]);
+      prisma.tenantRoleTemplate.findMany.mockResolvedValue([
+        { tenant_id: 'tenant-a', role_template_id: 44 },
+      ]);
+
+      const ent = await service.entitlementsFor(7);
+
+      expect(ent.isSuperAdmin).toBe(false);
+      expect(ent.permissions).toEqual([]);
+      expect(ent.screens).toEqual([]);
+    });
+
     it('hides a screen whose registry entry has been deactivated', async () => {
       prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
         { screen: screen('water_supply', 'water_supply') },
-        { screen: screen('retired_module', 'retired_module', { is_active: false }) },
+        {
+          screen: screen('retired_module', 'retired_module', {
+            is_active: false,
+          }),
+        },
       ]);
 
       const ent = await service.entitlementsFor(7);
@@ -186,7 +216,8 @@ describe('RbacService', () => {
 
       await service.entitlementsFor(7);
 
-      const ids = prisma.rolePermission.findMany.mock.calls[0][0].where.role_id.in;
+      const ids =
+        prisma.rolePermission.findMany.mock.calls[0][0].where.role_id.in;
       expect(ids.sort()).toEqual([1, 2, 3]);
     });
 
@@ -201,7 +232,8 @@ describe('RbacService', () => {
       const ent = await service.entitlementsFor(7);
 
       expect(ent).toBeDefined();
-      const ids = prisma.rolePermission.findMany.mock.calls[0][0].where.role_id.in;
+      const ids =
+        prisma.rolePermission.findMany.mock.calls[0][0].where.role_id.in;
       expect(ids.sort()).toEqual([1, 2]);
     });
 
@@ -222,12 +254,17 @@ describe('RbacService', () => {
 
       const ent = await service.entitlementsFor(7);
 
-      expect(ent.permissions).toEqual(['property_tax.read', 'trade_licences.read']);
+      expect(ent.permissions).toEqual([
+        'property_tax.read',
+        'trade_licences.read',
+      ]);
       expect(ent.screens).toEqual(['trade_licences']);
     });
 
     it('survives a database without the RBAC tables', async () => {
-      prisma.userRole.findMany.mockRejectedValue(new Error('relation does not exist'));
+      prisma.userRole.findMany.mockRejectedValue(
+        new Error('relation does not exist'),
+      );
 
       // Login must not fail on a database that has not had the migration.
       const ent = await service.entitlementsFor(7);
@@ -315,8 +352,12 @@ describe('RbacService', () => {
 
     it('does not empty the menu when the config lookup fails', async () => {
       grantedThree();
-      prisma.branchFeatureConfig.findUnique.mockRejectedValue(new Error('down'));
-      prisma.tenantFeatureConfig.findUnique.mockRejectedValue(new Error('down'));
+      prisma.branchFeatureConfig.findUnique.mockRejectedValue(
+        new Error('down'),
+      );
+      prisma.tenantFeatureConfig.findUnique.mockRejectedValue(
+        new Error('down'),
+      );
 
       const ent = await service.entitlementsFor(7);
 
@@ -342,7 +383,11 @@ describe('RbacService', () => {
 
     it('is skipped entirely for a super admin', async () => {
       prisma.userRole.findMany.mockResolvedValue([
-        { org_unit_id: 10, is_primary: true, role: role({ is_super_admin: true }) },
+        {
+          org_unit_id: 10,
+          is_primary: true,
+          role: role({ is_super_admin: true }),
+        },
       ]);
 
       const ent = await service.entitlementsFor(1);
@@ -413,14 +458,33 @@ describe('RbacService', () => {
       // alphabetical, which puts ADMINISTRATION above OVERVIEW.
       prisma.userRole.findMany.mockResolvedValue([{ role: role() }]);
       prisma.roleScreenAccess.findMany.mockResolvedValue([
-        { screen: screen('settings', 'core', { group_key: 'ADMINISTRATION', sort_order: 30 }) },
-        { screen: screen('home', 'core', { group_key: 'OVERVIEW', sort_order: 0 }) },
-        { screen: screen('property_tax', 'property_tax', { group_key: 'REVENUE', sort_order: 8 }) },
+        {
+          screen: screen('settings', 'core', {
+            group_key: 'ADMINISTRATION',
+            sort_order: 30,
+          }),
+        },
+        {
+          screen: screen('home', 'core', {
+            group_key: 'OVERVIEW',
+            sort_order: 0,
+          }),
+        },
+        {
+          screen: screen('property_tax', 'property_tax', {
+            group_key: 'REVENUE',
+            sort_order: 8,
+          }),
+        },
       ]);
 
       const ent = await service.entitlementsFor(7);
 
-      expect(ent.nav.map((s) => s.key)).toEqual(['home', 'property_tax', 'settings']);
+      expect(ent.nav.map((s) => s.key)).toEqual([
+        'home',
+        'property_tax',
+        'settings',
+      ]);
       expect(ent.nav.map((s) => s.group_key)).toEqual([
         'OVERVIEW',
         'REVENUE',
@@ -461,7 +525,10 @@ describe('RbacService', () => {
   describe('platformNav', () => {
     it('returns the catalogue in group then sort order', async () => {
       prisma.appScreen.findMany.mockResolvedValue([
-        screen('tenders', 'tender_mgmt', { group_key: 'PROCUREMENT', sort_order: 1 }),
+        screen('tenders', 'tender_mgmt', {
+          group_key: 'PROCUREMENT',
+          sort_order: 1,
+        }),
         screen('home', 'core', { group_key: 'OVERVIEW', sort_order: 0 }),
       ]);
 

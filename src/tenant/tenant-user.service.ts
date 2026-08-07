@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../core/audit/audit.service';
@@ -32,7 +37,11 @@ export class TenantUserService {
     private readonly cache: PermissionCacheService,
   ) {}
 
-  async createStaff(tenantId: string, actorUserId: number, dto: CreateStaffDto) {
+  async createStaff(
+    tenantId: string,
+    actorUserId: number,
+    dto: CreateStaffDto,
+  ) {
     if (!dto.email && !dto.phone_e164) {
       throw new BadRequestException('Email or phone number is required');
     }
@@ -41,14 +50,29 @@ export class TenantUserService {
       where: { id: dto.role_id, tenant_id: tenantId },
     });
     if (!role) {
-      throw new NotFoundException(`Role with ID ${dto.role_id} not found for tenant "${tenantId}"`);
+      throw new NotFoundException(
+        `Role with ID ${dto.role_id} not found for tenant "${tenantId}"`,
+      );
     }
 
     const orgUnit = await this.prisma.orgUnit.findFirst({
       where: { id: dto.org_unit_id, tenant_id: tenantId },
     });
     if (!orgUnit) {
-      throw new NotFoundException(`OrgUnit/Branch with ID ${dto.org_unit_id} not found for tenant "${tenantId}"`);
+      throw new NotFoundException(
+        `OrgUnit/Branch with ID ${dto.org_unit_id} not found for tenant "${tenantId}"`,
+      );
+    }
+
+    if (dto.department_id != null) {
+      const department = await this.prisma.department.findFirst({
+        where: { id: dto.department_id, tenant_id: tenantId },
+      });
+      if (!department) {
+        throw new NotFoundException(
+          `Department with ID ${dto.department_id} not found for tenant "${tenantId}"`,
+        );
+      }
     }
 
     const rawPassword = dto.password || 'TempPassword@123';
@@ -105,7 +129,10 @@ export class TenantUserService {
     };
   }
 
-  async listStaff(tenantId: string, query?: { org_unit_id?: number; department_id?: number; search?: string }) {
+  async listStaff(
+    tenantId: string,
+    query?: { org_unit_id?: number; department_id?: number; search?: string },
+  ) {
     const whereClause: any = {
       tenant_id: tenantId,
       is_deleted: false,
@@ -113,6 +140,12 @@ export class TenantUserService {
 
     if (query?.org_unit_id) {
       whereClause.primary_org_unit_id = Number(query.org_unit_id);
+    }
+
+    if (query?.department_id) {
+      whereClause.user_roles = {
+        some: { department_id: Number(query.department_id) },
+      };
     }
 
     if (query?.search) {
@@ -134,7 +167,9 @@ export class TenantUserService {
         user_type: true,
         must_change_password: true,
         created_at: true,
-        primary_org_unit: { select: { id: true, name: true, branch_type: true } },
+        primary_org_unit: {
+          select: { id: true, name: true, branch_type: true },
+        },
         user_roles: {
           select: {
             id: true,
@@ -165,7 +200,9 @@ export class TenantUserService {
         must_change_password: true,
         created_at: true,
         updated_at: true,
-        primary_org_unit: { select: { id: true, name: true, branch_type: true } },
+        primary_org_unit: {
+          select: { id: true, name: true, branch_type: true },
+        },
         user_roles: {
           select: {
             id: true,
@@ -182,31 +219,76 @@ export class TenantUserService {
     });
 
     if (!user) {
-      throw new NotFoundException(`Staff user with ID ${userId} not found in tenant "${tenantId}"`);
+      throw new NotFoundException(
+        `Staff user with ID ${userId} not found in tenant "${tenantId}"`,
+      );
     }
 
     return user;
   }
 
-  async updateStaff(tenantId: string, userId: number, actorUserId: number, dto: UpdateStaffDto) {
+  async updateStaff(
+    tenantId: string,
+    userId: number,
+    actorUserId: number,
+    dto: UpdateStaffDto,
+  ) {
     const existing = await this.getStaff(tenantId, userId);
+
+    if (dto.role_id != null) {
+      const role = await this.prisma.role.findFirst({
+        where: { id: dto.role_id, tenant_id: tenantId },
+      });
+      if (!role)
+        throw new NotFoundException(
+          `Role with ID ${dto.role_id} not found for tenant "${tenantId}"`,
+        );
+    }
+    if (dto.org_unit_id != null) {
+      const orgUnit = await this.prisma.orgUnit.findFirst({
+        where: { id: dto.org_unit_id, tenant_id: tenantId },
+      });
+      if (!orgUnit)
+        throw new NotFoundException(
+          `OrgUnit/Branch with ID ${dto.org_unit_id} not found for tenant "${tenantId}"`,
+        );
+    }
+    if (dto.department_id != null) {
+      const department = await this.prisma.department.findFirst({
+        where: { id: dto.department_id, tenant_id: tenantId },
+      });
+      if (!department)
+        throw new NotFoundException(
+          `Department with ID ${dto.department_id} not found for tenant "${tenantId}"`,
+        );
+    }
 
     const updatedUser = await this.prisma.$transaction(async (tx) => {
       const user = await tx.user.update({
         where: { id: userId },
         data: {
-          email: dto.email !== undefined ? dto.email.trim().toLowerCase() : undefined,
-          phone_e164: dto.phone_e164 !== undefined ? dto.phone_e164.trim() : undefined,
+          email:
+            dto.email !== undefined
+              ? dto.email.trim().toLowerCase()
+              : undefined,
+          phone_e164:
+            dto.phone_e164 !== undefined ? dto.phone_e164.trim() : undefined,
           is_active: dto.is_active !== undefined ? dto.is_active : undefined,
-          primary_org_unit_id: dto.org_unit_id !== undefined ? dto.org_unit_id : undefined,
+          primary_org_unit_id:
+            dto.org_unit_id !== undefined ? dto.org_unit_id : undefined,
         },
       });
 
       if (dto.role_id || dto.org_unit_id || dto.department_id) {
         if (dto.role_id) {
-          const role = await tx.role.findFirst({ where: { id: dto.role_id, tenant_id: tenantId } });
+          const role = await tx.role.findFirst({
+            where: { id: dto.role_id, tenant_id: tenantId },
+          });
           if (role) {
-            await tx.user.update({ where: { id: userId }, data: { role: role.name } });
+            await tx.user.update({
+              where: { id: userId },
+              data: { role: role.name },
+            });
           }
         }
 
@@ -217,7 +299,10 @@ export class TenantUserService {
             data: {
               role_id: dto.role_id ?? primaryRole.role.id,
               org_unit_id: dto.org_unit_id ?? primaryRole.org_unit_id,
-              department_id: dto.department_id !== undefined ? dto.department_id : primaryRole.department_id,
+              department_id:
+                dto.department_id !== undefined
+                  ? dto.department_id
+                  : primaryRole.department_id,
               access_scope: dto.access_scope ?? primaryRole.access_scope,
             },
           });
@@ -265,7 +350,12 @@ export class TenantUserService {
 
     await this.prisma.user.update({
       where: { id: userId },
-      data: { is_active: false, is_deleted: true, deleted_at: new Date(), deleted_by: actorUserId },
+      data: {
+        is_active: false,
+        is_deleted: true,
+        deleted_at: new Date(),
+        deleted_by: actorUserId,
+      },
     });
 
     this.cache.invalidateUser(userId);

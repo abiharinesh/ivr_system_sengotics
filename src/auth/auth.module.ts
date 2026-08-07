@@ -7,12 +7,15 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy';
 import { RolesGuard } from './guards/roles.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
+import { AuthorizationGuard } from './guards/authorization.guard';
+import { RbacModule } from '../core/rbac/rbac.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module';
 
 @Module({
   imports: [
     PrismaModule,
+    RbacModule,
     PassportModule,
     WhatsAppModule,
     JwtModule.registerAsync({
@@ -29,9 +32,21 @@ import { WhatsAppModule } from '../whatsapp/whatsapp.module';
       },
     }),
   ],
-  providers: [AuthService, JwtStrategy, RolesGuard, PermissionsGuard],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    RolesGuard,
+    PermissionsGuard,
+    AuthorizationGuard,
+  ],
   controllers: [AuthController],
-  exports: [AuthService, JwtModule, RolesGuard, PermissionsGuard],
+  exports: [
+    AuthService,
+    JwtModule,
+    RolesGuard,
+    PermissionsGuard,
+    AuthorizationGuard,
+  ],
 })
 export class AuthModule {}
 

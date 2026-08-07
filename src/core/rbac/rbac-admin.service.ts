@@ -4,10 +4,12 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { BranchType, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { PermissionCacheService } from './permission-cache.service';
 
 const MODULE = 'rbac';
 
@@ -29,6 +31,7 @@ export class RbacAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    @Optional() private readonly cache?: PermissionCacheService,
   ) {}
 
   // ── Reads ─────────────────────────────────────────────────────────────────
@@ -67,7 +70,10 @@ export class RbacAdminService {
       byModule.get(p.module)!.push(p);
     }
 
-    return [...byModule.entries()].map(([module, items]) => ({ module, items }));
+    return [...byModule.entries()].map(([module, items]) => ({
+      module,
+      items,
+    }));
   }
 
   /**
@@ -82,7 +88,9 @@ export class RbacAdminService {
         is_active: true,
       },
       include: {
-        _count: { select: { user_roles: true, permissions: true, screen_access: true } },
+        _count: {
+          select: { user_roles: true, permissions: true, screen_access: true },
+        },
       },
       orderBy: [{ hierarchy_level: 'asc' }, { display_name: 'asc' }],
     });
@@ -164,7 +172,11 @@ export class RbacAdminService {
    * edited back to match its template is still a role somebody is managing by
    * hand, and quietly re-enrolling it in automatic updates would be a surprise.
    */
-  private async markCustomised(role: { id: number; template_id: number | null; customised_at: Date | null }) {
+  private async markCustomised(role: {
+    id: number;
+    template_id: number | null;
+    customised_at: Date | null;
+  }) {
     if (role.template_id == null || role.customised_at !== null) return;
 
     await this.prisma.role.update({
@@ -174,6 +186,32 @@ export class RbacAdminService {
     this.logger.log(
       `Role #${role.id} now differs from its template; future syncs will skip it`,
     );
+  }
+
+  /** Resolve and enforce the platform template switch for a role. */
+  private async assertTemplateEnabled(
+    tenantId: string,
+    role: { id: number; tenant_id: string; template_id: number | null },
+  ): Promise<number | null> {
+    const templateId =
+      role.template_id ?? (role.tenant_id === SYSTEM_TENANT ? role.id : null);
+    if (templateId == null) return null;
+
+    const config = await this.prisma.tenantRoleTemplate.findUnique({
+      where: {
+        tenant_id_role_template_id: {
+          tenant_id: tenantId,
+          role_template_id: templateId,
+        },
+      },
+      select: { enabled: true },
+    });
+    if (config?.enabled === false) {
+      throw new ForbiddenException(
+        'This role template is disabled for your tenant',
+      );
+    }
+    return templateId;
   }
 
   /**
@@ -202,7 +240,10 @@ export class RbacAdminService {
       applicable_branch_types?: BranchType[];
     },
   ) {
-    const name = input.name?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    const name = input.name
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_]/g, '_');
     if (!name) throw new BadRequestException('A role needs a name');
     if (name.length > 60) {
       throw new BadRequestException('That role name is too long');
@@ -268,6 +309,7 @@ export class RbacAdminService {
     });
 
     this.logger.log(`Role "${name}" created in tenant ${tenantId}`);
+    this.cache?.invalidateTenant(tenantId);
     return this.getRole(tenantId, role.id);
   }
 
@@ -278,12 +320,21 @@ export class RbacAdminService {
    * else. Grants are copied so the clone starts identical to what people
    * already have, rather than empty.
    */
-  async cloneRole(tenantId: string, roleId: number, userId: number, newName?: string) {
+  async cloneRole(
+    tenantId: string,
+    roleId: number,
+    userId: number,
+    newName?: string,
+  ) {
     const source = await this.prisma.role.findUnique({
       where: { id: roleId },
       include: { permissions: true, screen_access: true },
     });
     if (!source) throw new NotFoundException(`Role #${roleId} not found`);
+    if (source.tenant_id !== tenantId && source.tenant_id !== SYSTEM_TENANT) {
+      throw new ForbiddenException('That role belongs to another tenant');
+    }
+    const templateId = await this.assertTemplateEnabled(tenantId, source);
 
     const name = newName?.trim() || source.name;
     const existing = await this.prisma.role.findFirst({
@@ -310,6 +361,10 @@ export class RbacAdminService {
         can_approve: source.can_approve,
         is_system: false,
         applicable_branch_types: source.applicable_branch_types,
+        template_id: templateId,
+        // A direct clone of an untouched platform template can safely receive
+        // future template updates. Cloning a tenant-customised role cannot.
+        customised_at: source.tenant_id === SYSTEM_TENANT ? null : new Date(),
         permissions: {
           create: source.permissions.map((p) => ({
             permission_id: p.permission_id,
@@ -336,6 +391,7 @@ export class RbacAdminService {
       afterValue: { from_role: source.name, name, tenant_id: tenantId },
     });
 
+    this.cache?.invalidateTenant(tenantId);
     return this.getRole(tenantId, clone.id);
   }
 
@@ -365,7 +421,9 @@ export class RbacAdminService {
     }
 
     // Platform screens manage the platform itself, not a council's work.
-    const platform = screens.filter((s) => s.is_platform_only && wanted.has(s.key));
+    const platform = screens.filter(
+      (s) => s.is_platform_only && wanted.has(s.key),
+    );
     if (platform.length && !role.is_super_admin) {
       throw new BadRequestException(
         `Platform-only screen(s) cannot be granted to a branch role: ${platform
@@ -411,6 +469,7 @@ export class RbacAdminService {
     this.logger.log(
       `Role ${role.name}: screens ${beforeKeys.length} → ${wanted.size}`,
     );
+    this.cache?.invalidateTenant(tenantId);
     return this.getRole(tenantId, roleId);
   }
 
@@ -467,6 +526,7 @@ export class RbacAdminService {
     this.logger.log(
       `Role ${role.name}: permissions ${before.length} → ${perms.length}`,
     );
+    this.cache?.invalidateTenant(tenantId);
     return this.getRole(tenantId, roleId);
   }
 
@@ -480,7 +540,9 @@ export class RbacAdminService {
     const role = await this.editableRole(tenantId, roleId);
 
     if (!isActive) {
-      const holders = await this.prisma.userRole.count({ where: { role_id: roleId } });
+      const holders = await this.prisma.userRole.count({
+        where: { role_id: roleId },
+      });
       if (holders > 0) {
         throw new BadRequestException(
           `${holders} user(s) still hold "${role.display_name}". Reassign them before disabling it.`,
@@ -505,6 +567,7 @@ export class RbacAdminService {
       changedFields: ['is_active'],
     });
 
+    this.cache?.invalidateTenant(tenantId);
     return this.getRole(tenantId, roleId);
   }
 
@@ -542,16 +605,29 @@ export class RbacAdminService {
     isPrimary = false,
   ) {
     const [user, role, orgUnit] = await Promise.all([
-      this.prisma.user.findFirst({ where: { id: userId, tenant_id: tenantId } }),
+      this.prisma.user.findFirst({
+        where: { id: userId, tenant_id: tenantId },
+      }),
       this.prisma.role.findFirst({
         where: { id: roleId, tenant_id: { in: [tenantId, '__system__'] } },
       }),
-      this.prisma.orgUnit.findFirst({ where: { id: orgUnitId, tenant_id: tenantId } }),
+      this.prisma.orgUnit.findFirst({
+        where: { id: orgUnitId, tenant_id: tenantId },
+      }),
     ]);
 
-    if (!user) throw new NotFoundException(`User #${userId} not found in your tenant`);
-    if (!role) throw new NotFoundException(`Role #${roleId} not available to your tenant`);
-    if (!orgUnit) throw new ForbiddenException(`Branch #${orgUnitId} is not in your tenant`);
+    if (!user)
+      throw new NotFoundException(`User #${userId} not found in your tenant`);
+    if (!role)
+      throw new NotFoundException(
+        `Role #${roleId} not available to your tenant`,
+      );
+    if (!orgUnit)
+      throw new ForbiddenException(
+        `Branch #${orgUnitId} is not in your tenant`,
+      );
+
+    await this.assertTemplateEnabled(tenantId, role);
 
     // A role restricted to certain body types must not be granted at a branch
     // of a different type — that is how a village panchayat ends up with a
@@ -622,6 +698,7 @@ export class RbacAdminService {
       },
     });
 
+    this.cache?.invalidateTenant(tenantId);
     return assignment;
   }
 
@@ -650,6 +727,7 @@ export class RbacAdminService {
       },
     });
 
+    this.cache?.invalidateTenant(tenantId);
     return { success: true };
   }
 
@@ -658,12 +736,19 @@ export class RbacAdminService {
     const [roles, screens, assignments, unassigned, pendingPassword] =
       await Promise.all([
         this.prisma.role.count({
-          where: { tenant_id: { in: [tenantId, '__system__'] }, is_active: true },
+          where: {
+            tenant_id: { in: [tenantId, '__system__'] },
+            is_active: true,
+          },
         }),
         this.prisma.appScreen.count({ where: { is_active: true } }),
         this.prisma.userRole.count(),
         this.prisma.user.count({
-          where: { tenant_id: tenantId, is_active: true, user_roles: { none: {} } },
+          where: {
+            tenant_id: tenantId,
+            is_active: true,
+            user_roles: { none: {} },
+          },
         }),
         this.prisma.user.count({
           where: { tenant_id: tenantId, must_change_password: true },

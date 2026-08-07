@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../core/audit/audit.service';
 import { PermissionCacheService } from '../core/rbac/permission-cache.service';
 import { FeatureGateService } from '../core/rbac/feature-gate.service';
+import { RbacService } from '../core/rbac/rbac.service';
 
 export interface CreateRoleDto {
   name: string;
@@ -48,6 +49,7 @@ export class TenantRoleController {
     private readonly audit: AuditService,
     private readonly cache: PermissionCacheService,
     private readonly gate: FeatureGateService,
+    private readonly rbac: RbacService,
   ) {}
 
   private extractTenantId(req: any): string {
@@ -66,6 +68,52 @@ export class TenantRoleController {
       moduleKey: 'core',
       permissionCode,
     });
+  }
+
+  /** A tenant administrator may delegate only permissions they currently hold. */
+  private async validateGrants(
+    req: any,
+    permissionIds: number[] | undefined,
+    screenIds: number[] | undefined,
+  ): Promise<void> {
+    const [permissions, screens, entitlements] = await Promise.all([
+      permissionIds?.length
+        ? this.prisma.permission.findMany({
+            where: { id: { in: permissionIds } },
+            select: { id: true, code: true },
+          })
+        : ([] as Array<{ id: number; code: string }>),
+      screenIds?.length
+        ? this.prisma.appScreen.findMany({
+            where: { id: { in: screenIds } },
+            select: { id: true, is_platform_only: true },
+          })
+        : ([] as Array<{ id: number; is_platform_only: boolean }>),
+      this.rbac.entitlementsFor(req.user.id),
+    ]);
+
+    if (permissions.length !== (permissionIds?.length ?? 0)) {
+      throw new BadRequestException('One or more permission IDs are invalid');
+    }
+    if (screens.length !== (screenIds?.length ?? 0)) {
+      throw new BadRequestException('One or more screen IDs are invalid');
+    }
+    if (screens.some((screen) => screen.is_platform_only)) {
+      throw new ForbiddenException(
+        'Platform-only screens cannot be granted by a tenant',
+      );
+    }
+    if (!entitlements.isSuperAdmin) {
+      const held = new Set(entitlements.permissions);
+      const unavailable = permissions
+        .map((permission) => permission.code)
+        .filter((code) => !held.has(code));
+      if (unavailable.length) {
+        throw new ForbiddenException(
+          `You cannot delegate permissions you do not hold: ${unavailable.join(', ')}`,
+        );
+      }
+    }
   }
 
   @Get()
@@ -138,6 +186,35 @@ export class TenantRoleController {
 
     if (!dto.name || !dto.display_name) {
       throw new BadRequestException('Role name and display_name are required');
+    }
+    await this.validateGrants(req, dto.permission_ids, dto.screen_ids);
+
+    if (dto.template_id != null) {
+      const template = await this.prisma.role.findFirst({
+        where: {
+          id: dto.template_id,
+          tenant_id: '__system__',
+          org_unit_id: null,
+        },
+      });
+      if (!template)
+        throw new NotFoundException(
+          `Role template #${dto.template_id} not found`,
+        );
+
+      const templateConfig = await this.prisma.tenantRoleTemplate.findUnique({
+        where: {
+          tenant_id_role_template_id: {
+            tenant_id: tenantId,
+            role_template_id: dto.template_id,
+          },
+        },
+      });
+      if (templateConfig?.enabled === false) {
+        throw new ForbiddenException(
+          `Role template #${dto.template_id} is disabled for this tenant`,
+        );
+      }
     }
 
     const slugifiedName = dto.name.toLowerCase().replace(/[^a-z0-9_]+/g, '_');
@@ -229,6 +306,7 @@ export class TenantRoleController {
         'System default roles cannot be modified directly',
       );
     }
+    await this.validateGrants(req, dto.permission_ids, dto.screen_ids);
 
     await this.prisma.$transaction(async (tx) => {
       await tx.role.update({

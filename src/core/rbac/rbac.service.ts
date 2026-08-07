@@ -33,7 +33,12 @@ export interface Entitlements {
    * a token should not grow every time a module ships.
    */
   nav: NavScreen[];
-  roles: { id: number; name: string; display_name: string; is_super_admin: boolean }[];
+  roles: {
+    id: number;
+    name: string;
+    display_name: string;
+    is_super_admin: boolean;
+  }[];
   isSuperAdmin: boolean;
 }
 
@@ -120,10 +125,13 @@ export class RbacService {
    */
   async entitlementsFor(userId: number): Promise<Entitlements> {
     type Assignment = {
+      tenant_id: string;
       org_unit_id: number | null;
       is_primary: boolean;
       role: {
         id: number;
+        tenant_id: string;
+        template_id: number | null;
         name: string;
         display_name: string;
         is_super_admin: boolean;
@@ -138,11 +146,14 @@ export class RbacService {
           OR: [{ valid_until: null }, { valid_until: { gte: new Date() } }],
         },
         select: {
+          tenant_id: true,
           org_unit_id: true,
           is_primary: true,
           role: {
             select: {
               id: true,
+              tenant_id: true,
+              template_id: true,
               name: true,
               display_name: true,
               is_super_admin: true,
@@ -153,9 +164,59 @@ export class RbacService {
       })
       .catch(() => []);
 
-    const roles = assignments
+    const enabledAssignments = assignments.filter(
+      (assignment) => assignment.role != null && assignment.role.is_active,
+    );
+
+    const templateLinks = enabledAssignments
+      .map((assignment) => ({
+        tenantId: assignment.tenant_id,
+        templateId:
+          assignment.role!.template_id ??
+          (assignment.role!.tenant_id === '__system__'
+            ? assignment.role!.id
+            : null),
+      }))
+      .filter(
+        (link): link is { tenantId: string; templateId: number } =>
+          link.templateId != null,
+      );
+
+    const disabledTemplates = templateLinks.length
+      ? await this.prisma.tenantRoleTemplate.findMany({
+          where: {
+            tenant_id: {
+              in: [...new Set(templateLinks.map((link) => link.tenantId))],
+            },
+            role_template_id: {
+              in: [...new Set(templateLinks.map((link) => link.templateId))],
+            },
+            enabled: false,
+          },
+          select: { tenant_id: true, role_template_id: true },
+        })
+      : [];
+    const disabledKeys = new Set(
+      disabledTemplates.map(
+        (row) => `${row.tenant_id}:${row.role_template_id}`,
+      ),
+    );
+
+    const activeAssignments = enabledAssignments.filter((assignment) => {
+      const templateId =
+        assignment.role!.template_id ??
+        (assignment.role!.tenant_id === '__system__'
+          ? assignment.role!.id
+          : null);
+      return (
+        templateId == null ||
+        !disabledKeys.has(`${assignment.tenant_id}:${templateId}`)
+      );
+    });
+
+    const roles = activeAssignments
       .map((a) => a.role)
-      .filter((r): r is NonNullable<typeof r> => r != null && r.is_active)
+      .filter((r): r is NonNullable<typeof r> => r != null)
       .map((r) => ({
         id: r.id,
         name: r.name,
@@ -165,11 +226,23 @@ export class RbacService {
 
     const isSuperAdmin = roles.some((r) => r.is_super_admin);
     if (isSuperAdmin) {
-      return { permissions: [], screens: [], nav: [], roles, isSuperAdmin: true };
+      return {
+        permissions: [],
+        screens: [],
+        nav: [],
+        roles,
+        isSuperAdmin: true,
+      };
     }
 
     if (roles.length === 0) {
-      return { permissions: [], screens: [], nav: [], roles: [], isSuperAdmin: false };
+      return {
+        permissions: [],
+        screens: [],
+        nav: [],
+        roles: [],
+        isSuperAdmin: false,
+      };
     }
 
     const roleIds = await this.expandInheritance(roles.map((r) => r.id));
@@ -178,8 +251,8 @@ export class RbacService {
     // provisioned. Their primary assignment is their working context; without
     // one, any assignment will do.
     const orgUnitId =
-      assignments.find((a) => a.is_primary)?.org_unit_id ??
-      assignments[0]?.org_unit_id ??
+      activeAssignments.find((a) => a.is_primary)?.org_unit_id ??
+      activeAssignments[0]?.org_unit_id ??
       null;
 
     const [grants, access, enabledModules, knownFeatures] = await Promise.all([

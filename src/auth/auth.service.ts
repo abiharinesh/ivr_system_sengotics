@@ -41,13 +41,17 @@ export class AuthService {
     if (!valid) throw new UnauthorizedException('Invalid credentials');
 
     // Update last login tracking
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        last_login_at: new Date(),
-        failed_attempts: 0,
-      },
-    }).catch(() => { /* non-critical */ });
+    await this.prisma.user
+      .update({
+        where: { id: user.id },
+        data: {
+          last_login_at: new Date(),
+          failed_attempts: 0,
+        },
+      })
+      .catch(() => {
+        /* non-critical */
+      });
 
     // Fetch org unit branding safely with fallback for un-migrated production DBs
     let org_unit: any = null;
@@ -180,7 +184,10 @@ export class AuthService {
     if (!formattedPhone.startsWith('+')) {
       if (formattedPhone.length === 10) {
         formattedPhone = '+91' + formattedPhone;
-      } else if (formattedPhone.length === 12 && formattedPhone.startsWith('91')) {
+      } else if (
+        formattedPhone.length === 12 &&
+        formattedPhone.startsWith('91')
+      ) {
         formattedPhone = '+' + formattedPhone;
       }
     }
@@ -189,7 +196,9 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + 5 * 60000); // 5 minutes validity
 
     this.otps.set(formattedPhone, { code: otpCode, expiresAt });
-    this.logger.log(`[OTP] Generated OTP ${otpCode} for phone ${formattedPhone}`);
+    this.logger.log(
+      `[OTP] Generated OTP ${otpCode} for phone ${formattedPhone}`,
+    );
 
     try {
       await this.whatsAppService.sendText(
@@ -197,7 +206,9 @@ export class AuthService {
         `Your Ooraatchi verification code is: ${otpCode}. It is valid for 5 minutes.`,
       );
     } catch (err: any) {
-      this.logger.warn(`Failed to send OTP via WhatsApp to ${formattedPhone}: ${err?.message ?? err}`);
+      this.logger.warn(
+        `Failed to send OTP via WhatsApp to ${formattedPhone}: ${err?.message ?? err}`,
+      );
     }
 
     return {
@@ -212,7 +223,10 @@ export class AuthService {
     if (!formattedPhone.startsWith('+')) {
       if (formattedPhone.length === 10) {
         formattedPhone = '+91' + formattedPhone;
-      } else if (formattedPhone.length === 12 && formattedPhone.startsWith('91')) {
+      } else if (
+        formattedPhone.length === 12 &&
+        formattedPhone.startsWith('91')
+      ) {
         formattedPhone = '+' + formattedPhone;
       }
     }
@@ -220,7 +234,9 @@ export class AuthService {
     const isDevOtp = otp === '123456';
     const record = this.otps.get(formattedPhone);
 
-    const isValid = isDevOtp || (record && record.code === otp && record.expiresAt > new Date());
+    const isValid =
+      isDevOtp ||
+      (record && record.code === otp && record.expiresAt > new Date());
     if (!isValid) {
       throw new UnauthorizedException('Invalid or expired OTP');
     }
@@ -254,7 +270,9 @@ export class AuthService {
           user_type: 'citizen',
         },
       });
-      this.logger.log(`[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`);
+      this.logger.log(
+        `[OTP] Automatically registered citizen for phone ${formattedPhone} with email ${email}`,
+      );
     }
 
     let org_unit: any = null;
@@ -324,7 +342,9 @@ export class AuthService {
       where: { id: userRoleId, user_id: userId },
     });
     if (!targetRole) {
-      throw new ForbiddenException('That role assignment does not belong to you');
+      throw new ForbiddenException(
+        'That role assignment does not belong to you',
+      );
     }
 
     await this.prisma.userRole.updateMany({
@@ -371,7 +391,8 @@ export class AuthService {
           select: { tenant_id: true },
         })
         .catch(() => null);
-      if (org?.tenant_id && org.tenant_id !== SENTINEL_TENANT) return org.tenant_id;
+      if (org?.tenant_id && org.tenant_id !== SENTINEL_TENANT)
+        return org.tenant_id;
     }
     return DEFAULT_TENANT;
   }
@@ -412,9 +433,6 @@ export class AuthService {
       // Employee table may not exist pre-migration
     }
 
-    // Get RBAC roles and permissions
-    const { rbacRoles, permissions, screens } = await this.resolveUserRbac(user.id);
-
     // Access scope comes from the user's primary UserRole assignment
     let accessScope = 'own_org_unit';
     try {
@@ -427,26 +445,27 @@ export class AuthService {
       // UserRole table may not exist pre-migration
     }
 
-    const isSuperAdmin = user.role === 'super_admin' || rbacRoles.some((r) => r.is_super_admin);
-
-    return {
+    const tokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role, // Legacy field — kept for backward compatibility
-      is_super_admin: isSuperAdmin,
       org_unit_id: user.primary_org_unit_id,
       tenant_id: user.tenant_id,
       user_type: user.user_type,
       employee_id: employee?.id || null,
       access_scope: accessScope,
       // RBAC fields
-      rbac_roles: rbacRoles,
-      permissions: permissions,
       // Screen keys the sidebar may render. Carried on the token so navigation
       // needs no extra round trip; a change in the admin console takes effect
       // on the user's next login or context switch.
-      screens: screens,
     };
+    return this.identityPayload(tokenPayload);
+  }
+
+  /** Remove all authorization claims before a JWT is signed. */
+  private identityPayload<T extends { role?: unknown }>(payload: T) {
+    const { role: _legacyRole, ...identity } = payload;
+    return identity;
   }
 
   /**
@@ -463,7 +482,12 @@ export class AuthService {
    * yet must not make login fail.
    */
   private async resolveUserRbac(userId: number): Promise<{
-    rbacRoles: Array<{ id: number; name: string; org_unit_id: number | null; is_super_admin: boolean }>;
+    rbacRoles: Array<{
+      id: number;
+      name: string;
+      org_unit_id: number | null;
+      is_super_admin: boolean;
+    }>;
     permissions: string[];
     screens: string[];
   }> {

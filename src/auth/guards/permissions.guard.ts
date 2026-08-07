@@ -1,6 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
+import { RbacService } from '../../core/rbac/rbac.service';
 
 /**
  * PermissionsGuard — a pure, synchronous check against the permission codes
@@ -14,9 +15,12 @@ import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
  */
 @Injectable()
 export class PermissionsGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly rbac: RbacService,
+  ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const requiredPermissions = this.reflector.getAllAndOverride<string[]>(
       PERMISSIONS_KEY,
       [context.getHandler(), context.getClass()],
@@ -26,9 +30,10 @@ export class PermissionsGuard implements CanActivate {
     const { user } = context.switchToHttp().getRequest();
     if (!user) return false;
 
-    if (user.is_super_admin) return true;
-
-    const userPermissions: string[] = user.permissions || [];
-    return requiredPermissions.every((perm) => userPermissions.includes(perm));
+    const entitlements = await this.rbac.entitlementsFor(user.id);
+    if (entitlements.isSuperAdmin) return true;
+    return requiredPermissions.every((permission) =>
+      entitlements.permissions.includes(permission),
+    );
   }
 }

@@ -46,8 +46,24 @@ export class FeatureGateService {
     if (!user) return GateResult.DENY;
 
     // Super Admin Bypass
-    const isSuperAdmin = user.role === 'super_admin' || user.user_roles.some((ur) => ur.role?.is_super_admin);
+    const isSuperAdmin = user.user_roles.some(
+      (ur) =>
+        ur.tenant_id === ctx.tenantId &&
+        ur.role?.is_active &&
+        ur.role.is_super_admin &&
+        (!ur.valid_until || ur.valid_until >= new Date()),
+    );
     if (isSuperAdmin) return GateResult.ALLOW;
+
+    // The context must be owned by the caller. This stops an internal caller
+    // from accidentally authorizing a valid user against another tenant's
+    // feature and role configuration.
+    if (user.tenant_id !== ctx.tenantId) {
+      this.logger.warn(
+        `Denied tenant mismatch: user #${ctx.userId} belongs to ${user.tenant_id}, requested ${ctx.tenantId}`,
+      );
+      return GateResult.DENY;
+    }
 
     // Level 1: Platform Module Check
     if (ctx.moduleKey) {
@@ -55,37 +71,75 @@ export class FeatureGateService {
         where: { tenant_id: ctx.tenantId },
       });
       if (tenantConfig && (tenantConfig as any)[ctx.moduleKey] === false) {
-        this.logger.warn(`Denied Level 1 (Platform Module): ${ctx.moduleKey} for tenant ${ctx.tenantId}`);
-        return GateResult.DENY;
-      }
-    }
-
-    // Level 2: Platform Role Template Check
-    if (ctx.roleTemplateId) {
-      const roleTemplateConfig = await this.prisma.tenantRoleTemplate.findUnique({
-        where: {
-          tenant_id_role_template_id: {
-            tenant_id: ctx.tenantId,
-            role_template_id: ctx.roleTemplateId,
-          },
-        },
-      });
-      if (roleTemplateConfig && roleTemplateConfig.enabled === false) {
-        this.logger.warn(`Denied Level 2 (Platform Role Template): #${ctx.roleTemplateId} for tenant ${ctx.tenantId}`);
+        this.logger.warn(
+          `Denied Level 1 (Platform Module): ${ctx.moduleKey} for tenant ${ctx.tenantId}`,
+        );
         return GateResult.DENY;
       }
     }
 
     // Level 4: User Assigned Role Check
     const activeRoles = user.user_roles.filter(
-      (ur) => ur.tenant_id === ctx.tenantId && (!ur.valid_until || ur.valid_until >= new Date()),
+      (ur) =>
+        ur.tenant_id === ctx.tenantId &&
+        ur.role?.is_active !== false &&
+        (!ur.valid_until || ur.valid_until >= new Date()),
     );
     if (activeRoles.length === 0) {
-      this.logger.warn(`Denied Level 4 (User Role Assignment): No active role for user #${ctx.userId} in tenant ${ctx.tenantId}`);
+      this.logger.warn(
+        `Denied Level 4 (User Role Assignment): No active role for user #${ctx.userId} in tenant ${ctx.tenantId}`,
+      );
       return GateResult.DENY;
     }
 
-    const roleIds = activeRoles.map((ur) => ur.role_id);
+    // A template switch applies to every tenant copy descended from that
+    // template. Do not rely on callers to supply an optional template ID.
+    const templateIds = new Set<number>();
+    if (ctx.roleTemplateId) templateIds.add(ctx.roleTemplateId);
+    for (const assignment of activeRoles) {
+      const role = assignment.role;
+      if (role?.template_id != null) templateIds.add(role.template_id);
+      if (role?.tenant_id === '__system__') templateIds.add(role.id);
+    }
+    let disabledTemplateIds = new Set<number>();
+    if (templateIds.size > 0) {
+      const disabled = await this.prisma.tenantRoleTemplate.findMany({
+        where: {
+          tenant_id: ctx.tenantId,
+          role_template_id: { in: [...templateIds] },
+          enabled: false,
+        },
+        select: { role_template_id: true },
+      });
+      disabledTemplateIds = new Set(
+        disabled.map((row) => row.role_template_id),
+      );
+      if (ctx.roleTemplateId && disabledTemplateIds.has(ctx.roleTemplateId)) {
+        this.logger.warn(
+          `Denied Level 2 (Platform Role Template): #${ctx.roleTemplateId} for tenant ${ctx.tenantId}`,
+        );
+        return GateResult.DENY;
+      }
+    }
+
+    // A user may hold more than one role. A disabled template removes only the
+    // roles derived from that template; any separately valid assignment can
+    // still grant the requested permission.
+    const effectiveRoles = activeRoles.filter((assignment) => {
+      const role = assignment.role;
+      const templateId =
+        role?.template_id ??
+        (role?.tenant_id === '__system__' ? role.id : null);
+      return templateId == null || !disabledTemplateIds.has(templateId);
+    });
+    if (effectiveRoles.length === 0) {
+      this.logger.warn(
+        `Denied Level 2 (Platform Role Template): all active roles are disabled for user #${ctx.userId}`,
+      );
+      return GateResult.DENY;
+    }
+
+    const roleIds = effectiveRoles.map((ur) => ur.role_id);
 
     // Level 3: Tenant Role Permission Check
     if (ctx.permissionCode) {
@@ -96,7 +150,9 @@ export class FeatureGateService {
         },
       });
       if (permissionGrants.length === 0) {
-        this.logger.warn(`Denied Level 3 (Tenant Role Permission): ${ctx.permissionCode} for user #${ctx.userId}`);
+        this.logger.warn(
+          `Denied Level 3 (Tenant Role Permission): ${ctx.permissionCode} for user #${ctx.userId}`,
+        );
         return GateResult.DENY;
       }
     }
@@ -107,7 +163,9 @@ export class FeatureGateService {
         where: { org_unit_id: ctx.orgUnitId },
       });
       if (branchConfig && (branchConfig as any)[ctx.moduleKey] === false) {
-        this.logger.warn(`Denied Level 5 (Branch Feature): ${ctx.moduleKey} for orgUnit #${ctx.orgUnitId}`);
+        this.logger.warn(
+          `Denied Level 5 (Branch Feature): ${ctx.moduleKey} for orgUnit #${ctx.orgUnitId}`,
+        );
         return GateResult.DENY;
       }
     }
@@ -119,7 +177,9 @@ export class FeatureGateService {
   async checkOrThrow(ctx: EvaluationContext): Promise<void> {
     const result = await this.evaluate(ctx);
     if (result === GateResult.DENY) {
-      throw new ForbiddenException('Access denied by system authorization engine');
+      throw new ForbiddenException(
+        'Access denied by system authorization engine',
+      );
     }
   }
 }

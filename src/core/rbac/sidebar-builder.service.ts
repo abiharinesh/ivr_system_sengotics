@@ -86,9 +86,9 @@ export class SidebarBuilderService {
       };
     }
 
-    const isSuperAdmin =
-      user.user_roles.some((ur) => ur.role?.is_super_admin) ||
-      user.role === 'super_admin';
+    const isSuperAdmin = user.user_roles.some(
+      (ur) => ur.role?.is_super_admin && ur.role?.is_active,
+    );
 
     if (isSuperAdmin) {
       const platformNav = await this.rbacService.platformNav();

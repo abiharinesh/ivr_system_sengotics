@@ -118,16 +118,23 @@ import 'package:ivr_frontend/features/hubs/presentation/system_settings_hub.dart
 import 'package:ivr_frontend/features/hubs/presentation/water_supply_hub.dart';
 
 import 'package:ivr_frontend/core/widgets/app_scaffold.dart';
+import 'package:ivr_frontend/core/models/user_model.dart';
+import 'package:ivr_frontend/core/navigation/role_navigation_config.dart';
 import 'package:ivr_frontend/features/auth/bloc/auth_event.dart';
 
-String _homeForRole(Authenticated auth) {
-  final u = auth.user;
-  if (u.isSuperAdmin || u.isPanchayatAdmin) return '/dashboard';
-  if (u.isAgent) return '/agent';
-  if (u.isElectrician) return '/electrician';
-  if (u.isPlumber) return '/plumber';
-  if (u.isCitizen) return '/citizen';
-  return '/dashboard';
+String _homeForUser(UserModel user) =>
+    RoleNavigationConfig.homeRouteFrom(user.nav);
+
+/// Client-side routing follows the same server-resolved menu as the sidebar.
+/// API guards remain authoritative; this only prevents an accidental deep link
+/// from presenting a page the current session cannot navigate to.
+bool _canReachRoute(UserModel user, String location) {
+  const personalRoutes = {'/profile', '/profile/employee', '/change-password'};
+  if (personalRoutes.contains(location)) return true;
+  if (user.nav.isEmpty) return true;
+  return RoleNavigationConfig.routesFrom(user.nav).any(
+    (route) => location == route || location.startsWith('$route/'),
+  );
 }
 
 GoRouter createRouter(AuthBloc authBloc) {
@@ -163,25 +170,8 @@ GoRouter createRouter(AuthBloc authBloc) {
         return null;
       }
 
-      if (isLoginRoute) return _homeForRole(authed);
-
-      if (u.isAgent || u.isElectrician || u.isPlumber) {
-        if (u.isAgent && !loc.startsWith('/agent')) return '/agent';
-        if (u.isElectrician && !loc.startsWith('/electrician')) return '/electrician';
-        if (u.isPlumber && !loc.startsWith('/plumber')) return '/plumber';
-      }
-
-      if (u.isCitizen) {
-        if (!loc.startsWith('/citizen')) return '/citizen';
-      }
-
-      if ((u.isSuperAdmin || u.isPanchayatAdmin) &&
-          (loc.startsWith('/agent') ||
-              loc.startsWith('/electrician') ||
-              loc.startsWith('/plumber') ||
-              loc.startsWith('/citizen'))) {
-        return '/dashboard';
-      }
+      if (isLoginRoute) return _homeForUser(u);
+      if (!_canReachRoute(u, loc)) return _homeForUser(u);
       return null;
     },
     routes: [
@@ -268,8 +258,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             title: _getTitle(state.matchedLocation),
             body: child,
             currentRoute: state.matchedLocation,
-            userRole: authState.user.role,
-            userEmail: authState.user.email,
+            user: authState.user,
             onLogout: () => authBloc.add(LogoutRequested()),
           );
         },
@@ -366,7 +355,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             path: '/zone-management',
             builder: (context, state) {
               final authState = authBloc.state;
-              final isSuperAdmin = authState is Authenticated && authState.user.isSuperAdmin;
+              final isSuperAdmin = authState is Authenticated && authState.user.isPlatformAdmin;
               return BlocProvider(
                 create: (_) => ZoneBloc(isSuperAdmin: isSuperAdmin)..add(LoadZones()),
                 child: const ZoneManagementScreen(),
@@ -427,7 +416,7 @@ GoRouter createRouter(AuthBloc authBloc) {
               final query = state.uri.queryParameters['q'] ?? '';
               final openCreate = state.uri.queryParameters['action'] == 'new';
               final authState = authBloc.state;
-              if (authState is Authenticated && authState.user.isSuperAdmin) {
+              if (authState is Authenticated && authState.user.isPlatformAdmin) {
                 return BlocProvider(
                   create: (_) => SAComplaintBloc()..add(LoadSAComplaints()),
                   child: ComplaintManagement(
@@ -494,7 +483,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final authState = authBloc.state;
               final isSuperAdmin =
-                  authState is Authenticated && authState.user.isSuperAdmin;
+                  authState is Authenticated && authState.user.isPlatformAdmin;
               return DocumentTemplatesSettingsScreen(isSuperAdmin: isSuperAdmin);
             },
           ),
@@ -523,7 +512,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final authState = authBloc.state;
               final isSuperAdmin =
-                  authState is Authenticated && authState.user.isSuperAdmin;
+                  authState is Authenticated && authState.user.isPlatformAdmin;
               if (isSuperAdmin) {
                 return const SuperAdminPoleManagement();
               }
@@ -538,7 +527,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final authState = authBloc.state;
               final isSuperAdmin =
-                  authState is Authenticated && authState.user.isSuperAdmin;
+                  authState is Authenticated && authState.user.isPlatformAdmin;
               if (isSuperAdmin) {
                 return const SuperAdminPoleManagement();
               }
@@ -689,7 +678,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final authState = authBloc.state;
               final isSuperAdmin =
-                  authState is Authenticated && authState.user.isSuperAdmin;
+                  authState is Authenticated && authState.user.isPlatformAdmin;
               return FieldWorkforceHub(isSuperAdmin: isSuperAdmin);
             },
           ),
@@ -710,7 +699,7 @@ GoRouter createRouter(AuthBloc authBloc) {
             builder: (context, state) {
               final authState = authBloc.state;
               final isSuperAdmin =
-                  authState is Authenticated && authState.user.isSuperAdmin;
+                  authState is Authenticated && authState.user.isPlatformAdmin;
               return SystemSettingsHub(isSuperAdmin: isSuperAdmin);
             },
           ),

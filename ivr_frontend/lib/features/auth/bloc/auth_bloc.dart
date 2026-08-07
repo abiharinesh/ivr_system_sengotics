@@ -38,16 +38,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   /// because one request timed out would be worse than a slightly stale one.
   Future<UserModel> _withEntitlements(UserModel user) async {
     try {
-      final data = await ApiClient.instance.get(ApiConfig.myEntitlements);
+      final data = await ApiClient.instance.get(ApiConfig.sidebar);
       if (data is! Map<String, dynamic>) return user;
 
-      final nav = (data['nav'] as List<dynamic>?)
+      final nav = (data['menus'] as List<dynamic>?)
           ?.map((e) => NavScreen.fromJson(Map<String, dynamic>.from(e as Map)))
           .toList();
-      final screens = (data['screens'] as List<dynamic>?)?.cast<String>();
-      if (nav == null && screens == null) return user;
+      final permissions = (data['permissions'] as List<dynamic>?)?.cast<String>();
+      final sidebarUser = data['user'] as Map<String, dynamic>?;
+      final screens = nav?.map((screen) => screen.key).toList();
+      if (nav == null || permissions == null) return user;
 
-      return user.copyWith(nav: nav, screens: screens);
+      return user.copyWith(
+        nav: nav,
+        screens: screens,
+        permissions: permissions,
+        isPlatformAdmin: sidebarUser?['is_super_admin'] == true,
+      );
     } catch (_) {
       return user;
     }

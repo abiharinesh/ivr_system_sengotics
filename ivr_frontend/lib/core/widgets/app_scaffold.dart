@@ -19,8 +19,7 @@ class AppScaffold extends StatefulWidget {
   final String title;
   final Widget body;
   final String currentRoute;
-  final String userRole;
-  final String userEmail;
+  final UserModel user;
   final VoidCallback onLogout;
   final Widget? floatingActionButton;
 
@@ -29,8 +28,7 @@ class AppScaffold extends StatefulWidget {
     required this.title,
     required this.body,
     required this.currentRoute,
-    required this.userRole,
-    required this.userEmail,
+    required this.user,
     required this.onLogout,
     this.floatingActionButton,
   });
@@ -252,8 +250,8 @@ class _AppScaffoldState extends State<AppScaffold> {
                     radius: 18,
                     backgroundColor: AppTheme.primary,
                     child: Text(
-                      widget.userEmail.isNotEmpty
-                          ? widget.userEmail[0].toUpperCase()
+                      widget.user.email.isNotEmpty
+                          ? widget.user.email[0].toUpperCase()
                           : '?',
                       style: const TextStyle(
                         color: Colors.white,
@@ -267,7 +265,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.userEmail,
+                          widget.user.email,
                           style: TextStyle(
                             fontSize: 12,
                             color: AppTheme.textPrimary,
@@ -276,7 +274,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          _formatRoleName(widget.userRole),
+                          widget.user.displayRoleName,
                           style: TextStyle(
                             fontSize: 11,
                             color: AppTheme.textMuted,
@@ -355,7 +353,9 @@ class _AppScaffoldState extends State<AppScaffold> {
           SizedBox(
             height: 42,
             child: ElevatedButton.icon(
-              onPressed: () => _handleNewComplaint(context),
+              onPressed: widget.user.hasPermission('complaints.write')
+                  ? () => _handleNewComplaint(context)
+                  : null,
               icon: const Icon(Icons.add, size: 16),
               label: const Text('New Complaint'),
               style: ElevatedButton.styleFrom(
@@ -440,7 +440,7 @@ class _AppScaffoldState extends State<AppScaffold> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  user?.orgUnitName ?? widget.userEmail,
+                  user?.orgUnitName ?? widget.user.email,
                   style: const TextStyle(color: Colors.white70, fontSize: 13),
                 ),
               ],
@@ -536,43 +536,35 @@ class _AppScaffoldState extends State<AppScaffold> {
 
   void _handleTopSearch(BuildContext context) {
     final term = _topSearchController.text.trim();
-    if (widget.userRole == 'agent') {
-      final route =
-          term.isEmpty ? '/agent/poles' : '/agent/poles?q=${Uri.encodeComponent(term)}';
-      context.go(route);
-      return;
-    }
-    if (widget.userRole == 'electrician') {
-      final route = term.isEmpty
-          ? '/electrician/jobs'
-          : '/electrician/jobs?q=${Uri.encodeComponent(term)}';
-      context.go(route);
-      return;
-    }
-    // Admins use Universal Search (Phase 9)
-    if (widget.userRole == 'super_admin' || widget.userRole == 'panchayat_admin') {
-      final route =
-          term.isEmpty ? '/search' : '/search?q=${Uri.encodeComponent(term)}';
-      context.go(route);
-      return;
-    }
-    final route =
-        term.isEmpty ? '/complaints' : '/complaints?q=${Uri.encodeComponent(term)}';
-    context.go(route);
+    const searchableRoutes = [
+      '/search',
+      '/complaints',
+      '/agent/poles',
+      '/electrician/jobs',
+      '/plumber/jobs',
+    ];
+    final available = _allNavRoutes().whereType<String>().toSet();
+    final route = searchableRoutes.firstWhere(
+      (candidate) => available.any(
+        (allowed) => candidate == allowed || candidate.startsWith('$allowed/'),
+      ),
+      orElse: () => RoleNavigationConfig.homeRouteFrom(widget.user.nav),
+    );
+    context.go(term.isEmpty ? route : '$route?q=${Uri.encodeComponent(term)}');
   }
 
   void _handleNewComplaint(BuildContext context) {
-    if (widget.userRole == 'super_admin' || widget.userRole == 'panchayat_admin') {
+    if (widget.user.hasPermission('complaints.write')) {
       _openNewComplaintFlow(context);
       return;
     }
-    if (widget.userRole == 'agent') {
+    if (widget.user.hasPermission('street_lights.write') &&
+        _allNavRoutes().contains('/agent/poles')) {
       context.go('/agent/poles/add');
       return;
     }
-    context.go('/electrician/jobs');
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('New complaint creation is managed by admins.')),
+      const SnackBar(content: Text('Your current permissions do not allow this action.')),
     );
   }
 
@@ -614,7 +606,7 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Future<List<PoleModel>> _loadPolesForRole() async {
-    if (widget.userRole == 'super_admin') {
+    if (widget.user.hasPermission('tenants.read')) {
       final raw = await SuperAdminRepository().listPoles();
       return raw
           .whereType<Map>()
@@ -630,7 +622,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     required String description,
     String? urgencyLevel,
   }) async {
-    if (widget.userRole == 'super_admin') {
+    if (widget.user.hasPermission('tenants.read')) {
       await SuperAdminRepository().createComplaint(
         poleId: poleId,
         complaintType: complaintType,
@@ -774,11 +766,11 @@ class _AppScaffoldState extends State<AppScaffold> {
   }
 
   Future<_TopBarActivityData> _loadActivityData() async {
-    if (widget.userRole == 'super_admin') {
+    if (widget.user.hasPermission('tenants.read')) {
       final insights = await SuperAdminRepository().getDashboardInsights();
       return _TopBarActivityData.fromInsights(insights);
     }
-    if (widget.userRole == 'panchayat_admin') {
+    if (widget.user.hasPermission('dashboard.read')) {
       final insights = await PanchayatAdminRepository().getDashboardInsights();
       return _TopBarActivityData.fromInsights(insights);
     }
