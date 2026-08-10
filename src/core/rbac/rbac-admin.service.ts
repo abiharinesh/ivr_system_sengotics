@@ -36,10 +36,19 @@ export class RbacAdminService {
 
   // ── Reads ─────────────────────────────────────────────────────────────────
 
-  /** The screen catalogue, grouped, for the console's checklist. */
-  async listScreens() {
+  /**
+   * The screen catalogue, grouped, for the console's checklist.
+   *
+   * When `isPlatformAdmin` is false, platform-only screens are excluded so a
+   * branch administrator never sees — and therefore cannot grant — screens
+   * that manage the platform itself.
+   */
+  async listScreens(isPlatformAdmin = true) {
     const screens = await this.prisma.appScreen.findMany({
-      where: { is_active: true },
+      where: {
+        is_active: true,
+        ...(isPlatformAdmin ? {} : { is_platform_only: false }),
+      },
       orderBy: [{ group_key: 'asc' }, { sort_order: 'asc' }],
     });
 
@@ -80,12 +89,21 @@ export class RbacAdminService {
    * Roles available to a tenant: its own, plus the `__system__` templates.
    * Optionally narrowed to those that make sense for a body type — a village
    * panchayat has no Municipal Commissioner.
+   *
+   * When `isPlatformAdmin` is false, roles carrying `is_super_admin` are
+   * excluded so a branch administrator cannot see or manage the platform
+   * operator's own role.
    */
-  async listRoles(tenantId: string, branchType?: BranchType) {
+  async listRoles(
+    tenantId: string,
+    branchType?: BranchType,
+    isPlatformAdmin = true,
+  ) {
     const roles = await this.prisma.role.findMany({
       where: {
         tenant_id: { in: [tenantId, '__system__'] },
         is_active: true,
+        ...(isPlatformAdmin ? {} : { is_super_admin: false }),
       },
       include: {
         _count: {

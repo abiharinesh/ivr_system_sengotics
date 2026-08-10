@@ -4,8 +4,9 @@
  * This is the only seed invoked by Prisma and Vercel. It intentionally does
  * not execute every historical `seed-*.js` file: some are alternate regional
  * datasets and `seed.js` truncates every table. The two steps below are the
- * production baseline. Demo data is intentionally opt-in: rebuilding it on
- * every Vercel deployment makes routine source changes take minutes.
+ * production baseline. The full dataset is created only for a fresh database;
+ * rebuilding it on every Vercel deployment makes routine source changes take
+ * minutes.
  */
 require('dotenv').config();
 const { spawnSync } = require('child_process');
@@ -108,7 +109,11 @@ async function main() {
   }
   await state.close();
   run('prisma/seed-rbac.js');
-  if (process.env.SEED_DEMO_DATA === 'true') run('prisma/seed-demo.js');
+  // A brand-new database needs its foundation org units and domain records.
+  // On every later deployment the version marker above avoids this expensive
+  // path. `SEED_DEMO_DATA=true` is retained for operators who explicitly want
+  // to rebuild the sample corpus after clearing a database.
+  run('prisma/seed-demo.js');
   await verify();
   const completed = await deploymentState();
   await completed.mark();

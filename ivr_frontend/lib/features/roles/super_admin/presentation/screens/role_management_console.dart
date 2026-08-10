@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_bloc.dart';
+import 'package:ivr_frontend/features/auth/bloc/auth_state.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/panchayat_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/bloc/user_bloc.dart';
 import 'package:ivr_frontend/features/roles/super_admin/data/models/rbac_analytics.dart';
@@ -53,18 +55,40 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
   bool _loading = true;
   String? _error;
 
-  /// Tab indices, named so the cross-links between views don't drift.
-  static const int _tabOverview = 0;
-  static const int _tabMatrix = 1;
-  static const int _tabGeography = 2;
-  static const int _tabAccess = 3;
-  static const int _tabPeople = 5;
+  /// Whether the logged-in user is a platform (super) admin.
+  ///
+  /// Resolved once from the auth bloc and used to gate platform-only tabs.
+  /// A panchayat admin sees only the operational subset: Overview, Access
+  /// matrix, Roles & access, People, Accounts.
+  late final bool _isPlatformAdmin;
+
+  /// Tab indices — resolved in [initState] because the tab set depends on
+  /// [_isPlatformAdmin].
+  late final int _tabOverview;
+  late final int _tabAccess;
+  late final int _tabPeople;
 
   @override
   void initState() {
     super.initState();
+
+    final authState = context.read<AuthBloc>().state;
+    _isPlatformAdmin =
+        authState is Authenticated && authState.user.isPlatformAdmin;
+
+    // Platform admin: all 9 tabs.
+    // Branch admin:   5 tabs (Overview, Access matrix, Roles & access, People, Accounts).
+    final tabCount = _isPlatformAdmin ? 9 : 5;
+
+    _tabOverview = 0;
+    // Access matrix is always tab 1.
+    // Roles & access follows Geography (platform) or Access matrix (branch).
+    _tabAccess = _isPlatformAdmin ? 3 : 2;
+    // People follows Catalogue (platform) or Roles & access (branch).
+    _tabPeople = _isPlatformAdmin ? 5 : 3;
+
     _tabs = TabController(
-      length: 9,
+      length: tabCount,
       vsync: this,
       // A deep link to one person's assignments should land on People, not on
       // the analytics they didn't ask for.
@@ -144,16 +168,20 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
           controller: _tabs,
           isScrollable: true,
           tabAlignment: TabAlignment.start,
-          tabs: const [
-            Tab(icon: Icon(Icons.insights_rounded), text: 'Overview'),
-            Tab(icon: Icon(Icons.grid_on_rounded), text: 'Access matrix'),
-            Tab(icon: Icon(Icons.public_rounded), text: 'Geography'),
-            Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
-            Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Catalogue'),
-            Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
-            Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
-            Tab(icon: Icon(Icons.dashboard_customize_rounded), text: 'Dashboards'),
-            Tab(icon: Icon(Icons.tune_rounded), text: 'Branch modules'),
+          tabs: [
+            const Tab(icon: Icon(Icons.insights_rounded), text: 'Overview'),
+            const Tab(icon: Icon(Icons.grid_on_rounded), text: 'Access matrix'),
+            if (_isPlatformAdmin)
+              const Tab(icon: Icon(Icons.public_rounded), text: 'Geography'),
+            const Tab(icon: Icon(Icons.admin_panel_settings_rounded), text: 'Roles & access'),
+            if (_isPlatformAdmin)
+              const Tab(icon: Icon(Icons.inventory_2_rounded), text: 'Catalogue'),
+            const Tab(icon: Icon(Icons.groups_rounded), text: 'People'),
+            const Tab(icon: Icon(Icons.manage_accounts_rounded), text: 'Accounts'),
+            if (_isPlatformAdmin)
+              const Tab(icon: Icon(Icons.dashboard_customize_rounded), text: 'Dashboards'),
+            if (_isPlatformAdmin)
+              const Tab(icon: Icon(Icons.tune_rounded), text: 'Branch modules'),
           ],
         ),
       ),
@@ -168,26 +196,32 @@ class _RoleManagementConsoleState extends State<RoleManagementConsole>
                   RbacOverviewPane(
                     analytics: _analytics,
                     onOpenRole: _openRole,
-                    onOpenMatrix: () => _tabs.animateTo(_tabMatrix),
-                    onOpenGeography: () => _tabs.animateTo(_tabGeography),
+                    onOpenMatrix: () => _tabs.animateTo(1),
+                    onOpenGeography: _isPlatformAdmin
+                        ? () => _tabs.animateTo(2)
+                        : null,
                   ),
                 ),
                 _analyticsHost(
                   RbacMatrixPane(analytics: _analytics, onOpenRole: _openRole),
                 ),
-                _analyticsHost(RbacGeographyPane(analytics: _analytics)),
+                if (_isPlatformAdmin)
+                  _analyticsHost(RbacGeographyPane(analytics: _analytics)),
                 RoleAccessPane(
                   onChanged: _load,
                   initialRoleId: _pendingRoleId,
                 ),
-                RoleTemplatesPane(onChanged: _load),
+                if (_isPlatformAdmin)
+                  RoleTemplatesPane(onChanged: _load),
                 RoleMembersPane(
                   onChanged: _load,
                   initialUserId: widget.initialUserId,
                 ),
                 _accountsTab(),
-                DashboardLayoutPane(onChanged: _load),
-                const BranchModulesPane(),
+                if (_isPlatformAdmin)
+                  DashboardLayoutPane(onChanged: _load),
+                if (_isPlatformAdmin)
+                  const BranchModulesPane(),
               ],
             ),
           ),

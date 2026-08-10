@@ -49,6 +49,19 @@ export class RbacController {
     private readonly templates: RoleTemplateService,
   ) {}
 
+  /**
+   * Resolve whether the caller is a platform (super) admin.
+   *
+   * A branch administrator may manage the roles under their own tenant, but
+   * must not see platform-only screens, template sync controls, or roles that
+   * carry `is_super_admin`. This helper lets every endpoint that cares ask
+   * the same question in the same way.
+   */
+  private async isPlatformAdmin(userId: number): Promise<boolean> {
+    const ent = await this.rbac.entitlementsFor(userId);
+    return ent.isSuperAdmin;
+  }
+
   // ── Templates ─────────────────────────────────────────────────────────────
 
   /**
@@ -101,8 +114,10 @@ export class RbacController {
 
   /** GET /api/rbac/summary */
   @Get('summary')
-  summary(@Req() req: AuthReq) {
-    return this.admin.summary(req.user.tenant_id);
+  async summary(@Req() req: AuthReq) {
+    const platformAdmin = await this.isPlatformAdmin(req.user.id);
+    const data = await this.admin.summary(req.user.tenant_id);
+    return { ...data, is_platform_admin: platformAdmin };
   }
 
   /**
@@ -114,14 +129,17 @@ export class RbacController {
    * need action, and the 30-day change history.
    */
   @Get('analytics')
-  analyticsOverview(@Req() req: AuthReq) {
-    return this.analytics.overview(req.user.tenant_id);
+  async analyticsOverview(@Req() req: AuthReq) {
+    const platformAdmin = await this.isPlatformAdmin(req.user.id);
+    const data = await this.analytics.overview(req.user.tenant_id);
+    return { ...data, is_platform_admin: platformAdmin };
   }
 
   /** GET /api/rbac/screens — the tickable screen catalogue, grouped. */
   @Get('screens')
-  screens() {
-    return this.admin.listScreens();
+  async screens(@Req() req: AuthReq) {
+    const platformAdmin = await this.isPlatformAdmin(req.user.id);
+    return this.admin.listScreens(platformAdmin);
   }
 
   /** GET /api/rbac/permissions — the permission catalogue, by module. */
@@ -134,7 +152,7 @@ export class RbacController {
 
   /** GET /api/rbac/roles?branch_type=MUNICIPALITY */
   @Get('roles')
-  listRoles(@Req() req: AuthReq, @Query('branch_type') branchType?: string) {
+  async listRoles(@Req() req: AuthReq, @Query('branch_type') branchType?: string) {
     let type: BranchType | undefined;
     if (branchType) {
       if (!Object.values(BranchType).includes(branchType as BranchType)) {
@@ -142,7 +160,8 @@ export class RbacController {
       }
       type = branchType as BranchType;
     }
-    return this.admin.listRoles(req.user.tenant_id, type);
+    const platformAdmin = await this.isPlatformAdmin(req.user.id);
+    return this.admin.listRoles(req.user.tenant_id, type, platformAdmin);
   }
 
   /** GET /api/rbac/roles/:id */
