@@ -9,8 +9,9 @@
  * idempotent.
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+require('dotenv').config();
+const { makeClient } = require('./db');
+const { prisma, close } = makeClient({ max: 2 });
 
 // ── Mettupalayam Ward Data ────────────────────────────────────────────────────
 // Ward names are placeholders — replace with actual ward names when available.
@@ -127,4 +128,4 @@ main()
     console.error('❌ Seed failed:', e);
     process.exit(1);
   })
-  .finally(() => prisma.$disconnect());
+  .finally(() => close());
