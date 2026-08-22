@@ -97,12 +97,22 @@ async function main() {
   const state = await deploymentState();
   if (state.current) {
     await state.close();
+    try {
+      run('prisma/seed-mettupalayam-wards.js');
+    } catch (e) {
+      console.warn('Wards seed note:', e.message);
+    }
     console.log(`Deployment seed v${SEED_VERSION} already verified; skipping.`);
     return;
   }
   if (state.initialized) {
     await state.mark();
     await state.close();
+    try {
+      run('prisma/seed-mettupalayam-wards.js');
+    } catch (e) {
+      console.warn('Wards seed note:', e.message);
+    }
     await verify();
     console.log(`Existing database marked as deployment seed v${SEED_VERSION}; skipping rebuild.`);
     return;
