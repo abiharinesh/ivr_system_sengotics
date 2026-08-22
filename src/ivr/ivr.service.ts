@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IvrCallbackDto } from './dto/ivr-callback.dto';
+import { WardIdentificationResult } from '../voice-processing/ward-identification.service';
 
 // ── Service Map ────────────────────────────────────────────────────────────────
 // Maps the digit the user presses in the main IVR menu to a complaint type.
@@ -165,6 +166,18 @@ export class IvrService {
       return { found: false };
     }
 
+    // ── Check if ward was identified in Step 2 ───────────────────────────
+    let wardId: number | null = null;
+    try {
+      const callState = await this.prisma.ivrCallState.findUnique({
+        where: { call_sid: callSid },
+        select: { ward_id: true },
+      });
+      wardId = callState?.ward_id ?? null;
+    } catch (err) {
+      this.logger.warn(`[EP2] Failed to check ward state: ${(err as Error).message}`);
+    }
+
     // ── Create complaint based on service type ────────────────────────────
     try {
       const complaint = await this.createServiceComplaint(
@@ -172,7 +185,19 @@ export class IvrService {
         cleanDigits,
         panchayat.id,
         data.CallFrom ?? data.From ?? 'unknown',
+        wardId,
       );
+
+      // Update call state with complaint info
+      await this.prisma.ivrCallState.updateMany({
+        where: { call_sid: callSid },
+        data: {
+          complaint_created: true,
+          complaint_id: complaint.id,
+          finalized_at: new Date(),
+        },
+      });
+
       return { found: true, complaintId: complaint.id };
     } catch (err) {
       this.logger.error(
@@ -180,6 +205,95 @@ export class IvrService {
       );
       return { found: false };
     }
+  }
+
+  // ── EP-WARD: Ward Identification ─────────────────────────────────────────
+  async handleWardIdentification(
+    callSid: string,
+    result: WardIdentificationResult,
+    data: IvrCallbackDto,
+  ): Promise<{ success: boolean }> {
+    this.logger.log(
+      `[EP-WARD] Saving ward identification for CallSid=${callSid}: ward=${result.wardNumber}`,
+    );
+
+    try {
+      // Upsert calls_master
+      await this.prisma.ivrCall.upsert({
+        where: { call_sid: callSid },
+        create: {
+          call_sid: callSid,
+          caller_number: data.CallFrom ?? data.From,
+          call_to: data.CallTo ?? data.To,
+          flow_id: data.flow_id,
+          tenant_id: data.tenant_id,
+          call_start_time: data.StartTime ? new Date(data.StartTime) : null,
+        },
+        update: {
+          updated_at: new Date(),
+        },
+      });
+
+      // Update IvrCallState with ward identification result
+      await this.prisma.ivrCallState.upsert({
+        where: { call_sid: callSid },
+        create: {
+          call_sid: callSid,
+          ward_id: result.wardId,
+          ward_status: result.wardId ? 'identified' : 'not_found',
+        },
+        update: {
+          ward_id: result.wardId,
+          ward_status: result.wardId ? 'identified' : 'not_found',
+        },
+      });
+
+      this.logger.log(`[EP-WARD] ✅ Ward state saved.`);
+    } catch (err) {
+      this.logger.error(
+        `[EP-WARD] DB error (non-fatal): ${(err as Error).message}`,
+      );
+    }
+
+    return { success: true };
+  }
+
+  // ── EP-METHOD: Complaint Method Selection ────────────────────────────────
+  async handleComplaintMethod(
+    data: IvrCallbackDto,
+  ): Promise<{ success: boolean }> {
+    const callSid = data.CallSid || `UNKNOWN_${Date.now()}`;
+    this.logger.log(`[EP-METHOD] Complaint method for CallSid: ${callSid}`);
+
+    const cleanDigits = this.cleanDigits(data.digits);
+    // 1 = keypad (pole ID), 2 = voice complaint
+    const method = cleanDigits === '1' ? 'keypad' : cleanDigits === '2' ? 'voice' : null;
+
+    this.logger.log(
+      `[EP-METHOD] User selected digit="${cleanDigits}" → method="${method}"`,
+    );
+
+    try {
+      // Update IvrCallState with complaint method
+      await this.prisma.ivrCallState.upsert({
+        where: { call_sid: callSid },
+        create: {
+          call_sid: callSid,
+          complaint_method: method,
+        },
+        update: {
+          complaint_method: method,
+        },
+      });
+
+      this.logger.log(`[EP-METHOD] ✅ Complaint method saved.`);
+    } catch (err) {
+      this.logger.error(
+        `[EP-METHOD] DB error (non-fatal): ${(err as Error).message}`,
+      );
+    }
+
+    return { success: true };
   }
 
   // ── Private Helpers ─────────────────────────────────────────────────────────
@@ -197,16 +311,23 @@ export class IvrService {
     detail: string,
     orgUnitId: number,
     callerNumber: string,
+    wardId?: number | null,
   ): Promise<{ id: number }> {
     // For street_light, look up the specific pole
     if (serviceType === 'street_light') {
+      // If ward is known, scope the pole search to that ward
+      const whereClause: any = { org_unit_id: orgUnitId, keypad_id: detail };
+      if (wardId) {
+        whereClause.ward_id = wardId;
+      }
+
       const pole = await this.prisma.electricPole.findFirst({
-        where: { org_unit_id: orgUnitId, keypad_id: detail },
+        where: whereClause,
       });
 
       if (!pole) {
         this.logger.warn(
-          `[EP2] No pole found with keypad_id="${detail}" in panchayat ${orgUnitId}`,
+          `[EP2] No pole found with keypad_id="${detail}" in panchayat ${orgUnitId}${wardId ? ` ward ${wardId}` : ''}`,
         );
         throw new Error(`Pole with keypad_id="${detail}" not found`);
       }
@@ -215,6 +336,7 @@ export class IvrService {
         data: {
           pole_id: pole.id,
           org_unit_id: orgUnitId,
+          ward_id: wardId ?? null,
           complaint_type: 'street_light',
           description: `IVR street light complaint for pole ${pole.pole_number} (keypad: ${detail}) from ${callerNumber}`,
           status: 'pending',
@@ -230,6 +352,7 @@ export class IvrService {
     const complaint = await this.prisma.complaint.create({
       data: {
         org_unit_id: orgUnitId,
+        ward_id: wardId ?? null,
         complaint_type: serviceType,
         description: `IVR ${serviceType} complaint from ${callerNumber} (input: ${detail})`,
         status: 'pending',

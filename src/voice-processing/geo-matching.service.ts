@@ -489,4 +489,126 @@ export class GeoMatchingService {
 
     return tanks[0].id;
   }
+
+  // ── Ward-Scoped Methods ──────────────────────────────────────────────────
+
+  /**
+   * Get landmarks only from poles in a specific ward.
+   */
+  async getLandmarksForWard(wardId: number): Promise<string[]> {
+    const poles = await this.prisma.electricPole.findMany({
+      where: { ward_id: wardId },
+      select: { landmarks: true },
+    });
+
+    const allLandmarks: string[] = [];
+    for (const pole of poles) {
+      if (pole.landmarks && pole.landmarks.length > 0) {
+        allLandmarks.push(...pole.landmarks);
+      }
+    }
+
+    return [...new Set(allLandmarks)];
+  }
+
+  /**
+   * Find the nearest pole within a specific ward using landmark hints.
+   * Same logic as findNearestPole but filtered to ward_id.
+   */
+  async findNearestPoleInWard(
+    wardId: number,
+    landmarkHints: string | string[],
+  ): Promise<number | null> {
+    const hints = Array.isArray(landmarkHints)
+      ? landmarkHints
+      : [landmarkHints];
+    const validHints = hints.filter((h) => h && h.trim() !== '');
+
+    this.logger.log(
+      `[Ward] Finding pole for ward ${wardId}, hints (${validHints.length}): [${validHints.join(' | ')}]`,
+    );
+
+    if (validHints.length === 0) {
+      this.logger.warn(`[Ward FAIL] No landmark hints provided`);
+      return null;
+    }
+
+    const poles = await this.prisma.electricPole.findMany({
+      where: { ward_id: wardId },
+    });
+
+    if (poles.length === 0) {
+      this.logger.warn(`[Ward FAIL] No poles found for ward ${wardId}`);
+      return null;
+    }
+
+    const polesWithLandmarks = poles.filter(
+      (p) => p.landmarks && p.landmarks.length > 0,
+    );
+
+    if (polesWithLandmarks.length === 0) {
+      this.logger.warn(
+        `[Ward FAIL] No poles with landmarks found in ward ${wardId}`,
+      );
+      return null;
+    }
+
+    // ── Pass 1: Deterministic string matching ────────────────────────────
+    for (const hint of validHints) {
+      const match = this.deterministicMatch(hint, polesWithLandmarks);
+      if (match) {
+        this.logger.log(
+          `[Ward PASS 1] ✅ String match! pole_id=${match.poleId}, ` +
+            `score=${match.score.toFixed(2)}, hint="${hint}", matched="${match.matchedLandmark}"`,
+        );
+        return match.poleId;
+      }
+    }
+
+    this.logger.log(
+      `[Ward INFO] No string match from ${validHints.length} hints — falling back to AI`,
+    );
+
+    // ── Pass 2: AI semantic matching ─────────────────────────────────────
+    return this.aiMatchWithRetry(validHints, polesWithLandmarks);
+  }
+
+  /**
+   * Ward-scoped strict deterministic match (Phase 1 fast match).
+   */
+  async strictMatchPoleInWard(
+    wardId: number,
+    transcriptEnglish: string,
+  ): Promise<number | null> {
+    this.logger.log(
+      `[Ward Phase1] Trying strict match for ward ${wardId} against transcript`,
+    );
+
+    if (!transcriptEnglish || transcriptEnglish.trim() === '') {
+      return null;
+    }
+
+    const poles = await this.prisma.electricPole.findMany({
+      where: { ward_id: wardId },
+    });
+
+    const polesWithLandmarks = poles.filter(
+      (p) => p.landmarks && p.landmarks.length > 0,
+    );
+    if (polesWithLandmarks.length === 0) return null;
+
+    const match = this.deterministicMatch(
+      transcriptEnglish,
+      polesWithLandmarks,
+    );
+    if (match) {
+      this.logger.log(
+        `[Ward Phase1] ✅ Direct DB match: pole_id=${match.poleId}, ` +
+          `score=${match.score.toFixed(2)}, matched="${match.matchedLandmark}"`,
+      );
+      return match.poleId;
+    }
+
+    return null;
+  }
 }

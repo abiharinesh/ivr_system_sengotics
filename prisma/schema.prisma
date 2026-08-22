@@ -176,6 +176,7 @@ model OrgUnit {
   contractors     Contractor[]
   tenders         Tender[]
   zones           Zone[]
+  wards           Ward[]
 
   // Revenue module relations
   ad_campaigns          AdCampaign[]
@@ -307,6 +308,7 @@ model ElectricPole {
   latitude    Float?
   longitude   Float?
   org_unit_id Int?
+  ward_id     Int?
   landmarks   String[]                              @default([])
 
   /**
@@ -322,6 +324,7 @@ model ElectricPole {
   image_uploaded_by Int?
 
   org_unit       OrgUnit?    @relation(fields: [org_unit_id], references: [id])
+  ward           Ward?       @relation(fields: [ward_id], references: [id])
   complaints     Complaint[]
   image_uploader User?       @relation("PoleImageUploader", fields: [image_uploaded_by], references: [id])
 
@@ -331,6 +334,7 @@ model ElectricPole {
   tender_checklist_items TenderFieldChecklistItem[]
 
   @@unique([org_unit_id, keypad_id])
+  @@index([ward_id])
   @@map("electric_poles")
 }
 
@@ -341,6 +345,7 @@ model Complaint {
   pipeline_id     Int?
   tank_id         Int?
   org_unit_id     Int?
+  ward_id         Int?
   complaint_type  String?
   description     String?
   caller_language String?
@@ -392,6 +397,7 @@ model Complaint {
   pipeline             WaterPipeline?     @relation(fields: [pipeline_id], references: [id])
   tank                 WaterTankBorewell? @relation(fields: [tank_id], references: [id])
   org_unit             OrgUnit?           @relation(fields: [org_unit_id], references: [id])
+  ward                 Ward?              @relation(fields: [ward_id], references: [id])
   assigned_electrician User?              @relation("AssignedElectrician", fields: [assigned_electrician_id], references: [id])
   assigned_plumber     User?              @relation("AssignedPlumber", fields: [assigned_plumber_id], references: [id])
 
@@ -402,6 +408,7 @@ model Complaint {
   /// The index was created in the migration that added the location fields;
   /// declaring it here too is what stops `migrate diff` proposing to drop it.
   @@index([org_unit_id, status])
+  @@index([ward_id])
   @@map("complaints")
 }
 
@@ -410,17 +417,48 @@ model IvrCallState {
   call_sid             String    @unique
   phase1_status        String    @default("pending")
   phase2_status        String    @default("pending")
+  ward_status          String    @default("pending") // pending | identified | not_found
+  ward_id              Int?
+  complaint_method     String?   // "keypad" or "voice"
   complaint_created    Boolean   @default(false)
   complaint_id         Int?
   phase1_voice_call_id Int?
   phase2_voice_call_id Int?
+  ward_voice_call_id   Int?
   finalized_at         DateTime?
   last_error           String?
   created_at           DateTime  @default(now())
   updated_at           DateTime  @updatedAt
 
+  ward Ward? @relation(fields: [ward_id], references: [id])
+
   @@index([call_sid])
   @@map("ivr_call_states")
+}
+
+/**
+ * Ward within a municipality. Used by the IVR to narrow pole searches.
+ * Mettupalayam has 33 wards; each ward has ~50-100 poles.
+ */
+model Ward {
+  id          Int      @id @default(autoincrement())
+  org_unit_id Int
+  ward_number Int      // 1-33
+  name_en     String   // "Karamadai Road Area"
+  name_ta     String?  // Tamil name
+  aliases     String[] @default([]) // alternative spoken names
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  org_unit       OrgUnit        @relation(fields: [org_unit_id], references: [id])
+  electric_poles ElectricPole[]
+  complaints     Complaint[]
+  call_states    IvrCallState[]
+
+  @@unique([org_unit_id, ward_number])
+  @@index([org_unit_id])
+  @@map("wards")
 }
 
 model SystemSettings {

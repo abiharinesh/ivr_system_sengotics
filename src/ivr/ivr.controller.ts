@@ -13,6 +13,7 @@ import { IvrCallbackDto } from './dto/ivr-callback.dto';
 import type { Response } from 'express';
 import { IvrExceptionFilter } from './ivr-exception.filter';
 import { VoiceProcessingService } from '../voice-processing/voice-processing.service';
+import { WardIdentificationService } from '../voice-processing/ward-identification.service';
 
 /**
  * IVR Controller — all Exotel-facing endpoints.
@@ -31,6 +32,7 @@ export class IvrController {
   constructor(
     private readonly ivrService: IvrService,
     private readonly voiceProcessing: VoiceProcessingService,
+    private readonly wardIdentification: WardIdentificationService,
   ) {}
 
   // ── XML Response Helpers ────────────────────────────────────────────────
@@ -236,5 +238,132 @@ export class IvrController {
       );
       this.sendEmptyXml(res);
     }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //   EP-WARD: WARD IDENTIFICATION  —  /api/ivr/ward-identify
+  //   User speaks which ward they are from. Backend transcribes and
+  //   identifies the ward. Returns 200 if identified, 404 if not found
+  //   (so Exotel can retry the question).
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Post('ward-identify')
+  async handleWardIdentifyPost(
+    @Body() data: IvrCallbackDto,
+    @Res() res: Response,
+  ) {
+    return this.handleWardIdentify(data, res);
+  }
+
+  @Get('ward-identify')
+  async handleWardIdentifyGet(
+    @Query() data: IvrCallbackDto,
+    @Res() res: Response,
+  ) {
+    return this.handleWardIdentify(data, res);
+  }
+
+  private async handleWardIdentify(
+    data: IvrCallbackDto,
+    res: Response,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `[EP-WARD] Ward identification received: CallSid=${data.CallSid ?? 'N/A'}`,
+      );
+
+      const recordingUrl = this.normalizeRecordingUrl(data);
+
+      if (!recordingUrl || !data.CallSid) {
+        this.logger.warn(
+          '[EP-WARD] Missing CallSid or RecordingUrl — returning empty XML',
+        );
+        this.sendEmptyXml(res);
+        return;
+      }
+
+      if (data.ProcessStatus && data.ProcessStatus !== 'ready') {
+        this.logger.log(
+          `[EP-WARD] Recording not ready (ProcessStatus=${data.ProcessStatus})`,
+        );
+        this.sendEmptyXml(res);
+        return;
+      }
+
+      const ivrNumber = data.CallTo || data.To || '';
+      const result = await this.wardIdentification.identifyWardFromAudio(
+        recordingUrl,
+        ivrNumber,
+      );
+
+      // Save ward identification result in IvrCallState
+      await this.ivrService.handleWardIdentification(
+        data.CallSid,
+        result,
+        data,
+      );
+
+      if (result.wardId && result.confidence >= 0.3) {
+        this.logger.log(
+          `[EP-WARD] ✅ Ward identified: ${result.wardNumber} (${result.wardName}) confidence=${result.confidence}`,
+        );
+        // 200 = ward found → Exotel continues flow
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>உங்கள் வார்டு அடையாளம் காணப்பட்டது. வார்டு எண் ${result.wardNumber}.</Say>\n</Response>`;
+        res.status(200).type('application/xml').send(xml);
+        return;
+      } else {
+        this.logger.warn(
+          `[EP-WARD] Ward not identified. confidence=${result.confidence}, reason=${result.reason}`,
+        );
+        // 404 = ward not found → Exotel retries the question
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>மன்னிக்கவும், வார்டை கண்டுபிடிக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.</Say>\n</Response>`;
+        res.status(404).type('application/xml').send(xml);
+        return;
+      }
+    } catch (err) {
+      this.logger.error(
+        `[EP-WARD] Error (non-fatal): ${(err as Error).message}`,
+      );
+      this.sendEmptyXml(res);
+    }
+  }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //   EP-METHOD: COMPLAINT METHOD SELECTION  —  /api/ivr/complaint-method
+  //   User presses 1 (keypad pole ID) or 2 (voice complaint).
+  //   Always returns XML 200.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Post('complaint-method')
+  async handleComplaintMethodPost(
+    @Body() data: IvrCallbackDto,
+    @Res() res: Response,
+  ) {
+    return this.handleComplaintMethod(data, res);
+  }
+
+  @Get('complaint-method')
+  async handleComplaintMethodGet(
+    @Query() data: IvrCallbackDto,
+    @Res() res: Response,
+  ) {
+    return this.handleComplaintMethod(data, res);
+  }
+
+  private async handleComplaintMethod(
+    data: IvrCallbackDto,
+    res: Response,
+  ): Promise<void> {
+    try {
+      this.logger.log(
+        `[EP-METHOD] Complaint method selection: CallSid=${data.CallSid ?? 'N/A'}`,
+      );
+      await this.ivrService.handleComplaintMethod(data);
+    } catch (err) {
+      this.logger.error(
+        `[EP-METHOD] Error (non-fatal): ${(err as Error).message}`,
+      );
+    }
+    this.sendEmptyXml(res);
   }
 }

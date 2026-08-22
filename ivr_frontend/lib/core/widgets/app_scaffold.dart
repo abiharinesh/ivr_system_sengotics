@@ -460,6 +460,7 @@ class _AppScaffoldState extends State<AppScaffold> {
     );
   }
 
+  // ignore: unused_element
   String _formatRoleName(String role) {
     switch (role) {
       case 'super_admin': return 'Super Admin';

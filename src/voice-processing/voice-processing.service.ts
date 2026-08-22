@@ -229,20 +229,46 @@ export class VoiceProcessingService {
     let pipelineId: number | null = null;
     const tankId: number | null = null;
 
+    // ── Check if a ward was identified in the ward-identify step ──────────
+    const callState = await this.prisma.ivrCallState.findUnique({
+      where: { call_sid: callSid },
+      select: { ward_id: true },
+    });
+    const wardId = callState?.ward_id ?? null;
+
     let complaintType = 'street_light';
     const lowerTrans = transcriptEnglish.toLowerCase();
     if (
       lowerTrans.includes('leak') ||
       lowerTrans.includes('pipe') ||
       lowerTrans.includes('water') ||
-      lowerTrans.includes('தண்ணீர்') ||
-      lowerTrans.includes('கசிவு')
+      lowerTrans.includes('\u0BA4\u0BA3\u0BCD\u0BA3\u0BC0\u0BB0\u0BCD') ||
+      lowerTrans.includes('\u0B95\u0B9A\u0BBF\u0BB5\u0BC1')
     ) {
       complaintType = 'water_leak';
       pipelineId = await this.geoMatching.findNearestPipelineSegment(
         panchayat.id,
         transcriptEnglish,
       );
+    } else if (wardId) {
+      // Ward-scoped strict match — only search poles in the identified ward
+      this.logger.log(
+        `[Phase1] Using ward-scoped match (ward_id=${wardId})`,
+      );
+      poleId = await this.geoMatching.strictMatchPoleInWard(
+        wardId,
+        transcriptEnglish,
+      );
+      // If ward-scoped match fails, fall back to panchayat-wide search
+      if (!poleId) {
+        this.logger.log(
+          `[Phase1] Ward-scoped match failed, falling back to panchayat-wide`,
+        );
+        poleId = await this.geoMatching.strictMatchPole(
+          panchayat.id,
+          transcriptEnglish,
+        );
+      }
     } else {
       poleId = await this.geoMatching.strictMatchPole(
         panchayat.id,
@@ -400,9 +426,9 @@ export class VoiceProcessingService {
       return;
     }
 
-    const knownLandmarks = await this.geoMatching.getLandmarksForPanchayat(
-      panchayat.id,
-    );
+    const knownLandmarks = state?.ward_id
+      ? await this.geoMatching.getLandmarksForWard(state.ward_id)
+      : await this.geoMatching.getLandmarksForPanchayat(panchayat.id);
     const extractedRaw = await this.locationExtraction.extractLocation(
       combinedText,
       knownLandmarks,
@@ -447,6 +473,19 @@ export class VoiceProcessingService {
       );
     } else if (extracted.complaint_type === 'water_supply_shortage') {
       tankId = await this.geoMatching.findNearestWaterTank(panchayat.id, hints);
+    } else if (state?.ward_id) {
+      // Ward-scoped pole search — only search the ward's 50-100 poles
+      this.logger.log(
+        `[Phase2] Using ward-scoped match (ward_id=${state.ward_id})`,
+      );
+      poleId = await this.geoMatching.findNearestPoleInWard(
+        state.ward_id,
+        hints,
+      );
+      // Fall back to panchayat-wide if ward-scoped fails
+      if (!poleId) {
+        poleId = await this.geoMatching.findNearestPole(panchayat.id, hints);
+      }
     } else {
       poleId = await this.geoMatching.findNearestPole(panchayat.id, hints);
     }
@@ -572,6 +611,7 @@ export class VoiceProcessingService {
           pipeline_id: pipelineId,
           tank_id: tankId,
           org_unit_id: orgUnitId,
+          ward_id: state?.ward_id ?? null,
           complaint_type: extracted.complaint_type || 'street_light',
           description:
             extracted.call_summary ||
@@ -639,6 +679,7 @@ export class VoiceProcessingService {
           pipeline_id: pipelineId,
           tank_id: tankId,
           org_unit_id: orgUnitId,
+          ward_id: state?.ward_id ?? null,
           complaint_type: extracted.complaint_type || 'street_light',
           description:
             extracted.call_summary ||
@@ -703,6 +744,7 @@ export class VoiceProcessingService {
         data: {
           voice_call_id: voiceCallId,
           org_unit_id: orgUnitId ?? null,
+          ward_id: state?.ward_id ?? null,
           complaint_type: 'street_light',
           description:
             transcriptEnglish || transcript || 'Auto flagged for review',

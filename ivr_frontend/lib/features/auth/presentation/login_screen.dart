@@ -207,6 +207,87 @@ class _LoginScreenState extends State<LoginScreen>
               },
             ),
             const SizedBox(height: 18),
+            // Demo credentials & IVR Helpline Quick Card
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.15)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.stars_rounded, size: 16, color: AppTheme.primary),
+                      const SizedBox(width: 6),
+                      Text(
+                        'DEMO & TRIAL SYSTEM ACCESS',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primary,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '📞 IVR Main Helpline: 04440115043\n📞 Demo Trial Line: 04440115434',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Quick Fill Demo Credentials:',
+                    style: TextStyle(fontSize: 11, color: AppTheme.textMuted),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _email.text = 'superadmin@sengotics.com';
+                              _password.text = 'Admin@1234';
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text('Super Admin', style: TextStyle(fontSize: 11)),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setState(() {
+                              _email.text = 'admin@sengotics.com';
+                              _password.text = 'Admin@1234';
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          child: const Text('Panchayat Admin', style: TextStyle(fontSize: 11)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(child: Divider(color: AppTheme.stroke)),

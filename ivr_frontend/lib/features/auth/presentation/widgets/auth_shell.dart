@@ -160,7 +160,46 @@ class AuthShell extends StatelessWidget {
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 30),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.phone_in_talk_rounded, color: Colors.amber, size: 16),
+                    SizedBox(width: 6),
+                    Text(
+                      'DEMO IVR HELPLINES',
+                      style: TextStyle(
+                        color: Colors.amber,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '📞 Main Helpline: 04440115043\n📞 Demo Trial Line: 04440115434',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
           // Names what the platform actually covers. A government evaluator
           // opening this for the first time gets the scope before signing in.
           ..._points.map(_point),
