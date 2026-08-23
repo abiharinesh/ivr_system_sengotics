@@ -17,7 +17,7 @@ export interface ExtractedLocation {
   confidence_score: number;
 }
 
-const DEFAULT_PROVIDER = 'gemini';
+const DEFAULT_PROVIDER = 'groq';
 
 // ── Extraction prompt (shared by both providers) ───────────────────────────────
 
@@ -221,7 +221,7 @@ export class LocationExtractionService {
     try {
       const response = await this.openai.chat.completions.create(
         {
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           temperature: 0.1,
           max_tokens: 300,
           response_format: { type: 'json_object' },
@@ -242,7 +242,7 @@ export class LocationExtractionService {
 
   private async extractWithGemini(userMessage: string): Promise<string> {
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.1,
         maxOutputTokens: 300,

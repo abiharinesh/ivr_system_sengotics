@@ -4,7 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import OpenAI from 'openai';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const DEFAULT_PROVIDER = 'gemini';
+const DEFAULT_PROVIDER = 'groq';
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -358,7 +358,7 @@ export class GeoMatchingService {
     try {
       const response = await this.openai.chat.completions.create(
         {
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           temperature: 0.0,
           max_tokens: 150,
           response_format: { type: 'json_object' },
@@ -379,7 +379,7 @@ export class GeoMatchingService {
 
   private async matchWithGemini(userMessage: string): Promise<string> {
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.0,
         maxOutputTokens: 150,

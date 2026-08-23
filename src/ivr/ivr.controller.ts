@@ -291,10 +291,28 @@ export class IvrController {
       }
 
       const ivrNumber = data.CallTo || data.To || '';
-      const result = await this.wardIdentification.identifyWardFromAudio(
+
+      // ── Timeout guard: respond before Exotel's 5s Passthru timeout ──
+      const WARD_TIMEOUT_MS = 4500;
+      const timeoutPromise = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), WARD_TIMEOUT_MS),
+      );
+
+      const identifyPromise = this.wardIdentification.identifyWardFromAudio(
         recordingUrl,
         ivrNumber,
       );
+
+      const result = await Promise.race([identifyPromise, timeoutPromise]);
+
+      if (result === null) {
+        this.logger.warn(
+          `[EP-WARD] ⏱️ Ward identification timed out after ${WARD_TIMEOUT_MS}ms — returning 404 to retry`,
+        );
+        const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n    <Say>மன்னிக்கவும், மீண்டும் முயற்சிக்கவும்.</Say>\n</Response>`;
+        res.status(404).type('application/xml').send(xml);
+        return;
+      }
 
       // Save ward identification result in IvrCallState
       await this.ivrService.handleWardIdentification(
@@ -327,6 +345,7 @@ export class IvrController {
       this.sendEmptyXml(res);
     }
   }
+
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   //   EP-METHOD: COMPLAINT METHOD SELECTION  —  /api/ivr/complaint-method

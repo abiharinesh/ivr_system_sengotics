@@ -67,9 +67,9 @@ export class WardIdentificationService {
       const setting = await this.prisma.systemSettings.findUnique({
         where: { key: 'llm_provider' },
       });
-      return setting?.value ?? 'gemini';
+      return setting?.value ?? 'groq';
     } catch {
-      return 'gemini';
+      return 'groq';
     }
   }
 
@@ -288,10 +288,22 @@ Wards: ${JSON.stringify(wardList)}`;
 
       let raw: string;
 
-      if (provider === 'groq') {
-        raw = await this.matchWithGroq(userMessage);
-      } else {
-        raw = await this.matchWithGemini(userMessage);
+      try {
+        if (provider === 'groq') {
+          raw = await this.matchWithGroq(userMessage);
+        } else {
+          raw = await this.matchWithGemini(userMessage);
+        }
+      } catch (primaryErr) {
+        this.logger.warn(
+          `[Ward AI] Primary provider '${provider}' failed: ${(primaryErr as Error).message}. Trying fallback...`,
+        );
+        // Fallback to the other provider
+        if (provider === 'groq') {
+          raw = await this.matchWithGemini(userMessage);
+        } else {
+          raw = await this.matchWithGroq(userMessage);
+        }
       }
 
       let result: {
@@ -379,7 +391,7 @@ Wards: ${JSON.stringify(wardList)}`;
     try {
       const response = await this.openai.chat.completions.create(
         {
-          model: 'llama-3.3-70b-versatile',
+          model: 'openai/gpt-oss-120b',
           temperature: 0.0,
           max_tokens: 150,
           response_format: { type: 'json_object' },
@@ -398,7 +410,7 @@ Wards: ${JSON.stringify(wardList)}`;
 
   private async matchWithGemini(userMessage: string): Promise<string> {
     const model = this.genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       generationConfig: {
         temperature: 0.0,
         maxOutputTokens: 150,

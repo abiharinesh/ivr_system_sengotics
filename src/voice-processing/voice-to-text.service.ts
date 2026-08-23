@@ -9,7 +9,7 @@ import FormData from 'form-data';
 const AUDIO_FETCH_TIMEOUT_MS = 30_000;
 
 /** Default AI provider if no setting exists in DB */
-const DEFAULT_PROVIDER = 'gemini';
+const DEFAULT_PROVIDER = 'google-speech';
 
 @Injectable()
 export class VoiceToTextService {
@@ -169,7 +169,7 @@ export class VoiceToTextService {
         ? 'audio/ogg'
         : 'audio/mpeg';
 
-    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = this.genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
 
     const promise = model.generateContent([
       {
