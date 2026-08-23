@@ -1,0 +1,166 @@
+================================================================================
+  METTUPALAYAM MUNICIPALITY AI HELPLINE — KNOWLEDGE BASE
+  மேட்டுப்பாளையம் நகராட்சி குடிமக்கள் சேவை AI உதவி மையம் — அறிவுத்தளம்
+  (Developed by Sengotics)
+================================================================================
+
+SECTION 1: ABOUT THIS AI ASSISTANT / இந்த AI உதவியாளர் பற்றி
+================================================================================
+
+This is the official AI Voice Assistant for Mettupalayam Municipality (மேட்டுப்பாளையம் நகராட்சி),
+developed in partnership with Sengotics.
+
+Citizens of Mettupalayam can speak naturally in Tamil, English, or Tanglish to:
+1. Inquire about municipal public services, water supply timings, waste collection schedules, etc.
+2. File civic complaints (street lights, water supply, garbage & sanitation, drainage, public health).
+3. Check status and receive guidance on municipal administration.
+
+இது மேட்டுப்பாளையம் நகராட்சியின் அதிகாரப்பூர்வ AI குரல் உதவி மையம் ஆகும்.
+குடிமக்கள் தமிழ் அல்லது ஆங்கிலத்தில் சாதாரணமாகப் பேசி தகவல்களைப் பெறலாம்
+மற்றும் தங்களின் புகார்களை நேரடியாகப் பதிவு செய்யலாம்.
+
+- Authority: Mettupalayam Municipality (மேட்டுப்பாளையம் நகராட்சி)
+- Technology Partner: Sengotics
+- Availability: 24/7 Automated Voice Support
+- Supported Languages: Spoken Tamil (பேச்சுத் தமிழ்), English, and Tanglish
+
+
+SECTION 2: MUNICIPAL SERVICES & CAPABILITIES / நகராட்சி சேவைகள்
+================================================================================
+
+1. STREET LIGHT MAINTENANCE (தெரு விளக்கு பராமரிப்பு)
+---------------------------------------------------
+- What we resolve:
+  * Non-working / fused street lights (விளக்கு எரியவில்லை)
+  * Dim or flickering street lights (மங்கலாக அல்லது விட்டு விட்டு எரியும் விளக்குகள்)
+  * Day-burning lights (பகலில் அணையாமல் எரியும் விளக்குகள்)
+  * Broken, leaning, or damaged electric poles (உடைந்த அல்லது சாய்ந்த மின்கம்பங்கள்)
+  * Dangling, broken, or sparking electric wires — CRITICAL EMERGENCY (அறுந்து தொங்கும் மின்கம்பிகள்)
+- Details collected: Ward number (1-33), street / landmark, pole number (if known).
+- SLA: Normal fixes within 24 to 48 hours; Dangerous wires escalated within 2 hours.
+
+2. WATER SUPPLY SERVICES (குடிநீர் விநியோகம்)
+---------------------------------------------------
+- What we resolve:
+  * No water supply on designated supply days (குடிநீர் வரவில்லை)
+  * Very low water pressure (குறைந்த நீர் அழுத்தம்)
+  * Muddy, contaminated, or bad odor in drinking water (கலங்கலான அல்லது மாசடைந்த குடிநீர்)
+  * Pipeline leaks / bursts along roads (குழாய் உடைப்பு அல்லது நீர் கசிவு)
+  * Broken public community taps / leaking control valves (உடைந்த பொதுக் குழாய்கள் / வால்வுகள்)
+- Regular Water Supply Timings:
+  * Morning supply: 6:00 AM to 9:30 AM
+  * Evening supply: 4:30 PM to 7:00 PM (alternate schedule per ward)
+- SLA: Pipeline bursts within 4 to 12 hours; Regular issues within 24 to 48 hours.
+
+3. SOLID WASTE MANAGEMENT & SANITATION (திடக்கழிவு & துப்புரவு பணி)
+---------------------------------------------------
+- What we resolve:
+  * Missed door-to-door garbage collection (வீட்டு குப்பை சேகரிக்கப்படவில்லை)
+  * Overflowing community dustbins (குப்பைத் தொட்டி நிரம்பி வழிதல்)
+  * Garbage dumped on vacant plots / streets (தெருவில் கொட்டப்பட்ட குப்பைகள்)
+  * Dead animal removal (இறந்த விலங்கு உடனடியாக அகற்றுதல்)
+  * Clogged roadside drains / sewage overflow (சாக்கடை அடைப்பு / கழிவுநீர் தேக்கம்)
+- Door-to-Door Collection Schedule: Daily morning 6:00 AM to 10:00 AM.
+- Waste Segregation Guidelines:
+  * Green Bin: Wet / Kitchen / Organic waste (ஈரக் கழிவு)
+  * Blue Bin: Dry / Recyclable waste (உலர் கழிவு — பிளாஸ்டிக், அட்டை, பாட்டில்)
+  * Wrapped separately: Sanitary waste (சுகாதாரக் கழிவு)
+- SLA: Dead animals cleared within 4 hours; Waste collection cleared same day.
+
+
+SECTION 3: METTUPALAYAM WARD DIRECTORY & LANDMARKS / வார்டுகள் விவரம்
+================================================================================
+
+Municipality: Mettupalayam Municipality (33 Wards)
+District: Coimbatore | Taluk: Mettupalayam
+
+When a citizen mentions an area name or landmark, map it to the corresponding ward:
+
+- Ward 1:  Mettupalayam Town, Town Hall, Gandhi Nagar, Central Bazaar, பழனி ஆண்டவர் கோவில் வீதி
+- Ward 2:  Karamadai Road, Mahadevapuram, Sri Ram Nagar, கரமடை சாலை
+- Ward 3:  Odanthurai Road, Bhavani River bank, ஓடன்துறை சாலை
+- Ward 4:  Coonoor Road, Hill View Layout, Kallar Road junction, குன்னூர் சாலை
+- Ward 5:  Ooty Road (Udhagai Road), Tollgate area, Black Thunder vicinity, ஊட்டி சாலை
+- Ward 6:  Railway Station Area, Station Road, Loco Shed, Goods Yard, ரயில் நிலையம்
+- Ward 7:  Bus Stand Area, New Bus Stand, Annur Road Corner, பேருந்து நிலையம் பகுதி
+- Ward 8:  Daily Market Area, Uzhavar Sandhai, Wholesale Vegetable Market, தினசரி சந்தை பகுதி
+- Ward 9:  Government Hospital Road, GH Campus, Aaspatri Line, அரசு மருத்துவமனை சாலை
+- Ward 10: High School Area, Government Higher Secondary School, Teacher's Colony, பள்ளி பகுதி
+- Ward 11: Nadur, Nadur Mariamman Kovil Street, நடூர் பகுதி
+- Ward 12: Sirumugai Road junction, Alangombu Road, சிறுமுகை சாலை
+- Ward 13: Subramaniyaswamy Kovil Street, Temple Hill area, சுப்பிரமணியசுவாமி கோவில் வீதி
+- Ward 14: Teacher Colony Extn, Kamaraj Nagar, காமராஜ் நகர்
+- Ward 15: Annur Road Industrial Area, அன்னூர் சாலை தொழிற்பேட்டை
+- Wards 16 to 33: Residential Nagar extensions and layouts across Mettupalayam.
+
+TAMIL SPOKEN NUMBERS REFERENCE:
+1 = ondru / onnu (ஒன்று / ஒன்னு)          10 = pathu (பத்து)
+2 = irandu / rendu (இரண்டு / ரெண்டு)      15 = pathinanju (பதினைந்து)
+3 = moondru / moonu (மூன்று / மூணு)       20 = iruvathu (இருபது)
+4 = naangu / naalu (நான்கு / நாலு)        25 = iruvathanju (இருபத்தைந்து)
+5 = ainthu / anju (ஐந்து / அஞ்சு)         30 = muppathu (முப்பது)
+6 = aaru (ஆறு)                             33 = muppathi moonu (முப்பத்தி மூணு)
+7 = ezhu / yezhu (ஏழு)
+8 = ettu (எட்டு)
+9 = ombathu (ஒன்பது)
+
+
+SECTION 4: EMERGENCY & LIFE SAFETY PROTOCOLS / அவசர கால நெறிமுறைகள்
+================================================================================
+
+If the citizen reports any LIFE-THREATENING hazard:
+1. Live snapped electrical wires touching roads, water puddles, or low hanging.
+2. Severely bent or tilting electric pole risking collapse on houses or roads.
+3. Severe sewage backflow contaminating drinking water sources.
+
+IMMEDIATE AI RESPONSE:
+- Advise the citizen to stay at least 10 meters away from the hazard immediately.
+- Reassure them that this is logged as a Critical Priority Emergency.
+- Provide direct emergency contacts:
+  * TNEB Electricity Emergency (மின்துறை அவசர உதவி): 1912
+  * Tamil Nadu Emergency Services: 112
+
+
+SECTION 5: FREQUENTLY ASKED QUESTIONS / அடிக்கடி கேட்கப்படும் கேள்விகள்
+================================================================================
+
+Q1: What is this helpline? (இந்த உதவி எண் எதற்காக?)
+A: This is the official AI voice helpline for Mettupalayam Municipality (மேட்டுப்பாளையம் நகராட்சி).
+   You can speak naturally to inquire about municipal services or register complaints
+   regarding street lights, drinking water, garbage, and drainage.
+
+Q2: How do I file a complaint? (நான் எப்படி புகார் அளிக்கலாம்?)
+A: Just describe the issue, the area or landmark, and your ward number. The AI assistant
+   will directly register the complaint into the municipal management system.
+
+Q3: When will my complaint be resolved? (புகார் எப்போது சரிசெய்யப்படும்?)
+A: - Street lights: Within 24 to 48 hours.
+   - Water supply leaks / valve fixes: Within 12 to 24 hours.
+   - Garbage clearance: Same day (within 4 to 8 hours).
+   - Electrical hazards / wire snap: Emergency team dispatched immediately.
+
+Q4: What if I do not know my ward number or pole ID? (வார்டு எண் தெரியாவிட்டால்?)
+A: Just tell the nearby landmark, street name, temple, hospital, or school. The AI will
+   locate your ward automatically.
+
+Q5: Are there any charges for this service? (கட்டணம் உண்டா?)
+A: No, all municipal helpline services and complaint registrations are completely free.
+
+Q6: What are the Mettupalayam Municipality Office working hours? (அலுவலக நேரம்?)
+A: Monday to Saturday: 10:00 AM to 5:45 PM (Closed on Sundays & Government Holidays).
+   The AI Voice Helpline operates 24/7.
+
+
+SECTION 6: OFFICIAL CONTACT DIRECTORY / தொடர்பு எண்கள்
+================================================================================
+
+- Mettupalayam Municipality Office: 04254-222211
+- Office Address: Ooty Main Road, Mettupalayam, Coimbatore - 641301
+- TNEB Electricity Fault (மின்துறை அவசர உதவி): 1912
+- State Disaster & Police Emergency: 112
+- Fire and Rescue Services: 101
+- Ambulance: 108
+
+================================================================================
+  END OF KNOWLEDGE BASE / அறிவுத்தளத்தின் முடிவு
+================================================================================

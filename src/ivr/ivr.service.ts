@@ -296,6 +296,124 @@ export class IvrService {
     return { success: true };
   }
 
+  // ── BOT AGENT TOOL: Direct Complaint Registration ────────────────────────
+  async createBotComplaint(data: {
+    service_type?: string;
+    ward_number?: number | string;
+    pole_id?: string;
+    issue_description?: string;
+    caller_phone?: string;
+  }): Promise<{
+    success: boolean;
+    complaint_id: string;
+    service: string;
+    ward: number | null;
+    message: string;
+  }> {
+    this.logger.log(`[BOT-TOOL] Received complaint from AI bot: ${JSON.stringify(data)}`);
+
+    // 1. Find Mettupalayam Municipality OrgUnit (or first available org unit)
+    let orgUnit = await this.prisma.orgUnit.findFirst({
+      where: {
+        name: { contains: 'Mettupalayam', mode: 'insensitive' },
+      },
+    });
+
+    if (!orgUnit) {
+      orgUnit = await this.prisma.orgUnit.findFirst();
+    }
+
+    const orgUnitId = orgUnit?.id ?? 1;
+
+    // 2. Resolve Ward ID if ward_number provided
+    let wardId: number | null = null;
+    let resolvedWardNumber: number | null = null;
+
+    if (data.ward_number) {
+      const wardNum = parseInt(String(data.ward_number).replace(/\D/g, ''), 10);
+      if (!isNaN(wardNum)) {
+        resolvedWardNumber = wardNum;
+        const ward = await this.prisma.ward.findFirst({
+          where: {
+            org_unit_id: orgUnitId,
+            ward_number: wardNum,
+          },
+        });
+        if (ward) {
+          wardId = ward.id;
+        }
+      }
+    }
+
+    // 3. Normalize service type
+    const rawService = (data.service_type || 'general').toLowerCase();
+    let serviceType = 'general';
+    if (rawService.includes('light') || rawService.includes('street') || rawService.includes('விளக்கு')) {
+      serviceType = 'street_light';
+    } else if (rawService.includes('water') || rawService.includes('தண்ணீர்') || rawService.includes('குடிநீர்')) {
+      serviceType = 'water';
+    } else if (rawService.includes('garb') || rawService.includes('waste') || rawService.includes('குப்பை')) {
+      serviceType = 'garbage';
+    } else if (rawService.includes('drain') || rawService.includes('சாக்கடை')) {
+      serviceType = 'drainage';
+    }
+
+    // 4. Resolve Pole ID if given for street_light
+    let poleId: number | null = null;
+    if (data.pole_id && serviceType === 'street_light') {
+      const cleanPole = String(data.pole_id).trim();
+      const pole = await this.prisma.electricPole.findFirst({
+        where: {
+          org_unit_id: orgUnitId,
+          OR: [
+            { keypad_id: cleanPole },
+            { pole_number: { contains: cleanPole, mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (pole) {
+        poleId = pole.id;
+        if (!wardId && pole.ward_id) {
+          wardId = pole.ward_id;
+        }
+      }
+    }
+
+    // 5. Detect Urgency
+    const desc = data.issue_description || '';
+    const isCritical =
+      desc.toLowerCase().includes('wire') ||
+      desc.toLowerCase().includes('spark') ||
+      desc.toLowerCase().includes('shock') ||
+      desc.toLowerCase().includes('கம்பி') ||
+      desc.toLowerCase().includes('அறுந்து') ||
+      desc.toLowerCase().includes('burst');
+
+    // 6. Create Complaint Record in Prisma
+    const complaint = await this.prisma.complaint.create({
+      data: {
+        org_unit_id: orgUnitId,
+        ward_id: wardId,
+        pole_id: poleId,
+        complaint_type: serviceType,
+        description: desc || `AI Voicebot ${serviceType} complaint from ${data.caller_phone || 'citizen'}`,
+        status: 'pending',
+        urgency_level: isCritical ? 'critical' : 'medium',
+      },
+    });
+
+    const formattedId = `MTP-${complaint.id}`;
+    this.logger.log(`[BOT-TOOL] ✅ Created complaint #${complaint.id} (${formattedId})`);
+
+    return {
+      success: true,
+      complaint_id: formattedId,
+      service: serviceType,
+      ward: resolvedWardNumber,
+      message: `Complaint #${formattedId} successfully registered in Mettupalayam Municipality system.`,
+    };
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
   /** Clean and normalize digits from Exotel (strip quotes and whitespace). */
@@ -364,3 +482,4 @@ export class IvrService {
     return complaint;
   }
 }
+

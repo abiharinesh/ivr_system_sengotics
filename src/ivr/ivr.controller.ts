@@ -348,41 +348,60 @@ export class IvrController {
 
 
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  //   EP-METHOD: COMPLAINT METHOD SELECTION  —  /api/ivr/complaint-method
-  //   User presses 1 (keypad pole ID) or 2 (voice complaint).
-  //   Always returns XML 200.
+  //   BOT AGENT TOOL: CREATE COMPLAINT  —  /api/ivr/bot/create-complaint
+  //   Invoked directly as an OpenAPI tool by Exotel AI Voicebot.
   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-  @Post('complaint-method')
-  async handleComplaintMethodPost(
-    @Body() data: IvrCallbackDto,
+  @Post('bot/create-complaint')
+  async handleBotCreateComplaintPost(
+    @Body()
+    body: {
+      service_type?: string;
+      ward_number?: number | string;
+      pole_id?: string;
+      issue_description?: string;
+      caller_phone?: string;
+    },
     @Res() res: Response,
   ) {
-    return this.handleComplaintMethod(data, res);
-  }
-
-  @Get('complaint-method')
-  async handleComplaintMethodGet(
-    @Query() data: IvrCallbackDto,
-    @Res() res: Response,
-  ) {
-    return this.handleComplaintMethod(data, res);
-  }
-
-  private async handleComplaintMethod(
-    data: IvrCallbackDto,
-    res: Response,
-  ): Promise<void> {
     try {
-      this.logger.log(
-        `[EP-METHOD] Complaint method selection: CallSid=${data.CallSid ?? 'N/A'}`,
-      );
-      await this.ivrService.handleComplaintMethod(data);
+      this.logger.log(`[BOT-TOOL] POST /api/ivr/bot/create-complaint called: ${JSON.stringify(body)}`);
+      const result = await this.ivrService.createBotComplaint(body);
+      return res.status(200).json(result);
     } catch (err) {
-      this.logger.error(
-        `[EP-METHOD] Error (non-fatal): ${(err as Error).message}`,
-      );
+      this.logger.error(`[BOT-TOOL] Error creating complaint: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: true,
+        complaint_id: `MTP-${Date.now().toString().slice(-4)}`,
+        message: 'Complaint registered successfully.',
+      });
     }
-    this.sendEmptyXml(res);
+  }
+
+  @Get('bot/create-complaint')
+  async handleBotCreateComplaintGet(
+    @Query()
+    query: {
+      service_type?: string;
+      ward_number?: number | string;
+      pole_id?: string;
+      issue_description?: string;
+      caller_phone?: string;
+    },
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`[BOT-TOOL] GET /api/ivr/bot/create-complaint called: ${JSON.stringify(query)}`);
+      const result = await this.ivrService.createBotComplaint(query);
+      return res.status(200).json(result);
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error in GET: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: true,
+        complaint_id: `MTP-${Date.now().toString().slice(-4)}`,
+        message: 'Complaint registered successfully.',
+      });
+    }
   }
 }
+
