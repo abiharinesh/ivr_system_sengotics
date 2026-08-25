@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
 import 'package:ivr_frontend/features/modules/ivr_operations/data/ivr_operations_repository.dart';
+import 'package:ivr_frontend/features/modules/ivr_operations/presentation/widgets/ivr_audio_player.dart';
 import 'package:ivr_frontend/features/modules/ivr_operations/presentation/widgets/ivr_shared.dart';
+import 'package:ivr_frontend/features/modules/ivr_operations/presentation/widgets/ivr_transcript_viewer.dart';
 
 /// Recorded citizen calls and what came of them.
 ///
-/// This screen used to fabricate its rows from a loop counter while 140
-/// transcribed calls sat in the database. The transcript is the point: a
-/// resident describes a problem in Tamil, the system extracts it, and the row
-/// shows whether that turned into a ticket.
+/// Features embedded live call audio playback, multi-turn dialogue transcripts,
+/// and linked civic complaint tickets.
 class VoiceCallsScreen extends StatefulWidget {
   const VoiceCallsScreen({super.key, this.repository});
 
-  /// Injected by tests. The screen builds its own against the live API when
-  /// this is null, so nothing at the call sites has to know it exists.
   final IvrOperationsRepository? repository;
 
   @override
@@ -129,51 +127,51 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
   Widget _controls() {
     const statuses = ['completed', 'manual_review', 'failed'];
     return IvrControlBar(
-        search: TextField(
-          controller: _search,
-          onSubmitted: (_) => _load(),
-          decoration: InputDecoration(
-            isDense: true,
-            hintText: 'Search transcripts or call id…',
-            prefixIcon: const Icon(Icons.search_rounded, size: 18),
-            filled: true,
-            fillColor: AppTheme.bgCard,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              borderSide: BorderSide(color: AppTheme.stroke),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppTheme.radiusMd),
-              borderSide: BorderSide(color: AppTheme.stroke),
-            ),
+      search: TextField(
+        controller: _search,
+        onSubmitted: (_) => _load(),
+        decoration: InputDecoration(
+          isDense: true,
+          hintText: 'Search transcripts, caller phone, or ticket #…',
+          prefixIcon: const Icon(Icons.search_rounded, size: 18),
+          filled: true,
+          fillColor: AppTheme.bgCard,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: BorderSide(color: AppTheme.stroke),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+            borderSide: BorderSide(color: AppTheme.stroke),
           ),
         ),
-        filters: [
-          for (final s in statuses)
-            FilterChip(
-              label: Text(prettyIvr(s), style: const TextStyle(fontSize: 11.5)),
-              selected: _status == s,
-              showCheckmark: false,
-              onSelected: (on) {
-                setState(() => _status = on ? s : null);
-                _load();
-              },
-              backgroundColor: AppTheme.bgCard,
-              selectedColor: AppTheme.primary,
-              labelStyle: TextStyle(
-                color: _status == s ? Colors.white : AppTheme.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
-              side: BorderSide(color: AppTheme.stroke),
+      ),
+      filters: [
+        for (final s in statuses)
+          FilterChip(
+            label: Text(prettyIvr(s), style: const TextStyle(fontSize: 11.5)),
+            selected: _status == s,
+            showCheckmark: false,
+            onSelected: (on) {
+              setState(() => _status = on ? s : null);
+              _load();
+            },
+            backgroundColor: AppTheme.bgCard,
+            selectedColor: AppTheme.primary,
+            labelStyle: TextStyle(
+              color: _status == s ? Colors.white : AppTheme.textSecondary,
+              fontWeight: FontWeight.w600,
             ),
-          IconButton(
-            tooltip: 'Reload',
-            onPressed: _loading ? null : _load,
-            icon: const Icon(Icons.refresh_rounded),
+            side: BorderSide(color: AppTheme.stroke),
           ),
-        ],
+        IconButton(
+          tooltip: 'Reload',
+          onPressed: _loading ? null : _load,
+          icon: const Icon(Icons.refresh_rounded),
+        ),
+      ],
     );
   }
 
@@ -204,14 +202,16 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
 
   Widget _callCard(VoiceCallRecord c) {
     final open = _expanded == c.id;
-    final fmt = DateFormat('d MMM, h:mm a');
+    final fmt = DateFormat('d MMM yyyy, h:mm a');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: AppTheme.bgCard,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppTheme.stroke),
+        border: Border.all(
+          color: open ? AppTheme.primary.withValues(alpha: 0.4) : AppTheme.stroke,
+        ),
         boxShadow: AppTheme.softShadow,
       ),
       clipBehavior: Clip.antiAlias,
@@ -227,14 +227,14 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                 Row(
                   children: [
                     Container(
-                      width: 36,
-                      height: 36,
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
                         color: AppTheme.primary.withValues(alpha: 0.10),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Icon(Icons.call_rounded,
-                          size: 17, color: AppTheme.primary),
+                          size: 18, color: AppTheme.primary),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -244,7 +244,7 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                           Text(
                             c.callerNumber ?? c.callSid ?? 'Unknown caller',
                             style: TextStyle(
-                              fontSize: 13.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                               color: AppTheme.textPrimary,
                             ),
@@ -254,9 +254,9 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                             [
                               if (c.startedAt != null)
                                 fmt.format(c.startedAt!.toLocal()),
-                              if (c.attempt > 1) 'attempt ${c.attempt}',
+                              if (c.attempt > 1) 'Attempt ${c.attempt}',
                               if (c.confidence != null)
-                                'confidence ${c.confidence!.toStringAsFixed(2)}',
+                                'Confidence ${(c.confidence! * 100).toInt()}%',
                             ].join('  ·  '),
                             style: TextStyle(
                               fontSize: 11.5,
@@ -266,10 +266,6 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                         ],
                       ),
                     ),
-                    // Wraps rather than sitting in the Row: two tags plus the
-                    // caller line overflowed by 106px at phone width, and a
-                    // tag that runs off the card edge is worse than one on a
-                    // second line.
                     Flexible(
                       child: Wrap(
                         alignment: WrapAlignment.end,
@@ -309,12 +305,12 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                     ),
                   ],
                 ),
-                if (c.transcript != null) ...[
+                if (c.transcript != null && !open) ...[
                   const SizedBox(height: 10),
                   Text(
                     c.transcript!,
-                    maxLines: open ? null : 2,
-                    overflow: open ? null : TextOverflow.ellipsis,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       fontSize: 12.5,
                       height: 1.45,
@@ -333,83 +329,59 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
 
   List<Widget> _detail(VoiceCallRecord c) {
     return [
-      // The English rendering is what a non-Tamil-reading officer works from,
-      // so it is shown alongside rather than instead of the original.
-      if (c.transcriptEnglish != null &&
-          c.transcriptEnglish != c.transcript) ...[
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.bgSurface,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'ENGLISH',
-                style: TextStyle(
-                  fontSize: 9.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.7,
-                  color: AppTheme.textMuted,
-                ),
-              ),
-              const SizedBox(height: 5),
-              Text(
-                c.transcriptEnglish!,
-                style: TextStyle(
-                  fontSize: 12.5,
-                  height: 1.45,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-            ],
-          ),
+      const SizedBox(height: 14),
+
+      // 1. Audio Player for Call Recording
+      if (c.audioUrl != null && c.audioUrl!.trim().isNotEmpty) ...[
+        IvrAudioPlayer(
+          audioUrl: c.audioUrl!,
+          title: 'CALL RECORDING (EXOTEL)',
         ),
+        const SizedBox(height: 14),
       ],
-      const SizedBox(height: 12),
+
+      // 2. Multi-turn Transcript Viewer with Tamil / English toggle
+      if (c.transcript != null && c.transcript!.trim().isNotEmpty) ...[
+        IvrTranscriptViewer(
+          transcriptTamil: c.transcript!,
+          transcriptEnglish: c.transcriptEnglish,
+        ),
+        const SizedBox(height: 14),
+      ],
+
+      // 3. Metadata Tags (Category, Urgency, Status, CallSid)
       Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
           if (c.complaintCategory != null)
-            IvrTag(label: prettyIvr(c.complaintCategory!), color: AppTheme.primary),
+            IvrTag(
+              label: prettyIvr(c.complaintCategory!),
+              color: AppTheme.primary,
+              icon: Icons.category_rounded,
+            ),
           if (c.urgency != null)
             IvrTag(
               label: '${prettyIvr(c.urgency!)} urgency',
               color: c.urgency == 'critical' || c.urgency == 'high'
                   ? AppTheme.error
                   : AppTheme.warning,
+              icon: Icons.priority_high_rounded,
             ),
           if (c.complaintStatus != null)
             IvrTag(
               label: 'Ticket ${prettyIvr(c.complaintStatus!)}',
-              color: AppTheme.textSecondary,
+              color: AppTheme.accent,
+              icon: Icons.verified_rounded,
             ),
           if (c.callSid != null)
-            IvrTag(label: c.callSid!, color: AppTheme.textMuted),
+            IvrTag(
+              label: 'SID: ${c.callSid!}',
+              color: AppTheme.textMuted,
+            ),
         ],
       ),
-      if (c.audioUrl != null) ...[
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Icon(Icons.graphic_eq_rounded, size: 15, color: AppTheme.textMuted),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Text(
-                c.audioUrl!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
-              ),
-            ),
-          ],
-        ),
-      ],
     ];
   }
 }
+
