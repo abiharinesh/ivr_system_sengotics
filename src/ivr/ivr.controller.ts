@@ -517,5 +517,34 @@ export class IvrController {
       });
     }
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //   BOT SESSION END WEBHOOK  —  /api/ivr/bot/session-end & /api/ivr/bot/webhook
+  //   Captures call recordings, audio URLs, and full conversation transcripts.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Post('bot/session-end')
+  async handleBotSessionEndPost(@Body() body: any, @Res() res: Response) {
+    try {
+      this.logger.log(`[BOT-WEBHOOK] Session end received: ${JSON.stringify(body).slice(0, 200)}...`);
+      await this.ivrService.handleBotSessionEnd(body);
+      return res.status(200).json({ success: true, message: 'Session end processed successfully' });
+    } catch (err) {
+      this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
+      return res.status(200).json({ success: true });
+    }
+  }
+
+  @Post('bot/webhook')
+  async handleBotGenericWebhookPost(@Body() body: any, @Res() res: Response) {
+    try {
+      this.logger.log(`[BOT-WEBHOOK] Generic webhook received: ${JSON.stringify(body).slice(0, 200)}...`);
+      await this.ivrService.handleBotSessionEnd(body);
+      return res.status(200).json({ success: true, message: 'Webhook received' });
+    } catch (err) {
+      this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
+      return res.status(200).json({ success: true });
+    }
+  }
 }
 

@@ -717,6 +717,91 @@ export class IvrService {
     }
   }
 
+  // ── BOT WEBHOOK: Handle Session End (Save Recording & Transcript) ────────
+  async handleBotSessionEnd(payload: any): Promise<{ success: boolean }> {
+    this.logger.log(`[BOT-WEBHOOK] Session end received: ${JSON.stringify(payload).slice(0, 300)}...`);
+
+    try {
+      const callSid = payload.call_sid || payload.CallSid || payload.session_id || payload.call_id || `BOT-${Date.now()}`;
+      const recordingUrl = payload.recording_url || payload.RecordingUrl || payload.audio_url || null;
+      const callerPhone = payload.caller_phone || payload.caller_number || payload.From || payload.CallFrom || null;
+
+      // Extract transcript messages
+      let transcriptText = '';
+      if (Array.isArray(payload.conversation_transcript)) {
+        transcriptText = payload.conversation_transcript
+          .map((m: any) => `${m.role || m.sender || 'User'}: ${m.message || m.content || m.text || ''}`)
+          .join('\n');
+      } else if (typeof payload.transcript === 'string') {
+        transcriptText = payload.transcript;
+      } else if (payload.messages && Array.isArray(payload.messages)) {
+        transcriptText = payload.messages
+          .map((m: any) => `${m.role || 'User'}: ${m.content || m.text || ''}`)
+          .join('\n');
+      }
+
+      // 1. Create or update VoiceCall record
+      const voiceCall = await this.prisma.voiceCall.create({
+        data: {
+          call_sid: String(callSid),
+          audio_url: recordingUrl,
+          transcript: transcriptText || 'Voicebot Call Completed',
+          transcript_english: payload.summary || transcriptText || null,
+          processing_status: 'completed',
+          confidence_score: 1.0,
+        },
+      });
+
+      // 2. Link with IvrCall
+      if (callSid) {
+        await this.prisma.ivrCall.upsert({
+          where: { call_sid: String(callSid) },
+          create: {
+            call_sid: String(callSid),
+            caller_number: callerPhone,
+            call_start_time: new Date(),
+            call_end_time: new Date(),
+            final_call_status: 'completed',
+          },
+          update: {
+            call_end_time: new Date(),
+            final_call_status: 'completed',
+          },
+        }).catch(() => null);
+      }
+
+      // 3. Link audio_url to the most recent complaint for this phone number if not linked
+      if (recordingUrl && callerPhone) {
+        const last10Digits = String(callerPhone).replace(/\D/g, '').slice(-10);
+        if (last10Digits) {
+          const recentComplaint = await this.prisma.complaint.findFirst({
+            where: {
+              guest_phone: { contains: last10Digits },
+              audio_url: null,
+            },
+            orderBy: { id: 'desc' },
+          });
+
+          if (recentComplaint) {
+            await this.prisma.complaint.update({
+              where: { id: recentComplaint.id },
+              data: {
+                audio_url: recordingUrl,
+                voice_call_id: voiceCall.id,
+              },
+            });
+            this.logger.log(`[BOT-WEBHOOK] Linked recording to Complaint #${recentComplaint.id}`);
+          }
+        }
+      }
+
+      return { success: true };
+    } catch (err) {
+      this.logger.error(`[BOT-WEBHOOK] Error saving session end: ${(err as Error).message}`);
+      return { success: false };
+    }
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
   /** Clean and normalize digits from Exotel (strip quotes and whitespace). */
