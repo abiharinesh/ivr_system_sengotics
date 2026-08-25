@@ -338,6 +338,26 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
           title: 'CALL RECORDING (EXOTEL)',
         ),
         const SizedBox(height: 14),
+      ] else ...[
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppTheme.bgSurface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppTheme.stroke),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.graphic_eq_rounded, size: 16, color: AppTheme.textMuted),
+              const SizedBox(width: 8),
+              Text(
+                'No audio recording attached (Test Session / In Progress)',
+                style: TextStyle(fontSize: 11.5, color: AppTheme.textMuted),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
       ],
 
       // 2. Multi-turn Transcript Viewer with Tamil / English toggle
