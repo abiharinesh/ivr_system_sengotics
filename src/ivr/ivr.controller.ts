@@ -460,5 +460,62 @@ export class IvrController {
       });
     }
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //   BOT AGENT TOOL: LOOKUP INFRA  —  /api/ivr/bot/lookup-infra
+  //   Dynamically queries poles, wards, landmarks from PostgreSQL database.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Get('bot/lookup-infra')
+  async handleBotLookupInfraGet(
+    @Query()
+    query: {
+      pole_id?: string;
+      ward_number?: number | string;
+      area_name?: string;
+    },
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`[BOT-TOOL] GET /api/ivr/bot/lookup-infra called: ${JSON.stringify(query)}`);
+      const result = await this.ivrService.lookupInfra(query);
+      return res.status(200).json(result);
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error looking up infra: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: false,
+        found: false,
+        pole_details: null,
+        ward_details: null,
+        message: 'Lookup failed.',
+      });
+    }
+  }
+
+  @Post('bot/lookup-infra')
+  async handleBotLookupInfraPost(
+    @Body()
+    body: {
+      pole_id?: string;
+      ward_number?: number | string;
+      area_name?: string;
+    },
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`[BOT-TOOL] POST /api/ivr/bot/lookup-infra called: ${JSON.stringify(body)}`);
+      const result = await this.ivrService.lookupInfra(body);
+      return res.status(200).json(result);
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error looking up infra: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: false,
+        found: false,
+        pole_details: null,
+        ward_details: null,
+        message: 'Lookup failed.',
+      });
+    }
+  }
 }
 

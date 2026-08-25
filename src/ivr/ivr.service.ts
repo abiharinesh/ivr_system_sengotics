@@ -540,6 +540,133 @@ export class IvrService {
     }
   }
 
+  // ── BOT AGENT TOOL: Lookup Infrastructure (Poles, Wards, Areas) ──────────
+  async lookupInfra(data: {
+    pole_id?: string;
+    ward_number?: number | string;
+    area_name?: string;
+  }): Promise<{
+    success: boolean;
+    found: boolean;
+    pole_details?: {
+      pole_number: string;
+      keypad_id: string | null;
+      ward_number: number | null;
+      ward_name: string | null;
+      location: string | null;
+    } | null;
+    ward_details?: {
+      ward_number: number;
+      name_en: string | null;
+      name_ta: string | null;
+    } | null;
+    message: string;
+  }> {
+    this.logger.log(`[BOT-TOOL] Infrastructure lookup: ${JSON.stringify(data)}`);
+
+    try {
+      let poleResult: any = null;
+      let wardResult: any = null;
+
+      // 1. Find pole if pole_id provided
+      if (data.pole_id) {
+        const cleanPole = String(data.pole_id).trim();
+        const pole = await this.prisma.electricPole.findFirst({
+          where: {
+            OR: [
+              { keypad_id: cleanPole },
+              { pole_number: { contains: cleanPole, mode: 'insensitive' } },
+            ],
+          },
+          include: {
+            ward: { select: { ward_number: true, name_en: true, name_ta: true } },
+          },
+        });
+
+        if (pole) {
+          poleResult = {
+            pole_number: pole.pole_number,
+            keypad_id: pole.keypad_id,
+            ward_number: pole.ward?.ward_number ?? null,
+            ward_name: pole.ward?.name_en ?? null,
+            location: pole.pole_number,
+          };
+          if (!wardResult && pole.ward) {
+            wardResult = {
+              ward_number: pole.ward.ward_number,
+              name_en: pole.ward.name_en,
+              name_ta: pole.ward.name_ta,
+            };
+          }
+        }
+      }
+
+      // 2. Find ward by number or area name
+      if (!wardResult && data.ward_number) {
+        const wardNum = parseInt(String(data.ward_number).replace(/\D/g, ''), 10);
+        if (!isNaN(wardNum)) {
+          const ward = await this.prisma.ward.findFirst({
+            where: { ward_number: wardNum },
+          });
+          if (ward) {
+            wardResult = {
+              ward_number: ward.ward_number,
+              name_en: ward.name_en,
+              name_ta: ward.name_ta,
+            };
+          }
+        }
+      }
+
+      if (!wardResult && data.area_name) {
+        const area = String(data.area_name).trim();
+        const ward = await this.prisma.ward.findFirst({
+          where: {
+            OR: [
+              { name_en: { contains: area, mode: 'insensitive' } },
+              { name_ta: { contains: area, mode: 'insensitive' } },
+            ],
+          },
+        });
+        if (ward) {
+          wardResult = {
+            ward_number: ward.ward_number,
+            name_en: ward.name_en,
+            name_ta: ward.name_ta,
+          };
+        }
+      }
+
+      const isFound = Boolean(poleResult || wardResult);
+
+      let msg = '';
+      if (poleResult) {
+        msg = `Pole ${poleResult.pole_number} is verified in Ward ${poleResult.ward_number || 'N/A'} (${poleResult.ward_name || ''}).`;
+      } else if (wardResult) {
+        msg = `Ward ${wardResult.ward_number} (${wardResult.name_en || ''}) is verified in Mettupalayam Municipality.`;
+      } else {
+        msg = 'No matching pole or ward found in live database.';
+      }
+
+      return {
+        success: true,
+        found: isFound,
+        pole_details: poleResult,
+        ward_details: wardResult,
+        message: msg,
+      };
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Lookup error: ${(err as Error).message}`);
+      return {
+        success: false,
+        found: false,
+        pole_details: null,
+        ward_details: null,
+        message: 'Database lookup error.',
+      };
+    }
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
   /** Clean and normalize digits from Exotel (strip quotes and whitespace). */
