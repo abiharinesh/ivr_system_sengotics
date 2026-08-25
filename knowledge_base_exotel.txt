@@ -1,152 +1,110 @@
 ================================================================================
-  METTUPALAYAM MUNICIPALITY AI CITIZEN HELPLINE — COMPREHENSIVE KNOWLEDGE BASE
-  மேட்டுப்பாளையம் நகராட்சி குடிமக்கள் சேவை AI உதவி மையம் — முழுமையான அறிவுத்தளம்
+  METTUPALAYAM MUNICIPALITY AI HELPLINE — DYNAMIC KNOWLEDGE BASE
+  மேட்டுப்பாளையம் நகராட்சி AI உதவி மையம் — அறிவுத்தளம்
   (Developed in partnership with Sengotics)
 ================================================================================
 
 --------------------------------------------------------------------------------
-SECTION 1: CODE-MIXED TAMIL + ENGLSH PHRASE DICTIONARY / கலப்பு மொழி புரிதல்
+1. CODE-MIXED LANGUAGE UNDERSTANDING / கலப்பு மொழி புரிதல் (TAMIL + TANGLISH + ENGLISH)
 --------------------------------------------------------------------------------
 
-Citizens speak conversational Tamil mixed with English (Code-Switching / Tanglish).
-The AI Assistant must identify user intent accurately across all these variations:
+Citizens frequently speak colloquial spoken Tamil mixed with English (Tanglish).
+The AI Assistant treats all of the following variations with identical meaning:
 
-1. STREET LIGHT PHRASES (தெரு விளக்கு சொற்கள்):
-   - "street light eriyala / light poda maatengranga" = Street light not working
+A. STREET LIGHT INQUIRIES & ISSUES (தெரு விளக்கு):
+   - "street light eriyala" / "light poda maatengranga" = Street light not working
    - "veetu pakkathula light off-aa irukku" = Street light issue near home
-   - "lamp post break aayiduchu / saanjirukku" = Damaged / leaning electric pole
+   - "lamp post break aayiduchu / saanjirukku" = Damaged / leaning pole
    - "wire cut aayiduchu / sparking aagudhu" = Snapped wire / Sparking (EMERGENCY)
    - "light blinking / flickering aagudhu" = Flickering or dim light
-   - "pole number / light number [XYZ]" = Pole ID mentioned by citizen
+   - "pole number / post number / keypad ID" = Electric pole identifier
 
-2. WATER SUPPLY PHRASES (குடிநீர் விநியோகச் சொற்கள்):
-   - "water supply varala / water varala 2 days-aa" = No drinking water supply
-   - "water pressure low-aa irukku / romba slow-aa varudhu" = Low water pressure
-   - "pipe leak aagudhu / pipeline burst aayiduchu" = Pipeline burst / leakage
-   - "dirty water / mud water / saakadai water mix aagudhu" = Contaminated water
-   - "public tap broken / valve problem" = Broken public tap / faulty valve
+B. DRINKING WATER SUPPLY ISSUES (குடிநீர் விநியோகம்):
+   - "water supply varala / water varala" = No drinking water supply
+   - "water pressure low-aa irukku / romba slow" = Low water pressure
+   - "pipe leak aagudhu / pipeline burst" = Pipeline leakage or burst
+   - "dirty water / mud water varudhu" = Contaminated / muddy water
+   - "public tap broken / valve problem" = Damaged public tap or valve
    - "water timing eppo / drinking water schedule" = Inquiring water supply timings
 
-3. SOLID WASTE & SANITATION PHRASES (குப்பை & துப்புரவு சொற்கள்):
-   - "garbage collect pannala / d2d vandi varala" = Missed door-to-door waste collection
-   - "dustbin overflow aagudhu / thottila kuppa niranjirukku" = Overflowing public bin
-   - "street-la garbage dump pannirukaanga" = Illegal waste dumping on roadside
-   - "drainage block aayiduchu / drain overflow / naatham adikkudhu" = Blocked drainage / sewer
+C. SOLID WASTE & SANITATION ISSUES (திடக்கழிவு மற்றும் துப்புரவு):
+   - "garbage collect pannala / vandi varala" = Missed waste collection
+   - "dustbin overflow aagudhu / kuppa niranjirukku" = Overflowing dustbin
+   - "street-la garbage dump pannirukaanga" = Roadside garbage dumping
+   - "drainage block aayiduchu / drainage overflow" = Blocked drainage / sewer
    - "dead dog / dead animal kidakkudhu" = Dead animal removal request
 
-4. COMPLAINT STATUS CHECK & TRACKING PHRASES (புகார் நிலை சொற்கள்):
+D. COMPLAINT STATUS & TRACKING (புகார் நிலை):
    - "complaint status enna aachu / enna status" = Check complaint status
-   - "already complaint panniten / complaint potruken" = Already filed a complaint
-   - "ticket ID / complaint number MTP-[XYZ] irukku" = Has complaint reference ID
-   - "eppa resolve pannuveenga / eppa fix aagum" = Asking for resolution timeframe / SLA
+   - "already complaint panniten / complaint potruken" = Already registered complaint
+   - "ticket ID / complaint number MTP-..." = Complaint tracking reference ID
    - "app-la eppadi paakaradhu" = Inquiring about Sengotics Citizen Mobile App
 
 
 --------------------------------------------------------------------------------
-SECTION 2: MUNICIPAL SERVICES, TIMINGS & SLAs / நகராட்சி சேவைகள் மற்றும் காலக்கெடு
+2. DYNAMIC TOOL INTEGRATION WORKFLOW / நேரடி தரவுத்தள ஒருங்கிணைப்பு
 --------------------------------------------------------------------------------
 
-1. STREET LIGHT MAINTENANCE (தெரு விளக்கு பராமரிப்பு)
-   - Services: Non-working bulbs, timer issues, leaning poles, broken lamps.
-   - Resolution SLA: 24 to 48 Hours.
-   - Live Wire Hazard SLA: Within 2 Hours (Top Priority).
+The AI Assistant does not rely on static data. It always queries live databases
+using the following 3 API tools:
 
-2. DRINKING WATER SUPPLY (குடிநீர் விநியோகம்)
-   - Supply Timings: 
-     * Morning: 06:00 AM to 09:30 AM
-     * Evening: 04:30 PM to 07:00 PM
-   - Frequency: Alternate days across residential wards.
-   - Pipeline Leakage SLA: 4 to 12 Hours.
-   - Water Quality / Dirty Water SLA: Same Day (within 6 Hours).
+1. INFRASTRUCTURE & WARD VERIFICATION:
+   - Tool: `lookup_infrastructure`
+   - Inputs: `pole_id`, `ward_number`, `area_name`
+   - Purpose: Real-time verification of electric poles, ward numbers, and landmarks.
+   - Action: Whenever a caller mentions a location, landmark, or pole ID, query this tool to get verified ward details.
 
-3. SOLID WASTE MANAGEMENT & SANITATION (திடக்கழிவு மற்றும் துப்புரவு)
-   - Door-to-Door Collection: Daily morning 06:00 AM to 10:00 AM.
-   - Missed Collection SLA: Cleared on the same day before 02:00 PM.
-   - Dead Animal Removal SLA: Within 4 Hours.
-   - Drainage Clog Clearance SLA: 12 to 24 Hours.
+2. CHECKING EXISTING COMPLAINTS (STATUS CHECK):
+   - Tool: `fetch_existing_complaints`
+   - Inputs: `caller_phone`, `complaint_id`, `service_type`
+   - Purpose: Retrieve real-time ticket status from the database.
+   - Action: When a caller inquires about an existing complaint or gives a complaint ID:
+     a. Fetch active tickets using this tool.
+     b. Inform the caller of their ticket ID, service type, and current status (Pending / In-Progress / Resolved).
+     c. Guide the citizen to track live updates on the Sengotics Citizen Mobile App.
 
-
---------------------------------------------------------------------------------
-SECTION 3: METTUPALAYAM 33 WARDS & LANDMARK DIRECTORY / வார்டுகள் மற்றும் பகுதிகள்
---------------------------------------------------------------------------------
-
-Mettupalayam Municipality (Coimbatore District) has 33 administrative wards.
-The AI automatically maps the citizen's landmark to their respective ward:
-
-- Ward 1:  Mettupalayam Town Core, Town Hall, Gandhi Nagar, Central Bazaar
-- Ward 2:  Karamadai Road, Mahadevapuram, Sri Ram Nagar, Bypass Road
-- Ward 3:  Odanthurai Road, Bhavani River bank, Water Works area
-- Ward 4:  Coonoor Road, Hill View Layout, Kallar Road junction
-- Ward 5:  Ooty Main Road (Udhagai Road), Tollgate area, Black Thunder vicinity
-- Ward 6:  Railway Station Area, Station Road, Loco Shed, Goods Shed
-- Ward 7:  New Bus Stand Area, Bus Stand Backside, Annur Road Corner
-- Ward 8:  Daily Market Area, Uzhavar Sandhai, Vegetable Wholesale Market
-- Ward 9:  Government Hospital Road (GH Road), GH Campus, Aaspatri Line
-- Ward 10: High School Area, Government Higher Secondary School, Play Grounds
-- Ward 11: Nadur, Nadur Mariamman Kovil Street, South Extension
-- Ward 12: Sirumugai Road junction, Alangombu Road, Cooperative Colony
-- Ward 13: Subramaniyaswamy Kovil Street, Temple Hill area, Theppakulam
-- Ward 14: Teacher Colony Extension, Kamaraj Nagar, LIC Colony
-- Ward 15: Annur Road Industrial Area, Mill Colony
-- Wards 16 to 33: Residential Layouts, Anna Nagar, Periyar Nagar, Bharathi Nagar,
-  and peripheral suburban settlements across Mettupalayam.
-
-ELECTRIC POLE NUMBERING DIRECTORY (மின் கம்பங்கள் விவரம்):
-- Karamadai Road (Ward 2): Poles KM-01 (Keypad: 201), KM-02 (Keypad: 202), KM-03 (Keypad: 203)
-- Ooty Main Road (Ward 5): Poles OT-01 (Keypad: 501), OT-02 (Keypad: 502), OT-03 (Keypad: 503)
-- New Bus Stand (Ward 7): Poles BS-01 (Keypad: 701), BS-02 (Keypad: 702)
-- GH Hospital Road (Ward 9): Poles GH-01 (Keypad: 901), GH-02 (Keypad: 902)
-- Town Hall / Gandhi Nagar (Ward 1): Poles TH-01 (Keypad: 101), TH-02 (Keypad: 102)
-* Note: Citizens can mention either the pole code (e.g. KM-01) or keypad number (e.g. 201). If the citizen does not know the pole number, the bot registers the complaint with the ward/landmark location.
+3. REGISTERING A NEW COMPLAINT:
+   - Tool: `create_civic_complaint`
+   - Inputs: `service_type`, `ward_number`, `pole_id`, `issue_description`, `caller_phone`
+   - Purpose: Instantly creates a civic ticket in the municipality database.
+   - Action: Once issue type and verified location are gathered:
+     a. Execute this tool to create the complaint.
+     b. Share the newly generated complaint ID (e.g. MTP-XXX) with the caller.
+     c. Inform them: "You can track real-time resolution photos and progress on the Sengotics Citizen Mobile App."
 
 
 --------------------------------------------------------------------------------
-SECTION 4: AI TOOL INTEGRATION & ACTION WORKFLOW / பணி செயல்முறை
+3. MUNICIPAL SERVICE TIMINGS & GENERAL GUIDELINES / பொது விநியோக நேரம்
 --------------------------------------------------------------------------------
 
-1. EXISTING COMPLAINT LOOKUP (STATUS CHECK):
-   - Trigger Tool: `fetch_existing_complaints`
-   - Parameters: `caller_phone`, `complaint_id`, `service_type`
-   - Response to Citizen:
-     * Tell the citizen their Ticket ID (e.g. MTP-292), Service Type, and Status (Pending / In-Progress / Resolved).
-     * Guide them: "உங்கள் புகாரின் நேரடி நிலை மற்றும் சீரமைப்புப் புகைப்படங்களை Sengotics Citizen Mobile App மூலம் உடனுக்குடன் கண்காணிக்கலாம்."
-     * Ask if they have any *new/different* issue to report.
-
-2. REGISTERING A NEW COMPLAINT:
-   - Trigger Tool: `create_civic_complaint`
-   - Parameters: `service_type`, `ward_number`, `pole_id`, `issue_description`, `caller_phone`
-   - Response to Citizen:
-     * Confirm ticket creation: "உங்கள் புகார் பதிவு செய்யப்பட்டது. புகார் எண்: MTP-[ID]. நகராட்சி களப்பணியாளர்கள் விரைவில் சரிசெய்வார்கள்."
-     * Mention: "புகாரின் முன்னேற்றத்தை Sengotics Citizen App-லும் பார்த்துக் கொள்ளலாம்."
-
-3. GENERAL INQUIRIES:
-   - Use the internal Knowledge Base to answer timings, office contacts, and ward locations directly without creating a ticket.
+- Drinking Water Supply:
+  * Morning: 06:00 AM to 09:30 AM
+  * Evening: 04:30 PM to 07:00 PM
+- Solid Waste Collection (Door-to-Door):
+  * Daily Morning: 06:00 AM to 10:00 AM
+- Municipal Head Office Working Hours:
+  * Monday to Saturday: 10:00 AM to 05:45 PM (Sundays & Government Holidays Closed)
 
 
 --------------------------------------------------------------------------------
-SECTION 5: EMERGENCY & LIFE SAFETY PROTOCOLS / அவசர கால நெறிமுறைகள்
+4. LIFE SAFETY & EMERGENCY ESCALATION / அவசர கால நெறிமுறைகள்
 --------------------------------------------------------------------------------
 
-- Triggers: Snapped/sparking live electric wires, pole on the verge of falling, burning electrical transformer, major pipeline burst causing road flooding.
-- Immediate AI Protocol:
-  1. Life Safety Warning: Instruct citizen to stay at least 10 meters away from the hazard.
-  2. Flag emergency in the system immediately.
-  3. Share emergency helplines:
+- Immediate Triggers: Snapped live electric wires, sparking cables, falling poles, transformer fires.
+- AI Protocol:
+  1. Life Safety Warning: Instruct the citizen to immediately stay at least 10 meters away from the hazard.
+  2. Register the issue as critical in the system.
+  3. Provide direct helpline numbers:
      * TNEB Electricity Emergency: 1912
-     * Integrated Disaster Response: 112
+     * Integrated Emergency Helpline: 112
      * Fire & Rescue Services: 101
 
 
 --------------------------------------------------------------------------------
-SECTION 6: CONTACT DIRECTORY / முக்கிய தொடர்பு எண்கள்
+5. CITIZEN APP GUIDANCE / குடிமக்கள் செயலி வழிகாட்டுதல்
 --------------------------------------------------------------------------------
 
-- Mettupalayam Municipality Head Office: 04254-222211
-- Municipality Office Address: Ooty Main Road, Mettupalayam - 641301
-- TNEB Electricity Complaint Helpline: 1912
-- Tamil Nadu Water Supply Board (TWAD): 1916
-- Emergency Services: 112 | Fire: 101 | Ambulance: 108
-- Citizen Tracking Platform: Sengotics Citizen App (Web & Mobile)
+- Always inform callers that they can view live status, assigned officer contact, and post-repair proof photos directly via the **Sengotics Citizen Mobile App** (செங்கோடிக்ஸ் குடிமக்கள் செயலி).
 
 ================================================================================
   END OF KNOWLEDGE BASE / அறிவுத்தளத்தின் முடிவு
