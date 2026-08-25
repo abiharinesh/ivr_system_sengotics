@@ -1,0 +1,123 @@
+================================================================================
+  METTUPALAYAM MUNICIPALITY AI HELPLINE — KNOWLEDGE BASE
+  மேட்டுப்பாளையம் நகராட்சி குடிமக்கள் சேவை AI உதவி மையம் — அறிவுத்தளம்
+  (Developed by Sengotics)
+================================================================================
+
+SECTION 1: CODE-MIXED TAMIL + ENGLISH DICTIONARY / கலப்பு மொழி புரிதல்
+================================================================================
+
+Citizens commonly speak colloquial Tamil mixed with English terms (Code-Switching).
+The AI must treat all the following variations as identical:
+
+1. STREET LIGHT PHRASES (தெரு விளக்கு சொற்கள்):
+   - "street light eriyala" / "ஸ்ட்ரீட் லைட் எரியல" = Street light not working
+   - "veetu pakkathula light eriyala" / "வீட்டு பக்கத்துல லைட் எரியல" = Street light issue near home
+   - "lamp post break aayiduchu" / "லேம்ப் போஸ்ட் பிரேக் ஆயிடுச்சு" = Damaged electric pole
+   - "wire dharala thoongudhu / cut aayiduchu" / "வயர் கட் ஆயிடுச்சு" = Broken wire (Emergency)
+   - "light blinking / flickering aagudhu" / "லைட் பிளிங்க் ஆகுது" = Flickering light
+   - "pole number / light number" = Pole ID
+
+2. WATER SUPPLY PHRASES (குடிநீர் விநியோகச் சொற்கள்):
+   - "water supply varala" / "வாட்டர் சப்ளை வரல" = No water supply
+   - "water pressure low-aa irukku" / "வாட்டர் பிரஷர் லோ-வா இருக்கு" = Low pressure
+   - "pipe leak aagudhu / pipeline burst" / "பைப் லீக் ஆகுது" = Pipeline leakage
+   - "dirty water / mud water varudhu" / "டர்டி வாட்டர் வருது" = Contaminated water
+   - "public tap broken" / "பப்ளிக் டேப் உடைஞ்சு போச்சு" = Broken public tap
+
+3. GARBAGE & SANITATION PHRASES (குப்பை & துப்புரவு சொற்கள்):
+   - "garbage collect pannala / vandi varala" / "கார்பேஜ் கலெக்ட் பண்ணல" = Missed waste collection
+   - "dustbin overflow aagudhu" / "டஸ்ட்பின் ஓவர்ஃப்ளோ ஆகுது" = Overflowing bin
+   - "street-la garbage dump pannirukaanga" / "குப்பை டம்பிங்" = Illegal garbage dump
+   - "drainage block aayiduchu / drainage overflow" / "டிரைனேஜ் பிளாக்" = Blocked drainage
+   - "dead dog / dead animal irukku" = Dead animal removal request
+
+4. LOCATION & WARD PHRASES:
+   - "veetu pakkathula" = Near my house / residence
+   - "bus stand backside / near bus stand" = Ward 7
+   - "GH road / hospital pakkam" = Ward 9
+   - "Ooty road / tollgate area" = Ward 5
+   - "station road / railway station" = Ward 6
+   - "Karamadai road / bypass" = Ward 2
+
+
+SECTION 2: MUNICIPAL SERVICES & CAPABILITIES / நகராட்சி சேவைகள்
+================================================================================
+
+1. STREET LIGHT MAINTENANCE (தெரு விளக்கு பராமரிப்பு)
+- What we resolve: Non-working lights, dim/flickering lights, day-burning lights, leaning/damaged poles, sparking/snapped wires (emergency).
+- SLA: Normal fixes 24-48 hours; Dangerous wires within 2 hours.
+
+2. WATER SUPPLY SERVICES (குடிநீர் விநியோகம்)
+- What we resolve: No water supply, low pressure, dirty/muddy water, pipeline leaks, broken public taps.
+- Regular Timings: Morning 6:00 AM to 9:30 AM | Evening 4:30 PM to 7:00 PM.
+- SLA: Pipeline burst within 4-12 hours; Normal issues 24-48 hours.
+
+3. SOLID WASTE MANAGEMENT & SANITATION (திடக்கழிவு & துப்புரவு பணி)
+- What we resolve: Missed garbage collection, overflowing dustbins, street dumping, dead animal removal, drainage block.
+- Door-to-Door Timing: Daily morning 6:00 AM to 10:00 AM.
+- SLA: Dead animal within 4 hours; Missed waste cleared same day.
+
+
+SECTION 3: METTUPALAYAM WARD DIRECTORY & LANDMARKS / வார்டுகள் விவரம்
+================================================================================
+
+Municipality: Mettupalayam Municipality (33 Wards)
+District: Coimbatore | Taluk: Mettupalayam
+
+- Ward 1:  Mettupalayam Town, Town Hall, Gandhi Nagar, Central Bazaar
+- Ward 2:  Karamadai Road, Mahadevapuram, Sri Ram Nagar
+- Ward 3:  Odanthurai Road, Bhavani River bank
+- Ward 4:  Coonoor Road, Hill View Layout, Kallar Road junction
+- Ward 5:  Ooty Road (Udhagai Road), Tollgate area, Black Thunder
+- Ward 6:  Railway Station Area, Station Road, Loco Shed
+- Ward 7:  Bus Stand Area, New Bus Stand, Annur Road Corner
+- Ward 8:  Daily Market Area, Uzhavar Sandhai, Vegetable Wholesale Market
+- Ward 9:  Government Hospital Road, GH Campus, Aaspatri Line
+- Ward 10: High School Area, Government Higher Secondary School
+- Ward 11: Nadur, Nadur Mariamman Kovil Street
+- Ward 12: Sirumugai Road junction, Alangombu Road
+- Ward 13: Subramaniyaswamy Kovil Street, Temple Hill area
+- Ward 14: Teacher Colony Extn, Kamaraj Nagar
+- Ward 15: Annur Road Industrial Area
+- Wards 16 to 33: Residential Nagar layouts across Mettupalayam.
+
+
+SECTION 4: EMERGENCY & LIFE SAFETY PROTOCOLS / அவசர கால நெறிமுறைகள்
+================================================================================
+
+- Snapped / sparking live wires, burning transformer, tilting pole about to fall.
+- AI Action: Warn caller to stay 10m away, flag as critical emergency, share TNEB Helpline: 1912 | Emergency: 112.
+
+
+SECTION 5: CONTACT DIRECTORY / தொடர்பு எண்கள்
+================================================================================
+
+- Mettupalayam Municipality Office: 04254-222211
+- Office Address: Ooty Main Road, Mettupalayam - 641301
+- TNEB Electricity Emergency: 1912
+- Disaster & Emergency: 112 | Fire: 101 | Ambulance: 108
+
+SECTION 6: COMPLAINT STATUS CHECK & CITIZEN APP TRACKING / புகார் நிலை அறிதல்
+================================================================================
+
+1. COMPLAINT STATUS PHRASES (புகார் நிலை சொற்கள்):
+   - "complaint status enna aachu" / "புகார் நிலை என்ன ஆச்சு" = Check complaint status
+   - "already complaint panniten / complaint potruken" / "ஏற்கனவே புகார் கொடுத்துள்ளேன்" = Already filed complaint
+   - "complaint number / ticket ID irukku" = Has complaint ID (e.g. MTP-42)
+   - "eppa resolve aagum / eppa fix pannuveenga" = When will it be fixed?
+
+2. BOT BEHAVIOR FOR EXISTING COMPLAINTS:
+   - When a citizen asks about a previously reported issue or gives a complaint ID:
+     1. Use the `fetch_existing_complaints` tool with their phone number or complaint ID.
+     2. If found, inform them of the complaint ID (e.g., MTP-12), status (Pending/In-Progress/Resolved), and ward.
+     3. Inform the citizen: "You can track the live progress, photos, and updates of your complaint anytime using the Sengotics Citizen App (செங்கோடிக்ஸ் குடிமக்கள் செயலி)."
+     4. If they need to register a completely DIFFERENT new issue, then use `create_civic_complaint`.
+
+3. CITIZEN MOBILE APP GUIDANCE:
+   - "Ungal pugaarai Sengotics Citizen App moolam live-aaga track seyyalaam."
+   - "உங்கள் புகாரின் தற்போதைய நிலையை செங்கோடிக்ஸ் குடிமக்கள் செயலி (Sengotics App) மூலம் எளிதாக தெரிந்து கொள்ளலாம்."
+
+================================================================================
+  END OF KNOWLEDGE BASE / அறிவுத்தளத்தின் முடிவு
+================================================================================

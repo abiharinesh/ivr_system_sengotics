@@ -414,6 +414,132 @@ export class IvrService {
     };
   }
 
+  // ── BOT AGENT TOOL: Fetch Existing Complaints ────────────────────────────
+  async fetchBotComplaints(data: {
+    caller_phone?: string;
+    complaint_id?: string | number;
+    service_type?: string;
+  }): Promise<{
+    success: boolean;
+    total_complaints: number;
+    complaints: Array<{
+      complaint_id: string;
+      service_type: string;
+      status: string;
+      ward_number: string | number | null;
+      description: string;
+      created_date: string;
+      is_resolved: boolean;
+    }>;
+    message: string;
+    tracking_info: string;
+  }> {
+    this.logger.log(`[BOT-TOOL] Fetching complaints for: ${JSON.stringify(data)}`);
+
+    try {
+      const whereConditions: any[] = [];
+
+      // 1. If complaint_id is provided, search by ID
+      if (data.complaint_id) {
+        const cleanId = parseInt(
+          String(data.complaint_id).replace(/\D/g, ''),
+          10,
+        );
+        if (!isNaN(cleanId)) {
+          whereConditions.push({ id: cleanId });
+        }
+      }
+
+      // 2. If caller_phone is provided, search by guest_phone or description containing phone
+      if (data.caller_phone) {
+        const phone = String(data.caller_phone).trim();
+        const digitsOnly = phone.replace(/\D/g, '');
+        const last10Digits = digitsOnly.slice(-10);
+
+        whereConditions.push({
+          OR: [
+            { guest_phone: { contains: last10Digits || phone } },
+            { description: { contains: last10Digits || phone } },
+          ],
+        });
+      }
+
+      // 3. Optional service type filter
+      if (data.service_type) {
+        const rawService = data.service_type.toLowerCase();
+        let serviceType = rawService;
+        if (rawService.includes('light') || rawService.includes('street') || rawService.includes('விளக்கு')) {
+          serviceType = 'street_light';
+        } else if (rawService.includes('water') || rawService.includes('தண்ணீர்') || rawService.includes('குடிநீர்')) {
+          serviceType = 'water';
+        } else if (rawService.includes('garb') || rawService.includes('waste') || rawService.includes('குப்பை')) {
+          serviceType = 'garbage';
+        } else if (rawService.includes('drain') || rawService.includes('சாக்கடை')) {
+          serviceType = 'drainage';
+        }
+        whereConditions.push({
+          complaint_type: { contains: serviceType, mode: 'insensitive' },
+        });
+      }
+
+      // Query database
+      const records = await this.prisma.complaint.findMany({
+        where: whereConditions.length > 0 ? { OR: whereConditions } : {},
+        orderBy: { created_at: 'desc' },
+        take: 5,
+        include: {
+          ward: {
+            select: { ward_number: true, name_en: true, name_ta: true },
+          },
+        },
+      });
+
+      const complaintsList = records.map((c) => ({
+        complaint_id: `MTP-${c.id}`,
+        service_type: c.complaint_type || 'general',
+        status: c.status || 'pending',
+        ward_number: c.ward?.ward_number ?? c.ward_number ?? null,
+        description: c.description || 'No description provided',
+        created_date: c.created_at.toISOString().split('T')[0],
+        is_resolved: c.status?.toLowerCase() === 'resolved' || c.status?.toLowerCase() === 'closed',
+      }));
+
+      const count = complaintsList.length;
+
+      let message = '';
+      if (count > 0) {
+        const activeComplaints = complaintsList.filter((c) => !c.is_resolved);
+        if (activeComplaints.length > 0) {
+          const latest = activeComplaints[0];
+          message = `Found ${count} existing complaint(s). Most recent active complaint is #${latest.complaint_id} for ${latest.service_type} in Ward ${latest.ward_number ?? 'N/A'}, currently with status: ${latest.status}.`;
+        } else {
+          message = `Found ${count} existing complaint(s), all of which are already resolved.`;
+        }
+      } else {
+        message = 'No existing complaints found for this caller/ID.';
+      }
+
+      return {
+        success: true,
+        total_complaints: count,
+        complaints: complaintsList,
+        message,
+        tracking_info:
+          'Citizens can also track live progress and submit feedback via the Sengotics Citizen Portal / App.',
+      };
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error fetching complaints: ${(err as Error).message}`);
+      return {
+        success: true,
+        total_complaints: 0,
+        complaints: [],
+        message: 'No existing complaints found.',
+        tracking_info:
+          'Citizens can track complaints on the Sengotics Citizen Mobile App.',
+      };
+    }
+  }
+
   // ── Private Helpers ─────────────────────────────────────────────────────────
 
   /** Clean and normalize digits from Exotel (strip quotes and whitespace). */

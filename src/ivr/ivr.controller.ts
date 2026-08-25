@@ -403,5 +403,62 @@ export class IvrController {
       });
     }
   }
+
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  //   BOT AGENT TOOL: FETCH COMPLAINTS  —  /api/ivr/bot/fetch-complaints
+  //   Invoked directly as an OpenAPI tool by Exotel AI Voicebot.
+  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  @Get('bot/fetch-complaints')
+  async handleBotFetchComplaintsGet(
+    @Query()
+    query: {
+      caller_phone?: string;
+      complaint_id?: string;
+      service_type?: string;
+    },
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`[BOT-TOOL] GET /api/ivr/bot/fetch-complaints called: ${JSON.stringify(query)}`);
+      const result = await this.ivrService.fetchBotComplaints(query);
+      return res.status(200).json(result);
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error fetching complaints: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: true,
+        total_complaints: 0,
+        complaints: [],
+        message: 'No existing complaints found.',
+        tracking_info: 'You can track complaints on the Sengotics citizen app.',
+      });
+    }
+  }
+
+  @Post('bot/fetch-complaints')
+  async handleBotFetchComplaintsPost(
+    @Body()
+    body: {
+      caller_phone?: string;
+      complaint_id?: string;
+      service_type?: string;
+    },
+    @Res() res: Response,
+  ) {
+    try {
+      this.logger.log(`[BOT-TOOL] POST /api/ivr/bot/fetch-complaints called: ${JSON.stringify(body)}`);
+      const result = await this.ivrService.fetchBotComplaints(body);
+      return res.status(200).json(result);
+    } catch (err) {
+      this.logger.error(`[BOT-TOOL] Error fetching complaints: ${(err as Error).message}`);
+      return res.status(200).json({
+        success: true,
+        total_complaints: 0,
+        complaints: [],
+        message: 'No existing complaints found.',
+        tracking_info: 'You can track complaints on the Sengotics citizen app.',
+      });
+    }
+  }
 }
 
