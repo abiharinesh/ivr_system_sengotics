@@ -345,16 +345,66 @@ export class IvrService {
       }
     }
 
-    // 3. Normalize service type
-    const rawService = (data.service_type || 'general').toLowerCase();
+    // 3. Normalize & Auto-Correct service type from both service_type and issue_description
+    const rawService = (data.service_type || '').toLowerCase();
+    const rawDesc = (data.issue_description || '').toLowerCase();
+    const combinedText = `${rawService} ${rawDesc}`;
+
     let serviceType = 'general';
-    if (rawService.includes('light') || rawService.includes('street') || rawService.includes('விளக்கு')) {
+
+    // Priority 1: Street Light keywords (STRICT)
+    if (
+      combinedText.includes('light') ||
+      combinedText.includes('street') ||
+      combinedText.includes('விளக்கு') ||
+      combinedText.includes('லைட்') ||
+      combinedText.includes('bulb') ||
+      combinedText.includes('பல்பு') ||
+      combinedText.includes('pole') ||
+      combinedText.includes('போஸ்ட்') ||
+      combinedText.includes('கம்பம்') ||
+      combinedText.includes('lamp') ||
+      combinedText.includes('eriyala') ||
+      combinedText.includes('எரியல') ||
+      combinedText.includes('வெளிச்சம்') ||
+      combinedText.includes('கரண்ட்')
+    ) {
       serviceType = 'street_light';
-    } else if (rawService.includes('water') || rawService.includes('தண்ணீர்') || rawService.includes('குடிநீர்')) {
+    } 
+    // Priority 2: Water Supply keywords
+    else if (
+      combinedText.includes('water') ||
+      combinedText.includes('தண்ணீர்') ||
+      combinedText.includes('தண்ணி') ||
+      combinedText.includes('குடிநீர்') ||
+      combinedText.includes('pipe') ||
+      combinedText.includes('பைப்') ||
+      combinedText.includes('leak') ||
+      combinedText.includes('கசிவு') ||
+      combinedText.includes('pressure') ||
+      combinedText.includes('டேப்') ||
+      combinedText.includes('குழாய்')
+    ) {
       serviceType = 'water';
-    } else if (rawService.includes('garb') || rawService.includes('waste') || rawService.includes('குப்பை')) {
+    } 
+    // Priority 3: Garbage keywords
+    else if (
+      combinedText.includes('garb') ||
+      combinedText.includes('waste') ||
+      combinedText.includes('குப்பை') ||
+      combinedText.includes('trash') ||
+      combinedText.includes('dustbin') ||
+      combinedText.includes('தொட்டி')
+    ) {
       serviceType = 'garbage';
-    } else if (rawService.includes('drain') || rawService.includes('சாக்கடை')) {
+    } 
+    // Priority 4: Drainage keywords
+    else if (
+      combinedText.includes('drain') ||
+      combinedText.includes('சாக்கடை') ||
+      combinedText.includes('கழிவுநீர்') ||
+      combinedText.includes('அடைப்பு')
+    ) {
       serviceType = 'drainage';
     }
 
