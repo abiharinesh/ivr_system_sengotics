@@ -719,58 +719,131 @@ export class IvrService {
 
   // ── BOT WEBHOOK: Handle Session End (Save Recording & Transcript) ────────
   async handleBotSessionEnd(payload: any): Promise<{ success: boolean }> {
-    this.logger.log(`[BOT-WEBHOOK] Session end received: ${JSON.stringify(payload).slice(0, 300)}...`);
+    this.logger.log(`[BOT-WEBHOOK] Session end payload: ${JSON.stringify(payload)}`);
 
     try {
-      const callSid = payload.call_sid || payload.CallSid || payload.session_id || payload.call_id || `BOT-${Date.now()}`;
-      const recordingUrl = payload.recording_url || payload.RecordingUrl || payload.audio_url || null;
-      const callerPhone = payload.caller_phone || payload.caller_number || payload.From || payload.CallFrom || null;
+      // 1. Recursive helper to extract any recording URL in the payload
+      const findRecordingUrl = (obj: any): string | null => {
+        if (!obj) return null;
+        if (typeof obj === 'string') {
+          if (obj.includes('recordings.exotel.com') || (obj.startsWith('http') && (obj.endsWith('.mp3') || obj.endsWith('.wav')))) {
+            return obj;
+          }
+          return null;
+        }
+        if (typeof obj === 'object') {
+          for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (
+              key.toLowerCase().includes('recording') ||
+              key.toLowerCase().includes('audio') ||
+              key.toLowerCase().includes('media') ||
+              key.toLowerCase().includes('url')
+            ) {
+              if (typeof val === 'string' && val.startsWith('http')) {
+                return val;
+              }
+            }
+            const nested = findRecordingUrl(val);
+            if (nested) return nested;
+          }
+        }
+        return null;
+      };
 
-      // Extract transcript messages
-      let transcriptText = '';
-      if (Array.isArray(payload.conversation_transcript)) {
-        transcriptText = payload.conversation_transcript
-          .map((m: any) => `${m.role || m.sender || 'User'}: ${m.message || m.content || m.text || ''}`)
-          .join('\n');
-      } else if (typeof payload.transcript === 'string') {
-        transcriptText = payload.transcript;
-      } else if (payload.messages && Array.isArray(payload.messages)) {
-        transcriptText = payload.messages
-          .map((m: any) => `${m.role || 'User'}: ${m.content || m.text || ''}`)
-          .join('\n');
-      }
+      // 2. Recursive helper to extract conversation transcripts
+      const extractTranscript = (obj: any): string => {
+        if (!obj) return '';
+        if (typeof obj === 'string') return obj;
 
-      // 1. Create or update VoiceCall record
+        // Check for array of messages / turns / dialogue
+        const possibleArrays = [
+          obj.conversation_transcript,
+          obj.transcripts,
+          obj.transcript,
+          obj.messages,
+          obj.dialogue,
+          obj.turns,
+          obj.chat_history,
+          obj.history,
+          obj.data?.messages,
+          obj.data?.transcript,
+          obj.session?.messages,
+        ];
+
+        for (const arr of possibleArrays) {
+          if (Array.isArray(arr) && arr.length > 0) {
+            return arr
+              .map((item: any) => {
+                if (typeof item === 'string') return item;
+                const speaker = item.role || item.speaker || item.sender || (item.is_user ? 'Citizen' : 'AI Assistant');
+                const text = item.content || item.message || item.text || item.transcript || '';
+                return `${speaker}: ${text}`;
+              })
+              .join('\n');
+          }
+        }
+
+        if (typeof obj.transcript === 'string') return obj.transcript;
+        if (typeof obj.text === 'string') return obj.text;
+        if (typeof obj.summary === 'string') return obj.summary;
+
+        return '';
+      };
+
+      const callSid =
+        payload.call_sid ||
+        payload.CallSid ||
+        payload.session_id ||
+        payload.sessionId ||
+        payload.call_id ||
+        payload.id ||
+        `BOT-${Date.now()}`;
+
+      const recordingUrl = findRecordingUrl(payload);
+      const transcriptText = extractTranscript(payload) || 'Voicebot Call Completed';
+      const callerPhone =
+        payload.caller_phone ||
+        payload.caller_number ||
+        payload.phone ||
+        payload.From ||
+        payload.CallFrom ||
+        payload.caller ||
+        null;
+
+      // 3. Create or update VoiceCall record in database
       const voiceCall = await this.prisma.voiceCall.create({
         data: {
           call_sid: String(callSid),
           audio_url: recordingUrl,
-          transcript: transcriptText || 'Voicebot Call Completed',
-          transcript_english: payload.summary || transcriptText || null,
+          transcript: transcriptText,
+          transcript_english: payload.summary || payload.english_summary || null,
+          ai_extracted_json: payload,
           processing_status: 'completed',
           confidence_score: 1.0,
         },
       });
 
-      // 2. Link with IvrCall
+      // 4. Upsert IvrCall record
       if (callSid) {
         await this.prisma.ivrCall.upsert({
           where: { call_sid: String(callSid) },
           create: {
             call_sid: String(callSid),
-            caller_number: callerPhone,
+            caller_number: callerPhone ? String(callerPhone) : null,
             call_start_time: new Date(),
             call_end_time: new Date(),
             final_call_status: 'completed',
           },
           update: {
+            caller_number: callerPhone ? String(callerPhone) : undefined,
             call_end_time: new Date(),
             final_call_status: 'completed',
           },
         }).catch(() => null);
       }
 
-      // 3. Link audio_url to the most recent complaint for this phone number if not linked
+      // 5. Link recording to recent complaint if found
       if (recordingUrl && callerPhone) {
         const last10Digits = String(callerPhone).replace(/\D/g, '').slice(-10);
         if (last10Digits) {
