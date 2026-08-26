@@ -384,6 +384,25 @@ export class SuperAdminController {
     res.send(html);
   }
 
+  // ── IVR Voice Calls ────────────────────────────────────────────────────
+  @Get('voice-calls')
+  listVoiceCalls(
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.superAdminService.listVoiceCalls({
+      search: search?.trim() || undefined,
+      status: status?.trim() || undefined,
+      take: Math.min(Number(take) || 50, 200),
+    });
+  }
+
+  @Get('ivr-summary')
+  getIvrSummary() {
+    return this.superAdminService.getIvrSummary();
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────────
   @Get('dashboard/insights')
   getDashboardInsights() {

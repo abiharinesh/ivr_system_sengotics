@@ -1,5 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+
+/** Maximum time (ms) to wait for audio download from Exotel. */
+const AUDIO_PROXY_TIMEOUT_MS = 30_000;
 
 /**
  * Reads for the Voice & IVR operations screen.
@@ -10,7 +14,12 @@ import { PrismaService } from '../prisma/prisma.service';
  */
 @Injectable()
 export class IvrOperationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  private readonly logger = new Logger(IvrOperationsService.name);
+
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly configService: ConfigService,
+  ) {}
 
   /**
    * Recorded citizen calls, newest first.
@@ -56,8 +65,12 @@ export class IvrOperationsService {
           select: {
             id: true,
             status: true,
+            complaint_type: true,
             category: true,
+            description: true,
             urgency_level: true,
+            org_unit: { select: { id: true, name: true, tenant_id: true } },
+            ward: { select: { ward_number: true, name_en: true } },
           },
           take: 1,
         },
@@ -69,7 +82,7 @@ export class IvrOperationsService {
     const ivr = sids.length
       ? await this.prisma.ivrCall.findMany({
           where: { call_sid: { in: sids } },
-          select: { call_sid: true, caller_number: true, call_start_time: true },
+          select: { call_sid: true, caller_number: true, call_to: true, call_start_time: true, tenant_id: true },
         })
       : [];
     const bySid = new Map(ivr.map((i) => [i.call_sid, i]));
@@ -81,6 +94,7 @@ export class IvrOperationsService {
         id: c.id,
         call_sid: c.call_sid,
         caller_number: meta?.caller_number ?? null,
+        call_to: meta?.call_to ?? null,
         started_at: meta?.call_start_time ?? c.created_at,
         audio_url: c.audio_url,
         transcript: c.transcript,
@@ -91,8 +105,14 @@ export class IvrOperationsService {
         created_at: c.created_at,
         complaint_id: complaint?.id ?? null,
         complaint_status: complaint?.status ?? null,
-        complaint_category: complaint?.category ?? null,
+        complaint_category: complaint?.complaint_type ?? complaint?.category ?? null,
+        complaint_description: complaint?.description ?? null,
         urgency: complaint?.urgency_level ?? null,
+        org_unit_id: complaint?.org_unit?.id ?? null,
+        org_unit_name: complaint?.org_unit?.name ?? null,
+        ward_number: complaint?.ward?.ward_number ?? null,
+        ward_name: complaint?.ward?.name_en ?? null,
+        tenant_id: complaint?.org_unit?.tenant_id ?? meta?.tenant_id ?? null,
       };
     });
   }
@@ -231,6 +251,155 @@ export class IvrOperationsService {
       avg_confidence: avgConfidence._avg.confidence_score
         ? Number(avgConfidence._avg.confidence_score.toFixed(2))
         : null,
+    };
+  }
+
+  // ── Audio Proxy ─────────────────────────────────────────────────────────
+
+  /**
+   * Fetch the audio for a VoiceCall record, authenticating with Exotel
+   * credentials if needed. Returns { buffer, contentType } so the
+   * controller can stream it to the browser.
+   */
+  async getAudioStream(voiceCallId: number): Promise<{
+    buffer: Buffer;
+    contentType: string;
+    audioUrl: string;
+  }> {
+    const vc = await this.prisma.voiceCall.findUnique({
+      where: { id: voiceCallId },
+      select: { audio_url: true },
+    });
+
+    if (!vc?.audio_url) {
+      throw new NotFoundException(
+        `VoiceCall #${voiceCallId} not found or has no audio`,
+      );
+    }
+
+    const audioUrl = vc.audio_url;
+    const headers: Record<string, string> = {};
+
+    // Exotel recordings require Basic Auth
+    const exotelApiKey = this.configService.get<string>('EXOTEL_API_KEY');
+    const exotelApiToken = this.configService.get<string>('EXOTEL_API_TOKEN');
+
+    if (
+      exotelApiKey &&
+      exotelApiToken &&
+      audioUrl.includes('exotel')
+    ) {
+      const credentials = Buffer.from(
+        `${exotelApiKey}:${exotelApiToken}`,
+      ).toString('base64');
+      headers['Authorization'] = `Basic ${credentials}`;
+      this.logger.log(
+        `[AudioProxy] Fetching with Exotel auth: ${audioUrl.slice(0, 80)}…`,
+      );
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      AUDIO_PROXY_TIMEOUT_MS,
+    );
+
+    let response: Response;
+    try {
+      response = await fetch(audioUrl, {
+        headers,
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (!response.ok) {
+      throw new Error(
+        `Audio fetch failed: HTTP ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Determine content type from response or URL
+    let contentType =
+      response.headers.get('content-type') || 'audio/mpeg';
+    if (audioUrl.endsWith('.wav')) contentType = 'audio/wav';
+    else if (audioUrl.endsWith('.ogg')) contentType = 'audio/ogg';
+
+    return { buffer, contentType, audioUrl };
+  }
+
+  // ── Single Voice Call Detail ────────────────────────────────────────────
+
+  async getVoiceCallDetail(voiceCallId: number) {
+    const vc = await this.prisma.voiceCall.findUnique({
+      where: { id: voiceCallId },
+      select: {
+        id: true,
+        call_sid: true,
+        audio_url: true,
+        transcript: true,
+        transcript_english: true,
+        ai_extracted_json: true,
+        processing_status: true,
+        confidence_score: true,
+        attempt_number: true,
+        created_at: true,
+        complaints: {
+          select: {
+            id: true,
+            status: true,
+            complaint_type: true,
+            description: true,
+            urgency_level: true,
+            org_unit: { select: { id: true, name: true } },
+          },
+          take: 5,
+        },
+      },
+    });
+
+    if (!vc) {
+      throw new NotFoundException(`VoiceCall #${voiceCallId} not found`);
+    }
+
+    // Enrich with caller info from IvrCall
+    let callerNumber: string | null = null;
+    let callStartTime: Date | null = null;
+    if (vc.call_sid) {
+      const ivrCall = await this.prisma.ivrCall.findUnique({
+        where: { call_sid: vc.call_sid },
+        select: { caller_number: true, call_start_time: true },
+      });
+      callerNumber = ivrCall?.caller_number ?? null;
+      callStartTime = ivrCall?.call_start_time ?? null;
+    }
+
+    return {
+      id: vc.id,
+      call_sid: vc.call_sid,
+      caller_number: callerNumber,
+      started_at: callStartTime ?? vc.created_at,
+      audio_url: vc.audio_url,
+      has_audio: !!vc.audio_url,
+      transcript: vc.transcript,
+      transcript_english: vc.transcript_english,
+      ai_extracted_json: vc.ai_extracted_json,
+      status: vc.processing_status,
+      confidence: vc.confidence_score,
+      attempt: vc.attempt_number,
+      created_at: vc.created_at,
+      complaints: vc.complaints.map((c) => ({
+        id: c.id,
+        status: c.status,
+        complaint_type: c.complaint_type,
+        description: c.description,
+        urgency_level: c.urgency_level,
+        org_unit: c.org_unit,
+      })),
     };
   }
 }

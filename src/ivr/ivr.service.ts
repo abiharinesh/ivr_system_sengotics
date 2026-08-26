@@ -756,7 +756,7 @@ export class IvrService {
         if (!obj) return '';
         if (typeof obj === 'string') return obj;
 
-        // Check for array of messages / turns / dialogue
+        // Check for array of messages / turns / dialogue at various paths
         const possibleArrays = [
           obj.conversation_transcript,
           obj.transcripts,
@@ -766,9 +766,19 @@ export class IvrService {
           obj.turns,
           obj.chat_history,
           obj.history,
+          obj.conversation,
+          obj.conversation_history,
           obj.data?.messages,
           obj.data?.transcript,
+          obj.data?.conversation,
+          obj.data?.conversation_transcript,
           obj.session?.messages,
+          obj.session?.transcript,
+          obj.session?.conversation,
+          obj.result?.transcript,
+          obj.result?.messages,
+          obj.recording_details?.transcript,
+          obj.call_details?.transcript,
         ];
 
         for (const arr of possibleArrays) {
@@ -776,19 +786,80 @@ export class IvrService {
             return arr
               .map((item: any) => {
                 if (typeof item === 'string') return item;
-                const speaker = item.role || item.speaker || item.sender || (item.is_user ? 'Citizen' : 'AI Assistant');
-                const text = item.content || item.message || item.text || item.transcript || '';
+                const speaker = item.role || item.speaker || item.sender || item.from || (item.is_user ? 'Citizen' : 'AI Assistant');
+                const text = item.content || item.message || item.text || item.transcript || item.utterance || '';
                 return `${speaker}: ${text}`;
               })
               .join('\n');
           }
+          // Also handle if the value is a string (e.g. a single transcript text)
+          if (typeof arr === 'string' && arr.trim().length > 0) {
+            return arr.trim();
+          }
         }
 
-        if (typeof obj.transcript === 'string') return obj.transcript;
-        if (typeof obj.text === 'string') return obj.text;
-        if (typeof obj.summary === 'string') return obj.summary;
+        // Check for stringified JSON in transcript-like fields
+        for (const key of ['transcript', 'conversation', 'text', 'summary', 'conversation_transcript']) {
+          const val = obj[key];
+          if (typeof val === 'string' && val.trim().length > 0) {
+            // Try to parse as JSON array
+            try {
+              const parsed = JSON.parse(val);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed
+                  .map((item: any) => {
+                    if (typeof item === 'string') return item;
+                    const speaker = item.role || item.speaker || 'Unknown';
+                    const text = item.content || item.message || item.text || '';
+                    return `${speaker}: ${text}`;
+                  })
+                  .join('\n');
+              }
+            } catch {
+              // Not JSON, use as-is
+            }
+            return val.trim();
+          }
+        }
+
+        // Deep search for any conversation-like arrays in nested objects
+        for (const key of Object.keys(obj)) {
+          const val = obj[key];
+          if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'object') {
+            // Check if items look like dialogue turns
+            const first = val[0];
+            if (first.role || first.speaker || first.content || first.message || first.text) {
+              return val
+                .map((item: any) => {
+                  const speaker = item.role || item.speaker || item.sender || 'Unknown';
+                  const text = item.content || item.message || item.text || '';
+                  return `${speaker}: ${text}`;
+                })
+                .join('\n');
+            }
+          }
+          if (typeof val === 'object' && val !== null && !Array.isArray(val)) {
+            const nested = extractTranscript(val);
+            if (nested && nested.length > 10) return nested;
+          }
+        }
 
         return '';
+      };
+
+      // Build a structured summary from the payload when no transcript found
+      const buildPayloadSummary = (obj: any): string => {
+        const parts: string[] = [];
+        const interesting = ['service_type', 'issue_description', 'ward_number', 'pole_id',
+          'caller_phone', 'caller_number', 'call_status', 'status', 'duration', 'summary'];
+        for (const key of interesting) {
+          if (obj[key] != null && String(obj[key]).trim()) {
+            parts.push(`${key}: ${String(obj[key]).trim()}`);
+          }
+        }
+        return parts.length > 0
+          ? `AI Voicebot Session:\n${parts.join('\n')}`
+          : '';
       };
 
       const callSid =
@@ -801,7 +872,8 @@ export class IvrService {
         `BOT-${Date.now()}`;
 
       const recordingUrl = findRecordingUrl(payload);
-      const transcriptText = extractTranscript(payload) || 'Voicebot Call Completed';
+      const rawTranscript = extractTranscript(payload);
+      const transcriptText = rawTranscript || buildPayloadSummary(payload) || 'Voicebot Call Completed';
       const callerPhone =
         payload.caller_phone ||
         payload.caller_number ||

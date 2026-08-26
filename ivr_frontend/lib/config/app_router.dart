@@ -28,8 +28,6 @@ import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/use
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/complaint_management.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/ai_settings_screen.dart';
 import 'package:ivr_frontend/features/modules/document_templates/presentation/document_templates_settings_screen.dart';
-import 'package:ivr_frontend/features/modules/ivr_operations/presentation/voice_calls_screen.dart';
-import 'package:ivr_frontend/features/modules/ivr_operations/presentation/ivr_logs_screen.dart';
 import 'package:ivr_frontend/features/modules/insights/presentation/service_analytics_screen.dart';
 import 'package:ivr_frontend/features/modules/reports/presentation/report_generation_screen.dart';
 import 'package:ivr_frontend/features/roles/super_admin/presentation/screens/super_admin_pole_management.dart';
@@ -491,11 +489,11 @@ GoRouter createRouter(AuthBloc authBloc) {
           // Voice & IVR
           GoRoute(
             path: '/voice-calls',
-            builder: (context, state) => const VoiceCallsScreen(),
+            builder: (context, state) => const IvrOperationsHub(initialIndex: 0),
           ),
           GoRoute(
             path: '/ivr-logs',
-            builder: (context, state) => const IvrLogsScreen(),
+            builder: (context, state) => const IvrOperationsHub(initialIndex: 1),
           ),
           GoRoute(
             path: '/analytics',

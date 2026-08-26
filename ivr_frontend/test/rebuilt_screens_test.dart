@@ -52,6 +52,12 @@ class _FakeIvrRepo implements IvrOperationsRepository {
     if (fail) throw Exception('backend unreachable');
     return logs;
   }
+
+  @override
+  Future<Map<String, dynamic>> voiceCallDetail(int id) async {
+    if (fail) throw Exception('backend unreachable');
+    return {'id': id};
+  }
 }
 
 class _FakeDocRepo implements DocumentRepository {

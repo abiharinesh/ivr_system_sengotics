@@ -27,6 +27,7 @@ class VoiceCallRecord {
   final int id;
   final String? callSid;
   final String? callerNumber;
+  final String? callTo;
   final DateTime? startedAt;
   final String? audioUrl;
   final String? transcript;
@@ -37,12 +38,19 @@ class VoiceCallRecord {
   final int? complaintId;
   final String? complaintStatus;
   final String? complaintCategory;
+  final String? complaintDescription;
   final String? urgency;
+  final int? orgUnitId;
+  final String? orgUnitName;
+  final int? wardNumber;
+  final String? wardName;
+  final String? tenantId;
 
   const VoiceCallRecord({
     required this.id,
     required this.callSid,
     required this.callerNumber,
+    this.callTo,
     required this.startedAt,
     required this.audioUrl,
     required this.transcript,
@@ -53,7 +61,13 @@ class VoiceCallRecord {
     required this.complaintId,
     required this.complaintStatus,
     required this.complaintCategory,
+    this.complaintDescription,
     required this.urgency,
+    this.orgUnitId,
+    this.orgUnitName,
+    this.wardNumber,
+    this.wardName,
+    this.tenantId,
   });
 
   /// A call that produced a ticket is the outcome this system exists for.
@@ -63,6 +77,7 @@ class VoiceCallRecord {
         id: _int(j['id']),
         callSid: j['call_sid'] as String?,
         callerNumber: j['caller_number'] as String?,
+        callTo: j['call_to'] as String?,
         startedAt: _date(j['started_at']),
         audioUrl: j['audio_url'] as String?,
         transcript: j['transcript'] as String?,
@@ -73,7 +88,13 @@ class VoiceCallRecord {
         complaintId: j['complaint_id'] == null ? null : _int(j['complaint_id']),
         complaintStatus: j['complaint_status'] as String?,
         complaintCategory: j['complaint_category'] as String?,
+        complaintDescription: j['complaint_description'] as String?,
         urgency: j['urgency'] as String?,
+        orgUnitId: j['org_unit_id'] == null ? null : _int(j['org_unit_id']),
+        orgUnitName: j['org_unit_name'] as String?,
+        wardNumber: j['ward_number'] == null ? null : _int(j['ward_number']),
+        wardName: j['ward_name'] as String?,
+        tenantId: j['tenant_id'] as String?,
       );
 }
 
@@ -201,6 +222,11 @@ class IvrOperationsRepository {
         .toList();
   }
 
+  Future<Map<String, dynamic>> voiceCallDetail(int id) async {
+    final data = await _api.get('$_base/voice-calls/$id', forceRefresh: true);
+    return Map<String, dynamic>.from(data as Map);
+  }
+
   Future<List<IvrCallRecord>> calls({String? search}) async {
     final data = await _api.get(
       '$_base/calls',
@@ -212,3 +238,4 @@ class IvrOperationsRepository {
         .toList();
   }
 }
+

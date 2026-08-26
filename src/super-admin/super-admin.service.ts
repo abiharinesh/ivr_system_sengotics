@@ -952,6 +952,145 @@ export class SuperAdminService {
     return { message: 'API keys updated', ...results };
   }
 
+  // ── IVR Voice Calls (Super Admin) ──────────────────────────────────────
+
+  /**
+   * List all voice calls with full transcript, audio, and company/org info.
+   * Visible only to super admins in the dashboard.
+   */
+  async listVoiceCalls(params?: {
+    search?: string;
+    status?: string;
+    take?: number;
+  }) {
+    const { search, status, take = 50 } = params ?? {};
+
+    const calls = await this.prisma.voiceCall.findMany({
+      where: {
+        ...(status ? { processing_status: status } : {}),
+        ...(search
+          ? {
+              OR: [
+                { call_sid: { contains: search, mode: 'insensitive' as const } },
+                { transcript: { contains: search, mode: 'insensitive' as const } },
+                { transcript_english: { contains: search, mode: 'insensitive' as const } },
+              ],
+            }
+          : {}),
+      },
+      orderBy: { created_at: 'desc' },
+      take,
+      select: {
+        id: true,
+        call_sid: true,
+        audio_url: true,
+        transcript: true,
+        transcript_english: true,
+        ai_extracted_json: true,
+        processing_status: true,
+        confidence_score: true,
+        attempt_number: true,
+        created_at: true,
+        complaints: {
+          select: {
+            id: true,
+            status: true,
+            complaint_type: true,
+            description: true,
+            urgency_level: true,
+            org_unit: { select: { id: true, name: true, tenant_id: true } },
+            ward: { select: { ward_number: true, name_en: true } },
+          },
+          take: 3,
+        },
+      },
+    });
+
+    // Enrich with caller/IVR info
+    const sids = calls.map((c) => c.call_sid).filter((s): s is string => s != null);
+    const ivrCalls = sids.length
+      ? await this.prisma.ivrCall.findMany({
+          where: { call_sid: { in: sids } },
+          select: {
+            call_sid: true,
+            caller_number: true,
+            call_to: true,
+            call_start_time: true,
+            call_end_time: true,
+            tenant_id: true,
+          },
+        })
+      : [];
+    const bySid = new Map(ivrCalls.map((i) => [i.call_sid, i]));
+
+    return calls.map((c) => {
+      const ivrMeta = c.call_sid ? bySid.get(c.call_sid) : undefined;
+      const complaint = c.complaints[0] ?? null;
+      return {
+        id: c.id,
+        call_sid: c.call_sid,
+        caller_number: ivrMeta?.caller_number ?? null,
+        call_to: ivrMeta?.call_to ?? null,
+        started_at: ivrMeta?.call_start_time ?? c.created_at,
+        ended_at: ivrMeta?.call_end_time ?? null,
+        audio_url: c.audio_url,
+        has_audio: !!c.audio_url,
+        transcript: c.transcript,
+        transcript_english: c.transcript_english,
+        ai_extracted_json: c.ai_extracted_json,
+        status: c.processing_status,
+        confidence: c.confidence_score,
+        attempt: c.attempt_number,
+        created_at: c.created_at,
+        tenant_id: ivrMeta?.tenant_id ?? null,
+        // Complaint info
+        complaint_id: complaint?.id ?? null,
+        complaint_status: complaint?.status ?? null,
+        complaint_type: complaint?.complaint_type ?? null,
+        complaint_description: complaint?.description ?? null,
+        urgency: complaint?.urgency_level ?? null,
+        // Company/org info
+        org_unit_id: complaint?.org_unit?.id ?? null,
+        org_unit_name: complaint?.org_unit?.name ?? null,
+        ward_number: complaint?.ward?.ward_number ?? null,
+        ward_name: complaint?.ward?.name_en ?? null,
+      };
+    });
+  }
+
+  /** IVR dashboard summary counters for the super admin. */
+  async getIvrSummary() {
+    const since = new Date(Date.now() - 30 * 86400000);
+
+    const [totalCalls, recentCalls, withTicket, failed, transcribed, avgConf] =
+      await Promise.all([
+        this.prisma.ivrCall.count(),
+        this.prisma.ivrCall.count({ where: { created_at: { gte: since } } }),
+        this.prisma.ivrCallState.count({ where: { complaint_created: true } }),
+        this.prisma.ivrCallState.count({
+          where: {
+            OR: [{ phase1_status: 'failed' }, { phase2_status: 'failed' }],
+          },
+        }),
+        this.prisma.voiceCall.count({ where: { transcript: { not: null } } }),
+        this.prisma.voiceCall.aggregate({ _avg: { confidence_score: true } }),
+      ]);
+
+    return {
+      total_calls: totalCalls,
+      calls_last_30_days: recentCalls,
+      complaints_raised: withTicket,
+      containment_pct: totalCalls === 0
+        ? 0
+        : Math.round((withTicket / totalCalls) * 100),
+      failed_processing: failed,
+      transcribed,
+      avg_confidence: avgConf._avg.confidence_score
+        ? Number(avgConf._avg.confidence_score.toFixed(2))
+        : null,
+    };
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────────
 
   async getDashboardInsights() {

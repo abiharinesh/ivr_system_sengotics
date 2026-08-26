@@ -1,22 +1,27 @@
 import 'dart:js_interop';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:ivr_frontend/config/api_config.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
+import 'package:ivr_frontend/core/storage/secure_storage.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:web/web.dart' as web;
 
 /// Interactive Audio Player for Voicebot Call Recordings.
 ///
-/// Supports in-browser streaming, play/pause, seek scrubber,
-/// elapsed & total duration display, and download/open in new tab.
+/// Supports authenticated in-browser streaming via backend audio proxy,
+/// play/pause, seek scrubber, elapsed & total duration display,
+/// and download/open in new tab.
 class IvrAudioPlayer extends StatefulWidget {
   const IvrAudioPlayer({
     super.key,
     required this.audioUrl,
+    this.voiceCallId,
     this.title = 'Call Recording',
   });
 
   final String audioUrl;
+  final int? voiceCallId;
   final String title;
 
   @override
@@ -27,21 +32,54 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
   web.HTMLAudioElement? _webAudio;
   bool _isPlaying = false;
   bool _isLoading = false;
+  bool _hasError = false;
   double _positionSeconds = 0.0;
   double _durationSeconds = 0.0;
+  String? _effectiveAudioUrl;
 
   @override
   void initState() {
     super.initState();
-    if (kIsWeb) {
-      _initWebAudio();
+    _resolveAndInit();
+  }
+
+  @override
+  void didUpdateWidget(covariant IvrAudioPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.audioUrl != widget.audioUrl ||
+        oldWidget.voiceCallId != widget.voiceCallId) {
+      _disposeAudio();
+      _resolveAndInit();
     }
   }
 
-  void _initWebAudio() {
+  Future<void> _resolveAndInit() async {
+    String url = widget.audioUrl;
+
+    if (widget.voiceCallId != null && widget.voiceCallId! > 0) {
+      final token = await SecureStorageService.getToken();
+      final base = ApiConfig.baseUrl;
+      final tokenQuery =
+          token != null && token.isNotEmpty ? '?token=$token' : '';
+      url = '$base/api/ivr-operations/audio-proxy/${widget.voiceCallId}$tokenQuery';
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _effectiveAudioUrl = url;
+      _hasError = false;
+    });
+
+    if (kIsWeb) {
+      _initWebAudio(url);
+    }
+  }
+
+  void _initWebAudio(String url) {
     try {
       final audio = web.HTMLAudioElement();
-      audio.src = widget.audioUrl;
+      audio.src = url;
       audio.preload = 'metadata';
 
       audio.addEventListener(
@@ -51,6 +89,7 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
             setState(() {
               _durationSeconds =
                   audio.duration.isFinite ? audio.duration : 0.0;
+              _hasError = false;
             });
           }
         }).toJS,
@@ -86,6 +125,7 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
             setState(() {
               _isLoading = false;
               _isPlaying = false;
+              _hasError = true;
             });
           }
         }).toJS,
@@ -97,16 +137,26 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
     }
   }
 
-  @override
-  void dispose() {
+  void _disposeAudio() {
     if (kIsWeb && _webAudio != null) {
       _webAudio?.pause();
       _webAudio?.src = '';
+      _webAudio = null;
     }
+  }
+
+  @override
+  void dispose() {
+    _disposeAudio();
     super.dispose();
   }
 
   void _togglePlay() {
+    if (_hasError) {
+      _resolveAndInit();
+      return;
+    }
+
     if (kIsWeb && _webAudio != null) {
       if (_isPlaying) {
         _webAudio!.pause();
@@ -117,6 +167,7 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
         setState(() {
           _isPlaying = true;
           _isLoading = false;
+          _hasError = false;
         });
       }
     } else {
@@ -132,7 +183,8 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
   }
 
   Future<void> _openExternal() async {
-    final uri = Uri.tryParse(widget.audioUrl);
+    final targetUrl = _effectiveAudioUrl ?? widget.audioUrl;
+    final uri = Uri.tryParse(targetUrl);
     if (uri != null && await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -152,7 +204,7 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
       decoration: BoxDecoration(
         color: AppTheme.bgSurface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppTheme.stroke),
+        border: Border.all(color: _hasError ? AppTheme.warning.withValues(alpha: 0.5) : AppTheme.stroke),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,6 +223,16 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
                 ),
               ),
               const Spacer(),
+              if (_hasError)
+                TextButton.icon(
+                  onPressed: _resolveAndInit,
+                  icon: const Icon(Icons.refresh_rounded, size: 14),
+                  label: const Text('Retry', style: TextStyle(fontSize: 11)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
               IconButton(
                 tooltip: 'Open in new tab',
                 icon: const Icon(Icons.open_in_new_rounded, size: 16),
@@ -185,7 +247,7 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
           Row(
             children: [
               Material(
-                color: AppTheme.primary,
+                color: _hasError ? AppTheme.warning : AppTheme.primary,
                 shape: const CircleBorder(),
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
@@ -250,7 +312,9 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
                             ),
                           ),
                           Text(
-                            _formatDuration(_durationSeconds),
+                            _durationSeconds > 0
+                                ? _formatDuration(_durationSeconds)
+                                : (_isPlaying ? 'Playing…' : 'Ready to play'),
                             style: TextStyle(
                               fontSize: 10.5,
                               color: AppTheme.textMuted,
@@ -272,3 +336,4 @@ class _IvrAudioPlayerState extends State<IvrAudioPlayer> {
     );
   }
 }
+

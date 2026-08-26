@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ivr_frontend/config/app_theme.dart';
 
-/// Rich Dialogue Bubble Transcript Viewer.
+/// Rich Dialogue Bubble & Metadata Transcript Viewer.
 ///
 /// Formats multi-turn conversations between the AI Voicebot and Citizen
 /// into conversational speech bubbles with speaker avatars and dual Tamil/English view.
+/// Also elegantly handles structured session metadata and completion statuses.
 class IvrTranscriptViewer extends StatefulWidget {
   const IvrTranscriptViewer({
     super.key,
@@ -29,24 +30,45 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
       widget.transcriptEnglish != widget.transcriptTamil;
 
   List<_DialogueTurn> _parseDialogue(String text) {
-    final lines = text.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = text
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
     final turns = <_DialogueTurn>[];
 
     for (final line in lines) {
-      if (line.toLowerCase().startsWith('user:') ||
-          line.toLowerCase().startsWith('citizen:') ||
-          line.toLowerCase().startsWith('caller:')) {
+      final lower = line.toLowerCase();
+      if (lower.startsWith('user:') ||
+          lower.startsWith('citizen:') ||
+          lower.startsWith('caller:')) {
         final content = line.substring(line.indexOf(':') + 1).trim();
-        turns.add(_DialogueTurn(isAi: false, speaker: 'Citizen', text: content));
-      } else if (line.toLowerCase().startsWith('bot:') ||
-          line.toLowerCase().startsWith('ai:') ||
-          line.toLowerCase().startsWith('assistant:')) {
+        turns.add(
+            _DialogueTurn(isAi: false, speaker: 'Citizen', text: content));
+      } else if (lower.startsWith('bot:') ||
+          lower.startsWith('ai:') ||
+          lower.startsWith('assistant:') ||
+          lower.startsWith('voicebot:')) {
         final content = line.substring(line.indexOf(':') + 1).trim();
-        turns.add(_DialogueTurn(isAi: true, speaker: 'Voicebot AI', text: content));
+        turns.add(_DialogueTurn(
+            isAi: true, speaker: 'Voicebot AI', text: content));
+      } else if (line.contains(':') &&
+          !line.startsWith('http://') &&
+          !line.startsWith('https://')) {
+        // Structured field e.g. "service_type: street_light"
+        final colonIdx = line.indexOf(':');
+        final key = line.substring(0, colonIdx).trim();
+        final val = line.substring(colonIdx + 1).trim();
+        turns.add(_DialogueTurn(
+          isAi: true,
+          speaker: key.replaceAll('_', ' ').toUpperCase(),
+          text: val,
+          isMetadata: true,
+        ));
       } else {
         turns.add(_DialogueTurn(
           isAi: false,
-          speaker: 'Citizen',
+          speaker: 'Citizen (Audio Transcript)',
           text: line,
         ));
       }
@@ -68,8 +90,13 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
 
   @override
   Widget build(BuildContext context) {
-    final currentText =
-        (_showEnglish && _hasEnglish) ? widget.transcriptEnglish! : widget.transcriptTamil;
+    final currentText = (_showEnglish && _hasEnglish)
+        ? widget.transcriptEnglish!
+        : widget.transcriptTamil;
+
+    final trimmed = currentText.trim();
+    final isJustCompleted =
+        trimmed.toLowerCase() == 'voicebot call completed';
     final turns = _parseDialogue(currentText);
 
     return Container(
@@ -109,8 +136,8 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
                     onTap: () => setState(() => _showEnglish = false),
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: !_showEnglish
                             ? AppTheme.primary.withValues(alpha: 0.12)
@@ -136,8 +163,8 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
                     onTap: () => setState(() => _showEnglish = true),
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: _showEnglish
                             ? AppTheme.primary.withValues(alpha: 0.12)
@@ -172,14 +199,54 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
             ),
           ),
 
-          // Dialogue Bubbles
+          // Dialogue Bubbles or Status Card
           Padding(
             padding: const EdgeInsets.all(12),
-            child: Column(
-              children: [
-                for (final turn in turns) _buildBubble(turn),
-              ],
-            ),
+            child: isJustCompleted
+                ? Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primary.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                          color: AppTheme.primary.withValues(alpha: 0.2)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.check_circle_outline_rounded,
+                            size: 18, color: AppTheme.primary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Voicebot Session Completed',
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Call recording is available above for audio review.',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: AppTheme.textMuted,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Column(
+                    children: [
+                      for (final turn in turns) _buildBubble(turn),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -187,6 +254,44 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
   }
 
   Widget _buildBubble(_DialogueTurn turn) {
+    if (turn.isMetadata) {
+      // Structured Metadata Row
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.bgCard,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppTheme.stroke),
+          ),
+          child: Row(
+            children: [
+              Text(
+                turn.speaker,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textMuted,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  turn.text,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (turn.isAi) {
       // AI Voicebot Bubble (Left-aligned)
       return Padding(
@@ -271,7 +376,7 @@ class _IvrTranscriptViewerState extends State<IvrTranscriptViewer> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Citizen',
+                      turn.speaker,
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w700,
@@ -314,9 +419,12 @@ class _DialogueTurn {
     required this.isAi,
     required this.speaker,
     required this.text,
+    this.isMetadata = false,
   });
 
   final bool isAi;
   final String speaker;
   final String text;
+  final bool isMetadata;
 }
+

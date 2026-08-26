@@ -252,6 +252,7 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                           const SizedBox(height: 2),
                           Text(
                             [
+                              if (c.orgUnitName != null) c.orgUnitName!,
                               if (c.startedAt != null)
                                 fmt.format(c.startedAt!.toLocal()),
                               if (c.attempt > 1) 'Attempt ${c.attempt}',
@@ -272,6 +273,12 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
                         spacing: 8,
                         runSpacing: 6,
                         children: [
+                          if (c.orgUnitName != null)
+                            IvrTag(
+                              label: c.orgUnitName!,
+                              color: AppTheme.primary,
+                              icon: Icons.location_city_rounded,
+                            ),
                           if (c.raisedTicket)
                             IvrTag(
                               label: 'Ticket #${c.complaintId}',
@@ -335,6 +342,7 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
       if (c.audioUrl != null && c.audioUrl!.trim().isNotEmpty) ...[
         IvrAudioPlayer(
           audioUrl: c.audioUrl!,
+          voiceCallId: c.id,
           title: 'CALL RECORDING (EXOTEL)',
         ),
         const SizedBox(height: 14),
@@ -369,11 +377,23 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
         const SizedBox(height: 14),
       ],
 
-      // 3. Metadata Tags (Category, Urgency, Status, CallSid)
+      // 3. Metadata Tags (Company/Panchayat, Ward, Category, Urgency, Status, CallSid)
       Wrap(
         spacing: 8,
         runSpacing: 8,
         children: [
+          if (c.orgUnitName != null)
+            IvrTag(
+              label: c.orgUnitName!,
+              color: AppTheme.primary,
+              icon: Icons.business_rounded,
+            ),
+          if (c.wardNumber != null)
+            IvrTag(
+              label: 'Ward ${c.wardNumber}${c.wardName != null ? ' (${c.wardName})' : ''}',
+              color: Colors.teal,
+              icon: Icons.location_on_rounded,
+            ),
           if (c.complaintCategory != null)
             IvrTag(
               label: prettyIvr(c.complaintCategory!),
@@ -393,6 +413,12 @@ class _VoiceCallsScreenState extends State<VoiceCallsScreen> {
               label: 'Ticket ${prettyIvr(c.complaintStatus!)}',
               color: AppTheme.accent,
               icon: Icons.verified_rounded,
+            ),
+          if (c.callTo != null && c.callTo!.isNotEmpty)
+            IvrTag(
+              label: 'Dialed: ${c.callTo!}',
+              color: AppTheme.textMuted,
+              icon: Icons.phone_callback_rounded,
             ),
           if (c.callSid != null)
             IvrTag(
