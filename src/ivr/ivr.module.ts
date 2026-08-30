@@ -3,6 +3,7 @@ import { IvrController } from './ivr.controller';
 import { IvrOperationsController } from './ivr-operations.controller';
 import { IvrOperationsService } from './ivr-operations.service';
 import { IvrService } from './ivr.service';
+import { ExotelSyncService } from './exotel-sync.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { VoiceProcessingModule } from '../voice-processing/voice-processing.module';
 
@@ -16,6 +17,8 @@ import { VoiceProcessingModule } from '../voice-processing/voice-processing.modu
 @Module({
   imports: [PrismaModule, VoiceProcessingModule],
   controllers: [IvrController, IvrOperationsController],
-  providers: [IvrService, IvrOperationsService],
+  providers: [IvrService, IvrOperationsService, ExotelSyncService],
+  exports: [ExotelSyncService],
 })
 export class IvrModule {}
+

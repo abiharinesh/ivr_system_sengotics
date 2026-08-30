@@ -915,6 +915,43 @@ export class IvrService {
         }).catch(() => null);
       }
 
+      // 4b. Also upsert into ExotelInteraction table for SuperAdmin parity
+      const interactionId =
+        payload.interaction_id ||
+        payload.session_id ||
+        payload.id ||
+        callSid;
+      if (interactionId) {
+        await this.prisma.exotelInteraction.upsert({
+          where: { interaction_id: String(interactionId) },
+          create: {
+            interaction_id: String(interactionId),
+            bot_id: payload.bot_id ? String(payload.bot_id) : null,
+            call_sid: callSid ? String(callSid) : null,
+            customer_number: callerPhone ? String(callerPhone) : null,
+            bot_name: payload.bot_name || null,
+            bot_version: payload.bot_version || payload.version || null,
+            started_at: payload.started_at ? new Date(payload.started_at) : new Date(),
+            ended_at: payload.ended_at ? new Date(payload.ended_at) : new Date(),
+            duration_seconds: payload.duration_seconds || payload.duration || null,
+            audio_url: recordingUrl,
+            transcript_json: payload.conversation_transcript || payload.messages || payload,
+            transcript_text: transcriptText || null,
+            status: payload.status || 'completed',
+            metadata: payload,
+          },
+          update: {
+            call_sid: callSid ? String(callSid) : undefined,
+            audio_url: recordingUrl || undefined,
+            transcript_text: transcriptText || undefined,
+            status: payload.status || 'completed',
+            metadata: payload,
+          },
+        }).catch((err) => {
+          this.logger.warn(`[BOT-WEBHOOK] ExotelInteraction upsert failed: ${err.message}`);
+        });
+      }
+
       // 5. Link recording to recent complaint if found
       if (recordingUrl && callerPhone) {
         const last10Digits = String(callerPhone).replace(/\D/g, '').slice(-10);

@@ -204,6 +204,10 @@ model OrgUnit {
   userRoles          UserRole[]
   audit_logs         AuditLog[]
 
+  // ── Exotel management ──
+  exotel_phones          ExotelPhoneNumber[]    @relation("OrgUnitExotelPhone")
+  exotel_bot_assignments ExotelBotAssignment[]
+
   @@index([tenant_id])
   @@index([tenant_id, branch_type])
   @@index([parent_org_unit_id])
@@ -293,6 +297,9 @@ model User {
   contractor      Contractor?     @relation("ContractorLogin")
   user_roles      UserRole[]
   audit_logs      AuditLog[]      @relation("AuditActor")
+
+  // ── Exotel management ──
+  phone_assignments ExotelPhoneNumber[] @relation("PhoneAssignedBy")
 
   @@unique([tenant_id, email])
   @@unique([tenant_id, phone_e164])
@@ -3324,4 +3331,93 @@ model TradeLicenceCertificate {
 
   @@index([licence_id, licence_year])
   @@map("trade_licence_certificates")
+}
+
+// =====================================================================
+//  EXOTEL MANAGEMENT — Phone Numbers, Bots & Interaction History
+// =====================================================================
+
+/// Tracks Exotel phone numbers available in the system. SuperAdmin assigns
+/// these to org units so that IVR calls route to the correct local body.
+model ExotelPhoneNumber {
+  id              Int       @id @default(autoincrement())
+  phone_number    String    @unique  // E.164 format
+  friendly_name   String?             // "Mettupalayam IVR Line"
+  exotel_sid      String?   @unique  // Exotel's internal SID for this number
+  is_active       Boolean   @default(true)
+  assigned_org_id Int?               // Which org unit this number serves
+  assigned_at     DateTime?
+  assigned_by     Int?               // SuperAdmin user ID who made the assignment
+  created_at      DateTime  @default(now())
+  updated_at      DateTime  @updatedAt
+
+  assigned_org     OrgUnit?            @relation("OrgUnitExotelPhone", fields: [assigned_org_id], references: [id])
+  assigned_by_user User?              @relation("PhoneAssignedBy", fields: [assigned_by], references: [id])
+  bot_assignments  ExotelBotAssignment[]
+
+  @@index([assigned_org_id])
+  @@map("exotel_phone_numbers")
+}
+
+/// Tracks Exotel AI voicebots synced from the Exotel platform.
+model ExotelBot {
+  id           Int       @id @default(autoincrement())
+  bot_id       String    @unique  // Exotel bot ID
+  bot_name     String              // "Mettupalayam Complaint Bot"
+  bot_version  String?             // "v11"
+  description  String?
+  is_active    Boolean   @default(true)
+  created_at   DateTime  @default(now())
+  updated_at   DateTime  @updatedAt
+
+  assignments ExotelBotAssignment[]
+
+  @@map("exotel_bots")
+}
+
+/// Links an Exotel bot + phone number to a specific org unit.
+/// SuperAdmin creates these assignments so each local body gets its own bot.
+model ExotelBotAssignment {
+  id              Int      @id @default(autoincrement())
+  bot_id          Int
+  phone_number_id Int
+  org_unit_id     Int
+  assigned_by     Int               // SuperAdmin user ID
+  is_active       Boolean  @default(true)
+  created_at      DateTime @default(now())
+
+  bot          ExotelBot         @relation(fields: [bot_id], references: [id])
+  phone_number ExotelPhoneNumber @relation(fields: [phone_number_id], references: [id])
+  org_unit     OrgUnit           @relation(fields: [org_unit_id], references: [id])
+
+  @@unique([bot_id, phone_number_id, org_unit_id])
+  @@index([org_unit_id])
+  @@map("exotel_bot_assignments")
+}
+
+/// Full Exotel interaction data synced from the Exotel dashboard.
+/// Supplements VoiceCall/IvrCall with the complete Exotel view.
+model ExotelInteraction {
+  id               Int       @id @default(autoincrement())
+  interaction_id   String    @unique  // Exotel interaction UUID
+  bot_id           String?            // Exotel bot ID
+  call_sid         String?            // Links to VoiceCall/IvrCall
+  customer_number  String?
+  bot_name         String?
+  bot_version      String?
+  started_at       DateTime?
+  ended_at         DateTime?
+  duration_seconds Int?
+  audio_url        String?            // Recording URL from Exotel
+  transcript_json  Json?              // Full conversation transcript as JSON
+  transcript_text  String?            // Flattened human-readable transcript
+  status           String?            // completed, failed, etc.
+  metadata         Json?              // Raw Exotel payload
+  synced_at        DateTime  @default(now())
+
+  @@index([call_sid])
+  @@index([bot_id])
+  @@index([customer_number])
+  @@index([started_at])
+  @@map("exotel_interactions")
 }

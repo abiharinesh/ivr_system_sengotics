@@ -32,6 +32,7 @@ import { TenderPdfService } from '../tender/pdf/pdf.service';
 import { FieldVerificationService } from '../tender/field-verification.service';
 import { TenderShareTokenService } from '../tender/pdf/share-token.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ExotelSyncService } from '../ivr/exotel-sync.service';
 
 function slugify(value: string): string {
   return value
@@ -78,6 +79,7 @@ export class SuperAdminController {
     private readonly fieldVerification: FieldVerificationService,
     private readonly shareTokens: TenderShareTokenService,
     private readonly prisma: PrismaService,
+    private readonly exotelSync: ExotelSyncService,
   ) {}
 
   // ── Panchayat Management ────────────────────────────────────────────────
@@ -1256,5 +1258,225 @@ export class SuperAdminController {
     },
   ) {
     return this.superAdminService.updateBranchBranding(id, body);
+  }
+
+  // ── Enhanced Admin Management (with RBAC) ──────────────────────────────
+
+  /** Create a new admin user with full RBAC role assignment. */
+  @Post('admins')
+  createAdminWithRoles(
+    @Req() req: any,
+    @Body()
+    body: {
+      email: string;
+      password: string;
+      phone_e164?: string;
+      org_unit_id: number;
+      role_ids: number[];
+      access_scope?: string;
+      is_temporary?: boolean;
+      valid_until?: string;
+    },
+  ) {
+    return this.superAdminService.createAdminWithRoles({
+      ...body,
+      granted_by: req.user?.id,
+    });
+  }
+
+  /** List all admins with their RBAC roles, org units, and status. */
+  @Get('admins')
+  listAdminsWithRoles(
+    @Query('org_unit_id') orgUnitId?: string,
+    @Query('role') role?: string,
+    @Query('is_active') isActive?: string,
+  ) {
+    return this.superAdminService.listAdminsWithRoles({
+      org_unit_id: orgUnitId ? parseInt(orgUnitId, 10) : undefined,
+      role: role?.trim() || undefined,
+      is_active: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
+    });
+  }
+
+  /** Get full admin detail with permission breakdown. */
+  @Get('admins/:id')
+  getAdminDetail(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.getAdminDetail(id);
+  }
+
+  /** Update an admin's profile, roles, and permissions. */
+  @Put('admins/:id')
+  updateAdmin(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: any,
+  ) {
+    return this.superAdminService.updateAdmin(id, body, req.user?.id);
+  }
+
+  /** Activate, deactivate, or lock an admin account. */
+  @Patch('admins/:id/status')
+  toggleAdminStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { is_active: boolean },
+  ) {
+    return this.superAdminService.toggleAdminStatus(id, body.is_active);
+  }
+
+  /** Assign/update RBAC roles for an existing admin. */
+  @Patch('admins/:id/roles')
+  updateAdminRoles(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body()
+    body: {
+      role_ids: number[];
+      org_unit_id: number;
+      access_scope?: string;
+    },
+  ) {
+    return this.superAdminService.updateAdminRoles(id, body, req.user?.id);
+  }
+
+  // ── Exotel Phone Number Management ────────────────────────────────────
+
+  /** List all Exotel phone numbers (synced from Exotel + assignment info). */
+  @Get('exotel/phone-numbers')
+  listExotelPhoneNumbers() {
+    return this.superAdminService.listExotelPhoneNumbers();
+  }
+
+  /** Trigger sync of phone numbers from Exotel API. */
+  @Post('exotel/phone-numbers/sync')
+  syncExotelPhoneNumbers() {
+    return this.exotelSync.syncPhoneNumbers();
+  }
+
+  /** Assign a phone number to an org unit. */
+  @Patch('exotel/phone-numbers/:id/assign')
+  assignPhoneNumber(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: { org_unit_id: number | null },
+  ) {
+    return this.superAdminService.assignPhoneNumber(id, body.org_unit_id, req.user?.id);
+  }
+
+  // ── Exotel Bot Management ─────────────────────────────────────────────
+
+  /** List all Exotel bots (synced from Exotel). */
+  @Get('exotel/bots')
+  listExotelBots() {
+    return this.superAdminService.listExotelBots();
+  }
+
+  /** Trigger sync of bots from Exotel API. */
+  @Post('exotel/bots/sync')
+  syncExotelBots() {
+    return this.exotelSync.syncBots();
+  }
+
+  /** Create a bot + phone → org unit assignment. */
+  @Post('exotel/assignments')
+  createBotAssignment(
+    @Req() req: any,
+    @Body()
+    body: {
+      bot_id: number;
+      phone_number_id: number;
+      org_unit_id: number;
+    },
+  ) {
+    return this.superAdminService.createBotAssignment(body, req.user?.id);
+  }
+
+  /** List all bot-phone-orgunit assignments. */
+  @Get('exotel/assignments')
+  listBotAssignments(@Query('org_unit_id') orgUnitId?: string) {
+    const bid = orgUnitId ? parseInt(orgUnitId, 10) : undefined;
+    return this.superAdminService.listBotAssignments(
+      isNaN(bid as number) ? undefined : bid,
+    );
+  }
+
+  /** Remove a bot assignment. */
+  @Delete('exotel/assignments/:id')
+  deleteBotAssignment(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.deleteBotAssignment(id);
+  }
+
+  // ── Exotel Interaction History ─────────────────────────────────────────
+
+  /** Exotel dashboard summary stats. */
+  @Get('exotel/dashboard')
+  getExotelDashboard() {
+    return this.exotelSync.getDashboardStats();
+  }
+
+  /** List Exotel interactions with filters. */
+  @Get('exotel/interactions')
+  listExotelInteractions(
+    @Query('bot_id') botId?: string,
+    @Query('phone') phone?: string,
+    @Query('status') status?: string,
+    @Query('date_from') dateFrom?: string,
+    @Query('date_to') dateTo?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.superAdminService.listExotelInteractions({
+      bot_id: botId?.trim() || undefined,
+      phone: phone?.trim() || undefined,
+      status: status?.trim() || undefined,
+      date_from: dateFrom ? new Date(dateFrom) : undefined,
+      date_to: dateTo ? new Date(dateTo) : undefined,
+      take: Math.min(Number(take) || 50, 200),
+    });
+  }
+
+  /** Get full Exotel interaction detail. */
+  @Get('exotel/interactions/:id')
+  getExotelInteraction(@Param('id', ParseIntPipe) id: number) {
+    return this.superAdminService.getExotelInteraction(id);
+  }
+
+  /** Audio proxy for Exotel interaction recordings. */
+  @Get('exotel/interactions/:id/audio')
+  async proxyExotelAudio(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const interaction = await this.prisma.exotelInteraction.findUnique({
+        where: { id },
+        select: { interaction_id: true },
+      });
+      if (!interaction) throw new NotFoundException(`Interaction #${id} not found`);
+
+      const { buffer, contentType } = await this.exotelSync.getAudioForInteraction(
+        interaction.interaction_id,
+      );
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', buffer.length);
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      res.send(buffer);
+    } catch (err) {
+      if (!res.headersSent) {
+        res.status((err as any)?.status ?? 500).json({
+          error: 'Audio proxy failed',
+          message: (err as Error).message,
+        });
+      }
+    }
+  }
+
+  /** Trigger sync of interaction history from Exotel for a date range. */
+  @Post('exotel/interactions/sync')
+  syncExotelInteractions(
+    @Body() body: { date_from?: string; date_to?: string },
+  ) {
+    return this.exotelSync.syncInteractionHistory(
+      body.date_from ? new Date(body.date_from) : undefined,
+      body.date_to ? new Date(body.date_to) : undefined,
+    );
   }
 }

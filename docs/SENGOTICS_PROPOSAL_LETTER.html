@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sengotics Proposal Submission Letter — Mettupalayam Municipality</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 18mm 20mm 18mm 20mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        body {
+            font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+            font-size: 11pt;
+            line-height: 1.5;
+            color: #1A202C;
+            background-color: #F8FAFC;
+            padding: 30px;
+        }
+
+        .paper {
+            background: #FFFFFF;
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 20mm;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border-radius: 4px;
+            position: relative;
+        }
+
+        @media print {
+            body {
+                background: none;
+                padding: 0;
+            }
+            .paper {
+                box-shadow: none;
+                padding: 0;
+                width: 100%;
+                min-height: auto;
+            }
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        /* Company Header */
+        .company-header {
+            text-align: center;
+            border-bottom: 2.5px solid #0A2463;
+            padding-bottom: 12px;
+            margin-bottom: 18px;
+        }
+
+        .company-name {
+            font-size: 24pt;
+            font-weight: 800;
+            letter-spacing: 4px;
+            color: #0A2463;
+            margin-bottom: 2px;
+        }
+
+        .company-tagline {
+            font-size: 9.5pt;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #2563EB;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .company-address {
+            font-size: 8.5pt;
+            color: #4B5563;
+            line-height: 1.35;
+        }
+
+        .company-meta {
+            font-size: 8pt;
+            color: #374151;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        /* Letter Meta */
+        .letter-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 10pt;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 18px;
+        }
+
+        /* Recipient */
+        .recipient {
+            font-size: 10.5pt;
+            line-height: 1.45;
+            color: #111827;
+            margin-bottom: 16px;
+        }
+
+        .recipient .title {
+            font-weight: 700;
+        }
+
+        /* Subject */
+        .subject-box {
+            background-color: #F1F5F9;
+            border-left: 4px solid #0A2463;
+            padding: 8px 14px;
+            margin-bottom: 18px;
+            font-size: 10.5pt;
+            font-weight: 700;
+            color: #0F172A;
+            line-height: 1.4;
+        }
+
+        /* Salutation */
+        .salutation {
+            font-size: 10.5pt;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* Paragraphs */
+        p {
+            font-size: 10.5pt;
+            line-height: 1.55;
+            text-align: justify;
+            margin-bottom: 12px;
+        }
+
+        /* Feature Highlights Table */
+        .features-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 14px 0 16px 0;
+            font-size: 9.5pt;
+        }
+
+        .features-table th {
+            background-color: #0A2463;
+            color: #FFFFFF;
+            font-weight: 600;
+            padding: 7px 10px;
+            text-align: left;
+            border: 1px solid #0A2463;
+        }
+
+        .features-table td {
+            padding: 7px 10px;
+            border: 1px solid #E2E8F0;
+            vertical-align: top;
+            line-height: 1.4;
+        }
+
+        .features-table tr:nth-child(even) {
+            background-color: #F8FAFC;
+        }
+
+        .features-table .feature-title {
+            font-weight: 700;
+            color: #0A2463;
+            width: 32%;
+        }
+
+        /* Action Grid */
+        .action-box {
+            background: #EFF6FF;
+            border: 1px solid #BFDBFE;
+            border-radius: 6px;
+            padding: 10px 14px;
+            margin: 12px 0 16px 0;
+            font-size: 9.5pt;
+        }
+
+        .action-box strong {
+            color: #1E40AF;
+        }
+
+        /* Sign-off */
+        .signoff-section {
+            margin-top: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            page-break-inside: avoid;
+        }
+
+        .signoff-text {
+            font-size: 10.5pt;
+            line-height: 1.45;
+        }
+
+        .seal-box {
+            border: 1.5px dashed #94A3B8;
+            padding: 12px 20px;
+            text-align: center;
+            border-radius: 6px;
+            font-size: 8.5pt;
+            color: #64748B;
+            width: 200px;
+        }
+
+        /* Enclosure */
+        .enclosure {
+            margin-top: 20px;
+            border-top: 1px solid #E2E8F0;
+            padding-top: 10px;
+            font-size: 9pt;
+            color: #4B5563;
+        }
+
+        .enclosure strong {
+            color: #111827;
+        }
+
+        .print-bar {
+            position: fixed;
+            top: 15px;
+            right: 20px;
+            z-index: 9999;
+            background: #0A2463;
+            padding: 8px 16px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .print-btn {
+            background: #2563EB;
+            color: #FFF;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .print-btn:hover {
+            background: #1D4ED8;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="print-bar no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ Print / Save as PDF</button>
+    </div>
+
+    <div class="paper">
+        <!-- Letterhead -->
+        <div class="company-header">
+            <div class="company-name">SENGOTICS</div>
+            <div class="company-tagline">TRUSTED DIGITAL FUTURE</div>
+            <div class="company-address">
+                4/360, Anna Nagar, Dhayanur, Karamadai - Tholampalayam Road, Near Gram Panchayat Office,<br>
+                Kemmarampalayam, Kalampalayam, Mettupalayam, Coimbatore, Tamil Nadu – 641113<br>
+                Email: <strong>contact@sengotics.com</strong> | Web: <strong>www.sengotics.com</strong> | Phone: <strong>+91 9597769501</strong>
+            </div>
+            <div class="company-meta">
+                GSTIN: 33DKDPA5555E1ZL &nbsp;|&nbsp; UDYAM: UDYAM-TN-03-0308455 &nbsp;|&nbsp; GeM Seller ID: N78K260014298113
+            </div>
+        </div>
+
+        <!-- Meta -->
+        <div class="letter-meta">
+            <div><strong>Ref:</strong> SEG/M/PROP/2026/08</div>
+            <div><strong>Date:</strong> 28th August 2026</div>
+        </div>
+
+        <!-- Recipient -->
+        <div class="recipient">
+            To,<br>
+            <span class="title">The Municipal Commissioner &amp; The Municipal Engineer,</span><br>
+            Mettupalayam Municipality,<br>
+            Coimbatore District, Tamil Nadu.
+        </div>
+
+        <!-- Subject -->
+        <div class="subject-box">
+            Subject: Submission of Project Proposal for Smart GIS Municipal Governance Platform, AI Citizen Voice Helpline, and On-Site I3C Turnkey Operations — Reg.
+        </div>
+
+        <!-- Salutation & Body -->
+        <div class="salutation">Respected Sir / Madam,</div>
+
+        <p>
+            <strong>Greetings from Sengotics.</strong>
+        </p>
+
+        <p>
+            We are pleased to submit our comprehensive Project Proposal (Ref: SEG/M/PROP/2026/08) for the implementation of the <strong>Smart GIS Municipal Governance Platform (Ooraatchi)</strong> for Mettupalayam Municipality.
+        </p>
+
+        <p>
+            As a homegrown technology enterprise headquartered directly in Mettupalayam, Sengotics offers a <strong>Complete Turnkey Model (Product + Full Service On-Site Operations)</strong>. Unlike distant vendors who provide only remote support, Sengotics takes complete ground-level ownership by deputing dedicated personnel inside the Municipality’s Integrated Command &amp; Control Center (I3C) to manage daily operations, spatial routing, and grievance queues.
+        </p>
+
+        <!-- Features Table -->
+        <table class="features-table">
+            <thead>
+                <tr>
+                    <th style="width: 32%;">Key Pillar</th>
+                    <th>Turnkey Municipal Capability &amp; Value Delivery</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td class="feature-title">1. Dual-Helpline Inclusivity</td>
+                    <td><strong>Primary AI Voice Helpline (04440115043):</strong> 24/7 conversational Tamil/English agent for natural grievance lodging and dynamic real-time complaint status lookups.<br><strong>Secondary Keypad IVR (04440115434):</strong> Fast numeric dialpad shortcuts for feature-phone users.</td>
+                </tr>
+                <tr>
+                    <td class="feature-title">2. Physical GIS Asset Tagging</td>
+                    <td>Sengotics teams physically survey, map, and install weatherproof QR codes on street light poles, water supply valves, and public infrastructure across all wards.</td>
+                </tr>
+                <tr>
+                    <td class="feature-title">3. Verifiable Field Proof</td>
+                    <td>Mandatory <strong>geo-fenced (≤ 50m GPS radius)</strong> live photographic verification for electricians and plumbers before closing tickets, eliminating false resolutions.</td>
+                </tr>
+                <tr>
+                    <td class="feature-title">4. Municipal Revenue Engine</td>
+                    <td>Digital fee collection tracking for weekly markets (<em>santhai</em>), community hall bookings, and commercial utility pole cable leases to maximize non-tax revenue recovery.</td>
+                </tr>
+                <tr>
+                    <td class="feature-title">5. Dedicated I3C Deputation</td>
+                    <td>Full-time on-site technical personnel stationed directly inside Mettupalayam Municipality's command center for daily triage, monitoring, and immediate support.</td>
+                </tr>
+                <tr>
+                    <td class="feature-title">6. MeitY &amp; Cloud Security</td>
+                    <td>Hosted on secure, India-based MeitY-compliant government cloud infrastructure with complete data sovereignty and role-based access controls (RBAC).</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Live Demo Details -->
+        <div class="action-box">
+            <strong>Live Interactive Demo Access:</strong> Evaluators can test the live portal at <code>https://ivr-frontend-system-sengotics.vercel.app/</code> (Super Admin: <code>superadmin@sengotics.com</code> / <code>Admin@1234</code> | Municipal Admin: <code>admin@sengotics.com</code> / <code>Admin@1234</code>) and test live calls to <code>04440115043</code>.
+        </div>
+
+        <p>
+            We respectfully request a <strong>15–20 minute demonstration and alignment session</strong> with your good selves to showcase the live GIS dashboard and discuss on-site deputation schedules.
+        </p>
+
+        <p>
+            Thanking you.
+        </p>
+
+        <!-- Signoff -->
+        <div class="signoff-section">
+            <div class="signoff-text">
+                Yours faithfully,<br>
+                <strong>For SENGOTICS,</strong><br><br><br><br>
+                __________________________________<br>
+                <strong>Authorized Signatory / Founder &amp; CEO</strong>
+            </div>
+            <div class="seal-box">
+                <br>
+                (Official Company Seal)
+                <br><br>
+            </div>
+        </div>
+
+        <!-- Enclosures -->
+        <div class="enclosure">
+            <strong>Enclosures:</strong><br>
+            1. Detailed 12-Page Project Proposal Document (Ref: SEG/M/PROP/2026/08)<br>
+            2. Live System Demonstration Access Sheet &amp; Test Pole Registry<br>
+            3. QR Code Asset Maintenance Demo Card
+        </div>
+    </div>
+
+</body>
+</html>

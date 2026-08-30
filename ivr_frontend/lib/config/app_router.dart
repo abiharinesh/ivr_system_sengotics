@@ -114,6 +114,13 @@ import 'package:ivr_frontend/features/hubs/presentation/ivr_operations_hub.dart'
 import 'package:ivr_frontend/features/hubs/presentation/insights_hub.dart';
 import 'package:ivr_frontend/features/hubs/presentation/system_settings_hub.dart';
 import 'package:ivr_frontend/features/hubs/presentation/water_supply_hub.dart';
+import 'package:ivr_frontend/features/modules/admin_management/presentation/admin_list_screen.dart';
+import 'package:ivr_frontend/features/modules/admin_management/presentation/admin_create_screen.dart';
+import 'package:ivr_frontend/features/modules/admin_management/presentation/admin_detail_screen.dart';
+import 'package:ivr_frontend/features/modules/exotel_management/presentation/exotel_dashboard_screen.dart';
+import 'package:ivr_frontend/features/modules/exotel_management/presentation/phone_assignment_screen.dart';
+import 'package:ivr_frontend/features/modules/exotel_management/presentation/bot_assignment_screen.dart';
+import 'package:ivr_frontend/features/modules/exotel_management/presentation/interaction_detail_screen.dart';
 
 import 'package:ivr_frontend/core/widgets/app_scaffold.dart';
 import 'package:ivr_frontend/core/models/user_model.dart';
@@ -484,6 +491,40 @@ GoRouter createRouter(AuthBloc authBloc) {
                   authState is Authenticated && authState.user.isPlatformAdmin;
               return DocumentTemplatesSettingsScreen(isSuperAdmin: isSuperAdmin);
             },
+          ),
+
+          // Admin RBAC Management
+          GoRoute(
+            path: '/admin/admins',
+            builder: (context, state) => const AdminListScreen(),
+          ),
+          GoRoute(
+            path: '/admin/admins/create',
+            builder: (context, state) => const AdminCreateScreen(),
+          ),
+          GoRoute(
+            path: '/admin/admins/:id',
+            builder: (context, state) =>
+                _byId(state, (id) => AdminDetailScreen(adminId: id)),
+          ),
+
+          // Exotel Voicebot & Interaction Management
+          GoRoute(
+            path: '/admin/exotel',
+            builder: (context, state) => const ExotelDashboardScreen(),
+          ),
+          GoRoute(
+            path: '/admin/exotel/phones',
+            builder: (context, state) => const PhoneAssignmentScreen(),
+          ),
+          GoRoute(
+            path: '/admin/exotel/bots',
+            builder: (context, state) => const BotAssignmentScreen(),
+          ),
+          GoRoute(
+            path: '/admin/exotel/interactions/:id',
+            builder: (context, state) =>
+                _byId(state, (id) => InteractionDetailScreen(interactionId: id)),
           ),
 
           // Voice & IVR

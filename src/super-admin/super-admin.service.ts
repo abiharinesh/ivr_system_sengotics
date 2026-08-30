@@ -1006,26 +1006,49 @@ export class SuperAdminService {
       },
     });
 
-    // Enrich with caller/IVR info
+    // Enrich with caller/IVR info and Exotel interaction data
     const sids = calls.map((c) => c.call_sid).filter((s): s is string => s != null);
-    const ivrCalls = sids.length
-      ? await this.prisma.ivrCall.findMany({
-          where: { call_sid: { in: sids } },
-          select: {
-            call_sid: true,
-            caller_number: true,
-            call_to: true,
-            call_start_time: true,
-            call_end_time: true,
-            tenant_id: true,
-          },
-        })
-      : [];
-    const bySid = new Map(ivrCalls.map((i) => [i.call_sid, i]));
+    const [ivrCalls, exotelInteractions] = await Promise.all([
+      sids.length
+        ? this.prisma.ivrCall.findMany({
+            where: { call_sid: { in: sids } },
+            select: {
+              call_sid: true,
+              caller_number: true,
+              call_to: true,
+              call_start_time: true,
+              call_end_time: true,
+              tenant_id: true,
+            },
+          })
+        : [],
+      sids.length
+        ? this.prisma.exotelInteraction.findMany({
+            where: { call_sid: { in: sids } },
+            select: {
+              call_sid: true,
+              audio_url: true,
+              transcript_text: true,
+              bot_name: true,
+            },
+          })
+        : [],
+    ]);
+    const bySid = new Map<string, (typeof ivrCalls)[number]>();
+    for (const i of ivrCalls) {
+      if (i.call_sid) bySid.set(i.call_sid, i);
+    }
+    const exotelBySid = new Map<string, (typeof exotelInteractions)[number]>();
+    for (const e of exotelInteractions) {
+      if (e.call_sid) exotelBySid.set(e.call_sid, e);
+    }
 
     return calls.map((c) => {
       const ivrMeta = c.call_sid ? bySid.get(c.call_sid) : undefined;
+      const exotelMeta = c.call_sid ? exotelBySid.get(c.call_sid) : undefined;
       const complaint = c.complaints[0] ?? null;
+      const audioUrl = c.audio_url || exotelMeta?.audio_url || null;
+      const transcript = c.transcript || exotelMeta?.transcript_text || null;
       return {
         id: c.id,
         call_sid: c.call_sid,
@@ -1033,10 +1056,11 @@ export class SuperAdminService {
         call_to: ivrMeta?.call_to ?? null,
         started_at: ivrMeta?.call_start_time ?? c.created_at,
         ended_at: ivrMeta?.call_end_time ?? null,
-        audio_url: c.audio_url,
-        has_audio: !!c.audio_url,
-        transcript: c.transcript,
+        audio_url: audioUrl,
+        has_audio: !!audioUrl,
+        transcript,
         transcript_english: c.transcript_english,
+        bot_name: exotelMeta?.bot_name ?? null,
         ai_extracted_json: c.ai_extracted_json,
         status: c.processing_status,
         confidence: c.confidence_score,
@@ -1552,5 +1576,545 @@ export class SuperAdminService {
     });
     if (!exists) throw new NotFoundException(`Panchayat #${id} not found`);
     return exists;
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //   ENHANCED ADMIN MANAGEMENT — Create admins with RBAC roles & permissions
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /** Create a new admin user and assign RBAC roles in a single transaction. */
+  async createAdminWithRoles(data: {
+    email: string;
+    password: string;
+    phone_e164?: string;
+    org_unit_id: number;
+    role_ids: number[];
+    access_scope?: string;
+    is_temporary?: boolean;
+    valid_until?: string;
+    granted_by?: number;
+  }) {
+    if (!data.password || data.password.length < 8) {
+      throw new BadRequestException('Password must be at least 8 characters');
+    }
+    if (!data.email?.trim()) {
+      throw new BadRequestException('Email is required');
+    }
+    if (!data.org_unit_id) {
+      throw new BadRequestException('org_unit_id is required');
+    }
+    if (!Array.isArray(data.role_ids) || data.role_ids.length === 0) {
+      throw new BadRequestException('At least one role_id is required');
+    }
+
+    await this.ensurePanchayatExists(data.org_unit_id);
+
+    // Check email uniqueness
+    const existing = await this.prisma.user.findFirst({
+      where: { email: data.email.trim() },
+    });
+    if (existing) throw new ForbiddenException('Email already in use');
+
+    // Validate all role IDs exist
+    const roles = await this.prisma.role.findMany({
+      where: { id: { in: data.role_ids }, is_active: true },
+    });
+    if (roles.length !== data.role_ids.length) {
+      throw new BadRequestException('One or more role IDs are invalid or inactive');
+    }
+
+    const password_hash = await bcrypt.hash(data.password, 10);
+
+    // Use the first role's name as the legacy role field
+    const primaryRoleName = roles[0]?.name ?? 'panchayat_admin';
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Create the user
+      const user = await tx.user.create({
+        data: {
+          email: data.email.trim(),
+          password_hash,
+          role: primaryRoleName,
+          primary_org_unit_id: data.org_unit_id,
+          phone_e164: data.phone_e164?.trim() || null,
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          primary_org_unit_id: true,
+          phone_e164: true,
+          created_at: true,
+        },
+      });
+
+      // 2. Assign RBAC roles
+      const userRoles = await Promise.all(
+        data.role_ids.map((role_id) =>
+          tx.userRole.create({
+            data: {
+              user_id: user.id,
+              role_id,
+              org_unit_id: data.org_unit_id,
+              access_scope: data.access_scope ?? 'own_org_unit',
+              is_primary: role_id === data.role_ids[0],
+              is_temporary: data.is_temporary ?? false,
+              valid_until: data.valid_until ? new Date(data.valid_until) : null,
+              granted_by: data.granted_by ?? null,
+            },
+            include: {
+              role: { select: { id: true, name: true, display_name: true } },
+            },
+          }),
+        ),
+      );
+
+      return {
+        ...user,
+        user_roles: userRoles.map((ur) => ({
+          id: ur.id,
+          role: ur.role,
+          org_unit_id: ur.org_unit_id,
+          access_scope: ur.access_scope,
+          is_primary: ur.is_primary,
+          is_temporary: ur.is_temporary,
+          valid_until: ur.valid_until,
+        })),
+      };
+    });
+  }
+
+  /** List all admins enriched with their RBAC roles and org unit info. */
+  async listAdminsWithRoles(filters?: {
+    org_unit_id?: number;
+    role?: string;
+    is_active?: boolean;
+  }) {
+    const where: any = { is_deleted: false };
+    if (filters?.org_unit_id) {
+      where.primary_org_unit_id = filters.org_unit_id;
+    }
+    if (filters?.role) {
+      where.role = filters.role;
+    }
+    if (filters?.is_active !== undefined) {
+      where.is_active = filters.is_active;
+    }
+
+    return this.prisma.user.findMany({
+      where,
+      orderBy: { created_at: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        phone_e164: true,
+        is_active: true,
+        is_verified: true,
+        last_login_at: true,
+        primary_org_unit_id: true,
+        created_at: true,
+        primary_org_unit: { select: { id: true, name: true, branch_type: true } },
+        user_roles: {
+          select: {
+            id: true,
+            access_scope: true,
+            is_primary: true,
+            is_temporary: true,
+            valid_until: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+                display_name: true,
+                is_super_admin: true,
+              },
+            },
+            org_unit: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+  }
+
+  /** Full admin detail with entitlements. */
+  async getAdminDetail(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        phone_e164: true,
+        is_active: true,
+        is_verified: true,
+        last_login_at: true,
+        last_login_ip: true,
+        failed_attempts: true,
+        locked_until: true,
+        primary_org_unit_id: true,
+        created_at: true,
+        updated_at: true,
+        primary_org_unit: {
+          select: { id: true, name: true, branch_type: true, tenant_id: true },
+        },
+        user_roles: {
+          select: {
+            id: true,
+            access_scope: true,
+            is_primary: true,
+            is_temporary: true,
+            valid_until: true,
+            valid_from: true,
+            granted_by: true,
+            created_at: true,
+            role: {
+              select: {
+                id: true,
+                name: true,
+                display_name: true,
+                is_super_admin: true,
+                hierarchy_level: true,
+                permissions: {
+                  select: {
+                    permission: {
+                      select: { id: true, code: true, description: true, module: true },
+                    },
+                  },
+                },
+                screen_access: {
+                  select: {
+                    screen: {
+                      select: { key: true, label_en: true, route: true, group_key: true },
+                    },
+                  },
+                },
+              },
+            },
+            org_unit: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+
+    if (!user) throw new NotFoundException(`User #${userId} not found`);
+    return user;
+  }
+
+  /** Update admin profile fields. */
+  async updateAdmin(userId: number, body: any, actorId?: number) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User #${userId} not found`);
+
+    const updateData: any = {};
+    if (body.email !== undefined) updateData.email = body.email.trim();
+    if (body.phone_e164 !== undefined) updateData.phone_e164 = body.phone_e164?.trim() || null;
+    if (body.org_unit_id !== undefined) updateData.primary_org_unit_id = body.org_unit_id;
+    if (body.is_active !== undefined) updateData.is_active = body.is_active;
+
+    if (body.password && body.password.length >= 8) {
+      updateData.password_hash = await bcrypt.hash(body.password, 10);
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        phone_e164: true,
+        is_active: true,
+        primary_org_unit_id: true,
+        updated_at: true,
+      },
+    });
+  }
+
+  /** Activate or deactivate an admin account. */
+  async toggleAdminStatus(userId: number, isActive: boolean) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User #${userId} not found`);
+    if (user.role === 'super_admin') {
+      throw new ForbiddenException('Cannot change super_admin status through this endpoint');
+    }
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        is_active: isActive,
+        locked_until: isActive ? null : undefined,
+        failed_attempts: isActive ? 0 : undefined,
+      },
+      select: { id: true, email: true, is_active: true },
+    });
+  }
+
+  /** Replace an admin's RBAC role assignments. */
+  async updateAdminRoles(
+    userId: number,
+    body: { role_ids: number[]; org_unit_id: number; access_scope?: string },
+    grantedBy?: number,
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException(`User #${userId} not found`);
+
+    if (!Array.isArray(body.role_ids) || body.role_ids.length === 0) {
+      throw new BadRequestException('At least one role_id is required');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // Remove existing assignments at this org unit
+      await tx.userRole.deleteMany({
+        where: { user_id: userId, org_unit_id: body.org_unit_id },
+      });
+
+      // Create new assignments
+      const userRoles = await Promise.all(
+        body.role_ids.map((role_id, index) =>
+          tx.userRole.create({
+            data: {
+              user_id: userId,
+              role_id,
+              org_unit_id: body.org_unit_id,
+              access_scope: body.access_scope ?? 'own_org_unit',
+              is_primary: index === 0,
+              granted_by: grantedBy ?? null,
+            },
+            include: {
+              role: { select: { id: true, name: true, display_name: true } },
+            },
+          }),
+        ),
+      );
+
+      // Update legacy role field to match primary role
+      const primaryRole = userRoles[0]?.role;
+      if (primaryRole) {
+        await tx.user.update({
+          where: { id: userId },
+          data: { role: primaryRole.name },
+        });
+      }
+
+      return { user_id: userId, user_roles: userRoles };
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //   EXOTEL PHONE NUMBER MANAGEMENT
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async listExotelPhoneNumbers() {
+    return this.prisma.exotelPhoneNumber.findMany({
+      orderBy: { created_at: 'desc' },
+      include: {
+        assigned_org: { select: { id: true, name: true, branch_type: true } },
+        assigned_by_user: { select: { id: true, email: true } },
+        bot_assignments: {
+          where: { is_active: true },
+          include: {
+            bot: { select: { id: true, bot_id: true, bot_name: true } },
+            org_unit: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async assignPhoneNumber(phoneNumberId: number, orgUnitId: number | null, assignedBy?: number) {
+    const phone = await this.prisma.exotelPhoneNumber.findUnique({
+      where: { id: phoneNumberId },
+    });
+    if (!phone) throw new NotFoundException(`Phone number #${phoneNumberId} not found`);
+
+    if (orgUnitId !== null) {
+      await this.ensurePanchayatExists(orgUnitId);
+    }
+
+    return this.prisma.exotelPhoneNumber.update({
+      where: { id: phoneNumberId },
+      data: {
+        assigned_org_id: orgUnitId,
+        assigned_at: orgUnitId !== null ? new Date() : null,
+        assigned_by: orgUnitId !== null ? assignedBy ?? null : null,
+      },
+      include: {
+        assigned_org: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //   EXOTEL BOT MANAGEMENT
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async listExotelBots() {
+    return this.prisma.exotelBot.findMany({
+      orderBy: { created_at: 'desc' },
+      include: {
+        assignments: {
+          where: { is_active: true },
+          include: {
+            phone_number: { select: { id: true, phone_number: true, friendly_name: true } },
+            org_unit: { select: { id: true, name: true } },
+          },
+        },
+      },
+    });
+  }
+
+  async createBotAssignment(
+    body: { bot_id: number; phone_number_id: number; org_unit_id: number },
+    assignedBy?: number,
+  ) {
+    // Validate all references exist
+    const bot = await this.prisma.exotelBot.findUnique({ where: { id: body.bot_id } });
+    if (!bot) throw new NotFoundException(`Bot #${body.bot_id} not found`);
+
+    const phone = await this.prisma.exotelPhoneNumber.findUnique({
+      where: { id: body.phone_number_id },
+    });
+    if (!phone) throw new NotFoundException(`Phone number #${body.phone_number_id} not found`);
+
+    await this.ensurePanchayatExists(body.org_unit_id);
+
+    return this.prisma.exotelBotAssignment.create({
+      data: {
+        bot_id: body.bot_id,
+        phone_number_id: body.phone_number_id,
+        org_unit_id: body.org_unit_id,
+        assigned_by: assignedBy ?? 0,
+        is_active: true,
+      },
+      include: {
+        bot: { select: { id: true, bot_id: true, bot_name: true } },
+        phone_number: { select: { id: true, phone_number: true, friendly_name: true } },
+        org_unit: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  async listBotAssignments(orgUnitId?: number) {
+    return this.prisma.exotelBotAssignment.findMany({
+      where: {
+        is_active: true,
+        ...(orgUnitId ? { org_unit_id: orgUnitId } : {}),
+      },
+      orderBy: { created_at: 'desc' },
+      include: {
+        bot: { select: { id: true, bot_id: true, bot_name: true, bot_version: true } },
+        phone_number: { select: { id: true, phone_number: true, friendly_name: true } },
+        org_unit: { select: { id: true, name: true, branch_type: true } },
+      },
+    });
+  }
+
+  async deleteBotAssignment(id: number) {
+    const assignment = await this.prisma.exotelBotAssignment.findUnique({ where: { id } });
+    if (!assignment) throw new NotFoundException(`Assignment #${id} not found`);
+
+    return this.prisma.exotelBotAssignment.update({
+      where: { id },
+      data: { is_active: false },
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //   EXOTEL INTERACTION HISTORY
+  // ══════════════════════════════════════════════════════════════════════════
+
+  async listExotelInteractions(params: {
+    bot_id?: string;
+    phone?: string;
+    status?: string;
+    date_from?: Date;
+    date_to?: Date;
+    take: number;
+  }) {
+    const where: any = {};
+    if (params.bot_id) where.bot_id = params.bot_id;
+    if (params.status) where.status = params.status;
+    if (params.phone) {
+      where.customer_number = { contains: params.phone };
+    }
+    if (params.date_from || params.date_to) {
+      where.started_at = {};
+      if (params.date_from) where.started_at.gte = params.date_from;
+      if (params.date_to) where.started_at.lte = params.date_to;
+    }
+
+    return this.prisma.exotelInteraction.findMany({
+      where,
+      orderBy: { started_at: 'desc' },
+      take: params.take,
+      select: {
+        id: true,
+        interaction_id: true,
+        bot_id: true,
+        call_sid: true,
+        customer_number: true,
+        bot_name: true,
+        bot_version: true,
+        started_at: true,
+        ended_at: true,
+        duration_seconds: true,
+        audio_url: true,
+        transcript_text: true,
+        status: true,
+        synced_at: true,
+      },
+    });
+  }
+
+  async getExotelInteraction(id: number) {
+    const interaction = await this.prisma.exotelInteraction.findUnique({
+      where: { id },
+    });
+    if (!interaction) throw new NotFoundException(`Interaction #${id} not found`);
+
+    // Enrich with linked VoiceCall/IvrCall data if available
+    let linkedVoiceCall: any = null;
+    let linkedIvrCall: any = null;
+
+    if (interaction.call_sid) {
+      linkedVoiceCall = await this.prisma.voiceCall.findFirst({
+        where: { call_sid: interaction.call_sid },
+        select: {
+          id: true,
+          transcript: true,
+          transcript_english: true,
+          processing_status: true,
+          confidence_score: true,
+          complaints: {
+            select: {
+              id: true,
+              status: true,
+              complaint_type: true,
+              description: true,
+            },
+            take: 3,
+          },
+        },
+      });
+
+      linkedIvrCall = await this.prisma.ivrCall.findUnique({
+        where: { call_sid: interaction.call_sid },
+        select: {
+          call_sid: true,
+          caller_number: true,
+          call_to: true,
+          call_start_time: true,
+          call_end_time: true,
+          service_selected: true,
+        },
+      });
+    }
+
+    return {
+      ...interaction,
+      linked_voice_call: linkedVoiceCall,
+      linked_ivr_call: linkedIvrCall,
+    };
   }
 }

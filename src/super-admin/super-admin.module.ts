@@ -13,6 +13,7 @@ import { TenderModule } from '../tender/tender.module';
 import { PlumberModule } from '../plumber/plumber.module';
 import { PenaltyModule } from '../penalty/penalty.module';
 import { TenantModule } from '../core/tenant/tenant.module';
+import { IvrModule } from '../ivr/ivr.module';
 
 @Module({
   imports: [
@@ -24,8 +25,10 @@ import { TenantModule } from '../core/tenant/tenant.module';
     PlumberModule,
     PenaltyModule,
     TenantModule,
+    IvrModule,
   ],
   providers: [SuperAdminService, TenantProvisioningService, TenantAnalyticsService],
   controllers: [SuperAdminController, TenantController, TenantAnalyticsController],
 })
 export class SuperAdminModule {}
+

@@ -1,0 +1,408 @@
+================================================================================
+SMART GIS MUNICIPAL GOVERNANCE PLATFORM — PROJECT PROPOSAL UPDATES
+(Conversational AI Voice Agent + Keypad DTMF IVR Dual Helpline System)
+================================================================================
+
+This document contains the exact page-by-page copy-paste content to update your
+16-page proposal document for Mettupalayam Municipality.
+
+
+--------------------------------------------------------------------------------
+PAGE 1: COVER & EXECUTIVE SUMMARY
+--------------------------------------------------------------------------------
+
+[TITLE & HEADER]
+PROJECT PROPOSAL
+Smart GIS Municipal Governance Platform
+
+PREPARED FOR:
+The Municipal Engineer & The Commissioner
+Mettupalayam Municipality, Tamil Nadu
+
+PROPOSAL DETAILS:
+Ref: SEG/M/PROP/2026/08
+Date: August 2026
+CONFIDENTIAL — BUSINESS PROPOSAL
+
+[EXECUTIVE SUMMARY]
+Think of a partner who walks the same streets, rides the same local buses, and notices the moment a streetlight flickers on the way home. That’s us at Sengotics — a team born and raised right here in Mettupalayam.
+
+We don’t believe in managing public service from a remote helpdesk in another city. Instead, our engineers will sit right inside your municipality office, working side by side with your team every single day. From day one, we’ll be on the ground mapping every street, tagging every light pole and water valve, and helping your electricians and plumbers fix problems in minutes not days.
+
+When the lights stay on, the water flows on time, and complaints are solved with care, people feel it.
+
+Together, let’s make everyday governance feel effortless, bringing pride to your officers and genuine smiles to every neighborhood across Mettupalayam.
+
+[KEY VALUE DELIVERABLES]
+• 100% Citizen Reach via Dual Voice Helpline: Next-generation Conversational AI Voice Agent on primary helpline (natural spoken Tamil, Tanglish & English dialogue for live complaint status queries and instant registration) + Fast Keypad DTMF IVR on secondary helpline for numeric pole ID reporting.
+• On-Site Operational Partnership: Deputed Sengotics staff working inside Mettupalayam Municipality's I3C command center.
+• Turnkey Deployment: End-to-end service including physical QR sticker installation, GIS data collection, banner designs, and public awareness campaigns.
+• Verifiable Field Work: Geo-fenced proof of work (GPS photo verification) for electricians, plumbers, and contractors.
+• Cross-Platform Accessibility: Unified multi-device access (Web, Mobile, Windows) built on a single Flutter codebase.
+
+
+--------------------------------------------------------------------------------
+PAGE 2: SECTION 1 — MUNICIPAL CHALLENGES & SENGOTICS TURNKEY SOLUTIONS
+--------------------------------------------------------------------------------
+
+TABLE ENTRIES:
+
+1. Grievance Accessibility & Live Status Inquiries
+   - Municipal Challenge: Non-smartphone users struggle to report civic issues or verify pending ticket progress.
+   - Sengotics Turnkey Solution: Conversational AI Voice Agent & Smart Keypad IVR. Real-time conversational AI agent realistically speaks in natural Tamil/English to fetch live ticket statuses and register complaints, backed by a secondary keypad IVR for instant numeric pole ID logging.
+   - Business & Operational Value: 24/7 autonomous grievance registration and real-time status inquiry with zero manual call-center costs.
+
+2. Asset Location Ambiguity
+   - Municipal Challenge: Difficulty pin-pointing exact faulty street light poles or pipeline leaks.
+   - Sengotics Turnkey Solution: GIS Mapping & On-Ground QR Tagging. Sengotics teams physically survey assets, map GIS points, and install QR codes.
+   - Business & Operational Value: Reduces field response time by over 60% with exact GPS coordinate navigation.
+
+3. Unverified Work Completion
+   - Municipal Challenge: Complaints marked 'resolved' without actual physical verification on site.
+   - Sengotics Turnkey Solution: Geo-Fenced Photo Proof. Technicians upload live photos tagged with GPS coordinates matched against asset location.
+   - Business & Operational Value: Eliminates false resolutions and ensures strict contractor accountability.
+
+4. Non-Tax Revenue Leakages
+   - Municipal Challenge: Manual tracking of market stall fees, hall rentals, and hoarding leases.
+   - Sengotics Turnkey Solution: Municipal Asset & Revenue Engine. Digital tracking of market vendors, community asset bookings, and ad campaign leases.
+   - Business & Operational Value: Maximizes non-tax municipal revenue recovery with complete digital audit trails.
+
+5. Lack of On-Site Tech Support
+   - Municipal Challenge: External vendors take days to respond via remote support tickets.
+   - Sengotics Turnkey Solution: Dedicated I3C On-Site Staffing. Sengotics staff deployed on-site inside Mettupalayam Municipality's I3C Department.
+   - Business & Operational Value: Immediate in-person support, real-time monitoring, and seamless municipal coordination.
+
+WORKFLOW DIAGRAM STEPS:
+1. CITIZEN INPUT: Tier 1: Conversational AI Voice Agent (Natural Dialogue & Live Status Query) & Tier 2: Keypad DTMF IVR | Web App | QR Scan
+2. I3C COMMAND CENTER: GIS mapping screens | Deputed Sengotics staff
+3. FIELD WORKFORCE: GPS geo-fenced resolution photos | Field notes
+4. EXECUTIVE DASHBOARD: Analytics charts | City map reporting
+
+
+--------------------------------------------------------------------------------
+PAGE 3: SECTION 2 — THE SENGOTICS ADVANTAGE: LOCAL STARTUP & ON-SITE PARTNERSHIP
+--------------------------------------------------------------------------------
+
+METTUPALAYAM MUNICIPALITY
+I3C (Integrated Command & Control Center)
+
+Deputed Sengotics On-Site Team:
+• Live System & Voice Agent Call Monitoring
+• Command Center Operations
+• Complaint Queue Management & Smart Triage
+
+Municipal Engineers & Officers:
+• Executive Dashboard Oversight
+• Approval Workflows
+• Policy & Administrative Decisions
+
+Sengotics On-Ground Field Services:
+• GIS Data Survey & Mapping | • QR Code Sticker Tagging | • Marketing & Awareness Banners
+
+Why a Local Mettupalayam Partner Matters:
+• Immediate In-Person Response: Being headquartered locally, our leadership and technical support teams are available in-person at a moment’s notice.
+• I3C Department Staff Deputation: Sengotics will station trained staff inside Mettupalayam Municipality’s I3C (Integrated Command & Control Center) to handle daily monitoring, ticket routing, and officer support right from your office.
+• Full Operational Turnkey Service: We take complete responsibility for field data collection, physical infrastructure tagging, public awareness campaigns, and continuous system maintenance.
+
+
+--------------------------------------------------------------------------------
+PAGE 4: SECTION 3 — CORE PLATFORM MODULES (MODULE 1 & 2)
+--------------------------------------------------------------------------------
+
+Module 1: Real-Time Conversational AI Voice Agent & Dual IVR Helpline
+
+• 1.1 Conversational AI Voice Agent (Primary Helpline — 04440115043): Dedicated municipal helpline powered by Exotel and conversational AI models. Features natural, human-like two-way spoken dialogue in colloquial Tamil, Tanglish, and English without rigid menu trees.
+• 1.2 Live Database Query & Status Spoken Updates: Callers can ask about existing complaints ("என் புகார் நிலை என்ன?"); the AI agent dynamically executes PostgreSQL lookups, verifies caller phone numbers, and speaks back real-time resolution progress and technician assignments.
+• 1.3 Dynamic Intake & PostGIS Geocoding: Real-time speech understanding that extracts issue category (streetlights, drinking water pipelines, sanitation, drainage), spoken landmarks, street names, urgency, and matches them against PostGIS spatial ward boundaries.
+• 1.4 Keypad DTMF IVR (Secondary Helpline — 04440115434): Dedicated numerical keypad entry channel for instant pole ID logging (101/102/103) and rapid feature-phone shortcuts.
+• 1.5 Automated Workflow & Escalations: Voice Call / DTMF → Intent Extraction & Live DB Query → Spoken Response & Instant SMS Tracking Dispatch → PostGIS Auto-Routing → Field Crew Execution → Geo-Fenced Photo Verification → Automatic SLA Escalations (Technician → Supervisor → Officer → Commissioner).
+
+Module 2: QR-Enabled Asset Management & Instant Citizen Reporting
+
+• 2.1 Digital Asset Registry: Unique digital identity for poles, pipelines, valves, borewells, OHTs, GLRs, sumps, smart bins, roads, drains, parks, and municipal vehicles.
+• 2.2 Weatherproof QR Tagging: Durable physical stickers linked directly to asset ID, GIS coordinates, inspection logs, and maintenance histories.
+• 2.3 No-App Scan-to-Report: Instant mobile browser scan pre-loaded with asset metadata, fault selection, and photo upload without app installation.
+• 2.4 Anonymous Tracking: Secure tracking URL and lifecycle statuses: Registered → Assigned → In Progress → Work Completed → Verified → Closed.
+
+
+--------------------------------------------------------------------------------
+PAGE 5: MODULE 3 & MODULE 4
+--------------------------------------------------------------------------------
+
+Module 3: Municipal Infrastructure & Public Works Management
+
+• 3.1 Electrical & Lighting: Pole registry, wattage, LED/Sodium types, phase, line condition, fault history, spare-parts tracking, and repair photo proofs.
+• 3.2 Water Distribution: Borewells, open wells, OHT/GLR sumps, pipeline GIS (material, diameter, depth), valve schedules, and motor runtime telemetry.
+• 3.3 Solid Waste & Smart Bins: Wet/dry classification, fill-level sensor telemetry (Normal, Moderate, Overflowing), collection route completion, and sanitary worker attendance.
+• 3.4 Roads & Potholes: BT/CC/WBM road registry, pothole severity grading (Minor, Severe, Critical), before/after geotagged repair verification, and contractor work orders.
+• 3.5 Stormwater & Floods: Pucca/RCC drain GIS, desilting schedules, low-lying inundation maps, emergency pump telemetry, and monsoon preparedness dashboard.
+• 3.6 Parks, Health, Fleet, Land & Cemeteries: Playground inspections, vector-control fogging routes, garbage vehicle GPS/fuel tracking, encroachment eviction tracking, and digital crematorium bookings.
+
+Module 4: Regulatory, Citizen Services & Digital Certificates
+
+• 4.1 Building Permissions: Online plan application, blueprint PDF viewer, automated fee calculation, structural compliance, and multi-department NOC workflow (Fire, Traffic, TNEB, Revenue).
+• 4.2 Vital Events (Birth/Death): Hospital data integration, late registration penalty engine, digital certificates with QR-based cryptographic verification and digital signatures.
+• 4.3 Citizen Certificates: Application and approval engine for Residence/Domicile, Community/Caste verification, Property Ownership, and Departmental NOCs.
+• 4.4 Trade Licences: Commercial establishment registry, health/sanitary inspections, first-year pro-rata fees, annual renewals, late grace management, and digital QR licences.
+
+
+--------------------------------------------------------------------------------
+PAGE 6: MODULE 5 & MODULE 6
+--------------------------------------------------------------------------------
+
+Module 5: Municipal Revenue & Commercial Asset Management
+
+• 5.1 Property Tax Engine: Zone/plinth-area assessment for residential, commercial, and industrial properties; building-age depreciation; demand notices; online/offline payment reconciliations.
+• 5.2 Santhai / Market Management: Digitized market layout, stall allocation, vendor registry, daily token generation, and fee collection reconciliation.
+• 5.3 Facility Bookings: Online reservation calendar for community halls, auditoriums, sports grounds, and equipment with security deposit and automated receipting.
+• 5.4 Hoardings & Cable Leases: Commercial advertising registry, dimensions, renewal leases, advertisement tax, and cable TV / broadband pole attachment audit logs.
+• 5.5 Penalty Engine: Configurable penalties for illegal dumping, unauthorized water taps, building deviations, and contractor delay SLA deductions.
+
+Module 6: Digital Procurement, E-Tender & Contractor Management
+
+• 6.1 Vendor Registry & KYC: Contractor database with license, GST, experience verification, Class I–V grading, and document expiry tracking.
+• 6.2 E-Tendering Lifecycle: NIT creation, Schedule of Rates, tender publishing, two-cover online bidding, comparative statements, award of contract, and digital work orders.
+• 6.3 Digital M-Book: Milestone creation, measurement entries, material consumption, contractor submissions, JE/AEE verification, accounts approval, and digital sign-off.
+• 6.4 Dynamic Template Canvas: Canvas designer generating branded municipal PDFs for work orders, tenders, notices, M-Book logs, and agreements with auto-populated fields.
+
+
+--------------------------------------------------------------------------------
+PAGE 7: MODULE 7 & MODULE 8
+--------------------------------------------------------------------------------
+
+Module 7: Field Workforce & Offline Mobile Operations
+
+• 7.1 Role-Specific Mobile Shells: Specialized apps for Electricians, Plumbers, Sanitary Workers, Inspectors, and Survey Agents.
+• 7.2 Geo-Fenced Resolution Proof: Mandatory on-site photos captured strictly within a 50m GPS radius with embedded timestamps, coordinates, and user watermarks.
+• 7.3 Offline-First Architecture: Local SQLite/Drift database caching allowing uninterrupted field execution with background auto-sync and conflict resolution.
+
+Module 8: Real-Time GIS, Ward Management & Spatial Intelligence
+
+• 8.1 Unified GIS Platform: Single interactive map displaying ward/zone boundaries, roads, streetlights, pipelines, water assets, drains, and facilities.
+• 8.2 Ward Polygon Boundaries: Administrative drawing tools with PostGIS storage for defining and managing municipal/panchayat boundaries.
+• 8.3 Automatic Spatial Intersections: Auto-routes tickets: Asset → Ward → Zone → Local Body → Responsible Department → Assigned Field Crew.
+• 8.4 Live Spatial Layers: Real-time color-coded pins for healthy assets, active faults, maintenance zones, emergency clusters, and completed repairs.
+
+
+--------------------------------------------------------------------------------
+PAGE 8: MODULE 9 & MODULE 10
+--------------------------------------------------------------------------------
+
+Module 9: I3C Command Center, Executive Analytics & AI Assistant
+
+• 9.1 Executive Dashboard: Central control dashboard for Commissioner, Engineers, Revenue, and Health Officers displaying live municipal KPIs.
+• 9.2 Operational Analytics: Resolution ratios, SLA breach countdowns, ward-wise comparisons, technician workloads, contractor ratings, and revenue collections.
+• 9.3 AI Natural Language Query & Voice Call Analytics: Live call transcripts, caller sentiment tracking, and plain-language querying (e.g. 'Show pending street light complaints in Ward 4 this week') for instant summarized intelligence.
+• 9.4 Predictive Decision Support: Identifies recurring infrastructure failure hotspots, workforce overloads, and preventive maintenance priorities.
+
+Module 10: Enterprise Administration, Multi-Tenancy & RBAC
+
+• 10.1 Tamil Nadu Multi-Tenancy: Native support for Village Panchayats (கிராம ஊராட்சி), Blocks (ஊராட்சி ஒன்றியம்), District Panchayats, Town Panchayats (பேரூராட்சி), Municipalities (நகராட்சி), and Corporations (மாநகராட்சி).
+• 10.2 Organizational Hierarchy: State → District → Local Body → Zone → Ward → Department → Team → Employee configuration hierarchy.
+• 10.3 Granular Access (RBAC): Preconfigured roles for Commissioner, BDO, Engineers, Revenue/Sanitary Inspectors, Electricians, Plumbers, and Super Admins.
+• 10.4 Municipal White-Label Branding: Customizable logos, letterheads, SMS headers, portals, and official stationery for each local body tenant.
+
+
+--------------------------------------------------------------------------------
+PAGE 9: MODULE 11 & UNIVERSAL SEARCH
+--------------------------------------------------------------------------------
+
+Module 11: Universal Search, Workflow, Audit & System Administration
+
+• 11.1 Universal Global Search (Ctrl + K): Global search bar indexing citizens, complaints, assets, staff, permits, tax accounts, tenders, and work orders.
+• 11.2 Approval Workflow Engine: Multi-level sign-offs for building permits, trade licences, M-Books, contractor payments, and certificates.
+• 11.3 Immutable Audit Trail: Cryptographically tamper-resistant logs recording user ID, role, timestamps, IP, previous/new values, and JSON change diffs.
+• 11.4 Dynamic Form Builder: Visual form designer enabling officers to create custom inspection checklists, survey forms, and department workflows.
+• 11.5 Fully Bilingual Interface: Complete Tamil and English localization across menus, mobile shells, documents, receipts, notices, and citizen portals.
+
+[MODULE SUMMARY GRID - BOX 1]
+Module 1: CONVERSATIONAL AI VOICE AGENT & DUAL HELPLINE
+Realistic Spoken Tamil/English Dialogue, Live Complaint Status Lookup & Keypad IVR
+
+
+--------------------------------------------------------------------------------
+PAGE 10: SECTION 4 — LIVE DEMO & TRIAL ACCESS
+--------------------------------------------------------------------------------
+
+🚀 Live Interactive System Demo & Trial Access
+Evaluators and stakeholders can experience the system in real time using the live portal, helpline numbers, and credentials below.
+
+🌐 LIVE PRODUCTION WEB PORTAL
+https://ivr-frontend-system-sengotics.vercel.app/
+(Scan QR code or click link to access the live web application instantly.)
+
+📞 PRIMARY HELPLINE (Conversational AI Voice Agent)
+04440115043
+Main Conversational AI Voice Line
+🎙️ Call to converse with our human-like AI voice agent in Tamil/Tanglish/English. Test asking about existing complaint statuses, lodging new issues naturally, or checking water supply timings.
+
+📞 SECONDARY HELPLINE (Keypad DTMF IVR)
+04440115434
+Dedicated Keypad IVR Helpline
+🔢 Call to test quick numerical keypad entry (enter Keypad ID 101, 102, or 103 for instant pole fault logging).
+
+📱 CITIZEN QR CODE ASSET REPORTING CARD
+Scan QR code with any mobile camera to test instant public fault reporting for Electric Pole TY-001:
+
+METTUPALAYAM MUNICIPALITY
+Scan to report street light fault
+பழுதுபார்க்க ஸ்கேன் செய்யவும்
+
+POLE NUMBER: TY-001
+AI Voice Agent: 04440115043 | Keypad IVR: 04440115434
+Portal: https://ivr-frontend-system-sengotics.vercel.app/
+
+
+--------------------------------------------------------------------------------
+PAGE 11: STEP-BY-STEP TESTING INSTRUCTIONS & SAMPLE REGISTRY TABLE
+--------------------------------------------------------------------------------
+
+🛠️ Step-by-Step Testing Instructions:
+
+• Option A: Test the Conversational AI Voice Agent (Primary: 04440115043)
+  - Dial 04440115043 from any mobile or landline phone.
+  - Speak naturally in Tamil or English (e.g., "மேட்டுப்பாளையம் பஸ் ஸ்டாண்ட் பக்கத்துல ஸ்ட்ரீட் லைட் எரியல" or "என்னோட புகார் நிலை என்ன?").
+  - Listen to the realistic spoken voice response, real-time database complaint lookup, and instant SMS ticket confirmation.
+
+• Option B: Test the Fast Keypad DTMF IVR (Secondary: 04440115434)
+  - Dial 04440115434, select language, and enter a sample Keypad ID (101, 102, or 103) on your phone dialpad.
+  - Confirm the issue registration for the selected pole.
+
+• Verify on Live Dashboard:
+  - Open https://ivr-frontend-system-sengotics.vercel.app/ to verify the instant ticket creation with PostGIS coordinates and live status tracking.
+
+📍 Sample Pole Test Registry Table:
+
++----------------------------+-----------------------------+-------------------------------+------------------------------+
+| Attribute                  | Test Pole 01 (Commercial)   | Test Pole 02 (Residential)    | Test Pole 03 (Rural)         |
++----------------------------+-----------------------------+-------------------------------+------------------------------+
+| Pole Number                | PL-MTP-001                  | PL-MTP-002                    | PL-MTP-003                   |
+| IVR Keypad ID (04440115434)| 101                         | 102                           | 103                          |
+| Spoken Landmark (Voice Agent)Near Bus Stop, Main Road    | Corner of Pillaiyar Kovil St  | Opposite Primary Health Cent.|
+| Tamil Spoken Landmark      | பேருந்து நிறுத்தம் அருகில்  | பிள்ளையார் கோவில் தெரு முனை   | ஆரம்ப சுகாதார நிலையம் எதிரில்|
+| Tanglish Spoken Landmark   | Bus stop pakkam, Main road  | Pillaiyar Kovil theru corner  | Primary Health Centre ethiril|
+| Panchayat / Org Unit       | Mettupalayam Ward 12        | Dhayanur Ward 4               | Karamadai Union Zone 2       |
+| Coordinates (Lat, Long)    | 11.3005° N, 76.9467° E      | 11.2890° N, 76.9312° E        | 11.2754° N, 76.9601° E       |
+| PostGIS Geometry           | POINT(76.9467 11.3005)      | POINT(76.9312 11.2890)        | POINT(76.9601 11.2754)       |
+| Public Report Token        | TKN-9821-DEMO               | TKN-4512-DEMO                 | TKN-7834-DEMO                |
++----------------------------+-----------------------------+-------------------------------+------------------------------+
+
+🔑 Official Portal Login Credentials:
+• Super Admin:       superadmin@sengotics.com   | Password: Admin@1234
+• Panchayat Admin:   admin@sengotics.com        | Password: Admin@1234
+• Field Electrician: electrician@sengotics.com  | Password: Admin@1234
+
+
+--------------------------------------------------------------------------------
+PAGE 12: SECTION 5 — 3-MINUTE GUIDED PLATFORM TEST DRIVE PLAYBOOK
+--------------------------------------------------------------------------------
+
+⏱️ Step 1: Minute 1 — Citizen Voice Grievance Recording (AI Voice Agent / Keypad IVR)
+• Action: Call Primary Helpline 04440115043 (AI Voice Agent) or Secondary Helpline 04440115434 (Keypad IVR).
+• Tamil Spoken Prompt: "மேட்டுப்பாளையம் வார்டு 12, அண்ணா நகரில் தெருவிளக்கு எரியவில்லை" or ask "என் முந்தைய புகார் நிலை என்ன?"
+• English Spoken Prompt: "Streetlight not working in Ward 12, Anna Nagar, Mettupalayam" or "What is the status of my complaint?"
+• Expected Outcome:
+  - Conversational AI Voice Agent speaks realistically and replies with dynamic ticket information or creates a new grievance.
+  - Automatically extracts Category (Streetlight) and Ward (Ward 12).
+  - SMS with Ticket ID #MTP-2026-8942 sent instantly.
+
+⏱️ Step 2: Minute 2 — Executive Command & GIS Map Oversight
+• Action: Open https://ivr-frontend-system-sengotics.vercel.app/ and log in as Admin (admin@sengotics.com | Admin@1234).
+• What to Inspect:
+  1. GIS Live Heatmap: Watch Red Alert Pin pop up on Ward 12.
+  2. Automatic SLA Timer: 24-Hour resolution countdown timer initialized.
+  3. Automated Dispatch: Ticket auto-routed to Ward 12 Electrical Field Team.
+
+⏱️ Step 3: Minute 3 — Mobile Field Agent & Geo-Fenced Resolution
+• Action: Log into Mobile Work App on phone (electrician@sengotics.com | Admin@1234).
+• What to Inspect:
+  1. Work Order Queue: View Ticket #MTP-2026-8942 with GPS coordinates.
+  2. Photo Proof Verification: Tap "Capture Repair Photo" for geo-fenced timestamp within 50m radius.
+  3. Close Ticket: Tap "Mark as Resolved".
+• Final Verification: Switch back to Dashboard (admin@sengotics.com). Ward 12 Red Pin turns Green (Resolved), updating SLA counter in real time.
+
+
+--------------------------------------------------------------------------------
+PAGE 13: SECTION 6 — PHASED IMPLEMENTATION ROADMAP & SLA FRAMEWORK
+--------------------------------------------------------------------------------
+
+4-Week Turnkey Rollout Roadmap:
+
+• Week 1 – I3C Setup & Cloud Configuration:
+  - Deploy Sengotics on-site staff inside Mettupalayam I3C.
+  - Activate MeitY-compliant cloud instance, Exotel Conversational Voice Agent (04440115043), Keypad IVR (04440115434), and PostGIS database server.
+  - Configure role-based admin nodes for Commissioner and Municipal Engineers.
+  - Operational Milestone: I3C Command Center & AI Voice Agent fully operational.
+
+• Weeks 2-3 – Ward-by-Ward GIS Survey & QR Tagging:
+  - Sengotics ground crew conducts physical GIS survey of all municipal assets.
+  - Install weather-proof QR stickers on street-light poles, water valves, borewells, and facilities.
+  - Geocode all surveyed assets into the live PostGIS database.
+  - Operational Milestone: 100% of municipal assets digitally registered.
+
+• Week 4 – Field Training & City-wide Go-Live:
+  - Hands-on field mobile app training for electricians, plumbers, and sanitary staff.
+  - Install public-awareness banners at bus terminals, ward offices, and marketplaces.
+  - Launch bilingual Conversational Voice Agent helpline and QR scan-to-report portal across all wards.
+  - Operational Milestone: Full city-wide live operation.
+
+
+--------------------------------------------------------------------------------
+PAGE 14: MUNICIPAL SLA MATRIX & AUTOMATED ESCALATION RULES
+--------------------------------------------------------------------------------
+
+Service Category SLA Matrix:
+• Major Water-Pipeline Burst / Contamination: 🔴 Critical | First-Response: ≤ 30 min | Resolution Target: < 6 h  | Escalation: Municipal Engineer & Commissioner
+• Street-Light Pole Failure / Dark Zone:      🟡 High     | First-Response: ≤ 2 h  | Resolution Target: < 24 h | Escalation: Assistant Engineer (Electrical)
+• Sanitation / Drain Clog / Garbage Pile:    🟡 High     | First-Response: ≤ 1 h  | Resolution Target: < 12 h | Escalation: Sanitary Inspector / Health Officer
+• Revenue / Market-Stall / Hall Booking:     🟢 Standard | First-Response: ≤ 4 h  | Resolution Target: < 48 h | Escalation: Revenue Inspector / Admin Officer
+
+Automated Escalation & Accountability Rules:
+• Auto-Escalation Hierarchy: 75% SLA Elapsed dispatches SMS to technician; 100% SLA Breach auto-escalates to Junior/Assistant Engineer with penalty logging; 150% SLA Breach pushes direct Red Alert to Municipal Engineer & Commissioner dashboard.
+• Geo-Fenced Photo-Proof Verification: Complaints cannot be closed remotely. The field mobile app requires an on-site photo captured strictly within a 50m GPS radius of the registered asset.
+• Contractor SLA Penalty Engine: Unresolved delays beyond SLA deadlines automatically log rule-based deductions against contractor billing cycles.
+
+
+--------------------------------------------------------------------------------
+PAGE 15: CLOUD SECURITY & UNIFIED CORE ENGINE
+--------------------------------------------------------------------------------
+
+• Government-Approved Cloud: Hosted on secure, MeitY-compliant, India-based cloud data centers adhering strictly to government data hosting mandates.
+• Data Sovereignty: All municipal data remains strictly hosted within Indian boundaries.
+• Role-Based Access Control (RBAC): Granular user permissions ensuring staff only access authorized ward data.
+• Immutable Audit Trail: Comprehensive digital logs recording every action, status update, and login timestamp for audit compliance.
+• Core Engine: Single unified Flutter cross-platform engine serving Web Portal, Mobile Apps (Android/iOS), and Windows Workstations connected to the PostgreSQL/PostGIS backend and Exotel Conversational Voice Agent.
+
+
+--------------------------------------------------------------------------------
+PAGE 16: SECTION 8 & 9 — SCOPE OF WORK & CORPORATE DETAILS
+--------------------------------------------------------------------------------
+
+SOFTWARE & PLATFORM:
+• Complete Platform License
+• Conversational AI Voice Agent & Dual Helpline Engine Setup
+• GIS Mapping & Web/App Portals
+• Flutter Cross-Platform Engine
+• Regular System Updates & Backups
+
+ON-GROUND & I3C SERVICES:
+• Deputed I3C Staff inside Municipality
+• On-Ground GIS Asset Data Survey
+• Physical QR Code Sticker Tagging
+• Marketing Banner & Notice Designs
+• Officer Training & Support
+
+REGISTRATION DETAILS:
+• GSTIN: 33DKDPA5555E1ZL
+• UDYAM REG NO: UDYAM-TN-03-0308455
+• GEM SELLER ID: N78K260014298113
+
+CORPORATE OFFICE:
+Sengotics, 4/360, Anna Nagar, Dhayanur, Karamadai
+Tholampalayam Road, Near Gram Panchayat Office,
+Kemmarampalayam, Kalampalayam, Mettupalayam, Coimbatore,
+Tamil Nadu - 641113
+
+EMAIL: contact@sengotics.com | WEB: www.sengotics.com
+CALL: +91 9597769501 | INSTAGRAM: @sengotics
+================================================================================

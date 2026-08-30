@@ -132,6 +132,8 @@ const SCREENS = [
   { key: 'settings', route: '/settings',           group_key: G.ADMIN, label_en: 'Settings',           label_ta: 'அமைப்புகள்',      icon: 'settings_rounded',              module: 'core', permission_code: 'settings.manage' },
   { key: 'tenants',  route: '/admin/tenants',      group_key: G.ADMIN, label_en: 'Tenants (clients)',  label_ta: 'வாடிக்கையாளர்கள்', icon: 'corporate_fare_rounded',        module: 'core', permission_code: 'tenants.manage', is_platform_only: true },
   { key: 'branches', route: '/panchayats',         group_key: G.ADMIN, label_en: 'Branches & branding',label_ta: 'கிளைகள்',         icon: 'account_balance_rounded',       module: 'core', permission_code: 'branches.manage', is_platform_only: true },
+  { key: 'admin_management', route: '/admin/admins', group_key: G.ADMIN, label_en: 'Admin RBAC', label_ta: 'நிர்வாக மேலாண்மை', icon: 'manage_accounts_rounded', module: 'core', permission_code: 'admins.manage', is_platform_only: true },
+  { key: 'exotel_management', route: '/admin/exotel', group_key: G.ADMIN, label_en: 'Exotel Voicebots', label_ta: 'எக்சோடெல் வாய்ஸ்பாட்', icon: 'record_voice_over_rounded', module: 'ivr_system', permission_code: 'exotel.manage', is_platform_only: true },
   { key: 'users',    route: '/users',              group_key: G.ADMIN, label_en: 'User accounts',      label_ta: 'பயனர் கணக்குகள்',  icon: 'people_rounded',                module: 'core', permission_code: 'users.manage' },
   { key: 'roles',    route: '/superadmin/roles',   group_key: G.ADMIN, label_en: 'Roles & permissions',label_ta: 'பணி & அனுமதிகள்',  icon: 'admin_panel_settings_rounded',  module: 'core', permission_code: 'rbac.manage' },
 
@@ -163,7 +165,7 @@ const MODULES = [
   'certificates', 'street_lights', 'water_supply', 'solid_waste',
   'public_health', 'inspections', 'zones', 'tenders', 'contractors',
   'documents', 'employees', 'reports', 'audit', 'settings', 'tenants',
-  'branches', 'users', 'rbac',
+  'branches', 'users', 'rbac', 'admins', 'exotel',
 ];
 const ACTIONS = ['read', 'write', 'approve', 'delete', 'export', 'manage'];
 
@@ -178,7 +180,7 @@ const S = {
   procurement: ['tenders', 'contractors', 'vendor_portal'],
   workforce: ['field_workforce', 'employees'],
   insights: ['insights', 'audit_logs'],
-  admin: ['settings', 'users', 'roles'],
+  admin: ['settings', 'users', 'roles', 'admin_management', 'exotel_management'],
 };
 const flat = (...sets) => [...new Set(sets.flat())];
 

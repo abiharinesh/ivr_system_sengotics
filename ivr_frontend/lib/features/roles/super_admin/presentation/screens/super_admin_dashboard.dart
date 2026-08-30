@@ -274,18 +274,22 @@ class SuperAdminDashboard extends StatelessWidget {
                 runSpacing: 12,
                 children: [
                   OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('System-wide broadcast alert sent!'),
-                          backgroundColor: Colors.teal,
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.campaign_rounded, size: 18),
-                    label: const Text('Broadcast Alert'),
+                    onPressed: () => context.go('/admin/admins'),
+                    icon: const Icon(Icons.manage_accounts_rounded, size: 18),
+                    label: const Text('Admin RBAC'),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppTheme.radiusMd),
+                      ),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => context.go('/admin/exotel'),
+                    icon: const Icon(Icons.record_voice_over_rounded, size: 18),
+                    label: const Text('Exotel Voicebots'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(AppTheme.radiusMd),
                       ),
