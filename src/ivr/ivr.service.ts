@@ -440,15 +440,21 @@ export class IvrService {
       desc.toLowerCase().includes('burst');
 
     // 6. Create Complaint Record in Prisma
+    const callerPhoneStr = data.caller_phone ? String(data.caller_phone).trim() : null;
+    const cleanDescription = desc
+      ? (callerPhoneStr && !desc.includes(callerPhoneStr) ? `${desc} (Caller: ${callerPhoneStr})` : desc)
+      : `AI Voicebot ${serviceType} complaint from ${callerPhoneStr || 'citizen'}`;
+
     const complaint = await this.prisma.complaint.create({
       data: {
         org_unit_id: orgUnitId,
         ward_id: wardId,
         pole_id: poleId,
         complaint_type: serviceType,
-        description: desc || `AI Voicebot ${serviceType} complaint from ${data.caller_phone || 'citizen'}`,
+        description: cleanDescription,
         status: 'pending',
         urgency_level: isCritical ? 'critical' : 'medium',
+        guest_phone: callerPhoneStr,
       },
     });
 
