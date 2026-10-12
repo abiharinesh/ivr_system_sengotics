@@ -609,6 +609,7 @@ export class IvrService {
       keypad_id: string | null;
       ward_number: number | null;
       ward_name: string | null;
+      landmark?: string | null;
       location: string | null;
     } | null;
     ward_details?: {
@@ -616,6 +617,12 @@ export class IvrService {
       name_en: string | null;
       name_ta: string | null;
     } | null;
+    candidate_poles?: Array<{
+      pole_number: string;
+      keypad_id: string | null;
+      ward_number?: number | null;
+      landmark?: string;
+    }>;
     message: string;
   }> {
     this.logger.log(`[BOT-TOOL] Infrastructure lookup: ${JSON.stringify(data)}`);
@@ -657,12 +664,143 @@ export class IvrService {
         }
       }
 
-      // 2. Find ward by number or area name
-      if (!wardResult && data.ward_number) {
+      // 2. Find ward by number if provided
+      let wardRecord: any = null;
+      if (data.ward_number) {
         const wardNum = parseInt(String(data.ward_number).replace(/\D/g, ''), 10);
         if (!isNaN(wardNum)) {
-          const ward = await this.prisma.ward.findFirst({
+          wardRecord = await this.prisma.ward.findFirst({
             where: { ward_number: wardNum },
+          });
+          if (wardRecord) {
+            wardResult = {
+              ward_number: wardRecord.ward_number,
+              name_en: wardRecord.name_en,
+              name_ta: wardRecord.name_ta,
+            };
+          }
+        }
+      }
+
+      // 3. Intelligent Landmark / Area Search across Electric Poles & Wards
+      let candidatePoles: any[] = [];
+      if (data.area_name || (!poleResult && wardRecord)) {
+        const rawArea = String(data.area_name || '').trim().toLowerCase();
+
+        // Tamil-to-English keyword dictionary for municipal landmarks
+        const landmarkDict: Record<string, string[]> = {
+          'ரயில்வே': ['railway', 'station'],
+          'ரயில்': ['railway', 'station'],
+          'ஸ்டேஷன்': ['station'],
+          'கேட்': ['gate'],
+          'மாரியம்மன்': ['mariamman'],
+          'கோவில்': ['temple', 'kovil'],
+          'கோயில்': ['temple', 'kovil'],
+          'காரமடை': ['karamadai'],
+          'ஊட்டி': ['ooty'],
+          'குன்னூர்': ['coonoor'],
+          'பஸ்': ['bus'],
+          'பேருந்து': ['bus', 'stand'],
+          'ஸ்டாண்ட்': ['stand'],
+          'ஆஸ்பத்திரி': ['hospital'],
+          'மருத்துவமனை': ['hospital'],
+          'சந்தை': ['market', 'santhai'],
+          'மார்க்கெட்': ['market'],
+          'பள்ளி': ['school', 'palli'],
+          'ஸ்கூல்': ['school'],
+          'பாலம்': ['bridge', 'paalam'],
+          'பெட்ரோல்': ['petrol', 'bunk'],
+          'பங்க்': ['bunk'],
+          'தேர்': ['ther', 'car'],
+          'வீதி': ['street', 'veethi'],
+          'ஆலமரம்': ['banyan', 'aalamaram'],
+          'செக்போஸ்ட்': ['checkpost'],
+        };
+
+        const tokens: string[] = [];
+        for (const [ta, enList] of Object.entries(landmarkDict)) {
+          if (rawArea.includes(ta.toLowerCase())) {
+            tokens.push(...enList);
+          }
+        }
+        rawArea.split(/[\s,;-]+/).forEach((w) => {
+          if (w.length > 2) tokens.push(w);
+        });
+
+        // Search candidate poles from DB
+        const poleQueryWhere: any = {};
+        if (wardRecord) {
+          poleQueryWhere.ward_id = wardRecord.id;
+        }
+
+        const dbPoles = await this.prisma.electricPole.findMany({
+          where: poleQueryWhere,
+          include: {
+            ward: { select: { ward_number: true, name_en: true, name_ta: true } },
+          },
+          take: 200,
+        });
+
+        if (tokens.length > 0) {
+          const scored = dbPoles.map((p) => {
+            const lmStr = (p.landmarks || []).join(' ').toLowerCase();
+            const pNo = (p.pole_number || '').toLowerCase();
+            const wName = `${p.ward?.name_en || ''} ${p.ward?.name_ta || ''}`.toLowerCase();
+            let score = p.ward_id ? 5 : 0;
+            for (const t of tokens) {
+              if (lmStr.includes(t)) score += 4;
+              if (pNo.includes(t)) score += 5;
+              if (wName.includes(t)) score += 3;
+            }
+            return { pole: p, score };
+          });
+
+          scored.sort((a, b) => b.score - a.score);
+          const topMatches = scored.filter((s) => s.score > 5);
+          if (topMatches.length > 0 && !poleResult) {
+            const best = topMatches[0].pole;
+            poleResult = {
+              pole_number: best.pole_number,
+              keypad_id: best.keypad_id,
+              ward_number: best.ward?.ward_number ?? null,
+              ward_name: best.ward?.name_en ?? null,
+              landmark: best.landmarks?.join('; ') || best.pole_number,
+              location: best.pole_number,
+            };
+            if (!wardResult && best.ward) {
+              wardResult = {
+                ward_number: best.ward.ward_number,
+                name_en: best.ward.name_en,
+                name_ta: best.ward.name_ta,
+              };
+            }
+          }
+          candidatePoles = topMatches.slice(0, 3).map((m) => m.pole);
+        } else if (wardRecord) {
+          candidatePoles = dbPoles.slice(0, 3);
+          if (!poleResult && candidatePoles.length > 0) {
+            const first = candidatePoles[0];
+            poleResult = {
+              pole_number: first.pole_number,
+              keypad_id: first.keypad_id,
+              ward_number: first.ward?.ward_number ?? null,
+              ward_name: first.ward?.name_en ?? null,
+              landmark: first.landmarks?.join('; ') || first.pole_number,
+              location: first.pole_number,
+            };
+          }
+        }
+
+        // If ward still not found, check ward name in DB
+        if (!wardResult && data.area_name) {
+          const area = String(data.area_name).trim();
+          const ward = await this.prisma.ward.findFirst({
+            where: {
+              OR: [
+                { name_en: { contains: area, mode: 'insensitive' } },
+                { name_ta: { contains: area, mode: 'insensitive' } },
+              ],
+            },
           });
           if (ward) {
             wardResult = {
@@ -674,32 +812,17 @@ export class IvrService {
         }
       }
 
-      if (!wardResult && data.area_name) {
-        const area = String(data.area_name).trim();
-        const ward = await this.prisma.ward.findFirst({
-          where: {
-            OR: [
-              { name_en: { contains: area, mode: 'insensitive' } },
-              { name_ta: { contains: area, mode: 'insensitive' } },
-            ],
-          },
-        });
-        if (ward) {
-          wardResult = {
-            ward_number: ward.ward_number,
-            name_en: ward.name_en,
-            name_ta: ward.name_ta,
-          };
-        }
-      }
-
       const isFound = Boolean(poleResult || wardResult);
 
       let msg = '';
       if (poleResult) {
-        msg = `Pole ${poleResult.pole_number} is verified in Ward ${poleResult.ward_number || 'N/A'} (${poleResult.ward_name || ''}).`;
+        const lmText = poleResult.landmark ? ` (Landmark: ${poleResult.landmark})` : '';
+        msg = `Pole ${poleResult.pole_number} is verified in Ward ${poleResult.ward_number || 'N/A'} (${poleResult.ward_name || ''})${lmText}.`;
       } else if (wardResult) {
-        msg = `Ward ${wardResult.ward_number} (${wardResult.name_en || ''}) is verified in Mettupalayam Municipality.`;
+        const poleListStr = candidatePoles.length > 0
+          ? ` Poles in this ward: ${candidatePoles.map((p) => `${p.pole_number} (${p.landmarks?.[0] || 'active'})`).join(', ')}.`
+          : '';
+        msg = `Ward ${wardResult.ward_number} (${wardResult.name_en || ''}) is verified in Mettupalayam Municipality.${poleListStr}`;
       } else {
         msg = 'No matching pole or ward found in live database.';
       }
@@ -709,6 +832,12 @@ export class IvrService {
         found: isFound,
         pole_details: poleResult,
         ward_details: wardResult,
+        candidate_poles: candidatePoles.map((p) => ({
+          pole_number: p.pole_number,
+          keypad_id: p.keypad_id,
+          ward_number: p.ward?.ward_number,
+          landmark: p.landmarks?.[0] || '',
+        })),
         message: msg,
       };
     } catch (err) {
