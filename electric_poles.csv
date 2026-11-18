@@ -1,0 +1,47 @@
+pole_id,pole_no,keypad_id,ward_no,area,landmark,latitude,longitude,status
+82,SL-MTP-MU-0022,100021,Ward 2,Mettupalayam,DB Road; by the canal bridge,11.248000,76.958800,Active
+86,SL-MTP-MU-0026,100025,Ward 6,Mettupalayam,Kovai Main Road; at the burial ground road,11.302300,76.942400,Active
+92,SL-MTP-MU-0032,100031,Ward 3,Mettupalayam,Big Bazaar Street; opposite the PHC,11.303900,76.945800,Active
+99,SL-MTP-MU-0039,100038,Ward 1,Mettupalayam,Sastri Road; near the Amman temple,11.299900,76.940100,Active
+107,SL-MTP-MU-0047,100046,Ward 9,Mettupalayam,Trichy Road; at the burial ground road,11.297800,76.941800,Active
+115,SL-MTP-MU-0055,100054,Ward 8,Mettupalayam,Sungam Bypass; next to the primary school,11.299700,76.939000,Active
+118,SL-MTP-MU-0058,100057,Ward 2,Mettupalayam,Sastri Road; beside the community hall,11.248400,76.959200,Active
+121,SL-MTP-MU-0061,100060,Ward 5,Mettupalayam,Sastri Road; near the water tank,11.305800,76.935400,Active
+130,SL-MTP-MU-0070,100069,Ward 5,Mettupalayam,TV Swamy Road; by the canal bridge,11.306600,76.935000,Active
+135,SL-MTP-MU-0075,100074,Ward 1,Mettupalayam,Raja Street; at the market entrance,11.300300,76.938500,Active
+138,SL-MTP-MU-0078,100077,Ward 4,Mettupalayam,TV Swamy Road; near the water tank,11.314000,76.930200,Active
+151,SL-MTP-MU-0091,100090,Ward 8,Mettupalayam,Sungam Bypass; by the canal bridge,11.300100,76.939400,Active
+170,SL-MTP-MU-0110,100109,Ward 9,Mettupalayam,Thiruvalluvar Street; next to the primary school,11.297800,76.941000,Active
+181,KM-01,201,Ward 2,Karamadai Road,near Mariamman temple; Mariamman kovil pakkam; Karamadai road,11.248400,76.958400,Active
+182,KM-02,202,Ward 2,Karamadai Road,opposite Government school; Arasu palli ethirla; Karamadai checkpost,11.246000,76.958800,Active
+183,KM-03,203,Ward 2,Karamadai Road,near big banyan tree; Aalamaram pakkathula; Karamadai junction,11.246400,76.959200,Active
+184,OT-01,501,Ward 5,Mettupalayam,near Petrol pump; Petrol bunk pakkam; Ooty road,11.305800,76.936600,Active
+185,OT-02,502,Ward 5,Mettupalayam,near Bridge; Paalam pakkathula; Bhavani river bridge,11.306200,76.935000,Active
+186,OT-03,503,Ward 5,Mettupalayam,near Toll gate; Toll gate ethirla,11.306600,76.935400,Active
+187,RS-01,601,Ward 6,Mettupalayam,near Railway station entrance; Station vasal; Railway gate,11.303500,76.942800,Active
+188,RS-02,602,Ward 6,Mettupalayam,near Auto stand; Auto stand pakkam; Station parking,11.303900,76.943200,Active
+189,BS-01,701,Ward 7,Mettupalayam,near Bus stand clock tower; Bus stand mani koondu; Perunthu nilayam,11.300000,76.941600,Active
+190,BS-02,702,Ward 7,Mettupalayam,near Murugan bakery; Bakery pakkathula; Bus stand entrance,11.300400,76.940000,Active
+191,MK-01,801,Ward 8,Mettupalayam,near Vegetable market; Kaikari santhai pakkam; Market center,11.299300,76.939400,Active
+192,MK-02,802,Ward 8,Mettupalayam,near Fish market; Meen market pakkam,11.299700,76.939800,Active
+193,HP-01,901,Ward 9,Mettupalayam,near Government hospital; Aaspatri pakkam; Hospital main gate,11.298600,76.942200,Active
+194,HP-02,902,Ward 9,Mettupalayam,near Pharmacy; Medical shop pakkathula,11.299000,76.942600,Active
+201,TW-01,101,Ward 1,Mettupalayam,பவானி நகர் மேட்டுப்பாளையம்; Bhavani nagar; Near Bhavani river bank; Town center,11.299500,76.938500,Active
+202,TW-02,102,Ward 1,Mettupalayam,மேட்டுப்பாளையம் நகராட்சி அலுவலகம்; Municipality office main entrance; Old court road,11.300200,76.939200,Active
+203,OD-01,301,Ward 3,Mettupalayam,ஓடன்துறை பாலம்; Odanthurai bridge; Forest college road; Odanthurai pirivu,11.303500,76.945000,Active
+204,OD-02,302,Ward 3,Mettupalayam,ஓடன்துறை பஞ்சாயத்து எல்லை; Odanthurai border; Near checkpost,11.304500,76.946200,Active
+205,CR-01,401,Ward 4,Mettupalayam,குன்னூர் ரோடு கல்லாறு பிரிவு; Coonoor road; Kallar gate; Black thunder entrance,11.312000,76.929000,Active
+206,CR-02,402,Ward 4,Mettupalayam,கல்லாறு பாலம்; Kallar railway bridge; Nilgiri mountain railway track,11.314500,76.925000,Active
+207,SC-01,1001,Ward 10,Mettupalayam,மகாதேவபுரம் அரசு மேல்நிலைப் பள்ளி; Mahadevapuram govt school; School road,11.295000,76.937000,Active
+208,SC-02,1002,Ward 10,Mettupalayam,மகாதேவபுரம் மெயின் ரோடு; Mahadevapuram main road; Pillaiyar kovil pakkam,11.294200,76.936000,Active
+209,SR-01,1101,Ward 11,Mettupalayam,சிறுமுகை ரோடு பிரிவு; Sirumugai road pirivu; TNEB sub-station,11.296500,76.944000,Active
+210,AR-01,1201,Ward 12,Mettupalayam,அன்னூர் ரோடு பிரிவு; Annur road pirivu; Cooperative bank opposite,11.293000,76.946000,Active
+211,GN-01,1401,Ward 14,Mettupalayam,காந்தி நகர் ரேஷன் கடை; Gandhi nagar ration shop; Near community hall,11.291500,76.939500,Active
+301,KMD-01,3001,Karamadai,Karamadai,காரமடை அரங்கநாதர் கோயில் தேர் வீதி; Karamadai Ranganathar temple ther veethi; Temple car street,11.242800,76.958200,Active
+302,KMD-02,3002,Karamadai,Karamadai,காரமடை பஸ் ஸ்டாண்ட்; Karamadai bus stand; Perunthu nilayam; Near police booth,11.243500,76.957500,Active
+303,KMD-03,3003,Karamadai,Karamadai,காரமடை ரயில்வே கேட் / ஸ்டேஷன்; Karamadai railway station; Railway gate pakkam,11.245000,76.960200,Active
+304,KMD-04,3004,Karamadai,Karamadai,காரமடை நான்கு ரோடு; Karamadai four roads; Karamadai junction; Kovai main road,11.241500,76.956800,Active
+305,KMD-05,3005,Karamadai,Karamadai,காரமடை அரசு ஆண்கள் மேல்நிலைப் பள்ளி; Govt boys school; Karamadai school road,11.244200,76.959100,Active
+306,KMD-06,3006,Karamadai,Karamadai,டீச்சர்ஸ் காலனி காரமடை; Teachers colony Karamadai; Near water tank,11.240100,76.954200,Active
+307,KMD-07,3007,Karamadai,Karamadai,வெள்ளியங்காடு பிரிவு; Velliangadu pirivu; Karamadai west road,11.238900,76.951500,Active
+308,KMD-08,3008,Karamadai,Karamadai,காரமடை உழவர் சந்தை; Karamadai uzhavar santhai; Farmers market,11.243100,76.956000,Active

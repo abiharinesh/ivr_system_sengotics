@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="ta, en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commercial Quotation — Turnkey Supply & Field Installation of Waterproof QR Asset Plates (Industrial PU Adhesive System)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f2b5c;
+      --primary-light: #1e4b8f;
+      --accent: #d97706;
+      --accent-light: #fef3c7;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --success: #059669;
+      --success-bg: #ecfdf5;
+      --info-bg: #eff6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .document-container {
+      max-width: 920px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      padding: 50px 60px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* Company Letterhead */
+    .letterhead {
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 20px;
+      margin-bottom: 28px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .company-info h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: var(--primary);
+      letter-spacing: 1px;
+      line-height: 1.1;
+    }
+
+    .company-tagline {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-top: 2px;
+      margin-bottom: 8px;
+    }
+
+    .company-address {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      line-height: 1.45;
+      max-width: 500px;
+    }
+
+    .reg-tags {
+      margin-top: 6px;
+      font-size: 11px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .quotation-badge-box {
+      text-align: right;
+    }
+
+    .quotation-title-badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 6px 18px;
+      border-radius: 4px;
+    }
+
+    .quotation-meta {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .quotation-meta strong {
+      color: var(--primary);
+    }
+
+    /* Recipient Area */
+    .recipient-block {
+      background: var(--info-bg);
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 13px;
+    }
+
+    .recipient-block strong {
+      color: var(--primary);
+      font-size: 14px;
+    }
+
+    .subject-line {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 18px 0 16px 0;
+      padding: 10px 14px;
+      background: #f1f5f9;
+      border-left: 4px solid var(--accent);
+      border-radius: 2px;
+    }
+
+    h2 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 28px;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 6px;
+    }
+
+    p, li {
+      font-size: 13.5px;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    /* Quotation Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 20px 0;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--border-dark);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .col-center {
+      text-align: center;
+    }
+
+    .col-right {
+      text-align: right;
+    }
+
+    .total-row {
+      background: #f1f5f9;
+      font-weight: 700;
+    }
+
+    .grand-total-row {
+      background: #e2e8f0;
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--primary);
+    }
+
+    /* Comparison Card Box */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 18px 0 24px 0;
+    }
+
+    .comp-card {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+
+    .comp-card-old {
+      background: #fff1f2;
+      border-color: #fecdd3;
+    }
+
+    .comp-card-new {
+      background: var(--success-bg);
+      border-color: #a7f3d0;
+    }
+
+    .comp-card h4 {
+      font-size: 13px;
+      font-weight: 800;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .comp-card-old h4 { color: #9f1239; }
+    .comp-card-new h4 { color: #065f46; }
+
+    .comp-metric {
+      font-size: 22px;
+      font-weight: 800;
+      margin: 6px 0;
+    }
+
+    .comp-card-old .comp-metric { color: #be123c; }
+    .comp-card-new .comp-metric { color: var(--success); }
+
+    /* Highlights */
+    .highlight-box {
+      background: #fffbeb;
+      border-left: 4px solid var(--accent);
+      padding: 14px 18px;
+      border-radius: 4px;
+      margin: 16px 0;
+    }
+
+    .highlight-box h4 {
+      color: #92400e;
+      font-size: 13.5px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tech-pill {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11.5px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Signature Section */
+    .sig-section {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px dashed var(--border-dark);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .sig-box {
+      width: 45%;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #64748b;
+      margin: 45px 0 8px 0;
+    }
+
+    .sig-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    .sig-subtitle {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* Print Specifics */
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+      .document-container {
+        padding: 15px 25px;
+        box-shadow: none;
+        border: none;
+        max-width: 100%;
+      }
+      table {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="document-container">
+
+  <!-- Letterhead -->
+  <div class="letterhead">
+    <div class="company-info">
+      <h1>SENGOTICS</h1>
+      <div class="company-tagline">Trusted Digital Future</div>
+      <div class="company-address">
+        4/360, Anna Nagar, Dhayanur, Karamadai - Tholampalayam Road, Near Gram Panchayat Office,<br>
+        Kemmarampalayam, Kalampalayam, Mettupalayam, Coimbatore, Tamil Nadu – 641113<br>
+        <strong>Email:</strong> contact@sengotics.com | <strong>Web:</strong> www.sengotics.com | <strong>Phone:</strong> +91 9597769501
+      </div>
+      <div class="reg-tags">
+        GSTIN: 33DKDPA5555E1ZL &nbsp;|&nbsp; UDYAM: UDYAM-TN-03-0308455 &nbsp;|&nbsp; GeM ID: N78K260014298113
+      </div>
+    </div>
+    <div class="quotation-badge-box">
+      <div class="quotation-title-badge">COMMERCIAL QUOTATION</div>
+      <div class="quotation-meta">
+        <strong>Ref No:</strong> SEG/COMM/QUOT/2026/09/QR-01<br>
+        <strong>Date:</strong> 12th September 2026<br>
+        <strong>Validity:</strong> 60 Days (Till 11-Nov-2026)
+      </div>
+    </div>
+  </div>
+
+  <!-- Recipient -->
+  <div class="recipient-block">
+    <strong>To,</strong><br>
+    <strong>The Municipal Commissioner / The Executive Officer,</strong><br>
+    [Mettupalayam Municipality / Local Body Name],<br>
+    Coimbatore District, Tamil Nadu.
+  </div>
+
+  <div class="subject-line">
+    <strong>SUBJECT:</strong> Commercial Quotation & Technical Proposal for Turnkey Supply, Fabrication, Surface Preparation, and Field Installation of Waterproof QR Asset Identification Plates on 5,000 Electric Utility Poles using Industrial 1-Component Polyurethane (PU) Chemical Bonding System — Reg.
+  </div>
+
+  <p>
+    <strong>Respected Sir / Madam,</strong><br>
+    We are pleased to submit our standalone commercial quotation for the <strong>Turnkey Fabrication and On-Pole Installation of 5,000 Waterproof QR Asset Identification Plates</strong> utilizing our specialized <strong>Heavy-Duty Industrial Polyurethane (PU) Structural Chemical Bonding System</strong>.
+  </p>
+
+  <!-- Comparison Section -->
+  <h2>1. Technology & Cost Advantage for the Local Body</h2>
+  <div class="comparison-grid">
+    <div class="comp-card comp-card-old">
+      <h4>Traditional Method: Metal Strapping</h4>
+      <div class="comp-metric">₹120.00 <span style="font-size:12px; font-weight:500;">/ pole</span></div>
+      <p style="font-size:12px; color:#881337;">
+        • Aluminum plate with 2 stainless steel bands & buckles.<br>
+        • High risk of strap theft by scrap collectors.<br>
+        • <strong>Total Cost (5,000 Poles): ₹6,00,000.00</strong>
+      </p>
+    </div>
+    <div class="comp-card comp-card-new">
+      <h4>Sengotics Proposed: Industrial PU Adhesive</h4>
+      <div class="comp-metric">₹60.00 <span style="font-size:12px; font-weight:500;">/ pole</span></div>
+      <p style="font-size:12px; color:#064e3b;">
+        • Rigid UV plate + 1K Polyurethane elastomer weld.<br>
+        • Zero scrap value, impossible to rip off with bare hands.<br>
+        • <strong>Total Cost (5,000 Poles): ₹3,00,000.00 (Saves ₹3,00,000!)</strong>
+      </p>
+    </div>
+  </div>
+
+  <!-- Dual Compartment Plate Design Mockup -->
+  <h2>2. Dual-Compartment QR Plate Design (Ad Space + Citizen Grievance)</h2>
+  <p>
+    Each weatherproof plate ($120\text{mm} \times 80\text{mm}$) is engineered with two distinct functional zones: a <strong>Top Commercial Advertisement Sponsor Zone</strong> and a <strong>Bottom Municipal Citizen Grievance Zone</strong>.
+  </p>
+  <div style="display:flex; justify-content:center; margin:16px 0;">
+    <div style="border:2px solid #334155; border-radius:8px; width:340px; background:#ffffff; box-shadow:0 4px 10px rgba(0,0,0,0.1); overflow:hidden; text-align:center;">
+      <!-- Top Zone: Sponsor Ad -->
+      <div style="background:#fef3c7; border-bottom:2px dashed #d97706; padding:10px 12px;">
+        <div style="font-size:10px; font-weight:800; color:#b45309; letter-spacing:1px; text-transform:uppercase;">📢 COMMERCIAL ADVERTISEMENT / SPONSOR SPACE</div>
+        <div style="font-size:13px; font-weight:800; color:#1f2937; margin-top:2px;">KALYAN JEWELLERS / CANARA BANK</div>
+        <div style="font-size:10.5px; color:#6b7280;">"Near Mettupalayam Bus Stand • Special Festival Offers"</div>
+      </div>
+      <!-- Bottom Zone: Citizen QR & Grievance -->
+      <div style="padding:12px 14px; background:#ffffff;">
+        <div style="font-size:11px; font-weight:700; color:#0f2b5c; text-transform:uppercase;">🏛️ மேட்டுப்பாளையம் நகராட்சி • METTUPALAYAM</div>
+        <div style="margin:8px auto; width:90px; height:90px; border:1px solid #cbd5e1; border-radius:4px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:#f8fafc;">
+          <span style="font-size:18px;">⬛ ⬜ ⬛</span>
+          <span style="font-size:8.5px; font-weight:700; color:#475569; margin-top:2px;">[ 2D QR CODE ]</span>
+        </div>
+        <div style="background:#0f172a; color:#ffffff; font-size:14px; font-weight:800; font-family:'JetBrains Mono',monospace; padding:4px 8px; border-radius:4px; letter-spacing:1px; display:inline-block;">
+          POLE ID: 101
+        </div>
+        <div style="font-size:10px; color:#64748b; margin-top:6px; font-weight:600;">
+          AI Voice Helpline: <span class="tech-pill" style="font-size:10px;">04440115043</span> | Keypad IVR: <span class="tech-pill" style="font-size:10px;">101#</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-Tax Revenue Model Box -->
+  <div class="highlight-box">
+    <h4>Municipal Non-Tax Revenue Model (Project Pays for Itself!):</h4>
+    <p>
+      By leasing the top advertising space on 5,000 electric poles across commercial, residential, and arterial road zones, the municipality can generate substantial recurring non-tax revenue:
+    </p>
+    <ul style="margin:8px 0 6px 18px; font-size:12.5px; color:#78350f;">
+      <li><strong>Commercial / Arterial Roads (1,500 Poles @ ₹200/month):</strong> ₹36,00,000 / year</li>
+      <li><strong>Residential Wards (2,500 Poles @ ₹75/month):</strong> ₹22,50,000 / year</li>
+      <li><strong>Semi-Urban / Peripheral (1,000 Poles @ ₹40/month):</strong> ₹4,80,000 / year</li>
+      <li><strong>Total Estimated Annual Municipal Ad Revenue:</strong> <strong>₹63,30,000 / Year (₹63.3 Lakhs/Year)</strong></li>
+    </ul>
+    <p style="font-size:12px; color:#92400e; font-weight:600;">
+      💡 Even at an average 40% commercial occupancy, the municipality recovers over ₹25.0 Lakhs annually, making the entire smart e-governance project 100% self-funding and revenue-positive!
+    </p>
+  </div>
+
+  <!-- Multi-Platform App Architecture (Flutter) -->
+  <h2>3. Flutter Cross-Platform Software Suite (Mobile + Web for Every Role)</h2>
+  <p>
+    Built on a unified <strong>Flutter cross-platform codebase</strong>, the system provides both a <strong>Mobile Application</strong> and a <strong>Desktop Web Application</strong> for every stakeholder:
+  </p>
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:14px 0 20px 0;">
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">👨‍💼 Administrator Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Desktop Web App:</strong> Full GIS command center, heatmap cluster analytics, tender PDF compiler, and digital ad campaign manager.<br>
+        • <strong>Executive Mobile App:</strong> Real-time on-the-go alerts, ticket approvals, field staff live tracking, and emergency escalations on Android/iOS.
+      </div>
+    </div>
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">⚡ Field Electrician Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Field Mobile App:</strong> With mandatory &le; 50m Geo-Fencing lock, live camera EXIF capture, OCR pole plate scanning, and offline sync.<br>
+        • <strong>Field Web Portal:</strong> Dispatch queue and job card view for electrical supervisors in municipal workshops.
+      </div>
+    </div>
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">👥 Citizen Engagement Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Zero-Install Web PWA:</strong> Instant camera QR scan from any phone browser with top sponsor ad banner and 1-tap fault logging.<br>
+        • <strong>Citizen Mobile App:</strong> Play Store app with push notifications, ticket history, and ward street lighting map.
+      </div>
+    </div>
+  </div>
+
+  <!-- Quotation Schedule -->
+  <h2>4. Itemized Commercial Schedule of Rates (BOQ)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-center">Item</th>
+        <th>Description of Item & Material Specifications</th>
+        <th class="col-center">Unit</th>
+        <th class="col-center">Qty</th>
+        <th class="col-right">Rate (₹)</th>
+        <th class="col-right">Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="col-center"><strong>1.01</strong></td>
+        <td>
+          <strong>Dual-Compartment Waterproof Rigid QR Asset Plates:</strong><br>
+          Fabrication of custom-molded outdoor-grade rigid plates (120&times;80 mm, 2.0 mm thickness) in UV-stabilized ABS / High-Impact Polycarbonate. Features dual-zone design: <strong>Top Zone for Commercial Sponsor / Municipal Advertisement</strong> and <strong>Bottom Zone for Municipal Crest, Bold Pole Keypad ID, 2D QR Crypto Token, AI Helpline Numbers</strong>, finished with anti-scratch UV clear varnish.
+        </td>
+        <td class="col-center">Per Plate</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹25.00</td>
+        <td class="col-right">₹1,25,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.02</strong></td>
+        <td>
+          <strong>Industrial 1-Component Polyurethane (PU) Adhesive:</strong><br>
+          Supply of heavy-duty, moisture-curing elastomeric 1K PU construction adhesive paste (Shear strength &gt; 3.4 N/mm&sup2;, Tensile strength &gt; 3 N/mm&sup2;, elongation 500%). Applied as a continuous 8mm perimeter bead (~25g per pole).
+        </td>
+        <td class="col-center">Per Pole</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹12.00</td>
+        <td class="col-right">₹60,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.03</strong></td>
+        <td>
+          <strong>Instant-Tack Structural Stabilization Core:</strong><br>
+          High-adhesion acrylic foam core (30&times;20 mm, 1.1 mm thickness) affixed to the plate center to provide immediate zero-slip green strength on vertical pole surfaces during application.
+        </td>
+        <td class="col-center">Per Pole</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹3.00</td>
+        <td class="col-right">₹15,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.04</strong></td>
+        <td>
+          <strong>On-Site Surface Preparation & Mechanical De-scaling:</strong><br>
+          Mandatory field preparation by technician using handheld high-tensile steel wire brush to scrape off road dust, moss, white-wash, and grime at 2.2m mounting height, followed by dry microfiber wipe down.
+        </td>
+        <td class="col-center">Per Pole</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹2.00</td>
+        <td class="col-right">₹10,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.05</strong></td>
+        <td>
+          <strong>Field Installation Labor, Ladder Handling & Geotagging:</strong><br>
+          Deployment of trained 2-man technician teams on two-wheelers with aluminum step ladders to execute physical chemical bonding, press-fit verification, and instant mobile app QR scan / GPS geotagging.
+        </td>
+        <td class="col-center">Per Pole</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹18.00</td>
+        <td class="col-right">₹90,000.00</td>
+      </tr>
+      <tr class="total-row">
+        <td colspan="4" class="col-right"><strong>SUBTOTAL (BASE CONTRACT VALUE EXCLUDING GST):</strong></td>
+        <td class="col-right"><strong>₹60.00</strong></td>
+        <td class="col-right"><strong>₹3,00,000.00</strong></td>
+      </tr>
+      <tr style="background:#f8fafc;">
+        <td colspan="4" class="col-right">APPLICABLE GST @ 18% (CGST 9% ₹27,000 + SGST 9% ₹27,000) [SAC: 9983]:</td>
+        <td class="col-right">₹10.80</td>
+        <td class="col-right">₹54,000.00</td>
+      </tr>
+      <tr class="grand-total-row">
+        <td colspan="4" class="col-right">TOTAL QUOTATION VALUE (INCLUSIVE OF 18% GST):</td>
+        <td class="col-right">₹70.80</td>
+        <td class="col-right">₹3,54,000.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Words Summary -->
+  <div class="highlight-box">
+    <h4>Amount in Words:</h4>
+    <p><strong>Base Value (Excl. GST):</strong> ₹3,00,000.00 — <em>Rupees Three Lakhs Only</em> (ரூபாய் மூன்று லட்சம் மட்டும்)</p>
+    <p><strong>Total Value (Incl. 18% GST):</strong> ₹3,54,000.00 — <em>Rupees Three Lakhs Fifty-Four Thousand Only</em> (ரூபாய் மூன்று லட்சத்து ஐம்பத்து நான்காயிரம் மட்டும்)</p>
+  </div>
+
+  <!-- Chemical Specs -->
+  <h2>5. Technical Properties of Polyurethane (PU) Adhesive</h2>
+  <ul>
+    <li><strong>Shear Strength:</strong> <span class="tech-pill">&gt; 3.4 N/mm&sup2; (&gt; 34 kg/cm&sup2;)</span> — Exceeds structural wind load standards.</li>
+    <li><strong>Elongation at Break:</strong> <span class="tech-pill">&gt; 500%</span> — Elastomeric rubber absorbs heavy truck traffic vibrations without cracking.</li>
+    <li><strong>Temperature Stability:</strong> <span class="tech-pill">-30&deg;C to +80&deg;C</span> — Withstands extreme Tamil Nadu summer heat and torrential rains.</li>
+    <li><strong>Zero Pole Damage:</strong> 100% compliant with TANGEDCO safety norms prohibiting drilling into concrete PSC utility poles.</li>
+  </ul>
+
+  <!-- Commercial Terms -->
+  <h2>6. Commercial Terms & Quality Warranty</h2>
+  <ol>
+    <li><strong>Execution Timeline:</strong> 5,000 poles completed within <strong>30 working days</strong> from Work Order issuance.</li>
+    <li><strong>Quality Warranty:</strong> <strong>36 Months Comprehensive Warranty</strong> on plate bonding and outdoor legibility.</li>
+    <li><strong>Payment Terms:</strong> 30% mobilization advance on material delivery, 60% progressive billing against ward-wise verification sign-off, and 10% on final handover.</li>
+  </ol>
+
+  <!-- Signatures -->
+  <div class="sig-section">
+    <div class="sig-box">
+      <div style="font-size:12px; color:var(--text-muted);">Accepted & Confirmed on Behalf of Local Body:</div>
+      <div class="sig-line"></div>
+      <div class="sig-title">Municipal Commissioner / Executive Officer</div>
+      <div class="sig-subtitle">[Name of Municipality / Town Panchayat]</div>
+    </div>
+    <div class="sig-box" style="text-align:right;">
+      <div style="font-size:12px; color:var(--text-muted);">For SENGOTICS:</div>
+      <div class="sig-line"></div>
+      <div class="sig-title">Authorized Signatory / Technical Director</div>
+      <div class="sig-subtitle">Official Company Seal</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

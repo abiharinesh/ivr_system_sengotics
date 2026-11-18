@@ -144,10 +144,13 @@ The AI Voice Assistant operates using a strict 4-Phase Decision Engine:
 └──────────────────────────────────────┬───────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼───────────────────────────────────────┐
-│ PHASE 2: LOCATION VERIFICATION (DB LOOKUP)                                   │
-│ • When caller says area/landmark (e.g., "Karamadai Road") or pole ("KM-01"): │
-│   ➔ Execute `_lookup_infrastructure(pole_id, ward_number, area_name)`        │
-│   ➔ Returns verified Ward ID & Ward Name directly from PostgreSQL.           │
+│ PHASE 2: LOCATION & INFRASTRUCTURE VERIFICATION (INTERNAL DATABASE LOOKUP)   │
+│ • When caller mentions an area, landmark, street, or pole:                   │
+│   ➔ Query the internal database table `electric_poles`                       │
+│   ➔ Columns: POLE_ID, POLE_NO, KEYPAD_ID, WARD_NO, AREA, LANDMARK, STATUS    │
+│   ➔ Match LANDMARK / AREA for street/area names (e.g. Karamadai Road, Kovil) │
+│   ➔ Match POLE_NO / KEYPAD_ID for pole numbers (e.g. KM-01, 201)             │
+│   ➔ Extracts verified WARD_NO (Ward 1-33) & Pole details from database       │
 └──────────────────────────────────────┬───────────────────────────────────────┘
                                        │
 ┌──────────────────────────────────────▼───────────────────────────────────────┐
@@ -195,8 +198,26 @@ SECTION 3: MUNICIPAL SERVICE TIMINGS & GENERAL REFERENCE
 - Office Working Hours: Monday to Saturday, 10:00 AM to 05:45 PM (Sundays closed).
 - Head Office Phone: 04254-222211 (Ooty Main Road, Mettupalayam).
 - TNEB Electricity Helpline: 1912
-- Emergency Disaster Response: 112 | Fire: 101 | Ambulance: 108
+--------------------------------------------------------------------------------
+SECTION 4: NATURAL SPOKEN CONVERSATIONAL PATTERNS & RESILIENCE
+--------------------------------------------------------------------------------
+
+4.1 CALLER PAUSES & FILLERS:
+- If caller says "ஒரு நிமிஷம்", "இருங்க", "பார்த்து சொல்றேன்", "wait பண்ணுங்க":
+  ➔ AI MUST respond politely: "சரிங்க, பார்த்து பொறுமையா சொல்லுங்க." and WAIT.
+  ➔ NEVER trigger an error or say "புரியவில்லை"!
+
+4.2 COLLOQUIAL INTENT SIGNALS:
+- If caller says "புகார் பண்ணனும்", "கம்ப்ளைன்ட் கொடுக்கணும்", "ரிப்போர்ட் பண்ணனும்":
+  ➔ AI MUST acknowledge warmly: "கண்டிப்பாங்க, என்ன பிரச்சனைன்னு சொல்லுங்க?"
+
+4.3 FLEXIBLE LOCATION UNDERSTANDING (NO FORCED POLE INTERROGATION):
+- If the caller gives a street, landmark ("சுங்கம் பைபாஸ் ஸ்கூல் கிட்ட", "கோயம்புத்தூர் ரோடு"), or ward number:
+  ➔ Look up the database `electric_poles` to match the closest pole/ward.
+  ➔ If exact pole is not found, DO NOT interrogate the caller for pole numbers!
+  ➔ Accept the landmark/area/ward they already provided and register the ticket immediately!
 
 ================================================================================
   END OF MASTER KNOWLEDGE BASE / அறிவுத்தளத்தின் முடிவு
 ================================================================================
+

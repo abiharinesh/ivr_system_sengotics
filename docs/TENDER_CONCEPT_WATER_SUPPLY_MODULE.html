@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ta, en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Concept Document — Smart Municipal Drinking Water Supply & Distribution Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0369a1;
+      --primary-dark: #075985;
+      --primary-deep: #0c4a6e;
+      --accent: #0284c7;
+      --accent-light: #e0f2fe;
+      --text-main: #1e293b;
+      --text-muted: #475569;
+      --bg-page: #f0f9ff;
+      --bg-card: #ffffff;
+      --border: #bae6fd;
+      --border-dark: #7dd3fc;
+      --success: #059669;
+      --danger: #dc2626;
+      --info-bg: #f8fafc;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .document-container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      padding: 60px 70px;
+      box-shadow: 0 10px 30px rgba(3, 105, 161, 0.08);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* Government Header Styling */
+    .gov-header {
+      text-align: center;
+      border-bottom: 3px double var(--primary);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+
+    .gov-emblem {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .gov-title-ta {
+      font-family: 'Noto Sans Tamil', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary-deep);
+      letter-spacing: 0.5px;
+    }
+
+    .gov-title-en {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-deep);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .dept-subtitle {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .tender-badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      margin-top: 14px;
+    }
+
+    /* Document Title Block */
+    .doc-title-block {
+      background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%);
+      color: #ffffff;
+      padding: 24px 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .doc-title-block h1 {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .doc-title-block p {
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      background: var(--accent-light);
+      border: 1px solid var(--border-dark);
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      font-size: 13px;
+    }
+
+    .meta-item strong {
+      display: block;
+      color: var(--primary-deep);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    /* Typography */
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary-deep);
+      border-left: 4px solid var(--primary);
+      padding-left: 12px;
+      margin-top: 36px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    p, li {
+      font-size: 14px;
+      color: var(--text-main);
+      line-height: 1.65;
+    }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 24px 0;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: #f0fdf4;
+      color: var(--primary-deep);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 10px 12px;
+      border: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .col-center {
+      text-align: center;
+    }
+
+    .col-right {
+      text-align: right;
+    }
+
+    /* Highlight Cards */
+    .highlight-box {
+      background-color: #e0f2fe;
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 4px;
+      margin: 18px 0;
+    }
+
+    .highlight-box h4 {
+      color: var(--primary-deep);
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .highlight-box p {
+      color: #0369a1;
+      font-size: 13px;
+    }
+
+    .tech-pill {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Architecture Box */
+    .arch-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .arch-card {
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      padding: 16px;
+      background: #ffffff;
+    }
+
+    .arch-card h5 {
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 4px;
+    }
+
+    /* Signature Area */
+    .sig-section {
+      margin-top: 50px;
+      padding-top: 24px;
+      border-top: 2px dashed #94a3b8;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .sig-box {
+      width: 45%;
+      text-align: center;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #64748b;
+      margin: 50px 0 10px 0;
+    }
+
+    .sig-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary-deep);
+    }
+
+    .sig-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Print Specifics */
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+      .document-container {
+        padding: 20px 30px;
+        box-shadow: none;
+        border: none;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none;
+      }
+      h2 {
+        page-break-after: avoid;
+      }
+      table {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="document-container">
+
+  <!-- Government Header -->
+  <div class="gov-header">
+    <div class="gov-emblem">🏛️</div>
+    <div class="gov-title-ta">தமிழ்நாடு அரசு • நகராட்சி நிர்வாகம் & குடிநீர் வழங்கல் துறை</div>
+    <div class="gov-title-en">Government of Tamil Nadu • Municipal Administration & Water Supply Department</div>
+    <div class="dept-subtitle">Office of the Municipal Commissioner / Executive Officer • Water Works & Engineering Wing</div>
+    <div class="tender-badge">Official Tender Concept & Specification Document</div>
+  </div>
+
+  <!-- Document Title Block -->
+  <div class="doc-title-block">
+    <h1>SMART GIS MUNICIPAL DRINKING WATER SUPPLY & DISTRIBUTION MONITORING SYSTEM</h1>
+    <p>Comprehensive Concept Proposal, Technical Schedule of Requirements, IoT Telemetry Specifications, Bill of Quantities (BOQ), and Service Level Agreement (SLA) for E-Tender Publication</p>
+  </div>
+
+  <!-- Meta Summary Table -->
+  <div class="meta-grid">
+    <div class="meta-item">
+      <strong>Tender Reference No.</strong>
+      ROC / ENGG / WTR / 2026 / T-02
+    </div>
+    <div class="meta-item">
+      <strong>Procurement Framework</strong>
+      TN Transparency in Tenders Act 1998 & Rules 2000
+    </div>
+    <div class="meta-item">
+      <strong>Target Local Body</strong>
+      [Mettupalayam Municipality / Local Body]
+    </div>
+    <div class="meta-item">
+      <strong>Contract Duration</strong>
+      90 Days Setup + 36 Months O&M
+    </div>
+    <div class="meta-item">
+      <strong>Bidding System</strong>
+      Two-Cover (Technical + Financial)
+    </div>
+    <div class="meta-item">
+      <strong>Helpline Channels</strong>
+      AI Voice Agent + DTMF IVR (24x7)
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2>1. Project Background & Executive Summary</h2>
+  <p>
+    Supply of safe, reliable, and equitable drinking water is the vital statutory responsibility of Local Bodies. However, urban and rural administrations face recurring operational challenges:
+    <strong>Non-Revenue Water (NRW)</strong> losses from undetected underground pipe bursts, <strong>inequitable distribution</strong> caused by manual and unmonitored sluice valve operations, <strong>dry-running of borewell pumps</strong>, and <strong>slow response times</strong> to citizen water contamination or scarcity complaints.
+  </p>
+  <p>
+    This project establishes an integrated, smart water distribution governance ecosystem combining <strong>GIS Underground Pipeline Vector Mapping (GeoJSON LineStrings)</strong>, <strong>Overhead Tank (OHT) & Sump Ultrasonic Level Telemetry</strong>, <strong>Sluice Valve State Management</strong>, <strong>LPS & Pressure Bar Telemetry</strong>, <strong>Conversational AI Voice Grievance Helpline in Tamil</strong>, and <strong>Geo-Fenced Plumber Mobile Verification (&le; 50m)</strong>.
+  </p>
+
+  <div class="highlight-box">
+    <h4>Core Objective for Tender Publication:</h4>
+    <p>To appoint a turnkey technology and implementation partner who will map the entire underground drinking water network, install IoT reservoir level transmitters, operate 24/7 bilingual AI water grievance helpline, and provide geo-verified mobile tools for field plumbers and valve operators to ensure equitable, zero-waste water distribution.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <h2>2. Detailed Scope of Work (SOW)</h2>
+
+  <div class="arch-card-grid">
+    <div class="arch-card">
+      <h5>1. GIS Pipeline Vector Mapping</h5>
+      <p>Precision GNSS survey of drinking water mains and feeder pipelines. Vectorized as GeoJSON LineStrings with pipe diameter (50mm–600mm), material (HDPE, PVC, DI, CI), depth, and operating pressure.</p>
+    </div>
+    <div class="arch-card">
+      <h5>2. Reservoir & Borewell Telemetry</h5>
+      <p>Continuous monitoring of Overhead Tanks (OHT) and sumps via IP68 ultrasonic level sensors (0–100% capacity). Borewell motor operational status tracking (RUN / OFF / TRIP).</p>
+    </div>
+    <div class="arch-card">
+      <h5>3. Sluice Valve & Flow Logging</h5>
+      <p>Digital tracking of sluice valves (Open / Closed / Maintenance). Time-series flow rate logging (Liters/Sec) and pressure (Bars) with automated burst alerts upon sudden pressure drops.</p>
+    </div>
+    <div class="arch-card">
+      <h5>4. 24/7 Conversational AI Voice Line</h5>
+      <p>Dedicated helpline (<span class="tech-pill">04440115043</span>) understanding colloquial Tamil for water leaks, contamination, low pressure, and tanker booking, with instant live status lookups.</p>
+    </div>
+  </div>
+
+  <h3>2.1 Field Asset Capture & Mobile Plumber Workflow</h3>
+  <ul>
+    <li><strong>Field Asset Capture Tool:</strong> Allows municipal surveyors to register new household service connections, public taps, and pipeline extensions with GPS accuracy and photos, subject to Municipal Engineer digital approval.</li>
+    <li><strong>Geo-Fenced Plumber App (&le; 50m Lock):</strong> Plumbers cannot close water leak or burst tickets without standing within 50 meters of the leak coordinates and uploading live before-and-after excavation photos.</li>
+  </ul>
+
+  <h3>2.2 Citizen Supply Schedule Broadcasts</h3>
+  <ul>
+    <li>Automated WhatsApp and SMS alerts to citizens regarding scheduled water release hours per ward.</li>
+    <li>QR code stickers on public drinking water fountains for instant scan-to-report complaints.</li>
+  </ul>
+
+  <!-- Section 3 -->
+  <h2>3. IoT Hardware & Telemetry Standards</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Telemetry Hardware</th>
+        <th>Technical Specifications</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Ultrasonic Level Sensors (OHT)</strong></td>
+        <td>Range: 0.3m to 10.0m; Accuracy: &plusmn;0.25% FS; IP68 submersible enclosure; Solar battery pack with 72-hour autonomy; 4G/NB-IoT cellular telemetry.</td>
+      </tr>
+      <tr>
+        <td><strong>Pipeline Pressure Transmitters</strong></td>
+        <td>Range: 0 to 10 Bar; Stainless Steel 316L diaphragm; Burst pressure: 2&times; rated; Automated burst alarm mode upon &gt;25% sudden pressure drop.</td>
+      </tr>
+      <tr>
+        <td><strong>Sluice Valve Asset Plates</strong></td>
+        <td>Heavy-gauge anodized aluminum asset tags with engraved Valve ID, Ward Number, and Emergency Contact details.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 4 -->
+  <h2>4. Service Level Agreement (SLA) & Penalties</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Fault Category</th>
+        <th>Incident Type</th>
+        <th>Resolution Window</th>
+        <th>Penalty for Breach</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tier-1: Critical Burst / Contamination</strong></td>
+        <td>Major distribution main burst, sewage ingress, hospital cutoff.</td>
+        <td><strong>Within 6 Hours</strong></td>
+        <td>₹1,000 / hour delay</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-2: High Priority Outage</strong></td>
+        <td>Feeder line leak, motor pump trip, overhead tank empty.</td>
+        <td><strong>Within 12 Hours</strong></td>
+        <td>₹500 / ward / day</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-3: Standard Leak / Tap</strong></td>
+        <td>Public fountain tap broken, valve gland packing leak.</td>
+        <td><strong>Within 24 Hours</strong></td>
+        <td>₹150 / day delay</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-4: Tanker Request</strong></td>
+        <td>Verified dry locality emergency water tanker delivery.</td>
+        <td><strong>Within 4 Hours</strong></td>
+        <td>₹300 / delayed trip</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5 -->
+  <h2>5. Bill of Quantities (BOQ) & Cost Schedule</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-center">Item</th>
+        <th>Description of Work</th>
+        <th class="col-center">Unit</th>
+        <th class="col-center">Est. Qty</th>
+        <th class="col-right">Unit Rate (₹)</th>
+        <th class="col-right">Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="col-center"><strong>2.01</strong></td>
+        <td>GIS Pipeline Network Survey: GNSS vector mapping of drinking water distribution lines, GeoJSON LineStrings, pipe diameter/material.</td>
+        <td class="col-center">Per Km</td>
+        <td class="col-center">120 Km</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.02</strong></td>
+        <td>Overhead Tank (OHT) & Borewell Digitization: GIS attribute creation, capacity modeling, and feeder linkage.</td>
+        <td class="col-center">Per Asset</td>
+        <td class="col-center">50 Assets</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.03</strong></td>
+        <td>IoT Ultrasonic Level Telemetry Units: Supply, installation & commissioning of IP68 solar-backed level sensors on OHTs.</td>
+        <td class="col-center">Per Unit</td>
+        <td class="col-center">25 Units</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.04</strong></td>
+        <td>Pipeline Pressure Transmitters: Supply, tapping & telemetry integration on main distribution conduits with burst-detection alerts.</td>
+        <td class="col-center">Per Unit</td>
+        <td class="col-center">20 Units</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.05</strong></td>
+        <td>Ooraatchi Water Engine Platform Setup: PostGIS pipeline grid, valve toggle engine, leak detection, and executive I3C console.</td>
+        <td class="col-center">Lump Sum</td>
+        <td class="col-center">1 Job</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.06</strong></td>
+        <td>24/7 AI Voice Water Grievance Helpline & IVR: Conversational Tamil/English voice agent, dynamic ticket query, Exotel SIP trunks.</td>
+        <td class="col-center">Per Month</td>
+        <td class="col-center">36 Mos</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.07</strong></td>
+        <td>Field Plumber & Asset Capture Mobile Applications: Android apps with &le; 50m geo-fencing, before/after photo proof, and approval queues.</td>
+        <td class="col-center">Lump Sum</td>
+        <td class="col-center">1 Job</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.08</strong></td>
+        <td>MeitY-Empaneled Cloud Hosting, SSL certificates, automated daily database backups & data sovereignty compliance.</td>
+        <td class="col-center">Per Year</td>
+        <td class="col-center">3 Years</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>2.09</strong></td>
+        <td>Dedicated On-Site Technical Operator stationed at Municipal Water Works Command Desk for 36 months.</td>
+        <td class="col-center">Per Month</td>
+        <td class="col-center">36 Mos</td>
+        <td class="col-right"><em>To be quoted</em></td>
+        <td class="col-right"><em>Calculated</em></td>
+      </tr>
+      <tr style="background:#f0fdf4; font-weight:700;">
+        <td colspan="5" class="col-right">TOTAL ESTIMATED BID VALUE (EXCLUDING APPLICABLE GST):</td>
+        <td class="col-right">₹ [TOTAL]</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 6 -->
+  <h2>6. Bidder Qualification Criteria</h2>
+  <ul>
+    <li><strong>Legal Entity:</strong> Registered Indian Company / LLP / MSME with valid GSTIN and PAN.</li>
+    <li><strong>Financial Standing:</strong> Average annual financial turnover &ge; ₹60 Lakhs in the last 3 financial years. (Exemption for registered Tamil Nadu MSMEs / DPIIT startups).</li>
+    <li><strong>Technical Experience:</strong> Successful execution of at least one project in Water Utility GIS Mapping, SCADA/IoT Telemetry, or Municipal Civic ERP.</li>
+    <li><strong>GeM Seller:</strong> Active registered seller on Government e-Marketplace (GeM).</li>
+  </ul>
+
+  <!-- Signature Section -->
+  <div class="sig-section">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Assistant Engineer / Municipal Engineer</div>
+      <div class="sig-subtitle">Water Works & Engineering Wing</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Municipal Commissioner / Executive Officer</div>
+      <div class="sig-subtitle">Approved for Tender Notification</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

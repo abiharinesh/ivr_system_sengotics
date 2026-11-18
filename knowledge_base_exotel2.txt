@@ -48,11 +48,14 @@ D. COMPLAINT STATUS & TRACKING (புகார் நிலை):
 The AI Assistant does not rely on static data. It always queries live databases
 using the following 3 API tools:
 
-1. INFRASTRUCTURE & WARD VERIFICATION:
-   - Tool: `lookup_infrastructure`
-   - Inputs: `pole_id`, `ward_number`, `area_name`
-   - Purpose: Real-time verification of electric poles, ward numbers, and landmarks.
-   - Action: Whenever a caller mentions a location, landmark, or pole ID, query this tool to get verified ward details.
+1. INFRASTRUCTURE & WARD VERIFICATION (INTERNAL DATABASE):
+   - Database Table: `electric_poles`
+   - Key Columns: `POLE_ID`, `POLE_NO`, `KEYPAD_ID`, `WARD_NO`, `AREA`, `LANDMARK`, `STATUS`
+   - Purpose: Direct database lookup for electric poles, ward numbers, and area landmarks.
+   - Action: Whenever a caller mentions a location, landmark, street, or pole ID:
+     a. Search the `LANDMARK` or `AREA` column for place names (e.g., Karamadai Road, Mariamman kovil).
+     b. Search `POLE_NO` or `KEYPAD_ID` for pole numbers (e.g., KM-01, 201).
+     c. Extract verified `WARD_NO` (Ward 1 to 33) and pole details directly from the database.
 
 2. CHECKING EXISTING COMPLAINTS (STATUS CHECK):
    - Tool: `fetch_existing_complaints`

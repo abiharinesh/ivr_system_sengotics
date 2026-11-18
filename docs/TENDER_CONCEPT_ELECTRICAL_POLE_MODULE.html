@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="ta, en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Concept Document — Smart Electrical Pole & Street Lighting Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f2b5c;
+      --primary-light: #1e4b8f;
+      --accent: #d97706;
+      --accent-light: #fef3c7;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --bg-page: #f8fafc;
+      --bg-card: #ffffff;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --success: #059669;
+      --danger: #dc2626;
+      --info-bg: #eff6ff;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding: 40px 20px;
+    }
+
+    .document-container {
+      max-width: 960px;
+      margin: 0 auto;
+      background: var(--bg-card);
+      padding: 60px 70px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    /* Government Header Styling */
+    .gov-header {
+      text-align: center;
+      border-bottom: 3px double var(--primary);
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+
+    .gov-emblem {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .gov-title-ta {
+      font-family: 'Noto Sans Tamil', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.5px;
+    }
+
+    .gov-title-en {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .dept-subtitle {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .tender-badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 5px 16px;
+      border-radius: 50px;
+      margin-top: 14px;
+    }
+
+    /* Document Title Block */
+    .doc-title-block {
+      background: linear-gradient(135deg, #0f2b5c 0%, #1a365d 100%);
+      color: #ffffff;
+      padding: 24px 30px;
+      border-radius: 8px;
+      margin-bottom: 30px;
+    }
+
+    .doc-title-block h1 {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.35;
+      margin-bottom: 8px;
+    }
+
+    .doc-title-block p {
+      font-size: 14px;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+      background: var(--info-bg);
+      border: 1px solid #bfdbfe;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 32px;
+      font-size: 13px;
+    }
+
+    .meta-item strong {
+      display: block;
+      color: var(--primary);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 3px;
+    }
+
+    /* Typography */
+    h2 {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary);
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+      margin-top: 36px;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--primary-light);
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    p, li {
+      font-size: 14px;
+      color: var(--text-main);
+      line-height: 1.65;
+    }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 16px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 18px 0 24px 0;
+      font-size: 13px;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 700;
+      text-align: left;
+      padding: 10px 12px;
+      border: 1px solid var(--border-dark);
+      text-transform: uppercase;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+
+    .col-center {
+      text-align: center;
+    }
+
+    .col-right {
+      text-align: right;
+    }
+
+    /* Highlight Cards */
+    .highlight-box {
+      background-color: #fffbeb;
+      border-left: 4px solid var(--accent);
+      padding: 16px 20px;
+      border-radius: 4px;
+      margin: 18px 0;
+    }
+
+    .highlight-box h4 {
+      color: #92400e;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .highlight-box p {
+      color: #78350f;
+      font-size: 13px;
+    }
+
+    .tech-pill {
+      display: inline-block;
+      background: #e0f2fe;
+      color: #0369a1;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* QR Plate Preview Mockup */
+    .qr-mockup-container {
+      display: flex;
+      justify-content: center;
+      margin: 24px 0;
+    }
+
+    .qr-plate {
+      border: 3px solid #334155;
+      background: #ffffff;
+      width: 320px;
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    .qr-plate-header {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+    }
+
+    .qr-plate-id {
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 20px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 6px;
+      border-radius: 4px;
+      margin: 10px 0;
+      letter-spacing: 2px;
+    }
+
+    .qr-box {
+      width: 140px;
+      height: 140px;
+      border: 2px dashed #64748b;
+      margin: 0 auto 10px auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #f8fafc;
+      font-size: 11px;
+      color: #64748b;
+    }
+
+    .qr-plate-footer {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      font-weight: 600;
+    }
+
+    /* Signature Area */
+    .sig-section {
+      margin-top: 50px;
+      padding-top: 24px;
+      border-top: 2px dashed var(--border-dark);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .sig-box {
+      width: 45%;
+      text-align: center;
+    }
+
+    .sig-line {
+      border-bottom: 1px solid #64748b;
+      margin: 50px 0 10px 0;
+    }
+
+    .sig-title {
+      font-weight: 700;
+      font-size: 13px;
+      color: var(--primary);
+    }
+
+    .sig-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Print Specifics */
+    @media print {
+      body {
+        padding: 0;
+        background: #ffffff;
+      }
+      .document-container {
+        padding: 20px 30px;
+        box-shadow: none;
+        border: none;
+        max-width: 100%;
+      }
+      .no-print {
+        display: none;
+      }
+      h2 {
+        page-break-after: avoid;
+      }
+      table {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="document-container">
+
+  <!-- Government Header -->
+  <div class="gov-header">
+    <div class="gov-emblem">🏛️</div>
+    <div class="gov-title-ta">தமிழ்நாடு அரசு • உள்ளாட்சி நிர்வாகத் துறை</div>
+    <div class="gov-title-en">Government of Tamil Nadu • Municipal Administration Department</div>
+    <div class="dept-subtitle">Office of the Municipal Commissioner / Executive Officer • Engineering Section</div>
+    <div class="tender-badge">Official Tender Concept & Specification Document</div>
+  </div>
+
+  <!-- Document Title Block -->
+  <div class="doc-title-block">
+    <h1>SMART GIS STREET LIGHT & ELECTRIC POLE INFRASTRUCTURE MANAGEMENT SYSTEM</h1>
+    <p>Comprehensive Concept Proposal, Technical Schedule of Requirements, Bill of Quantities (BOQ), and Service Level Agreement (SLA) for E-Tender Publication</p>
+  </div>
+
+  <!-- Meta Summary Table -->
+  <div class="meta-grid">
+    <div class="meta-item">
+      <strong>Tender Reference No.</strong>
+      ROC / ENGG / ELEC / 2026 / T-01
+    </div>
+    <div class="meta-item">
+      <strong>Procurement Framework</strong>
+      TN Transparency in Tenders Act 1998 & Rules 2000
+    </div>
+    <div class="meta-item">
+      <strong>Target Local Body</strong>
+      [Mettupalayam Municipality / Local Body]
+    </div>
+    <div class="meta-item">
+      <strong>Contract Duration</strong>
+      60 Days Setup + 36 Months O&M
+    </div>
+    <div class="meta-item">
+      <strong>Bidding System</strong>
+      Two-Cover (Technical + Financial)
+    </div>
+    <div class="meta-item">
+      <strong>Helpline Channels</strong>
+      AI Voice Agent + DTMF IVR (24x7)
+    </div>
+  </div>
+
+  <!-- Section 1 -->
+  <h2>1. Project Background & Executive Summary</h2>
+  <p>
+    Urban and Rural Local Bodies in Tamil Nadu manage extensive street lighting networks. However, civic administrations face critical operational bottlenecks: 
+    <strong>unreported dark spots</strong>, <strong>digital exclusion</strong> of elderly or rural citizens who cannot use text-based mobile apps, and <strong>fraudulent complaint closures</strong> where contractors mark repairs completed without physical field presence.
+  </p>
+  <p>
+    This project introduces a turnkey e-governance framework integrating <strong>Conversational AI Voice Redressal in Tamil and English</strong>, <strong>Weatherproof Retroreflective QR Asset Tags</strong>, <strong>Citizen Instant Scan Portals</strong>, <strong>Field Electrician Geo-Fencing (&le; 50m)</strong>, and <strong>Executive I3C GIS Command Dashboards</strong>.
+  </p>
+
+  <div class="highlight-box">
+    <h4>Core Objective for Tender Publication:</h4>
+    <p>To procure a turnkey technology partner who will survey 100% of the municipal electric poles, install tamper-proof QR plates, operate 24/7 dual-helpline AI voice infrastructure, and provide geo-verified field enforcement to maintain 99%+ street light uptime.</p>
+  </div>
+
+  <!-- Section 2 -->
+  <h2>2. Detailed Scope of Work (SOW)</h2>
+  
+  <h3>2.1 Door-to-Door GIS Asset Survey & Retroreflective QR Tagging</h3>
+  <ul>
+    <li><strong>Sub-Meter GNSS Survey:</strong> Field mapping of every street light pole capturing Latitude, Longitude, Pole Material (Tubular, PSC Concrete, Octagonal), Lamp Type (LED, SV), Wattage (20W, 40W, 70W, 120W), Feeder Phase, and bilingual Tamil/English landmark.</li>
+    <li><strong>Weatherproof Anodized Aluminum Plates:</strong> Fabrication and physical installation of 150mm &times; 100mm retroreflective QR plates attached with Grade 304 Stainless Steel banding at a height of 2.5 meters.</li>
+  </ul>
+
+  <!-- QR Plate Display (Dual Compartment) -->
+  <div class="qr-mockup-container">
+    <div class="qr-plate" style="width:340px; padding:0; overflow:hidden; border:2px solid #334155;">
+      <!-- Top Zone: Sponsor Ad -->
+      <div style="background:#fef3c7; border-bottom:2px dashed #d97706; padding:10px 14px; text-align:center;">
+        <div style="font-size:10px; font-weight:800; color:#b45309; letter-spacing:1px; text-transform:uppercase;">📢 COMMERCIAL ADVERTISEMENT / SPONSOR SPACE</div>
+        <div style="font-size:13.5px; font-weight:800; color:#1f2937; margin-top:2px;">KALYAN JEWELLERS / CANARA BANK</div>
+        <div style="font-size:10.5px; color:#6b7280;">"Near Mettupalayam Bus Stand • Special Festival Offers"</div>
+      </div>
+      <!-- Bottom Zone: Municipal QR & Grievance -->
+      <div style="padding:14px; background:#ffffff; text-align:center;">
+        <div class="qr-plate-header">🏛️ மேட்டுப்பாளையம் நகராட்சி • METTUPALAYAM</div>
+        <div style="font-size:12px; font-weight:600; color:#334155;">Scan to Report Fault • பழுது புகாரளிக்க</div>
+        <div class="qr-box" style="width:110px; height:110px;">
+          <span style="font-size:20px;">⬛ ⬜ ⬛</span>
+          <span style="font-weight:700; margin-top:4px;">[ 2D QR CODE ]</span>
+          <span style="font-size:9px; margin-top:2px;">Unique Crypto Token</span>
+        </div>
+        <div class="qr-plate-id" style="font-size:16px; padding:4px 10px;">POLE ID: 101</div>
+        <div class="qr-plate-footer" style="margin-top:6px;">
+          AI Voice Helpline: <span class="tech-pill">04440115043</span> | Keypad IVR: <span class="tech-pill">04440115434</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Non-Tax Revenue Model Box -->
+  <div class="highlight-box">
+    <h4>Municipal Non-Tax Revenue Generation Model (Self-Funding Asset):</h4>
+    <p>
+      By monetizing the top commercial advertisement panel across 5,000 electric poles, the municipality can generate substantial recurring non-tax revenue:
+    </p>
+    <ul style="margin:8px 0 6px 18px; font-size:12.5px; color:#78350f;">
+      <li><strong>Commercial Arterial Roads (1,500 Poles @ ₹200/month):</strong> ₹36,00,000 / year</li>
+      <li><strong>Residential Wards (2,500 Poles @ ₹75/month):</strong> ₹22,50,000 / year</li>
+      <li><strong>Peripheral Wards (1,000 Poles @ ₹40/month):</strong> ₹4,80,000 / year</li>
+      <li><strong>Total Potential Annual Municipal Ad Revenue:</strong> <strong>₹63,30,000 / Year (₹63.3 Lakhs/Year)</strong></li>
+    </ul>
+    <p style="font-size:12px; color:#92400e; font-weight:600;">
+      💡 Even at an average 40% occupancy rate, the municipality recovers over ₹25.0 Lakhs annually, turning this entire smart governance initiative into a net-profitable municipal asset! In-software digital banner impressions are also tracked via the <code>AdCampaign</code> & <code>AdImpression</code> database engine.
+    </p>
+  </div>
+
+  <h3>2.2 24/7 Dual-Helpline AI Voice Telephony</h3>
+  <ul>
+    <li><strong>Primary Conversational AI Agent (04440115043):</strong> Realistic natural Tamil speech understanding. Citizens simply speak (e.g. <em>"பஸ் ஸ்டாண்ட் பக்கத்துல ஸ்ட்ரீட் லைட் எரியல"</em>). The AI dynamically queries existing complaint statuses from PostgreSQL and speaks back live updates.</li>
+    <li><strong>Secondary DTMF Keypad IVR (04440115434):</strong> Fast dialpad entry for basic feature phones. Citizen enters 3-digit pole ID (e.g., <span class="tech-pill">101#</span>) to instantly register complaints.</li>
+  </ul>
+
+  <h3>2.3 Multi-Platform Application Suite (Flutter Web & Mobile for All Roles)</h3>
+  <p>
+    Engineered on a single, unified <strong>Flutter codebase</strong>, providing both a <strong>Mobile Application</strong> and a <strong>Desktop Web Application</strong> for every user group:
+  </p>
+  <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px; margin:14px 0 20px 0;">
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">👨‍💼 Administrator Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Desktop Web App:</strong> Full GIS command center, heatmap cluster analytics, tender PDF compiler, and digital ad campaign manager.<br>
+        • <strong>Executive Mobile App:</strong> Real-time on-the-go alerts, ticket approvals, field staff live tracking, and emergency escalations on Android/iOS.
+      </div>
+    </div>
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">⚡ Field Electrician Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Field Mobile App:</strong> With mandatory &le; 50m Geo-Fencing lock, live camera EXIF capture, OCR pole plate scanning, and offline sync.<br>
+        • <strong>Field Web Portal:</strong> Dispatch queue and job card view for electrical supervisors in municipal workshops.
+      </div>
+    </div>
+    <div style="border:1px solid #cbd5e1; border-radius:6px; padding:12px; background:#ffffff;">
+      <div style="font-weight:700; color:var(--primary); font-size:12.5px; text-transform:uppercase; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-bottom:6px;">👥 Citizen Engagement Suite</div>
+      <div style="font-size:11.5px; color:var(--text-muted); line-height:1.45;">
+        • <strong>Zero-Install Web PWA:</strong> Instant camera QR scan from any phone browser with top sponsor ad banner and 1-tap fault logging.<br>
+        • <strong>Citizen Mobile App:</strong> Play Store app with push notifications, ticket history, and ward street lighting map.
+      </div>
+    </div>
+  </div>
+
+  <h3>2.4 Executive I3C Command Dashboard & Tender PDF Engine</h3>
+  <ul>
+    <li>Live GIS map with dark-spot cluster heatmaps and SLA countdown clocks.</li>
+    <li>Automated generation of statutory Tamil procurement PDFs: RFQ (விலைப்புள்ளி கோருதல்), Comparative Statement (ஒப்பு நோக்கு பட்டியல்), Work Order (வேலை உத்தரவு), and Form 19 Expenditure Voucher (செலவினச் சீட்டு).</li>
+  </ul>
+
+  <!-- Section 3 -->
+  <h2>3. Hardware & Plate Specifications</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Specification Parameter</th>
+        <th>Mandatory Technical Requirement</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Plate Material & Thickness</strong></td>
+        <td>Anodized Aluminum Alloy (6061-T6), 1.5 mm thickness &plusmn; 5%.</td>
+      </tr>
+      <tr>
+        <td><strong>Plate Dimensions</strong></td>
+        <td>150 mm (Height) &times; 100 mm (Width) with rounded safety corners.</td>
+      </tr>
+      <tr>
+        <td><strong>Reflective Sheeting</strong></td>
+        <td>Class 2 Retroreflective sheeting (ASTM D4956 Type IV) visible at night under headlights.</td>
+      </tr>
+      <tr>
+        <td><strong>Coating & Weatherproofing</strong></td>
+        <td>UV-curable industrial screen printing with protective polyurethane clear coat; 7-year life.</td>
+      </tr>
+      <tr>
+        <td><strong>Mounting Hardware</strong></td>
+        <td>Grade 304 Stainless Steel strapping bands (12.7mm width) with heavy-duty wing seals.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 4 -->
+  <h2>4. Service Level Agreement (SLA) & Penalties</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Incident Classification</th>
+        <th>Description & Fault Type</th>
+        <th>Turnaround Time</th>
+        <th>Penalty for Breach</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tier-1: Critical Hazard</strong></td>
+        <td>Fallen pole, dangling live wire, shock risk near public institutions.</td>
+        <td><strong>Within 4 Hours</strong></td>
+        <td>₹500 / hour delay</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-2: High Priority</strong></td>
+        <td>Complete street outage (&gt;3 poles dark), main commercial road.</td>
+        <td><strong>Within 12 Hours</strong></td>
+        <td>₹200 / pole / day</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-3: Standard Fault</strong></td>
+        <td>Single bulb failure, fixture flickering.</td>
+        <td><strong>Within 24 Hours</strong></td>
+        <td>₹100 / pole / day</td>
+      </tr>
+      <tr>
+        <td><strong>Tier-4: Daytime Burning</strong></td>
+        <td>Street lights remaining ON during daylight (&gt;06:30 AM).</td>
+        <td><strong>Within 2 Hours</strong></td>
+        <td>₹50 / pole / event</td>
+      </tr>
+      <tr>
+        <td><strong>Telephony Availability</strong></td>
+        <td>AI Voice Helpline & IVR Uptime (&ge; 99.5% monthly).</td>
+        <td>24x7 Continuous</td>
+        <td>₹2,000 / hour downtime</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 5 -->
+  <h2>5. Bill of Quantities (BOQ) & Cost Schedule</h2>
+  <table>
+    <thead>
+      <tr>
+        <th class="col-center">Item</th>
+        <th>Description of Work</th>
+        <th class="col-center">Unit</th>
+        <th class="col-center">Est. Qty</th>
+        <th class="col-right">Unit Rate (₹)</th>
+        <th class="col-right">Total (₹)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="col-center"><strong>1.01</strong></td>
+        <td>Door-to-door GIS field survey of electric poles, sub-meter GPS mapping, wattage/phase inventory.</td>
+        <td class="col-center">Per Pole</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹50.00</td>
+        <td class="col-right">₹2,50,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.02</strong></td>
+        <td>Fabrication & installation of retroreflective anodized aluminum QR plates with SS bands.</td>
+        <td class="col-center">Per Plate</td>
+        <td class="col-center">5,000</td>
+        <td class="col-right">₹120.00</td>
+        <td class="col-right">₹6,00,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.03</strong></td>
+        <td>Software Platform Setup: Ooraatchi GIS engine, PostGIS spatial DB, RBAC & E-tender pack.</td>
+        <td class="col-center">Lump Sum</td>
+        <td class="col-center">1 Job</td>
+        <td class="col-right">₹3,00,000.00</td>
+        <td class="col-right">₹3,00,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.04</strong></td>
+        <td>Dual-Helpline AI Voice Telephony (Tamil Conversational AI + Keypad IVR lines) & Exotel SIP trunks.</td>
+        <td class="col-center">Per Month</td>
+        <td class="col-center">36 Mos</td>
+        <td class="col-right">₹20,000.00</td>
+        <td class="col-right">₹7,20,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.05</strong></td>
+        <td>Field Electrician Mobile App (&le; 50m Geo-Fencing, OCR plate scan) & Citizen PWA portal.</td>
+        <td class="col-center">Lump Sum</td>
+        <td class="col-center">1 Job</td>
+        <td class="col-right">₹2,00,000.00</td>
+        <td class="col-right">₹2,00,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.06</strong></td>
+        <td>Tier-III MeitY-empaneled Cloud Hosting, SSL certificates, automated daily backups & security.</td>
+        <td class="col-center">Per Year</td>
+        <td class="col-center">3 Years</td>
+        <td class="col-right">₹90,000.00</td>
+        <td class="col-right">₹2,70,000.00</td>
+      </tr>
+      <tr>
+        <td class="col-center"><strong>1.07</strong></td>
+        <td>Dedicated On-Site Technical Operator deployed at Municipal Command Center for 36 months.</td>
+        <td class="col-center">Per Month</td>
+        <td class="col-center">36 Mos</td>
+        <td class="col-right">₹20,000.00</td>
+        <td class="col-right">₹7,20,000.00</td>
+      </tr>
+      <tr style="background:#f1f5f9; font-weight:700;">
+        <td colspan="5" class="col-right">SUBTOTAL (BASE CONTRACT VALUE EXCLUDING GST):</td>
+        <td class="col-right">₹30,60,000.00</td>
+      </tr>
+      <tr style="background:#f8fafc; font-weight:600;">
+        <td colspan="5" class="col-right">APPLICABLE GST @ 18% (CGST 9% + SGST 9%):</td>
+        <td class="col-right">₹5,50,800.00</td>
+      </tr>
+      <tr style="background:#e2e8f0; font-weight:800; font-size:14px; color:var(--primary);">
+        <td colspan="5" class="col-right">TOTAL ESTIMATED BID VALUE (INCLUSIVE OF 18% GST):</td>
+        <td class="col-right">₹36,10,800.00</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="highlight-box" style="margin-top:-10px; margin-bottom:24px;">
+    <h4>Financial Summary in Words:</h4>
+    <p><strong>Base Value (Excl. GST):</strong> ₹30,60,000.00 — <em>Rupees Thirty Lakhs Sixty Thousand Only</em> (ரூபாய் முப்பது லட்சத்து அறுபதாயிரம் மட்டும்)</p>
+    <p><strong>Total Value (Incl. 18% GST):</strong> ₹36,10,800.00 — <em>Rupees Thirty-Six Lakhs Ten Thousand Eight Hundred Only</em> (ரூபாய் முப்பத்தாறு லட்சத்து பத்தாயிரத்து எண்ணூறு மட்டும்)</p>
+    <p style="margin-top:6px; font-size:12px; color:#64748b;"><strong>Capex Component:</strong> ₹13,50,000.00 (Year 1 Survey, Plates & Software) &nbsp;|&nbsp; <strong>Opex Component:</strong> ₹17,10,000.00 (36 Months Telephony, Cloud & On-Site Support)</p>
+  </div>
+
+  <!-- Section 6 -->
+  <h2>6. Bidder Qualification Criteria</h2>
+  <ul>
+    <li><strong>Registration:</strong> Registered Company / LLP / MSME in India with valid GSTIN and PAN.</li>
+    <li><strong>Financial Standing:</strong> Average annual turnover of &ge; ₹50 Lakhs in the last 3 financial years. (Exemption for registered Tamil Nadu MSMEs / DPIIT startups as per government norms).</li>
+    <li><strong>Technical Competence:</strong> Prior proven deployment of GIS Asset Mapping, Cloud Portals, or Telephony IVR for a Municipal or Government body.</li>
+    <li><strong>GeM Seller:</strong> Must hold an active Seller Profile on Government e-Marketplace (GeM).</li>
+  </ul>
+
+  <!-- Signature Section -->
+  <div class="sig-section">
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Junior Engineer / Municipal Engineer</div>
+      <div class="sig-subtitle">Prepared & Technically Verified</div>
+    </div>
+    <div class="sig-box">
+      <div class="sig-line"></div>
+      <div class="sig-title">Municipal Commissioner / Executive Officer</div>
+      <div class="sig-subtitle">Approved for Tender Notification</div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

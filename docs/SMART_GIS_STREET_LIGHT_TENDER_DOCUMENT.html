@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Document - Smart GIS Street Light & Electric Pole Infrastructure Management System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f2b48;
+      --primary-light: #1e4a78;
+      --accent: #b45309;
+      --accent-light: #fef3c7;
+      --text-main: #1f2937;
+      --text-muted: #4b5563;
+      --border-color: #cbd5e1;
+      --bg-alt: #f8fafc;
+      --success-green: #065f46;
+      --success-bg: #ecfdf5;
+      --danger-red: #991b1b;
+      --danger-bg: #fef2f2;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: var(--text-main);
+      background-color: #f1f5f9;
+      line-height: 1.6;
+      font-size: 14.5px;
+    }
+
+    .document-wrapper {
+      max-width: 960px;
+      margin: 30px auto;
+      background: #ffffff;
+      padding: 60px 80px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+
+    /* Header & Cover */
+    .gov-header {
+      text-align: center;
+      border-bottom: 3px double var(--primary);
+      padding-bottom: 25px;
+      margin-bottom: 35px;
+    }
+
+    .gov-emblem {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    .gov-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .gov-subtitle {
+      font-size: 15px;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 4px;
+    }
+
+    .tender-badge {
+      display: inline-block;
+      margin-top: 15px;
+      background: var(--primary);
+      color: #ffffff;
+      padding: 6px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    .tender-title-hero {
+      margin-top: 25px;
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--primary);
+      line-height: 1.35;
+      text-transform: uppercase;
+    }
+
+    .meta-strip {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin: 25px 0 40px 0;
+      background: var(--bg-alt);
+      border: 1px solid var(--border-color);
+      padding: 16px 20px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .meta-item strong {
+      color: var(--primary);
+      display: inline-block;
+      width: 170px;
+    }
+
+    /* Headings */
+    h1 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #ffffff;
+      background: var(--primary);
+      padding: 12px 18px;
+      margin: 45px 0 20px 0;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      page-break-before: always;
+    }
+
+    .first-h1 {
+      page-break-before: avoid;
+    }
+
+    h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 25px 0 12px 0;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 6px;
+    }
+
+    h3 {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: #0f172a;
+      margin: 18px 0 8px 0;
+    }
+
+    p {
+      margin-bottom: 12px;
+      text-align: justify;
+    }
+
+    ul, ol {
+      margin: 10px 0 16px 25px;
+    }
+
+    li {
+      margin-bottom: 6px;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 25px 0;
+      font-size: 13px;
+      page-break-inside: avoid;
+    }
+
+    th, td {
+      border: 1px solid var(--border-color);
+      padding: 10px 12px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background-color: #f1f5f9;
+      color: var(--primary);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11.5px;
+      letter-spacing: 0.5px;
+    }
+
+    tr:nth-child(even) td {
+      background-color: #fafbfc;
+    }
+
+    /* Callout & Alerts */
+    .alert-box {
+      border-left: 4px solid var(--primary);
+      background: var(--bg-alt);
+      padding: 14px 18px;
+      margin: 20px 0;
+      border-radius: 0 6px 6px 0;
+      font-size: 13.5px;
+    }
+
+    .alert-box.important {
+      border-left-color: var(--accent);
+      background: var(--accent-light);
+    }
+
+    .alert-box.success {
+      border-left-color: var(--success-green);
+      background: var(--success-bg);
+    }
+
+    /* Diagrams & Illustrations */
+    .qr-card-preview {
+      border: 2px solid #0f172a;
+      border-radius: 8px;
+      width: 320px;
+      margin: 25px auto;
+      padding: 16px;
+      text-align: center;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-family: 'Inter', 'Noto Sans Tamil', sans-serif;
+    }
+
+    .qr-card-header {
+      font-size: 11px;
+      font-weight: 700;
+      color: #000;
+      border-bottom: 2px solid #000;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      line-height: 1.3;
+    }
+
+    .qr-cta {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #b45309;
+      margin-bottom: 10px;
+    }
+
+    .qr-matrix-sim {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 10px auto;
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0f172a;
+      padding: 8px;
+    }
+
+    .qr-pole-id {
+      background: #0f2b48;
+      color: #fff;
+      font-weight: 700;
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 13px;
+      margin-bottom: 8px;
+      display: inline-block;
+    }
+
+    .qr-helplines {
+      font-size: 10.5px;
+      color: #334155;
+      font-weight: 600;
+      border-top: 1px dashed #94a3b8;
+      padding-top: 6px;
+      line-height: 1.4;
+    }
+
+    .qr-sponsor {
+      margin-top: 8px;
+      font-size: 9.5px;
+      color: #64748b;
+      font-style: italic;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 4px;
+    }
+
+    .dialogue-sample {
+      background: #fdfaf3;
+      border: 1px solid #f3e8d2;
+      border-radius: 6px;
+      padding: 16px;
+      margin: 15px 0;
+      font-family: 'Noto Sans Tamil', 'Inter', sans-serif;
+    }
+
+    .dialogue-bubble {
+      margin-bottom: 10px;
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13.5px;
+    }
+
+    .dialogue-citizen {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .dialogue-ai {
+      background: #e0f2fe;
+      color: #0369a1;
+      font-weight: 600;
+    }
+
+    .code-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      background: #f1f5f9;
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #0f2b48;
+    }
+
+    /* Print Optimization */
+    @media print {
+      body {
+        background: #ffffff;
+        font-size: 12px;
+      }
+      .document-wrapper {
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        max-width: 100%;
+      }
+      h1 {
+        page-break-before: always;
+        font-size: 16px;
+        padding: 8px 12px;
+      }
+      .first-h1 {
+        page-break-before: avoid;
+      }
+      table {
+        page-break-inside: avoid;
+        font-size: 11px;
+      }
+      .no-print {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="document-wrapper">
+
+  <!-- GOVERNMENT HEADER -->
+  <div class="gov-header">
+    <div class="gov-emblem">🏛️</div>
+    <div class="gov-title">Government of Tamil Nadu</div>
+    <div class="gov-subtitle">Department of Municipal Administration & Water Supply</div>
+    <div class="gov-subtitle" style="font-weight: 700; color: var(--primary);">METTUPALAYAM MUNICIPALITY, COIMBATORE DISTRICT</div>
+    <div class="tender-badge">STATUTORY E-TENDER DOCUMENT • GFR 2017 &amp; MTD COMPLIANT</div>
+    
+    <div class="tender-title-hero">
+      Turnkey Implementation, Deployment, and 3-Year Operation &amp; Maintenance of Smart GIS Street Light &amp; Electric Pole Infrastructure Management System with Conversational Tamil AI Voice Redressal and Retroreflective QR Tagging
+    </div>
+  </div>
+
+  <!-- METADATA STRIP -->
+  <div class="meta-strip">
+    <div class="meta-item"><strong>Tender Reference:</strong> MM/ELEC/GIS-SL/2026-27/01</div>
+    <div class="meta-item"><strong>Tender ID:</strong> 2026_TNMAWS_784912_1</div>
+    <div class="meta-item"><strong>Bidding System:</strong> Single-Stage, Two-Cover Online</div>
+    <div class="meta-item"><strong>Portal:</strong> https://tntenders.gov.in</div>
+    <div class="meta-item"><strong>Procuring Authority:</strong> The Commissioner, Mettupalayam</div>
+    <div class="meta-item"><strong>Contract Form:</strong> Turnkey System &amp; O&amp;M Service</div>
+    <div class="meta-item"><strong>Implementation Period:</strong> 90 Calendar Days</div>
+    <div class="meta-item"><strong>O&amp;M Support Period:</strong> 36 Months (3 Years)</div>
+  </div>
+
+  <!-- TABLE OF CONTENTS -->
+  <h2>Table of Contents</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 15%;">Section</th>
+        <th>Description</th>
+        <th style="width: 20%;">Applicable Rules</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Section I</strong></td><td>Notice Inviting Tender (NIT) &amp; Tender Information Summary (TIS)</td><td>GFR Rule 150-162 / MTD</td></tr>
+      <tr><td><strong>Section II</strong></td><td>Instructions to Bidders (ITB)</td><td>Standard Procurement Framework</td></tr>
+      <tr><td><strong>Section III</strong></td><td>Appendix to Instructions to Bidders (AITB)</td><td>Project Overrides</td></tr>
+      <tr><td><strong>Section IV</strong></td><td>General Conditions of Contract (GCC)</td><td>Legal Tenets &amp; Dispute Terms</td></tr>
+      <tr><td><strong>Section V</strong></td><td>Special Conditions of Contract (SCC) - Project SLAs &amp; Penalties</td><td>99%+ Uptime &amp; ≤50m Geofence</td></tr>
+      <tr><td><strong>Section VI</strong></td><td>Schedule of Requirements (SOR) &amp; Bill of Quantities (BOQ)</td><td>Schedules 1 through 5</td></tr>
+      <tr><td><strong>Section VII</strong></td><td>Technical Specifications &amp; Quality Assurance (TSQA)</td><td>GNSS, QR, Tamil ASR, Flutter</td></tr>
+      <tr><td><strong>Section VIII</strong></td><td>Qualification Criteria</td><td>Financial, Technical &amp; Staffing</td></tr>
+      <tr><td><strong>Forms &amp; Formats</strong></td><td>Bidding Forms 1 to 8, BSD (Form 7), Integrity Pact (Form 8), PBG Format</td><td>Statutory Submission Files</td></tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION I -->
+  <h1 class="first-h1">Section I: Notice Inviting Tender (NIT)</h1>
+  <p><strong>1.1 Invitation</strong>: The Commissioner, Mettupalayam Municipality (hereinafter termed the <em>'Procuring Entity'</em>), on behalf of the Governor of Tamil Nadu, invites eligible and competent technology providers and system integrators to submit bids through the online e-procurement portal <code>https://tntenders.gov.in</code> for the <strong>Turnkey Implementation, Deployment, and 3-Year Comprehensive Operation &amp; Maintenance of Smart GIS Street Light &amp; Electric Pole Infrastructure Management System</strong> across all 33 municipal wards.</p>
+
+  <p><strong>1.2 The Project</strong>: Addresses critical municipal bottlenecks including unreported dark spots, digital exclusion of senior and rural citizens, and fraudulent complaint closures. It delivers end-to-end door-to-door sub-meter GNSS pole survey, 80×80mm weatherproof retroreflective QR plates, 24/7 dual-helpline AI telephony (conversational Tamil ASR + DTMF IVR), multi-platform Flutter applications (Admin command center, field electrician mobile with mandatory ≤50m geo-fencing lock, and citizen QR PWA/app), with strict 99%+ street light uptime enforcement.</p>
+
+  <h2>Appendix to NIT: Tender Information Summary (TIS)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 30%;">Clause / Parameter</th>
+        <th>Tender Specification Details</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Tender Reference Number</strong></td>
+        <td><code>MM/ELEC/GIS-SL/2026-27/01</code></td>
+      </tr>
+      <tr>
+        <td><strong>Tender Type &amp; Category</strong></td>
+        <td>Open Tender – Domestic | Goods &amp; Incidental Turnkey Engineering Services</td>
+      </tr>
+      <tr>
+        <td><strong>No. of Covers</strong></td>
+        <td>Two Covers (Cover-1: Techno-Commercial Bid &amp; BSD; Cover-2: Financial BOQ)</td>
+      </tr>
+      <tr>
+        <td><strong>Scope Quantity</strong></td>
+        <td><strong>12,500 Municipal Electric Poles &amp; Street Lights</strong> (Survey, Tagging, and Management)</td>
+      </tr>
+      <tr>
+        <td><strong>Delivery Term</strong></td>
+        <td>Free Delivery at Site (F.O.R. Destination), Mettupalayam Municipality</td>
+      </tr>
+      <tr>
+        <td><strong>Bid Security (EMD)</strong></td>
+        <td>In lieu of EMD, **Bid Securing Declaration (BSD)** as per Form 7 is mandatory.</td>
+      </tr>
+      <tr>
+        <td><strong>Performance Security</strong></td>
+        <td>**3% of the Total Contract Price**, valid up to 60 days post 36-month O&amp;M completion.</td>
+      </tr>
+      <tr>
+        <td><strong>Make in India Threshold</strong></td>
+        <td>**Class-I Local Supplier (Minimum 50% Local Content)**. Data centers must be in India.</td>
+      </tr>
+      <tr>
+        <td><strong>Document Download Start</strong></td>
+        <td>22-09-2026 at 10:00 AM</td>
+      </tr>
+      <tr>
+        <td><strong>Pre-Bid Conference</strong></td>
+        <td>30-09-2026 at 11:30 AM (Municipal Council Hall / Hybrid VC)</td>
+      </tr>
+      <tr>
+        <td><strong>Bid Submission Closing</strong></td>
+        <td>14-10-2026 at 03:00 PM</td>
+      </tr>
+      <tr>
+        <td><strong>Cover-1 Bid Opening Date</strong></td>
+        <td>15-10-2026 at 03:30 PM</td>
+      </tr>
+      <tr>
+        <td><strong>Designated DIDs</strong></td>
+        <td>AI Voice Agent: <code>044-40115043</code> | Keypad IVR: <code>044-40115434</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION II & III -->
+  <h1>Section II &amp; III: Instructions to Bidders &amp; AITB</h1>
+  <p><strong>2.1 Submission System</strong>: Bids must be submitted online in two covers on <code>https://tntenders.gov.in</code>. Cover 1 consists of the Techno-Commercial Bid including Bid Securing Declaration (Form 7), Eligibility Declarations (Form 1.2), Schedule of Requirements Compliance (Form 2), Technical Specifications Compliance (Form 3), Qualification Documents (Form 4 &amp; 4.1), and Integrity Pact (Form 8). Cover 2 comprises the Price Schedule (BOQ Excel sheet).</p>
+
+  <p><strong>2.2 Price Basis</strong>: The bid price shall be quoted entirely in Indian Rupees (INR) and shall remain firm and fixed for the 90-day implementation period and the 36-month O&amp;M cycle. No price variation or exchange rate escalation shall be admitted.</p>
+
+  <p><strong>2.3 Composite Evaluation</strong>: Financial evaluation shall be conducted on the basis of the combined turnkey landed cost of all five schedules (Survey, QR Tags, Telephony, Software Suite, and 3-Year O&amp;M) to establish the lowest evaluated responsive bidder (<strong>L-1</strong>).</p>
+
+  <!-- SECTION IV & V -->
+  <h1>Section IV &amp; V: Contract Conditions &amp; Project SLAs (SCC)</h1>
+  <div class="alert-box important">
+    <strong>CRITICAL SERVICE LEVEL AGREEMENT (SLA) MANDATES</strong><br>
+    The contractor shall be held strictly accountable for maintaining 99%+ street lighting uptime and zero fraudulent ticket closures via mandatory ≤50m hardware GPS geofencing.
+  </div>
+
+  <h2>Special Conditions of Contract (SCC) - Performance Matrix</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Performance Parameter</th>
+        <th>Target SLA Standard</th>
+        <th>Penalty Mechanism for Non-Compliance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Street Light Network Uptime</strong></td>
+        <td><strong>≥ 99.0% Availability</strong> measured across all municipal wards each month.</td>
+        <td>0.5% deduction from quarterly O&amp;M bill for every 0.5% decrement below 99.0%.</td>
+      </tr>
+      <tr>
+        <td><strong>Minor Defect Rectification</strong></td>
+        <td>Fused LED, driver swap, loose wire resolved within <strong>12 Hours</strong>.</td>
+        <td>₹50 per pole per day beyond 12 hours until physical restoration.</td>
+      </tr>
+      <tr>
+        <td><strong>Major Cable Breakdown</strong></td>
+        <td>Feeder phase outage or underground cable cut resolved within <strong>24 Hours</strong>.</td>
+        <td>₹150 per pole per day beyond 24 hours until physical restoration.</td>
+      </tr>
+      <tr>
+        <td><strong>Geo-Fenced Ticket Closure</strong></td>
+        <td>Resolution button strictly locked unless device is <strong>≤ 50 Meters</strong> from pole coordinates.</td>
+        <td>Any closure marked outside 50m is voided and penalized at <strong>₹500 per incident</strong>.</td>
+      </tr>
+      <tr>
+        <td><strong>AI Telephony Availability</strong></td>
+        <td>Dual helplines (<code>044-40115043</code> / <code>044-40115434</code>) maintain <strong>≥ 99.5% Uptime</strong>.</td>
+        <td>₹1,000 per hour of unannounced telephony interruption.</td>
+      </tr>
+      <tr>
+        <td><strong>Annual QR Plate Renewal</strong></td>
+        <td>100% inspection and replacement of faded, weathered, or vandalized tags.</td>
+        <td>Withholding of corresponding quarterly O&amp;M billing installment.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION VI -->
+  <h1>Section VI: Schedule of Requirements (SOR)</h1>
+  <p>The contractor shall execute the complete turnkey delivery, commissioning, and support as detailed in the five schedules below:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 10%;">Sched.</th>
+        <th style="width: 45%;">Scope of Supply / Turnkey Engineering Service</th>
+        <th style="width: 12%;">Quantity</th>
+        <th style="width: 10%;">Unit</th>
+        <th style="width: 23%;">Delivery Milestone</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Sched-1</strong></td>
+        <td><strong>Door-to-Door GNSS Sub-Meter Field Survey</strong><br>Differential GPS mapping of electric poles capturing Latitude, Longitude (WGS-84), Pole Material (Tubular, PSC, Octagonal), Lamp Type (LED, SV), Wattage (20W-120W), Feeder Phase, and bilingual Tamil/English landmark.</td>
+        <td>12,500</td>
+        <td>Poles</td>
+        <td>Within 45 days of LoA</td>
+      </tr>
+      <tr>
+        <td><strong>Sched-2</strong></td>
+        <td><strong>Weatherproof Retroreflective QR Asset Tags (80×80mm)</strong><br>Fabrication &amp; application of UV-resistant PVC/vinyl tags with matte laminate overcoat and outdoor metal/concrete industrial adhesive glue. Includes dynamic QR token, Pole ID 101, and dual helplines.</td>
+        <td>12,500</td>
+        <td>Units</td>
+        <td>Within 75 days of LoA</td>
+      </tr>
+      <tr>
+        <td><strong>Sched-3</strong></td>
+        <td><strong>24/7 Dual-Helpline AI Voice Telephony Platform</strong><br>Setup and operation of Conversational Tamil AI Agent (<code>044-40115043</code>) supporting regional dialects (Kongu, Chennai, Madurai, Delta) and Secondary DTMF IVR (<code>044-40115434</code>) for 2G handsets.</td>
+        <td>1</td>
+        <td>System</td>
+        <td>Within 90 days of LoA</td>
+      </tr>
+      <tr>
+        <td><strong>Sched-4</strong></td>
+        <td><strong>Multi-Platform Flutter Application Suite Deployment</strong><br>Admin Web GIS command center &amp; mobile app, Field Electrician Mobile App (mandatory ≤50m geo-fence lock &amp; camera EXIF capture), and Citizen Instant Scan QR PWA &amp; Play Store App.</td>
+        <td>1</td>
+        <td>Suite</td>
+        <td>Within 90 days of LoA</td>
+      </tr>
+      <tr>
+        <td><strong>Sched-5</strong></td>
+        <td><strong>3-Year Comprehensive Operation, Maintenance &amp; Cloud Hosting</strong><br>PostgreSQL/PostGIS cloud hosting, 24/7 technical helpdesk, field verification audit staff, annual QR sticker renewal cycle, and 99%+ uptime enforcement.</td>
+        <td>36</td>
+        <td>Months</td>
+        <td>Quarterly across 36 Months</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION VII -->
+  <h1>Section VII: Technical Specifications &amp; Quality Assurance (TSQA)</h1>
+  
+  <h2>7.1 Retroreflective Weatherproof QR Asset Tag</h2>
+  <p>Each pole shall be physically affixed with a high-durability retroreflective asset tag engineered for high outdoor longevity. Below is the statutory layout specification:</p>
+
+  <!-- ILLUSTRATIVE QR TAG VISUAL -->
+  <div class="qr-card-preview">
+    <div class="qr-card-header">
+      தமிழ்நாடு அரசு • மேட்டுப்பாளையம் நகராட்சி<br>
+      METTUPALAYAM MUNICIPALITY — STREET LIGHT &amp; ASSET TAG
+    </div>
+    <div class="qr-cta">Scan to Report Fault • பழுது புகாரளிக்க</div>
+    <div class="qr-matrix-sim">
+      <div style="font-size: 24px; margin-bottom: 4px;">⬛ ⬜ ⬛</div>
+      [ 2D DYNAMIC QR ]
+      <div style="font-size: 8px; color: #64748b; margin-top: 4px;">CRYPTOGRAPHIC TOKEN</div>
+    </div>
+    <div class="qr-pole-id">POLE KEYPAD ID: 101</div>
+    <div class="qr-helplines">
+      24/7 AI Voice Helpline: <strong>044-40115043</strong><br>
+      Keypad IVR: <strong>044-40115434</strong>
+    </div>
+    <div class="qr-sponsor">
+      Affixed using industrial adhesive glue | Civic Sponsor Space
+    </div>
+  </div>
+
+  <h2>7.2 24/7 Dual-Helpline AI Voice Telephony &amp; Regional Tamil Dialect Processing</h2>
+  <p>The system shall provide zero-barrier citizen redressal via dual telephony channels:</p>
+  <ul>
+    <li><strong>Primary Conversational AI Agent (<code>044-40115043</code>)</strong>: Equipped with deep neural Tamil Speech Recognition (ASR) tuned to colloquial regional Tamil Nadu dialects:
+      <ul>
+        <li><em>Kongu Tamil</em> (Coimbatore, Mettupalayam, Tirupur, Erode colloquialisms)</li>
+        <li><em>Chennai Tamil</em> (Madras colloquial speech)</li>
+        <li><em>Madurai &amp; Delta Tamil</em> expressions</li>
+      </ul>
+      Citizens speak freely without navigating numeric keypad menus. The voice agent recognizes intents, extracts pole and landmark tokens, queries the database, and responds naturally in Tamil.
+    </li>
+    <li><strong>Secondary DTMF Keypad IVR (<code>044-40115434</code>)</strong>: Built for basic 2G feature phones and noisy rural conditions. The citizen dials the number and keys in the 3 or 4-digit pole number followed by hash (e.g. <code>101#</code>) to log the ticket.</li>
+  </ul>
+
+  <div class="dialogue-sample">
+    <div style="font-weight: 700; color: #92400e; margin-bottom: 10px;">Sample Live Tamil AI Voice Redressal Dialogue:</div>
+    <div class="dialogue-bubble dialogue-citizen">
+      <strong>குடிமகன்:</strong> "வணக்கம், காந்தி நகர் 3வது தெருவுல லைட் எரியல."
+    </div>
+    <div class="dialogue-bubble dialogue-ai">
+      <strong>AI குரல் முகவர்:</strong> "உங்கள் புகார் பதிவு செய்யப்பட்டது. மின்கம்ப எண் 101-க்கு கள மின்சார பணியாளர் நியமிக்கப்பட்டுள்ளார்; இன்று மாலைக்குள் சரிசெய்யப்படும்."
+    </div>
+  </div>
+
+  <h2>7.3 Multi-Platform Application Suite Architecture</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Suite</th>
+        <th>Desktop Web Features</th>
+        <th>Mobile Application Features</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Administrator Suite</strong></td>
+        <td>Full GIS command center, ward dark-spot cluster heatmaps, automated statutory tender PDF compliance compiler, and commercial ad campaign manager.</td>
+        <td>Real-time on-the-go alerts, ticket approvals, field staff live tracking, and emergency escalations on Android/iOS.</td>
+      </tr>
+      <tr>
+        <td><strong>Field Electrician Suite</strong></td>
+        <td>Workshop dispatch queue and job card view for electrical supervisors in municipal workshops.</td>
+        <td><strong>Mandatory ≤50m Geo-Fencing lock</strong>, live camera EXIF capture, OCR pole plate scanning, and offline sync in cellular shadow zones.</td>
+      </tr>
+      <tr>
+        <td><strong>Citizen Engagement Suite</strong></td>
+        <td>Zero-install camera QR scan PWA from any mobile browser with top sponsor ad banner and 1-tap fault logging.</td>
+        <td>Play Store mobile app with live push notifications, complaint timeline, and ward street lighting status map.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION VIII -->
+  <h1>Section VIII: Qualification Criteria</h1>
+  <table>
+    <thead>
+      <tr>
+        <th style="width: 25%;">Criteria</th>
+        <th>Mandatory Technical &amp; Financial Benchmark</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Technical Experience</strong></td>
+        <td>The bidder must have successfully implemented at least <strong>1 similar project</strong> involving GIS Asset Survey / IoT Street Lighting / Telephony e-Governance with a minimum value of <strong>₹40 Lakhs</strong> within the last 5 financial years.</td>
+      </tr>
+      <tr>
+        <td><strong>Annual Turnover</strong></td>
+        <td>Minimum Average Annual Turnover of <strong>₹1.5 Crores</strong> over the last 3 financial years (2023-24, 2024-25, 2025-26), certified by a Chartered Accountant.</td>
+      </tr>
+      <tr>
+        <td><strong>Bank Solvency</strong></td>
+        <td>Solvency certificate of not less than <strong>₹50 Lakhs</strong> issued by a Scheduled Commercial Bank in India.</td>
+      </tr>
+      <tr>
+        <td><strong>Quality Credentials</strong></td>
+        <td>Valid <strong>ISO 9001:2015</strong> (Quality Management) and <strong>ISO 27001:2013/2022</strong> (Information Security) certificates.</td>
+      </tr>
+      <tr>
+        <td><strong>Start-up Dispensation</strong></td>
+        <td>DPIIT-recognized start-ups are granted relaxation in prior turnover and experience per GoI MoF guidelines, subject to verified technical MVP demonstration.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- STATUTORY BIDDING FORMS -->
+  <h1>Statutory Bidding Forms &amp; Declarations</h1>
+  
+  <h2>Form 7: Bid Securing Declaration (BSD)</h2>
+  <div class="alert-box" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6;">
+    TO:<br>
+    The Commissioner, Mettupalayam Municipality, Coimbatore District, Tamil Nadu.<br><br>
+    We, the undersigned, unconditionally declare that:<br>
+    1. We understand that bids must be supported by a Bid Securing Declaration in lieu of Bid Security.<br>
+    2. We accept that we will be automatically suspended from eligibility in any tender issued by Mettupalayam Municipality and the Department of Municipal Administration &amp; Water Supply, Govt. of Tamil Nadu for a period of <strong>TWO (2) YEARS</strong> from the date of bid opening if we breach our obligations under the tender conditions by withdrawing/modifying our bid during validity, or failing to execute the contract or submit the 3% Performance Bank Guarantee upon notification of award.<br><br>
+    Duly authorized to sign the bid for and on behalf of: _________________________________________<br>
+    Signature &amp; Seal: _________________________________________ Date: _________________________
+  </div>
+
+  <h2>Form 8: Integrity Pact Summary</h2>
+  <p>The Bidder commits to total transparency and zero unethical practices. Bribery, collusion, anti-competitive cartel formation, and unauthorized broker payments are strictly prohibited. Violations shall incur immediate bid rejection, debarment, and forfeiture of securities.</p>
+
+  <div style="margin-top: 40px; padding-top: 20px; border-top: 2px solid #e2e8f0; display: flex; justify-content: space-between; font-size: 13px;">
+    <div>
+      <strong>Tender Inviting Authority:</strong><br>
+      The Commissioner<br>
+      Mettupalayam Municipality<br>
+      Coimbatore District, Tamil Nadu
+    </div>
+    <div style="text-align: right;">
+      <strong>e-Procurement Portal:</strong><br>
+      https://tntenders.gov.in<br>
+      Support: 04254-222225 / 044-40115043
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

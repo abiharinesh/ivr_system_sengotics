@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ta, en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tender Concept Note — Smart Street Light Monitoring System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #0f2b5c;
+      --accent: #d97706;
+      --text: #1f2937;
+      --muted: #4b5563;
+      --border: #cbd5e1;
+      --bg-box: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', 'Noto Sans Tamil', sans-serif;
+      color: var(--text);
+      background: #f1f5f9;
+      line-height: 1.45;
+      padding: 30px 15px;
+    }
+    .page-container {
+      max-width: 820px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 40px 48px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      border-radius: 4px;
+    }
+    .header {
+      text-align: center;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .header .emblem { font-size: 24px; margin-bottom: 2px; }
+    .header h2 { font-size: 15px; color: var(--primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    .header p { font-size: 11.5px; color: var(--muted); }
+    .badge {
+      display: inline-block;
+      background: var(--primary);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      margin-top: 6px;
+      letter-spacing: 1px;
+    }
+    .title-banner {
+      background: #f8fafc;
+      border-left: 4px solid var(--primary);
+      padding: 10px 14px;
+      margin-bottom: 16px;
+    }
+    .title-banner h1 { font-size: 15px; color: var(--primary); font-weight: 800; text-transform: uppercase; }
+    .title-banner p { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+
+    h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      text-transform: uppercase;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    h3::before {
+      content: "";
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: var(--accent);
+      border-radius: 2px;
+    }
+    p, li { font-size: 11.5px; color: var(--text); line-height: 1.5; }
+    ul { padding-left: 18px; margin-bottom: 10px; }
+    li { margin-bottom: 4px; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 10px 0;
+    }
+    .card {
+      background: var(--bg-box);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+    }
+    .card h4 { font-size: 12px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+    .card p { font-size: 11px; color: var(--muted); }
+
+    .workflow-box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      padding: 10px 12px;
+      margin: 10px 0;
+    }
+    .workflow-steps {
+      display: flex;
+      justify-content: space-between;
+      text-align: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-top: 6px;
+    }
+    .step-item {
+      flex: 1;
+      padding: 6px 4px;
+      background: #fff;
+      border: 1px solid #93c5fd;
+      border-radius: 3px;
+      margin: 0 3px;
+    }
+    .step-item span { display: block; font-size: 8.5px; color: var(--muted); font-weight: 400; margin-top: 2px; }
+
+    .deliverables-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 11px;
+    }
+    .deliverables-table th {
+      background: #f1f5f9;
+      color: var(--primary);
+      text-align: left;
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      font-size: 10.5px;
+      text-transform: uppercase;
+    }
+    .deliverables-table td {
+      padding: 6px 8px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    .footer-sign {
+      margin-top: 22px;
+      padding-top: 12px;
+      border-top: 1px dashed var(--border);
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+    }
+    .sign-box { text-align: center; width: 220px; }
+    .sign-line { border-bottom: 1px solid #64748b; margin-top: 35px; margin-bottom: 4px; }
+
+    @media print {
+      body { background: #fff; padding: 0; }
+      .page-container { box-shadow: none; padding: 15px 20px; max-width: 100%; }
+      .page-break { page-break-before: always; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="emblem">🏛️</div>
+    <h2>தமிழ்நாடு உள்ளாட்சி நிர்வாகம் • LOCAL ADMINISTRATION DEPARTMENT</h2>
+    <p>Office of the Municipal Commissioner / Executive Officer • Engineering Section</p>
+    <div class="badge">Tender Concept & Scope Document (For Bidding Vendors)</div>
+  </div>
+
+  <!-- Title Banner -->
+  <div class="title-banner">
+    <h1>Tender for Smart Street Lighting Infrastructure & Grievance Management System</h1>
+    <p>Turnkey Implementation of Weatherproof QR Asset Tagging, 24/7 Conversational AI Voice Calling, Citizen Apps, and Geo-Fenced Workforce Verification</p>
+  </div>
+
+  <!-- Problem Statement -->
+  <h3>1. The Problem Statement (What Needs to Be Solved)</h3>
+  <p>Municipalities and Town Panchayats manage thousands of street light poles across expanding wards, facing critical operational challenges:</p>
+  <div class="grid-2">
+    <div class="card">
+      <h4>1. Unreported Dark Spots & Delayed Redressal</h4>
+      <p>Street lights often stay dark for days because civic bodies have no automated mechanism to detect failures, depending solely on slow manual reports.</p>
+    </div>
+    <div class="card">
+      <h4>2. Digital Exclusion of Citizens</h4>
+      <p>Existing mobile grievance apps require smartphone typing, English literacy, and complex menus, cutting off elderly and rural citizens from reporting faults.</p>
+    </div>
+    <div class="card">
+      <h4>3. Fake Closures by Contractors</h4>
+      <p>Contractors or electricians often mark tickets "Resolved" without physically visiting the pole, causing recurring complaints and wasted municipal funds.</p>
+    </div>
+    <div class="card">
+      <h4>4. Lack of Digitized Asset Registry</h4>
+      <p>Municipalities lack accurate GIS coordinates, pole IDs, wattage, and feeder lines, making preventative maintenance and auditing impossible.</p>
+    </div>
+  </div>
+
+  <!-- The Concept -->
+  <h3>2. The Concept (How the Solution Works)</h3>
+  <p>The proposed system integrates <strong>on-ground asset tagging</strong>, <strong>intelligent voice AI</strong>, and <strong>geo-verified field tracking</strong> into one seamless loop:</p>
+
+  <div class="workflow-box">
+    <div style="font-size:11px; font-weight:700; color:var(--primary); margin-bottom:4px;">End-to-End Operational Workflow:</div>
+    <div class="workflow-steps">
+      <div class="step-item">1. Citizen Scans QR / Calls AI<span>Instant ticket logged in 30s</span></div>
+      <div class="step-item">2. PostGIS Spatial Match<span>Auto-assigned to ward electrician</span></div>
+      <div class="step-item">3. Field App &le;50m Lock<span>Worker must reach pole</span></div>
+      <div class="step-item">4. Photo & OCR Closure<span>Before/after proof + SMS to citizen</span></div>
+    </div>
+  </div>
+
+  <!-- Page Break for 2-page print layout -->
+  <div class="page-break"></div>
+
+  <!-- Solution Pillars -->
+  <h3>3. Core Solution Pillars</h3>
+
+  <div class="card" style="margin-bottom:8px;">
+    <h4>A. Weatherproof QR Code Asset Plates (Physical Tagging)</h4>
+    <p>
+      • Every pole is affixed with a durable, UV-resistant, waterproof QR plate at 2.2m height with a unique Pole Keypad ID and crypto QR code.<br>
+      • <strong>How it works:</strong> Any citizen pointing their phone camera at the QR code opens an instant reporting page in their mobile browser—<strong>zero app download required</strong>. The pole number, ward, and location are automatically pre-filled.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:8px;">
+    <h4>B. 24/7 Dual-Helpline Voice System (Conversational AI + Keypad IVR)</h4>
+    <p>
+      • <strong>Primary Helpline (Conversational AI Agent):</strong> Citizens dial the helpline and speak naturally in <strong>colloquial Tamil, Tanglish, or English</strong> (e.g., <em>"பேருந்து நிறுத்தம் பக்கத்துல விளக்கு எரியல"</em>). The AI extracts the problem, logs the ticket, and dynamically speaks back live status updates on follow-up calls.<br>
+      • <strong>Secondary Helpline (Keypad DTMF IVR):</strong> For basic 2G feature phones; caller dials the helpline and enters the 3-digit Pole ID on their keypad (e.g., <code>101#</code>) to instantly log the outage.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:8px;">
+    <h4>C. Citizen Engagement Suite (Mobile App & Instant PWA)</h4>
+    <p>
+      • <strong>Instant Scan Web PWA:</strong> Lightweight camera scan portal for one-tap complaint submission without installing an app.<br>
+      • <strong>Citizen Mobile App:</strong> Interactive street light map, personal complaint history, automated SMS/WhatsApp alerts with live tracking links upon repair.
+    </p>
+  </div>
+
+  <div class="card" style="margin-bottom:8px;">
+    <h4>D. Field Electrician App with Mandatory Geo-Fencing</h4>
+    <p>
+      • <strong>Mandatory &le; 50-Meter Radius Lock:</strong> Ticket closure is strictly blocked unless the electrician’s phone GPS is within 50 meters of the physical pole coordinates.<br>
+      • <strong>Live Camera Before/After Photo & OCR Proof:</strong> Electrician must capture a live photo of the repaired light; built-in OCR scans the pole number tag to ensure zero fake closures.
+    </p>
+  </div>
+
+  <!-- Tender Scope for Vendors -->
+  <h3>4. Scope of Deliverables for Bidding Vendors</h3>
+  <table class="deliverables-table">
+    <thead>
+      <tr>
+        <th style="width:25%;">Component</th>
+        <th style="width:75%;">Vendor Deliverable & Responsibility</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>1. GIS Asset Survey</strong></td>
+        <td>100% door-to-door GPS mapping of all street light poles with wattage, phase, and landmark metadata.</td>
+      </tr>
+      <tr>
+        <td><strong>2. QR Plate Supply & Mounting</strong></td>
+        <td>Supply and installation of 5,000 weatherproof, UV-coated plates using non-drilling industrial adhesive/straps.</td>
+      </tr>
+      <tr>
+        <td><strong>3. Telephony & AI Voice Engine</strong></td>
+        <td>Provision of 24/7 conversational Tamil/English AI voice helpline + DTMF lines with 99.5% uptime SLA.</td>
+      </tr>
+      <tr>
+        <td><strong>4. Software & Mobile Apps</strong></td>
+        <td>Cross-platform Flutter apps (Mobile + Web) for Admin Dashboard, Field Electrician queue, and Citizen reporting.</td>
+      </tr>
+      <tr>
+        <td><strong>5. Turnkey Operations</strong></td>
+        <td>Deputation of dedicated technical personnel at the Municipal Command Center for daily triage and SLA monitoring.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Official Signatures -->
+  <div class="footer-sign">
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <strong>Prepared By:</strong><br>
+      Junior Engineer / Assistant Engineer
+    </div>
+    <div class="sign-box">
+      <div class="sign-line"></div>
+      <strong>Approved for Tender Publication:</strong><br>
+      Municipal Engineer / Commissioner
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>
