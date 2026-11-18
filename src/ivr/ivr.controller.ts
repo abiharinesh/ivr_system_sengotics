@@ -528,16 +528,36 @@ export class IvrController {
     try {
       this.logger.log(`[BOT-WEBHOOK] Session end received: ${JSON.stringify(body).slice(0, 200)}...`);
       await this.ivrService.handleBotSessionEnd(body);
-      return res.status(200).json({ http_code: 200, success: true, message: 'Session end processed successfully' });
+      return res.status(200).json({
+        http_code: 200,
+        method: 'session_end',
+        success: true,
+        message: 'Session end processed successfully',
+        response: {
+          data: {},
+        },
+      });
     } catch (err) {
       this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
-      return res.status(200).json({ http_code: 200, success: true });
+      return res.status(200).json({
+        http_code: 200,
+        method: 'session_end',
+        success: true,
+      });
     }
   }
 
   @Get('bot/session-end')
   async handleBotSessionEndGet(@Res() res: Response) {
-    return res.status(200).json({ http_code: 200, success: true, message: 'Session end endpoint active' });
+    return res.status(200).json({
+      http_code: 200,
+      method: 'session_end',
+      success: true,
+      message: 'Session end endpoint active',
+      response: {
+        data: {},
+      },
+    });
   }
 
   @Post('bot/webhook')
@@ -545,16 +565,40 @@ export class IvrController {
     try {
       this.logger.log(`[BOT-WEBHOOK] Generic webhook received: ${JSON.stringify(body).slice(0, 200)}...`);
       await this.ivrService.handleBotSessionEnd(body);
-      return res.status(200).json({ http_code: 200, success: true, message: 'Webhook received' });
+      return res.status(200).json({
+        http_code: 200,
+        method: 'session_start',
+        success: true,
+        message: 'Webhook received',
+        response: {
+          data: {
+            session_constants: {},
+          },
+        },
+      });
     } catch (err) {
       this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
-      return res.status(200).json({ http_code: 200, success: true });
+      return res.status(200).json({
+        http_code: 200,
+        method: 'session_start',
+        success: true,
+      });
     }
   }
 
   @Get('bot/webhook')
   async handleBotGenericWebhookGet(@Res() res: Response) {
-    return res.status(200).json({ http_code: 200, success: true, message: 'Webhook endpoint active' });
+    return res.status(200).json({
+      http_code: 200,
+      method: 'session_start',
+      success: true,
+      message: 'Webhook endpoint active',
+      response: {
+        data: {
+          session_constants: {},
+        },
+      },
+    });
   }
 }
 
