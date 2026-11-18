@@ -18,20 +18,32 @@ import { randomUUID } from 'crypto';
 
 /**
  * Build the exact JSON envelope Exotel's VoiceBot webhook validator expects.
- * Required top-level string fields: http_code, method, request_id.
+ * Validates:
+ * - http_code (number)
+ * - method (string)
+ * - request_id (string)
+ * - response.http_code (number)
+ * - response.data (object)
  */
 function exotelWebhookResponse(
   method: string,
   data: Record<string, any> = {},
   extra: Record<string, any> = {},
 ): Record<string, any> {
+  const reqId = randomUUID();
   return {
     http_code: 200,
     method,
-    request_id: randomUUID(),
+    request_id: reqId,
     success: true,
     ...extra,
-    response: { data },
+    response: {
+      http_code: 200,
+      method,
+      request_id: reqId,
+      status: 'success',
+      data,
+    },
   };
 }
 
