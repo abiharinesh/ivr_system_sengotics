@@ -14,6 +14,26 @@ import type { Response } from 'express';
 import { IvrExceptionFilter } from './ivr-exception.filter';
 import { VoiceProcessingService } from '../voice-processing/voice-processing.service';
 import { WardIdentificationService } from '../voice-processing/ward-identification.service';
+import { randomUUID } from 'crypto';
+
+/**
+ * Build the exact JSON envelope Exotel's VoiceBot webhook validator expects.
+ * Required top-level string fields: http_code, method, request_id.
+ */
+function exotelWebhookResponse(
+  method: string,
+  data: Record<string, any> = {},
+  extra: Record<string, any> = {},
+): Record<string, any> {
+  return {
+    http_code: 200,
+    method,
+    request_id: randomUUID(),
+    success: true,
+    ...extra,
+    response: { data },
+  };
+}
 
 /**
  * IVR Controller — all Exotel-facing endpoints.
@@ -528,36 +548,16 @@ export class IvrController {
     try {
       this.logger.log(`[BOT-WEBHOOK] Session end received: ${JSON.stringify(body).slice(0, 200)}...`);
       await this.ivrService.handleBotSessionEnd(body);
-      return res.status(200).json({
-        http_code: 200,
-        method: 'session_end',
-        success: true,
-        message: 'Session end processed successfully',
-        response: {
-          data: {},
-        },
-      });
+      return res.status(200).json(exotelWebhookResponse('session_end', {}, { message: 'Session end processed successfully' }));
     } catch (err) {
       this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
-      return res.status(200).json({
-        http_code: 200,
-        method: 'session_end',
-        success: true,
-      });
+      return res.status(200).json(exotelWebhookResponse('session_end'));
     }
   }
 
   @Get('bot/session-end')
   async handleBotSessionEndGet(@Res() res: Response) {
-    return res.status(200).json({
-      http_code: 200,
-      method: 'session_end',
-      success: true,
-      message: 'Session end endpoint active',
-      response: {
-        data: {},
-      },
-    });
+    return res.status(200).json(exotelWebhookResponse('session_end', {}, { message: 'Session end endpoint active' }));
   }
 
   @Post('bot/webhook')
@@ -565,40 +565,16 @@ export class IvrController {
     try {
       this.logger.log(`[BOT-WEBHOOK] Generic webhook received: ${JSON.stringify(body).slice(0, 200)}...`);
       await this.ivrService.handleBotSessionEnd(body);
-      return res.status(200).json({
-        http_code: 200,
-        method: 'session_start',
-        success: true,
-        message: 'Webhook received',
-        response: {
-          data: {
-            session_constants: {},
-          },
-        },
-      });
+      return res.status(200).json(exotelWebhookResponse('session_start', { session_constants: {} }, { message: 'Webhook received' }));
     } catch (err) {
       this.logger.error(`[BOT-WEBHOOK] Error: ${(err as Error).message}`);
-      return res.status(200).json({
-        http_code: 200,
-        method: 'session_start',
-        success: true,
-      });
+      return res.status(200).json(exotelWebhookResponse('session_start'));
     }
   }
 
   @Get('bot/webhook')
   async handleBotGenericWebhookGet(@Res() res: Response) {
-    return res.status(200).json({
-      http_code: 200,
-      method: 'session_start',
-      success: true,
-      message: 'Webhook endpoint active',
-      response: {
-        data: {
-          session_constants: {},
-        },
-      },
-    });
+    return res.status(200).json(exotelWebhookResponse('session_start', { session_constants: {} }, { message: 'Webhook endpoint active' }));
   }
 }
 
